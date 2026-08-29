@@ -1,5 +1,5 @@
 {
-  "endpoint": "https://reproduced-raised-questionnaire-adsl.trycloudflare.com",
-  "inference": "https://reproduced-raised-questionnaire-adsl.trycloudflare.com/inference",
-  "telemetry": "https://reproduced-raised-questionnaire-adsl.trycloudflare.com/telemetry"
+  "endpoint": "https://api.trycloudflare.com",
+  "inference": "https://api.trycloudflare.com/inference",
+  "telemetry": "https://api.trycloudflare.com/telemetry"
 }
