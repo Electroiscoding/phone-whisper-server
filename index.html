@@ -2128,6 +2128,165 @@ bash mobile/start_ai.sh</code></pre>
 
     // 100% Permanent Immortal Cloudflare Worker Gateway (Used across Demo & Telemetry)
     const BASE_ENDPOINT = "https://black-term-8c36.botmaker583-55e.workers.dev";
+
+    // =========================================================================
+    // 💬 QWEN 2.5 SLM CHAT HANDLER
+    // =========================================================================
+    function setPrompt(text) {
+      const inputEl = document.getElementById("chatInput");
+      if (inputEl) {
+        inputEl.value = text;
+        sendChatPrompt();
+      }
+    }
+    window.setPrompt = setPrompt;
+
+    async function sendChatPrompt() {
+      const inputEl = document.getElementById("chatInput");
+      const text = inputEl ? inputEl.value.trim() : "";
+      if (!text) return;
+
+      const chatBox = document.getElementById("chatBoxArea");
+      
+      // User bubble
+      const userBubble = document.createElement("div");
+      userBubble.className = "chat-bubble user";
+      userBubble.innerText = text;
+      chatBox.appendChild(userBubble);
+      inputEl.value = "";
+
+      // AI bubble placeholder
+      const aiBubble = document.createElement("div");
+      aiBubble.className = "chat-bubble ai";
+      aiBubble.innerHTML = "<span style='color: var(--primary); font-weight: 600;'>🧠 Generating on phone CPU...</span>";
+      chatBox.appendChild(aiBubble);
+      chatBox.scrollTop = chatBox.scrollHeight;
+
+      const btn = document.getElementById("sendChatBtn");
+      if (btn) btn.disabled = true;
+
+      try {
+        const t0 = performance.now();
+        const res = await fetch(`${BASE_ENDPOINT}/v1/chat/completions`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            messages: [{ role: "user", content: text }],
+            temperature: 0.7,
+            max_tokens: 150
+          })
+        });
+
+        if (!res.ok) throw new Error(`HTTP status ${res.status}`);
+        const data = await res.json();
+        const reply = data.choices && data.choices[0] ? data.choices[0].message.content.trim() : JSON.stringify(data);
+        const elapsed = ((performance.now() - t0) / 1000).toFixed(2);
+        aiBubble.innerHTML = `<div>${reply.replace(/\n/g, '<br/>')}</div><div style="font-size: 0.75rem; color: var(--text-subtle); margin-top: 0.5rem; font-family: 'JetBrains Mono', monospace;">⚡ Generated in ${elapsed}s on Qwen 2.5 0.5B</div>`;
+      } catch (err) {
+        aiBubble.innerHTML = `<span style="color: var(--danger);">❌ Generation failed: ${err.message}</span>`;
+      } finally {
+        if (btn) btn.disabled = false;
+        chatBox.scrollTop = chatBox.scrollHeight;
+      }
+    }
+    window.sendChatPrompt = sendChatPrompt;
+
+    // =========================================================================
+    // 🗣️ TEXT-TO-SPEECH (TTS) HANDLER
+    // =========================================================================
+    async function generateSpeech() {
+      const textEl = document.getElementById("ttsInputText");
+      const text = textEl ? textEl.value.trim() : "";
+      if (!text) return;
+
+      const speedEl = document.getElementById("ttsSpeedSelect");
+      const speed = speedEl ? parseFloat(speedEl.value) : 1.0;
+      const btn = document.getElementById("generateTtsBtn");
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = "<span>⏳ Synthesizing Audio...</span>";
+      }
+
+      try {
+        const res = await fetch(`${BASE_ENDPOINT}/v1/audio/speech`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ input: text, speed })
+        });
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const blob = await res.blob();
+        const audioUrl = URL.createObjectURL(blob);
+
+        const playerBox = document.getElementById("ttsAudioPlayerBox");
+        const audioElement = document.getElementById("ttsAudioElement");
+        const downloadLink = document.getElementById("ttsDownloadLink");
+
+        if (audioElement && downloadLink && playerBox) {
+          audioElement.src = audioUrl;
+          downloadLink.href = audioUrl;
+          playerBox.style.display = "flex";
+          audioElement.play().catch(() => {});
+        }
+      } catch (err) {
+        alert("TTS synthesis error: " + err.message);
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = "<span>🔊 Generate & Speak</span>";
+        }
+      }
+    }
+    window.generateSpeech = generateSpeech;
+
+    // =========================================================================
+    // 🔍 VECTOR EMBEDDINGS & SIMILARITY HANDLER
+    // =========================================================================
+    async function computeSimilarity() {
+      const textA = document.getElementById("embTextA").value.trim();
+      const textB = document.getElementById("embTextB").value.trim();
+      if (!textA || !textB) return;
+
+      const percentEl = document.getElementById("simPercentVal");
+      const gaugeFill = document.getElementById("simGaugeFill");
+      const dimLabel = document.getElementById("simDimLabel");
+      
+      if (percentEl) percentEl.innerText = "Computing...";
+
+      try {
+        const [resA, resB] = await Promise.all([
+          fetch(`${BASE_ENDPOINT}/v1/embeddings`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ input: textA })
+          }).then(r => r.json()),
+          fetch(`${BASE_ENDPOINT}/v1/embeddings`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ input: textB })
+          }).then(r => r.json())
+        ]);
+
+        const vA = resA.data[0].embedding;
+        const vB = resB.data[0].embedding;
+
+        let dot = 0, nA = 0, nB = 0;
+        for (let i = 0; i < vA.length; i++) {
+          dot += vA[i] * vB[i];
+          nA += vA[i] * vA[i];
+          nB += vB[i] * vB[i];
+        }
+        const score = Math.max(0, Math.min(1, dot / (Math.sqrt(nA) * Math.sqrt(nB))));
+        const pct = (score * 100).toFixed(1);
+
+        if (percentEl) percentEl.innerText = `${pct}% Match`;
+        if (gaugeFill) gaugeFill.style.width = `${pct}%`;
+        if (dimLabel) dimLabel.innerText = `Vector Space: ${vA.length} Dimensions (Cosine Sim: ${score.toFixed(4)})`;
+      } catch (err) {
+        if (percentEl) percentEl.innerText = "Error: " + err.message;
+      }
+    }
+    window.computeSimilarity = computeSimilarity;
     const API_ENDPOINT = `${BASE_ENDPOINT}/inference`;
     const TELEMETRY_ENDPOINT = `${BASE_ENDPOINT}/telemetry`;
 
