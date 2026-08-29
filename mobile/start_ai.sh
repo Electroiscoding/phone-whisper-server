@@ -2,22 +2,22 @@
 export PREFIX=/data/data/com.termux/files/usr
 export PATH=$PREFIX/bin:$PATH
 export HOME=/data/data/com.termux/files/home
-export LD_LIBRARY_PATH=$HOME/whisper.cpp/build:$HOME/whisper.cpp/build/bin:$PREFIX/lib
+export LD_LIBRARY_PATH=$HOME/whisper.cpp/build:$HOME/whisper.cpp/build/bin:$HOME/llama.cpp/build/bin:$PREFIX/lib
 
 # 1. Acquire Android Partial WakeLock
 termux-wake-lock 2>/dev/null || true
 
-# 2. Kill old instances
-killall -9 whisper-server cloudflared python3 2>/dev/null || true
+# 2. Kill old instances cleanly
+killall -9 whisper-server llama-server cloudflared python3 2>/dev/null || true
 sleep 1
 
-# 3. Start whisper-server backend on port 8000
+# 3. Start Whisper Base.en STT Backend on Port 8000
 (
   while true; do
     if ! pgrep -f "whisper-server" > /dev/null; then
-      echo "$(date): Starting whisper-server..." >> $HOME/whisper.log
+      echo "$(date): Starting Whisper-Server (Base.en 148MB)..." >> $HOME/whisper.log
       $HOME/whisper.cpp/build/bin/whisper-server \
-        -m $HOME/whisper.cpp/models/ggml-tiny.en.bin \
+        -m $HOME/whisper.cpp/models/ggml-base.en.bin \
         --port 8000 \
         --host 127.0.0.1 \
         -t 4 >> $HOME/whisper.log 2>&1
@@ -28,11 +28,32 @@ sleep 1
 
 sleep 1
 
-# 4. Start Live Telemetry Gateway on port 8080
+# 4. Start Llama.cpp Qwen 2.5 SLM & Vector Embeddings on Port 8001
+(
+  while true; do
+    if ! pgrep -f "llama-server" > /dev/null; then
+      echo "$(date): Starting Llama-Server (Qwen 2.5 0.5B + Embeddings)..." >> $HOME/llama.log
+      $HOME/llama.cpp/build/bin/llama-server \
+        -m $HOME/models/qwen2.5-0.5b-instruct-q4_k_m.gguf \
+        --port 8001 \
+        --host 127.0.0.1 \
+        -t 4 \
+        -c 2048 \
+        --embedding \
+        --pooling mean \
+        -ngl 0 >> $HOME/llama.log 2>&1
+    fi
+    sleep 3
+  done
+) &
+
+sleep 1
+
+# 5. Start Multi-Modal Gateway on Port 8080
 (
   while true; do
     if ! pgrep -f "gateway.py" > /dev/null; then
-      echo "$(date): Starting gateway.py..." >> $HOME/gateway.log
+      echo "$(date): Starting Multi-Modal gateway.py..." >> $HOME/gateway.log
       python3 $HOME/gateway.py >> $HOME/gateway.log 2>&1
     fi
     sleep 3
@@ -41,7 +62,7 @@ sleep 1
 
 sleep 1
 
-# 5. Smart Self-Healing Cloudflare Tunnel
+# 6. Smart Self-Healing Cloudflare Tunnel
 (
   while true; do
     if ! pgrep -f "cloudflared tunnel" > /dev/null; then
@@ -60,7 +81,7 @@ sleep 1
   done
 ) &
 
-# 6. Autonomous Registry Broadcaster (Pushes live endpoint to GitHub automatically)
+# 7. Autonomous Registry Broadcaster (Pushes live endpoint to GitHub automatically)
 (
   LAST_URL=""
   while true; do
@@ -89,5 +110,5 @@ JSON_EOF
 ) &
 
 echo "=================================================="
-echo "🚀 24/7 Autonomous AI Whisper Server & Auto-Broadcaster Active"
+echo "🚀 24/7 Multi-Modal AI Datacenter Active (STT + SLM + TTS + Embeddings + Telemetry)"
 echo "=================================================="
