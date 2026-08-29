@@ -295,6 +295,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                                 break
                             self.wfile.write(chunk)
                             self.wfile.flush()
+                            if b"[DONE]" in chunk:
+                                break
                     except (BrokenPipeError, ConnectionResetError):
                         pass
                 else:
