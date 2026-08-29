@@ -547,63 +547,108 @@
       justify-content: center;
     }
 
+    .voice-modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: #000000;
+      z-index: 100;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(25px);
+      animation: fadeInModal 0.2s ease-out forwards;
+      user-select: none;
+    }
+
+    .voice-orb-container {
+      position: relative;
+      width: 190px;
+      height: 190px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      outline: none;
+    }
+
     .voice-orb-outer {
       position: absolute;
       width: 100%;
       height: 100%;
       border-radius: 50%;
-      background: radial-gradient(circle, var(--primary-glow) 0%, transparent 70%);
-      animation: orbPulse 2s infinite ease-in-out;
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0) 70%);
+      transform: scale(1);
+      opacity: 0.5;
+      transition: transform 0.1s ease-out, opacity 0.15s ease-out;
+      pointer-events: none;
     }
 
     .voice-orb-inner {
       width: 100px;
       height: 100px;
       border-radius: 50%;
-      background: linear-gradient(135deg, var(--primary), var(--accent));
+      background: #ffffff;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #fff;
-      font-size: 2rem;
-      box-shadow: 0 0 40px var(--primary-glow);
+      color: #000000;
+      box-shadow: 0 0 45px rgba(255, 255, 255, 0.35);
+      transition: transform 0.1s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.15s ease;
+      cursor: pointer;
     }
 
-    @keyframes orbPulse {
-      0%, 100% { transform: scale(1); opacity: 0.6; }
-      50% { transform: scale(1.35); opacity: 1; }
+    .voice-orb-inner svg {
+      fill: #000000;
     }
 
     .voice-modal-status {
-      margin-top: 2rem;
+      margin-top: 2.25rem;
       font-size: 1.25rem;
-      font-weight: 700;
-      color: #fff;
+      font-weight: 600;
+      color: #ffffff;
+      letter-spacing: -0.02em;
     }
 
     .voice-modal-transcript {
-      margin-top: 0.75rem;
+      margin-top: 0.6rem;
       font-size: 0.95rem;
-      color: var(--text-muted);
-      max-width: 500px;
+      color: #a1a1aa;
+      max-width: 460px;
       text-align: center;
-      min-height: 40px;
+      min-height: 44px;
+      line-height: 1.5;
+      padding: 0 1rem;
+    }
+
+    .voice-modal-hint {
+      margin-top: 0.35rem;
+      font-size: 0.72rem;
+      color: #52525b;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
     }
 
     .voice-modal-close {
-      margin-top: 2.5rem;
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid var(--card-border);
-      color: #fff;
-      padding: 0.6rem 1.4rem;
+      margin-top: 2.25rem;
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      color: #ffffff;
+      padding: 0.6rem 1.6rem;
       border-radius: 9999px;
-      font-weight: 600;
+      font-size: 0.85rem;
+      font-weight: 500;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all 0.2s ease;
     }
 
     .voice-modal-close:hover {
-      background: rgba(255, 255, 255, 0.2);
+      background: #ffffff;
+      color: #000000;
+      border-color: #ffffff;
     }
 
     /* Dropdown Menu */
@@ -709,12 +754,12 @@
     </div>
   </div>
 
-  <!-- PURE VOICE MODE MODAL OVERLAY -->
+  <!-- PURE MONOCHROME VOICE MODE MODAL OVERLAY -->
   <div class="voice-modal-overlay" id="voiceModalOverlay">
-    <div class="voice-orb-container">
-      <div class="voice-orb-outer"></div>
-      <div class="voice-orb-inner">
-        <svg viewBox="0 0 24 24" width="40" height="40" fill="currentColor">
+    <div class="voice-orb-container" id="voiceOrbContainer" onclick="triggerImmediateVoiceCut()" title="Click to send instantly">
+      <div class="voice-orb-outer" id="voiceOrbOuter"></div>
+      <div class="voice-orb-inner" id="voiceOrbInner">
+        <svg viewBox="0 0 24 24" width="36" height="36">
           <rect x="4" y="9" width="2.5" height="6" rx="1.25"></rect>
           <rect x="8" y="5" width="2.5" height="14" rx="1.25"></rect>
           <rect x="12" y="3" width="2.5" height="18" rx="1.25"></rect>
@@ -723,8 +768,9 @@
         </svg>
       </div>
     </div>
-    <div class="voice-modal-status" id="voiceModalStatus">Listening...</div>
-    <div class="voice-modal-transcript" id="voiceModalTranscript">Speak freely — your voice is transcribed on-device by OpenAI Whisper Base.en.</div>
+    <div class="voice-modal-status" id="voiceModalStatus">Listening</div>
+    <div class="voice-modal-transcript" id="voiceModalTranscript">Speak naturally...</div>
+    <div class="voice-modal-hint" id="voiceModalHint">Tap circle to finish instantly</div>
     <button class="voice-modal-close" onclick="closePureVoiceMode()">End Voice Chat</button>
   </div>
 
@@ -1147,6 +1193,8 @@
     // =========================================================================
     // 🔘 PURE VOICE CHAT MODE (WHISPER -> QWEN -> TTS AUDIO LOOP)
     // =========================================================================
+    let activeVoiceCutFn = null;
+
     function openPureVoiceMode() {
       voiceModeActive = true;
       const modal = document.getElementById("voiceModalOverlay");
@@ -1156,6 +1204,10 @@
 
     function closePureVoiceMode() {
       voiceModeActive = false;
+      if (activeVoiceCutFn) {
+        try { activeVoiceCutFn(true); } catch (_) {}
+        activeVoiceCutFn = null;
+      }
       const modal = document.getElementById("voiceModalOverlay");
       modal.style.display = "none";
       stopVoiceRecording();
@@ -1163,47 +1215,102 @@
       audio.pause();
     }
 
+    function triggerImmediateVoiceCut() {
+      if (activeVoiceCutFn) {
+        activeVoiceCutFn(false);
+      }
+    }
+    window.triggerImmediateVoiceCut = triggerImmediateVoiceCut;
+
     async function startPureVoiceLoop() {
       if (!voiceModeActive) return;
       const statusEl = document.getElementById("voiceModalStatus");
       const transcriptEl = document.getElementById("voiceModalTranscript");
-      statusEl.innerText = "Listening...";
-      transcriptEl.innerText = "Speak now — phone is listening...";
+      const orbInner = document.getElementById("voiceOrbInner");
+      const orbOuter = document.getElementById("voiceOrbOuter");
+
+      statusEl.innerText = "Listening";
+      transcriptEl.innerText = "Speak naturally...";
+      if (orbInner) orbInner.style.transform = "scale(1)";
+      if (orbOuter) { orbOuter.style.transform = "scale(1)"; orbOuter.style.opacity = "0.4"; }
+
+      let loopCtx = null;
+      let loopStream = null;
 
       try {
-        const loopCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const loopStream = await navigator.mediaDevices.getUserMedia({
-          audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true }
+        loopCtx = new (window.AudioContext || window.webkitAudioContext)();
+        loopStream = await navigator.mediaDevices.getUserMedia({
+          audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true }
         });
-        
+
         const src = loopCtx.createMediaStreamSource(loopStream);
-        const proc = loopCtx.createScriptProcessor(4096, 1, 1);
+        const proc = loopCtx.createScriptProcessor(2048, 1, 1);
         let loopChunks = [];
+        let hasSpoken = false;
+        let speechStartTime = 0;
+        let silenceStartTime = 0;
+        let isProcessingTurn = false;
 
         proc.onaudioprocess = (e) => {
-          if (!voiceModeActive) return;
-          loopChunks.push(new Float32Array(e.inputBuffer.getChannelData(0)));
+          if (!voiceModeActive || isProcessingTurn) return;
+          const chData = e.inputBuffer.getChannelData(0);
+          loopChunks.push(new Float32Array(chData));
+
+          // Real-time RMS Energy calculation for VAD & Reactive UI
+          let sumSquares = 0;
+          for (let i = 0; i < chData.length; i++) sumSquares += chData[i] * chData[i];
+          const rms = Math.sqrt(sumSquares / chData.length);
+          const now = Date.now();
+
+          // Audio-reactive orb animation
+          if (orbInner && orbOuter) {
+            const scale = Math.min(1.4, 1.0 + rms * 3.5);
+            orbInner.style.transform = `scale(${scale})`;
+            orbOuter.style.transform = `scale(${scale * 1.25})`;
+            orbOuter.style.opacity = `${Math.min(0.9, 0.3 + rms * 2.5)}`;
+          }
+
+          // Voice Activity Detection (VAD)
+          if (rms > 0.02) {
+            if (!hasSpoken) {
+              hasSpoken = true;
+              speechStartTime = now;
+            }
+            silenceStartTime = 0;
+          } else if (hasSpoken) {
+            if (!silenceStartTime) silenceStartTime = now;
+            // Auto-finish after 800ms silence or max 12s duration
+            if (now - silenceStartTime > 800 || (now - speechStartTime > 12000)) {
+              finishTurn(false);
+            }
+          }
         };
 
         src.connect(proc);
         proc.connect(loopCtx.destination);
 
-        // Record 4-second audio window for conversational voice turn
-        setTimeout(async () => {
-          if (!voiceModeActive) {
+        const finishTurn = async (abort) => {
+          if (isProcessingTurn) return;
+          isProcessingTurn = true;
+          activeVoiceCutFn = null;
+
+          try {
             proc.disconnect();
             src.disconnect();
             loopStream.getTracks().forEach(t => t.stop());
-            if (loopCtx) loopCtx.close();
-            return;
-          }
+            if (loopCtx && loopCtx.state !== 'closed') loopCtx.close();
+          } catch (_) {}
 
-          proc.disconnect();
-          src.disconnect();
-          loopStream.getTracks().forEach(t => t.stop());
+          if (abort || !voiceModeActive) return;
 
           let totalLength = 0;
           for (const chunk of loopChunks) totalLength += chunk.length;
+          if (totalLength < 16000 * 0.4) {
+            // Audio too short (<400ms)
+            if (voiceModeActive) setTimeout(startPureVoiceLoop, 300);
+            return;
+          }
+
           const mergedPcm = new Float32Array(totalLength);
           let offset = 0;
           for (const chunk of loopChunks) {
@@ -1211,11 +1318,14 @@
             offset += chunk.length;
           }
 
-          const resampled = resampleTo16k(mergedPcm, loopCtx.sampleRate);
+          const resampled = resampleTo16k(mergedPcm, loopCtx ? loopCtx.sampleRate : 48000);
           const wavBlob = encodeToWav(resampled, 16000);
-          if (loopCtx) loopCtx.close();
 
-          statusEl.innerText = "Transcribing with OpenAI Whisper Base.en...";
+          statusEl.innerText = "Thinking";
+          transcriptEl.innerText = "Transcribing...";
+          if (orbInner) orbInner.style.transform = "scale(0.95)";
+          if (orbOuter) orbOuter.style.opacity = "0.2";
+
           const fd = new FormData();
           fd.append("file", wavBlob, "voice.wav");
           fd.append("temperature", "0.0");
@@ -1226,31 +1336,33 @@
             if (!sttRes.ok) throw new Error(`STT HTTP ${sttRes.status}`);
             const sttData = await sttRes.json();
             const userSaid = sttData.text ? sttData.text.trim() : "";
+            
             if (!userSaid) {
-              statusEl.innerText = "Didn't catch that.";
-              if (voiceModeActive) setTimeout(startPureVoiceLoop, 1000);
+              statusEl.innerText = "Listening";
+              transcriptEl.innerText = "Speak naturally...";
+              if (voiceModeActive) setTimeout(startPureVoiceLoop, 300);
               return;
             }
 
-            transcriptEl.innerText = `You: "${userSaid}"`;
-            statusEl.innerText = "Thinking with Qwen 2.5...";
+            transcriptEl.innerText = `"${userSaid}"`;
 
-            // SLM Chat Call
+            // SLM Chat Stream / Response
             const chatRes = await fetch(`${BASE_ENDPOINT}/v1/chat/completions`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 messages: [
-                  { role: "system", content: "You are an autonomous voice AI. Give concise, conversational 1-2 sentence spoken answers." },
+                  { role: "system", content: "You are an intelligent, hyper-concise voice assistant. Respond with brief 1-2 sentence spoken answers only." },
                   { role: "user", content: userSaid }
                 ],
-                max_tokens: 100
+                max_tokens: 80
               })
             });
             const chatData = await chatRes.json();
             const reply = (chatData.choices && chatData.choices[0].message ? chatData.choices[0].message.content : "").trim();
-            transcriptEl.innerText = `AI: "${reply}"`;
-            statusEl.innerText = "Speaking...";
+            
+            transcriptEl.innerText = reply;
+            statusEl.innerText = "Speaking";
 
             // TTS Call
             const ttsRes = await fetch(`${BASE_ENDPOINT}/v1/audio/speech`, {
@@ -1261,21 +1373,34 @@
             const ttsBlob = await ttsRes.blob();
             const audio = document.getElementById("globalTtsAudio");
             audio.src = URL.createObjectURL(ttsBlob);
-            audio.play();
+            
+            // Pulse orb while speaking
+            audio.onplay = () => {
+              if (orbInner) orbInner.style.transform = "scale(1.15)";
+              if (orbOuter) { orbOuter.style.transform = "scale(1.35)"; orbOuter.style.opacity = "0.7"; }
+            };
             audio.onended = () => {
+              if (orbInner) orbInner.style.transform = "scale(1)";
+              if (orbOuter) { orbOuter.style.transform = "scale(1)"; orbOuter.style.opacity = "0.4"; }
               if (voiceModeActive) {
-                setTimeout(startPureVoiceLoop, 500);
+                setTimeout(startPureVoiceLoop, 300);
               }
             };
+            audio.play();
+
           } catch (e) {
-            statusEl.innerText = "Error: " + e.message;
-            if (voiceModeActive) setTimeout(startPureVoiceLoop, 2000);
+            statusEl.innerText = "Reconnecting";
+            transcriptEl.innerText = "Error: " + e.message;
+            if (voiceModeActive) setTimeout(startPureVoiceLoop, 1500);
           }
-        }, 4000);
+        };
+
+        activeVoiceCutFn = finishTurn;
 
       } catch (err) {
-        statusEl.innerText = "Mic error: " + err.message;
-        if (voiceModeActive) setTimeout(startPureVoiceLoop, 3000);
+        statusEl.innerText = "Mic Error";
+        transcriptEl.innerText = err.message;
+        if (voiceModeActive) setTimeout(startPureVoiceLoop, 2500);
       }
     }
   </script>
