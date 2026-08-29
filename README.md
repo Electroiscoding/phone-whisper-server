@@ -20,7 +20,7 @@
 
 | Mode | Engine / Model | Endpoint | Description |
 | :--- | :--- | :--- | :--- |
-| **🎙️ 1. Speech-to-Text (STT)** | `whisper.cpp` (`Base.en` 148MB) | `POST /inference` | High-accuracy speech transcription in real-time (~1.1s latency). |
+| **🎙️ 1. Speech-to-Text (STT)** | `SenseVoice.cpp` (`Alibaba SenseVoice-Small` 174MB) | `POST /inference` | High-accuracy speech transcription in real-time (~1.1s latency). |
 | **💬 2. SLM / Chat Assistant** | `llama.cpp` (`Qwen 2.5 0.5B Instruct`) | `POST /v1/chat/completions` | On-device conversational AI & code assistant (~20 tokens/sec). |
 | **🗣️ 3. Text-to-Speech (TTS)** | On-Device Neural Synthesis | `POST /v1/audio/speech` | Converts text to speech WAV/MP3 streams in ~50ms. |
 | **🔍 4. Vector Embeddings** | `Qwen 2.5` (Mean Pooling) | `POST /v1/embeddings` | Generates 896-dimensional dense vectors for semantic search & RAG. |
@@ -46,7 +46,7 @@ flowchart TD
     Client["Worldwide Developers & Users (Web, Python, Node, cURL)"] --> CF["Cloudflare Edge Worker (Permanent URL)"]
     CF --> Phone["Phone Supervisor Gateway (gateway.py :8080)"]
     
-    Phone -->|"/inference"| Whisper["whisper.cpp (:8000) [Whisper Base.en]"]
+    Phone -->|"/inference"| SenseVoice["SenseVoice.cpp (:8080) [SenseVoice-Small]"]
     Phone -->|"/v1/chat/completions"| LlamaChat["llama-server (:8001) [Qwen 2.5 SLM]"]
     Phone -->|"/v1/embeddings"| LlamaEmb["llama-server (:8001) [Vector Embeddings]"]
     Phone -->|"/v1/audio/speech"| TTS["On-Device Neural TTS (:8080)"]
@@ -148,6 +148,6 @@ curl "https://black-term-8c36.botmaker583-55e.workers.dev/telemetry"
 
 The on-device background supervisor script (`mobile/start_ai.sh`) guarantees **24/7/365 uptime**:
 * Runs inside persistent `tmux` session with `termux-wake-lock`.
-* Automatically recovers and restarts all 3 AI daemons (`whisper-server`, `llama-server`, `gateway.py`) if memory pressure occurs.
+* Automatically recovers and restarts all 3 AI daemons (`sense-voice`, `llama-server`, `gateway.py`) if memory pressure occurs.
 * If a power cut shuts down your Wi-Fi router, the supervisor detects the network drop and automatically reconnects within **4 seconds of Wi-Fi power returning**.
 * On full phone reboot, `~/.termux/boot/start_ai.sh` automatically launches the entire stack with zero human interaction!

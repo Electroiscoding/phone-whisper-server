@@ -11,10 +11,10 @@ echo "=================================================="
 echo "📱 PHONE AI HOST STATUS"
 echo "=================================================="
 
-if pgrep -f "whisper-server" > /dev/null; then
-  echo "Whisper Server : RUNNING (Port 8000)"
+if pgrep -f "SenseVoice" > /dev/null; then
+  echo "SenseVoice STT : RUNNING (Port 8000)"
 else
-  echo "Whisper Server : STOPPED"
+  echo "SenseVoice STT : STOPPED"
 fi
 
 if pgrep -f "cloudflared" > /dev/null; then
@@ -30,5 +30,5 @@ fi
 
 echo "--------------------------------------------------"
 echo "Active Process Details:"
-ps -ef | grep -E "whisper-server|cloudflared" | grep -v grep
+ps -ef | grep -E "SenseVoice|cloudflared" | grep -v grep
 echo "=================================================="

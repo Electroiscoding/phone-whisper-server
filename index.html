@@ -1776,7 +1776,7 @@
         </div>
         <div class="endpoint-body">
           <p style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 1rem;">
-            Transcribe raw audio files (WAV, MP3, OGG, M4A, AAC, WEBM) into text or formatted subtitle files using the on-device Whisper model.
+            Transcribe raw audio files (WAV, MP3, OGG, M4A, AAC, WEBM) into text or formatted subtitle files using the on-device Alibaba SenseVoice-Small model.
           </p>
 
           <h4 style="font-size: 0.85rem; text-transform: uppercase; color: var(--text-subtle); letter-spacing: 0.05em; margin-bottom: 0.5rem;">Request Headers</h4>
@@ -2016,7 +2016,7 @@
               </thead>
               <tbody>
                 <tr>
-                  <td><code>whisper-server</code></td>
+                  <td><code>sense-voice</code></td>
                   <td>7344</td>
                   <td id="procWhisperCpu">0.2%</td>
                   <td>141.2 MB (Base.en)</td>
@@ -2102,7 +2102,7 @@
         <div class="step-card">
           <div class="step-number">4</div>
           <div class="step-title">On-Device AI</div>
-          <div class="step-desc">Whisper C++ engine executes neural decode in phone RAM using 4 ARM CPU threads, returning structured text.</div>
+          <div class="step-desc">Alibaba SenseVoice-Small engine executes non-autoregressive neural decode in phone RAM using 4 ARM CPU threads, returning structured text.</div>
         </div>
       </div>
     </section>
@@ -2133,7 +2133,7 @@
 
 BASE_URL = "https://black-term-8c36.botmaker583-55e.workers.dev"
 
-# 1. Speech-to-Text (Whisper Base.en)
+# 1. Speech-to-Text (Alibaba SenseVoice-Small)
 def transcribe(audio_path: str):
     with open(audio_path, "rb") as f:
         res = requests.post(f"{BASE_URL}/inference", files={"file": f}, data={"temperature": "0.0"})
@@ -2927,7 +2927,7 @@ bash mobile/start_ai.sh</code></pre>
       isInferencing = true;
       latencyBadge.innerText = "Processing on phone MediaTek CPU...";
       outputContentArea.classList.remove("placeholder-mode");
-      outputContentArea.innerText = "⏳ Phone AI model is executing Whisper neural decode...";
+      outputContentArea.innerText = "⏳ Phone AI model is executing SenseVoice neural decode...";
 
       addTerminalLog("INFO", `[HTTP POST] Dispatching ${(selectedWavBlob.size / 1024).toFixed(1)}KB payload to Cloudflare QUIC edge...`);
 
@@ -2993,7 +2993,7 @@ bash mobile/start_ai.sh</code></pre>
       const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      a.download = `whisper_transcript.${ext}`;
+      a.download = `sensevoice_transcript.${ext}`;
       a.click();
     });
 
@@ -3038,7 +3038,7 @@ bash mobile/start_ai.sh</code></pre>
 
     addTerminalLog("INFO", "Telemetry service initialized. Querying phone hardware kernel...");
     addTerminalLog("INFO", "Cloudflare QUIC tunnel active (Anycast edge: del02).");
-    addTerminalLog("SUCCESS", "whisper-server listening on 127.0.0.1:8000 [4 NEON threads].");
+    addTerminalLog("SUCCESS", "SenseVoice.cpp engine ready on 127.0.0.1:8080 [4 NEON threads].");
     addTerminalLog("SUCCESS", "Android PARTIAL_WAKE_LOCK active. Doze whitelisted.");
 
     function drawGraph(canvas, ctx, data, maxVal, colorGradient, strokeColor) {
