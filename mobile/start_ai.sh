@@ -31,7 +31,7 @@ sleep 1
 
 sleep 1
 
-# 4. Start BAAI BGE-Small-en-v1.5 on Port 8002 (Dedicated Isotropic Embeddings with CLS Pooling)
+# 4. Start BAAI BGE-Small-en-v1.5 on Port 8002 (Dedicated Isotropic Embeddings)
 (
   while true; do
     if ! pgrep -f "8002" > /dev/null; then
@@ -52,7 +52,28 @@ sleep 1
 
 sleep 1
 
-# 5. Start Multi-Modal Gateway with SenseVoice-Small STT + Qwen + BGE on Port 8080
+# 5. Start BAAI BGE-Reranker-Base on Port 8003 (Deep Cross-Attention NLI Reranker)
+(
+  while true; do
+    if ! pgrep -f "8003" > /dev/null; then
+      echo "$(date): Starting BGE-Reranker-Base (Cross-Encoder on :8003)..." >> $HOME/llama_rerank.log
+      $HOME/llama.cpp/build/bin/llama-server \
+        -m $HOME/models/bge-reranker-base-q4_k_m.gguf \
+        --port 8003 \
+        --host 127.0.0.1 \
+        -t 4 \
+        -c 512 \
+        --reranking \
+        --pooling rank \
+        -ngl 0 >> $HOME/llama_rerank.log 2>&1
+    fi
+    sleep 5
+  done
+) &
+
+sleep 1
+
+# 6. Start Multi-Modal Gateway with SenseVoice STT + Qwen + BGE Embeddings + Reranker + TTS on Port 8080
 (
   while true; do
     if ! pgrep -f "gateway.py" > /dev/null; then
@@ -65,7 +86,7 @@ sleep 1
 
 sleep 1
 
-# 6. Persistent Cloudflare Tunnel (Starts ONCE and NEVER killed by watchdog)
+# 7. Persistent Cloudflare Tunnel (Starts ONCE and NEVER killed by watchdog)
 (
   while true; do
     if ! pgrep -f "cloudflared tunnel" > /dev/null; then
@@ -76,7 +97,7 @@ sleep 1
   done
 ) &
 
-# 7. Broadcaster (Pushes URL to GitHub ONLY ONCE when URL changes)
+# 8. Broadcaster (Pushes URL to GitHub ONLY ONCE when URL changes)
 (
   LAST_URL=""
   while true; do
@@ -105,5 +126,5 @@ JSON_EOF
 ) &
 
 echo "=================================================="
-echo "🚀 24/7 Multi-Modal AI Datacenter Active (SenseVoice STT + Qwen Chat + BGE Embeddings + TTS)"
+echo "🚀 6-in-1 Autonomous Mobile AI Datacenter Active (SenseVoice STT + Qwen Chat + BGE Embeddings + Cross-Encoder Reranker + TTS + Telemetry)"
 echo "=================================================="

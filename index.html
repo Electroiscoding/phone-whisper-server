@@ -2513,6 +2513,8 @@ bash mobile/start_ai.sh</code></pre>
     // =========================================================================
     // 🔍 VECTOR EMBEDDINGS & SIMILARITY HANDLER
     // =========================================================================
+    // 🧠 VECTOR & CROSS-ENCODER SEMANTIC INTELLIGENCE STUDIO
+    // =========================================================================
     async function computeSimilarity() {
       const textA = document.getElementById("embTextA").value.trim();
       const textB = document.getElementById("embTextB").value.trim();
@@ -2522,12 +2524,19 @@ bash mobile/start_ai.sh</code></pre>
       const gaugeFill = document.getElementById("simGaugeFill");
       const dimLabel = document.getElementById("simDimLabel");
       
-      if (percentEl) percentEl.innerText = "Computing...";
+      if (percentEl) percentEl.innerText = "Computing Deep Attention...";
 
       try {
         isInferencing = true;
-        activeDaemon = "llama";
-        const [resA, resB] = await Promise.all([
+        activeDaemon = "reranker";
+        
+        // Execute Cross-Encoder Reranker + Bi-Encoder Embeddings in parallel
+        const [rerankRes, embResA, embResB] = await Promise.all([
+          fetch(`${BASE_ENDPOINT}/v1/rerank`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ query: textA, documents: [textB] })
+          }).then(r => r.json()).catch(() => null),
           fetch(`${BASE_ENDPOINT}/v1/embeddings`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -2540,8 +2549,8 @@ bash mobile/start_ai.sh</code></pre>
           }).then(r => r.json())
         ]);
 
-        const vA = resA.data[0].embedding;
-        const vB = resB.data[0].embedding;
+        const vA = embResA.data[0].embedding;
+        const vB = embResB.data[0].embedding;
 
         let dot = 0, nA = 0, nB = 0;
         for (let i = 0; i < vA.length; i++) {
@@ -2550,13 +2559,24 @@ bash mobile/start_ai.sh</code></pre>
           nB += vB[i] * vB[i];
         }
         const rawSim = dot / (Math.sqrt(nA) * Math.sqrt(nB));
-        // Isotropic Contrast Calibration (Anisotropy baseline subtraction)
-        const calibratedScore = Math.max(0, Math.min(1, (rawSim - 0.45) / 0.55));
-        const pct = (calibratedScore * 100).toFixed(1);
 
-        if (percentEl) percentEl.innerText = `${pct}% Match`;
-        if (gaugeFill) gaugeFill.style.width = `${pct}%`;
-        if (dimLabel) dimLabel.innerText = `Vector Space: ${vA.length} Dimensions • BAAI BGE-Small-en-v1.5 (Raw Cosine: ${rawSim.toFixed(4)})`;
+        // If Cross-Encoder Reranker returned result, use Deep Cross-Attention probability
+        let finalPercent = 0;
+        let scoreDetails = "";
+        if (rerankRes && rerankRes.results && rerankRes.results.length > 0) {
+          const item = rerankRes.results[0];
+          finalPercent = typeof item.percentage === "number" ? item.percentage.toFixed(1) : (item.score * 100).toFixed(1);
+          const logit = item.raw_logit !== undefined ? item.raw_logit.toFixed(2) : item.relevance_score.toFixed(2);
+          scoreDetails = `Deep Cross-Encoder (Logit: ${logit}) • 384-D Vector Space (Cosine: ${rawSim.toFixed(4)})`;
+        } else {
+          const calibratedScore = Math.max(0, Math.min(1, (rawSim - 0.45) / 0.55));
+          finalPercent = (calibratedScore * 100).toFixed(1);
+          scoreDetails = `Vector Space: ${vA.length} Dimensions • BAAI BGE-Small (Raw Cosine: ${rawSim.toFixed(4)})`;
+        }
+
+        if (percentEl) percentEl.innerText = `${finalPercent}% Match`;
+        if (gaugeFill) gaugeFill.style.width = `${Math.min(100, Math.max(0, finalPercent))}%`;
+        if (dimLabel) dimLabel.innerText = scoreDetails;
       } catch (err) {
         if (percentEl) percentEl.innerText = "Error: " + err.message;
       } finally {

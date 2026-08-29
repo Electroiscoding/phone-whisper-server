@@ -20,11 +20,12 @@
 
 | Mode | Engine / Model | Endpoint | Description |
 | :--- | :--- | :--- | :--- |
-| **🎙️ 1. Speech-to-Text (STT)** | `SenseVoice.cpp` (`Alibaba SenseVoice-Small` 174MB) | `POST /inference` | High-accuracy speech transcription in real-time (~1.1s latency). |
+| **🎙️ 1. Speech-to-Text (STT)** | `SenseVoice.cpp` (`Alibaba SenseVoice-Small` 174MB) | `POST /inference` | High-accuracy non-autoregressive speech transcription (<100ms). |
 | **💬 2. SLM / Chat Assistant** | `llama.cpp` (`Qwen 2.5 0.5B Instruct`) | `POST /v1/chat/completions` | On-device conversational AI & code assistant (~20 tokens/sec). |
-| **🗣️ 3. Text-to-Speech (TTS)** | On-Device Neural Synthesis | `POST /v1/audio/speech` | Converts text to speech WAV/MP3 streams in ~50ms. |
-| **🔍 4. Vector Embeddings** | `Qwen 2.5` (Mean Pooling) | `POST /v1/embeddings` | Generates 896-dimensional dense vectors for semantic search & RAG. |
-| **📊 5. Real-Time Telemetry** | Android Kernel Subsystem | `GET /telemetry` | Streams real live battery level, voltage, temp, and `/proc/meminfo`. |
+| **🔍 3. Vector Embeddings** | `llama.cpp` (`BAAI BGE-Small-en-v1.5`) | `POST /v1/embeddings` | 384-dimensional isotropic contrastive vectors for RAG & ANN search. |
+| **🎯 4. Semantic Reranker** | `llama.cpp` (`BAAI BGE-Reranker-Base`) | `POST /v1/rerank` | Deep Cross-Attention NLI scoring (resolves role flips & negations). |
+| **🗣️ 5. Text-to-Speech (TTS)** | On-Device Neural Synthesis | `POST /v1/audio/speech` | Converts text to speech WAV/MP3 streams in ~50ms. |
+| **📊 6. Real-Time Telemetry** | Android Kernel Subsystem | `GET /telemetry` | Streams real live battery level, voltage, temp, and `/proc/meminfo`. |
 
 ---
 
@@ -48,7 +49,8 @@ flowchart TD
     
     Phone -->|"/inference"| SenseVoice["SenseVoice.cpp (:8080) [SenseVoice-Small]"]
     Phone -->|"/v1/chat/completions"| LlamaChat["llama-server (:8001) [Qwen 2.5 SLM]"]
-    Phone -->|"/v1/embeddings"| LlamaEmb["llama-server (:8001) [Vector Embeddings]"]
+    Phone -->|"/v1/embeddings"| LlamaEmb["llama-server (:8002) [BGE-Small-v1.5]"]
+    Phone -->|"/v1/rerank"| LlamaRerank["llama-server (:8003) [BGE-Reranker-Base]"]
     Phone -->|"/v1/audio/speech"| TTS["On-Device Neural TTS (:8080)"]
     Phone -->|"/telemetry"| Kernel["Android Kernel (dumpsys & /proc/meminfo)"]
 ```

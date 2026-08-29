@@ -23,6 +23,7 @@ from socketserver import ThreadingMixIn
 WHISPER_URL = "http://127.0.0.1:8000"
 LLAMA_URL = "http://127.0.0.1:8001"
 BGE_EMBED_URL = "http://127.0.0.1:8002"
+BGE_RERANK_URL = "http://127.0.0.1:8003"
 TELEMETRY_PATHS = [
     "/sdcard/battery_telemetry.json",
     "/data/local/tmp/battery_telemetry.json",
@@ -72,9 +73,11 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.proxy_whisper()
         elif path == "/v1/chat/completions":
             self.proxy_llama_chat()
-        elif path == "/v1/embeddings":
+        elif path in ["/v1/embeddings", "/embeddings"]:
             self.proxy_llama_embeddings()
-        elif path == "/v1/audio/speech":
+        elif path in ["/v1/rerank", "/rerank"]:
+            self.proxy_bge_rerank()
+        elif path in ["/v1/audio/speech", "/speech"]:
             self.handle_tts()
         elif path == "/load":
             self.proxy_whisper_load()
@@ -94,6 +97,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 "stt": {"endpoint": "/v1/audio/transcriptions", "model": "Alibaba SenseVoice-Small Q4_K (GGUF)", "status": "ACTIVE"},
                 "slm_chat": {"endpoint": "/v1/chat/completions", "model": "Qwen 2.5 0.5B Instruct (Streaming SSE)", "status": "ACTIVE"},
                 "embeddings": {"endpoint": "/v1/embeddings", "model": "BAAI BGE-Small-en-v1.5 (Contrastive Isotropic Embeddings, 384-Dim)", "status": "ACTIVE"},
+                "reranker": {"endpoint": "/v1/rerank", "model": "BAAI BGE-Reranker-Base (Deep Cross-Attention NLI)", "status": "ACTIVE"},
                 "tts": {"endpoint": "/v1/audio/speech", "engine": "On-Device Neural Speech Synth", "status": "ACTIVE"},
                 "telemetry": {"endpoint": "/telemetry", "source": "Live Android Kernel & Global Workload Engine", "status": "ACTIVE"}
             },
@@ -368,6 +372,61 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.send_header("Content-Type", "application/json")
             self.end_headers()
             self.wfile.write(json.dumps({"error": f"LLM backend unreachable: {str(e)}"}).encode())
+        finally:
+            with _state_lock:
+                _active_inferences = max(0, _active_inferences - 1)
+                if _active_inferences == 0:
+                    _active_daemon = "idle"
+                _total_requests += 1
+
+    def proxy_bge_rerank(self):
+        """Proxies Cross-Encoder BGE-Reranker with automatic Sigmoid score calibration."""
+        global _active_inferences, _active_daemon, _total_requests
+        with _state_lock:
+            _active_inferences += 1
+            _active_daemon = "BGE-Reranker (Cross-Encoder)"
+
+        try:
+            content_length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(content_length) if content_length > 0 else b"{}"
+            headers = {"Content-Type": "application/json"}
+            
+            req = urllib.request.Request(f"{BGE_RERANK_URL}/v1/rerank", data=body, headers=headers, method="POST")
+            with urllib.request.urlopen(req, timeout=60) as resp:
+                raw_json = json.loads(resp.read().decode("utf-8"))
+                
+                # Calibrate logits with Sigmoid for intuitive 0-100% semantic score
+                if "results" in raw_json:
+                    import math
+                    for item in raw_json["results"]:
+                        logit = item.get("relevance_score", 0.0)
+                        prob = 1.0 / (1.0 + math.exp(-max(-30.0, min(30.0, logit))))
+                        item["raw_logit"] = logit
+                        item["relevance_score"] = logit
+                        item["score"] = round(prob, 4)
+                        item["percentage"] = round(prob * 100.0, 2)
+                
+                resp_bytes = json.dumps(raw_json).encode("utf-8")
+                self.send_response(200)
+                self._send_cors_headers()
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(resp_bytes)))
+                self.end_headers()
+                self.wfile.write(resp_bytes)
+
+        except urllib.error.HTTPError as e:
+            err_body = e.read()
+            self.send_response(e.code)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(err_body)
+        except Exception as e:
+            self.send_response(502)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({"error": f"Reranker backend unreachable: {str(e)}"}).encode())
         finally:
             with _state_lock:
                 _active_inferences = max(0, _active_inferences - 1)
