@@ -257,7 +257,7 @@
       width: 100%;
       height: 100%;
       justify-content: flex-start;
-      opacity: 0.35;
+      opacity: 0.45;
       transition: opacity 0.3s;
     }
 
@@ -266,6 +266,7 @@
       height: 4px;
       background: #94a3b8;
       border-radius: 2px;
+      transition: height 0.15s ease;
     }
 
     /* Pill Buttons */
@@ -327,7 +328,7 @@
     }
 
     .btn-send-transcribe:disabled {
-      opacity: 0.4;
+      opacity: 0.35;
       cursor: not-allowed;
       transform: none;
       box-shadow: none;
@@ -919,8 +920,8 @@
       <div class="pipeline-grid">
         <div class="step-card">
           <div class="step-number">1</div>
-          <div class="step-title">Audio Capture</div>
-          <div class="step-desc">Microphone voice or audio files are packaged into multipart WAV buffers in the browser/client.</div>
+          <div class="step-title">Audio Capture & 16kHz PCM</div>
+          <div class="step-desc">Microphone voice is captured and resampled directly into standard 16kHz 16-bit Mono WAV in the browser.</div>
         </div>
 
         <div class="step-card">
@@ -1008,7 +1009,7 @@ async function transcribeAudio(audioBlobOrBuffer, format = "json") {
 }
 
 // Example usage in browser:
-// const data = await transcribeAudio(recordedBlob);
+// const data = await transcribeAudio(recordedWavBlob);
 // console.log(data.text);</code></pre>
           </div>
 
@@ -1094,11 +1095,13 @@ bash mobile/start_ai.sh</code></pre>
   <script>
     // State
     const API_ENDPOINT = "https://hardly-assembly-guides-cache.trycloudflare.com/inference";
-    let selectedAudioBlob = null;
-    let mediaRecorder = null;
-    let audioChunks = [];
+    let selectedWavBlob = null;
     let audioCtx = null;
-    let analyser = null;
+    let micStream = null;
+    let processorNode = null;
+    let sourceNode = null;
+    let analyserNode = null;
+    let rawPcmChunks = [];
     let animFrameId = null;
     let isRecording = false;
 
@@ -1128,7 +1131,6 @@ bash mobile/start_ai.sh</code></pre>
       for (let i = 0; i < count; i++) {
         const bar = document.createElement("div");
         bar.className = "idle-bar";
-        // Calculate curve height
         const distanceCenter = Math.abs(i - count / 2) / (count / 2);
         const height = Math.max(3, Math.round(18 * (1 - distanceCenter * 0.7) * (0.4 + 0.6 * Math.sin(i * 0.4))));
         bar.style.height = `${height}px`;
@@ -1137,107 +1139,220 @@ bash mobile/start_ai.sh</code></pre>
     }
     buildIdleWaveform();
 
-    // Visualizer Setup
-    function startVisualizer(stream) {
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      analyser = audioCtx.createAnalyser();
-      const source = audioCtx.createMediaStreamSource(stream);
-      source.connect(analyser);
-      analyser.fftSize = 128;
-      const bufferLength = analyser.frequencyBinCount;
-      const dataArray = new Uint8Array(bufferLength);
+    // Pure Client-side 16kHz 16-bit Mono WAV Encoder
+    function encodeToWav(samples, sampleRate = 16000) {
+      const buffer = new ArrayBuffer(44 + samples.length * 2);
+      const view = new DataView(buffer);
 
-      waveformCanvas.style.display = "block";
-      idleWavePlaceholder.style.display = "none";
-
-      waveformCanvas.width = waveformCanvas.parentElement.clientWidth * window.devicePixelRatio;
-      waveformCanvas.height = waveformCanvas.parentElement.clientHeight * window.devicePixelRatio;
-
-      function renderFrame() {
-        if (!isRecording) return;
-        animFrameId = requestAnimationFrame(renderFrame);
-        analyser.getByteFrequencyData(dataArray);
-
-        canvasCtx.clearRect(0, 0, waveformCanvas.width, waveformCanvas.height);
-
-        const barCount = 48;
-        const totalWidth = waveformCanvas.width;
-        const barWidth = 3 * window.devicePixelRatio;
-        const gap = (totalWidth - (barCount * barWidth)) / barCount;
-
-        let x = 0;
-        for (let i = 0; i < barCount; i++) {
-          const valIndex = Math.floor((i / barCount) * bufferLength);
-          const rawVal = dataArray[valIndex] || 0;
-          const barHeight = Math.max(4 * window.devicePixelRatio, (rawVal / 255) * waveformCanvas.height * 0.9);
-
-          // Sleek clean white/grey rounded bars
-          canvasCtx.fillStyle = rawVal > 30 ? "#f8fafc" : "#64748b";
-          canvasCtx.beginPath();
-          const y = (waveformCanvas.height - barHeight) / 2;
-          canvasCtx.roundRect ? canvasCtx.roundRect(x, y, barWidth, barHeight, 2) : canvasCtx.fillRect(x, y, barWidth, barHeight);
-          canvasCtx.fill();
-
-          x += barWidth + gap;
+      function writeString(view, offset, string) {
+        for (let i = 0; i < string.length; i++) {
+          view.setUint8(offset + i, string.charCodeAt(i));
         }
       }
-      renderFrame();
+
+      // RIFF identifier
+      writeString(view, 0, 'RIFF');
+      view.setUint32(4, 36 + samples.length * 2, true);
+      writeString(view, 8, 'WAVE');
+      writeString(view, 12, 'fmt ');
+      view.setUint32(16, 16, true);
+      view.setUint16(20, 1, true); // PCM format
+      view.setUint16(22, 1, true); // Mono channel
+      view.setUint32(24, sampleRate, true); // Sample rate (16000)
+      view.setUint32(28, sampleRate * 2, true); // Byte rate
+      view.setUint16(32, 2, true); // Block align
+      view.setUint16(34, 16, true); // 16-bit
+      writeString(view, 36, 'data');
+      view.setUint32(40, samples.length * 2, true);
+
+      // Write 16-bit PCM samples with clipping protection
+      let offset = 44;
+      for (let i = 0; i < samples.length; i++, offset += 2) {
+        let s = Math.max(-1, Math.min(1, samples[i]));
+        view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+      }
+
+      return new Blob([view], { type: 'audio/wav' });
     }
 
-    // Toggle Microphone Recording
+    // Resample arbitrary Float32Array to 16000 Hz
+    function resampleTo16k(inputData, inputSampleRate) {
+      if (inputSampleRate === 16000) return inputData;
+      const targetRate = 16000;
+      const ratio = inputSampleRate / targetRate;
+      const targetLength = Math.round(inputData.length / ratio);
+      const result = new Float32Array(targetLength);
+      for (let i = 0; i < targetLength; i++) {
+        const originIndex = i * ratio;
+        const low = Math.floor(originIndex);
+        const high = Math.min(low + 1, inputData.length - 1);
+        const frac = originIndex - low;
+        result[i] = inputData[low] * (1 - frac) + inputData[high] * frac;
+      }
+      return result;
+    }
+
+    // Live Canvas Waveform Drawing
+    function renderWaveform() {
+      if (!isRecording) return;
+      animFrameId = requestAnimationFrame(renderWaveform);
+
+      const bufferLength = analyserNode.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+      analyserNode.getByteFrequencyData(dataArray);
+
+      canvasCtx.clearRect(0, 0, waveformCanvas.width, waveformCanvas.height);
+
+      const barCount = 48;
+      const totalWidth = waveformCanvas.width;
+      const barWidth = 3 * window.devicePixelRatio;
+      const gap = (totalWidth - (barCount * barWidth)) / barCount;
+
+      let x = 0;
+      for (let i = 0; i < barCount; i++) {
+        const valIndex = Math.floor((i / barCount) * bufferLength);
+        const rawVal = dataArray[valIndex] || 0;
+        const barHeight = Math.max(4 * window.devicePixelRatio, (rawVal / 255) * waveformCanvas.height * 0.9);
+
+        canvasCtx.fillStyle = rawVal > 25 ? "#f8fafc" : "#64748b";
+        canvasCtx.beginPath();
+        const y = (waveformCanvas.height - barHeight) / 2;
+        if (canvasCtx.roundRect) {
+          canvasCtx.roundRect(x, y, barWidth, barHeight, 2);
+        } else {
+          canvasCtx.fillRect(x, y, barWidth, barHeight);
+        }
+        canvasCtx.fill();
+
+        x += barWidth + gap;
+      }
+    }
+
+    // Microphone Recording Handler
     recordToggleBtn.addEventListener("click", async () => {
       if (!isRecording) {
         try {
-          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-          mediaRecorder = new MediaRecorder(stream);
-          audioChunks = [];
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          micStream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true } });
+          
+          sourceNode = audioCtx.createMediaStreamSource(micStream);
+          analyserNode = audioCtx.createAnalyser();
+          analyserNode.fftSize = 128;
 
-          mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
-          mediaRecorder.onstop = () => {
-            selectedAudioBlob = new Blob(audioChunks, { type: "audio/wav" });
-            audioPreview.src = URL.createObjectURL(selectedAudioBlob);
-            audioPreview.style.display = "block";
-            audioStatusText.innerText = `Recorded Voice (${(selectedAudioBlob.size / 1024).toFixed(1)} KB)`;
-            sendTranscribeBtn.disabled = false;
-            waveformCanvas.style.display = "none";
-            idleWavePlaceholder.style.display = "flex";
-            if (audioCtx) audioCtx.close();
+          // 4096 sample buffer processor
+          processorNode = audioCtx.createScriptProcessor(4096, 1, 1);
+          rawPcmChunks = [];
+
+          processorNode.onaudioprocess = (e) => {
+            if (!isRecording) return;
+            const inputChannel = e.inputBuffer.getChannelData(0);
+            rawPcmChunks.push(new Float32Array(inputChannel));
           };
 
-          mediaRecorder.start();
+          sourceNode.connect(analyserNode);
+          sourceNode.connect(processorNode);
+          processorNode.connect(audioCtx.destination);
+
           isRecording = true;
           pillRecorderBar.classList.add("recording-active");
           micIcon.style.display = "none";
           stopSquare.style.display = "block";
-          audioStatusText.innerText = "Recording voice in real-time...";
-          startVisualizer(stream);
+          waveformCanvas.style.display = "block";
+          idleWavePlaceholder.style.display = "none";
+          audioStatusText.innerText = "Recording voice... Click [⏹] when done";
+
+          waveformCanvas.width = waveformCanvas.parentElement.clientWidth * window.devicePixelRatio;
+          waveformCanvas.height = waveformCanvas.parentElement.clientHeight * window.devicePixelRatio;
+
+          renderWaveform();
         } catch (err) {
           alert("Microphone permission denied: " + err.message);
         }
       } else {
-        mediaRecorder.stop();
+        // Stop recording
         isRecording = false;
         pillRecorderBar.classList.remove("recording-active");
         micIcon.style.display = "block";
         stopSquare.style.display = "none";
         cancelAnimationFrame(animFrameId);
+
+        // Disconnect nodes
+        if (processorNode) processorNode.disconnect();
+        if (sourceNode) sourceNode.disconnect();
+        if (micStream) micStream.getTracks().forEach(t => t.stop());
+
+        // Flatten Float32 chunks
+        let totalLength = 0;
+        for (const chunk of rawPcmChunks) totalLength += chunk.length;
+        const mergedPcm = new Float32Array(totalLength);
+        let offset = 0;
+        for (const chunk of rawPcmChunks) {
+          mergedPcm.set(chunk, offset);
+          offset += chunk.length;
+        }
+
+        // Resample to 16kHz & encode to standard PCM WAV
+        const resampled = resampleTo16k(mergedPcm, audioCtx.sampleRate);
+        selectedWavBlob = encodeToWav(resampled, 16000);
+
+        audioPreview.src = URL.createObjectURL(selectedWavBlob);
+        audioPreview.style.display = "block";
+        audioStatusText.innerText = `Recorded 16kHz WAV (${(selectedWavBlob.size / 1024).toFixed(1)} KB)`;
+        sendTranscribeBtn.disabled = false;
+
+        waveformCanvas.style.display = "none";
+        idleWavePlaceholder.style.display = "flex";
+
+        if (audioCtx) audioCtx.close();
       }
     });
 
-    // File Upload Handler
-    fileUploadInput.addEventListener("change", (e) => {
+    // File Upload Handler (with automatic client-side decode to 16kHz WAV)
+    fileUploadInput.addEventListener("change", async (e) => {
       if (e.target.files.length > 0) {
-        selectedAudioBlob = e.target.files[0];
-        audioPreview.src = URL.createObjectURL(selectedAudioBlob);
-        audioPreview.style.display = "block";
-        audioStatusText.innerText = `File: ${selectedAudioBlob.name} (${(selectedAudioBlob.size / 1024).toFixed(1)} KB)`;
-        sendTranscribeBtn.disabled = false;
+        const file = e.target.files[0];
+        audioStatusText.innerText = `Converting ${file.name} to 16kHz WAV...`;
+        
+        try {
+          const tempCtx = new (window.AudioContext || window.webkitAudioContext)();
+          const arrayBuffer = await file.arrayBuffer();
+          const audioBuffer = await tempCtx.decodeAudioData(arrayBuffer);
+          
+          // Mixdown to Mono Float32
+          const numChannels = audioBuffer.numberOfChannels;
+          const length = audioBuffer.length;
+          const monoData = new Float32Array(length);
+          
+          for (let c = 0; c < numChannels; c++) {
+            const channelData = audioBuffer.getChannelData(c);
+            for (let i = 0; i < length; i++) {
+              monoData[i] += channelData[i] / numChannels;
+            }
+          }
+
+          // Resample to 16kHz
+          const resampled16k = resampleTo16k(monoData, audioBuffer.sampleRate);
+          selectedWavBlob = encodeToWav(resampled16k, 16000);
+          tempCtx.close();
+
+          audioPreview.src = URL.createObjectURL(selectedWavBlob);
+          audioPreview.style.display = "block";
+          audioStatusText.innerText = `Ready: ${file.name} (${(selectedWavBlob.size / 1024).toFixed(1)} KB 16kHz WAV)`;
+          sendTranscribeBtn.disabled = false;
+        } catch (err) {
+          // If browser decode fails, pass original blob as fallback
+          selectedWavBlob = file;
+          audioPreview.src = URL.createObjectURL(file);
+          audioPreview.style.display = "block";
+          audioStatusText.innerText = `File: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+          sendTranscribeBtn.disabled = false;
+        }
       }
     });
 
     // Send / Transcribe Action
     sendTranscribeBtn.addEventListener("click", async () => {
-      if (!selectedAudioBlob) return;
+      if (!selectedWavBlob) return;
 
       const format = responseFormatSelect.value;
       sendTranscribeBtn.disabled = true;
@@ -1246,7 +1361,7 @@ bash mobile/start_ai.sh</code></pre>
       outputContentArea.innerText = "⏳ Phone AI model is executing Whisper neural decode...";
 
       const formData = new FormData();
-      formData.append("file", selectedAudioBlob, "audio.wav");
+      formData.append("file", selectedWavBlob, "audio.wav");
       formData.append("temperature", "0.0");
       formData.append("response_format", format);
 
