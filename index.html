@@ -2238,37 +2238,92 @@ bash mobile/start_ai.sh</code></pre>
       chatBox.appendChild(userBubble);
       inputEl.value = "";
 
-      // AI bubble placeholder
+      // AI bubble with live text content span and pulsing cursor
       const aiBubble = document.createElement("div");
       aiBubble.className = "chat-bubble ai";
-      aiBubble.innerHTML = "<span style='color: var(--primary); font-weight: 600;'>🧠 Generating on phone CPU...</span>";
+      const contentSpan = document.createElement("span");
+      const cursorSpan = document.createElement("span");
+      cursorSpan.className = "rec-pulse-dot";
+      cursorSpan.style.display = "inline-block";
+      cursorSpan.style.marginLeft = "6px";
+      cursorSpan.style.verticalAlign = "middle";
+      aiBubble.appendChild(contentSpan);
+      aiBubble.appendChild(cursorSpan);
       chatBox.appendChild(aiBubble);
       chatBox.scrollTop = chatBox.scrollHeight;
 
       const btn = document.getElementById("sendChatBtn");
       if (btn) btn.disabled = true;
 
+      let fullText = "";
+      const t0 = performance.now();
+
       try {
         isInferencing = true;
         activeDaemon = "llama";
-        const t0 = performance.now();
         const res = await fetch(`${BASE_ENDPOINT}/v1/chat/completions`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "text/event-stream"
+          },
           body: JSON.stringify({
             messages: [{ role: "user", content: text }],
             temperature: 0.7,
-            max_tokens: 150
+            max_tokens: 300,
+            stream: true
           })
         });
 
         if (!res.ok) throw new Error(`HTTP status ${res.status}`);
-        const data = await res.json();
-        const reply = data.choices && data.choices[0] ? data.choices[0].message.content.trim() : JSON.stringify(data);
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder("utf-8");
+        let buffer = "";
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop(); // keep remainder in buffer
+
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed || trimmed.startsWith(":") || trimmed.includes("[DONE]")) continue;
+
+            if (trimmed.startsWith("data: ")) {
+              try {
+                const parsed = JSON.parse(trimmed.slice(6));
+                const delta = parsed.choices?.[0]?.delta?.content;
+                if (delta) {
+                  fullText += delta;
+                  contentSpan.innerHTML = fullText.replace(/\n/g, "<br/>");
+                  chatBox.scrollTop = chatBox.scrollHeight;
+                }
+              } catch (e) {
+                // skip partial json chunks
+              }
+            }
+          }
+        }
+
         const elapsed = ((performance.now() - t0) / 1000).toFixed(2);
-        aiBubble.innerHTML = `<div>${reply.replace(/\n/g, '<br/>')}</div><div style="font-size: 0.75rem; color: var(--text-subtle); margin-top: 0.5rem; font-family: 'JetBrains Mono', monospace;">⚡ Generated in ${elapsed}s on Qwen 2.5 0.5B</div>`;
+        cursorSpan.remove();
+        const words = fullText.trim().split(/\s+/).length;
+        const wps = (words / Math.max(0.1, elapsed)).toFixed(1);
+        const metaDiv = document.createElement("div");
+        metaDiv.style.fontSize = "0.75rem";
+        metaDiv.style.color = "var(--text-subtle)";
+        metaDiv.style.marginTop = "0.5rem";
+        metaDiv.style.fontFamily = "'JetBrains Mono', monospace";
+        metaDiv.innerText = `⚡ Streamed in ${elapsed}s (~${wps} words/sec on Qwen 2.5)`;
+        aiBubble.appendChild(metaDiv);
+
       } catch (err) {
-        aiBubble.innerHTML = `<span style="color: var(--danger);">❌ Generation failed: ${err.message}</span>`;
+        cursorSpan.remove();
+        contentSpan.innerHTML = `<span style="color: var(--danger);">❌ Streaming error: ${err.message}</span>`;
       } finally {
         isInferencing = false;
         activeDaemon = null;
