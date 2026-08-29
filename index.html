@@ -1,164 +1,605 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mobile Whisper AI - Universal Web Client</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PhoneWhisper Studio — Real-Time AI Speech-to-Text</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #0f172a;
-      --card-bg: #1e293b;
-      --text: #f8fafc;
-      --accent: #38bdf8;
-      --accent-hover: #0284c7;
-      --border: #334155;
-      --muted: #94a3b8;
+      --bg: #090d16;
+      --card-bg: rgba(18, 26, 43, 0.75);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --primary: #38bdf8;
+      --primary-glow: rgba(56, 189, 248, 0.25);
+      --accent: #818cf8;
+      --success: #34d399;
+      --danger: #f87171;
+      --warning: #fbbf24;
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --input-bg: rgba(10, 15, 29, 0.85);
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: var(--bg);
+      font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+      background-color: var(--bg);
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(56, 189, 248, 0.12) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(129, 140, 248, 0.12) 0px, transparent 50%);
+      background-attachment: fixed;
       color: var(--text);
-      display: flex;
-      justify-content: center;
-      align-items: center;
       min-height: 100vh;
-      padding: 1.5rem;
-    }
-    .container {
-      background: var(--card-bg);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 2rem;
-      max-width: 650px;
-      width: 100%;
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
-    }
-    h1 { font-size: 1.75rem; margin-bottom: 0.5rem; color: var(--accent); display: flex; align-items: center; gap: 0.5rem; }
-    p.subtitle { color: var(--muted); font-size: 0.95rem; margin-bottom: 1.5rem; }
-    .form-group { margin-bottom: 1.25rem; }
-    label { display: block; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; color: var(--muted); margin-bottom: 0.5rem; }
-    input[type="text"], select {
-      width: 100%;
-      padding: 0.75rem 1rem;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-      background: #0f172a;
-      color: var(--text);
-      font-size: 0.95rem;
-    }
-    .dropzone {
-      border: 2px dashed var(--border);
-      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
       padding: 2rem 1rem;
+    }
+
+    .container {
+      max-width: 800px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    /* Header */
+    header {
       text-align: center;
-      cursor: pointer;
-      transition: all 0.2s;
-      margin-bottom: 1.25rem;
+      margin-bottom: 0.5rem;
     }
-    .dropzone:hover, .dropzone.dragover {
-      border-color: var(--accent);
-      background: rgba(56, 189, 248, 0.05);
-    }
-    .btn-row { display: flex; gap: 0.75rem; }
-    button {
-      flex: 1;
-      padding: 0.85rem 1.25rem;
-      border-radius: 8px;
-      border: none;
+
+    .badge-bar {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      padding: 0.35rem 0.85rem;
+      border-radius: 9999px;
+      font-size: 0.8rem;
       font-weight: 600;
-      font-size: 0.95rem;
-      cursor: pointer;
-      transition: background 0.2s;
+      color: var(--primary);
+      margin-bottom: 1rem;
     }
-    .btn-primary { background: var(--accent); color: #0f172a; }
-    .btn-primary:hover { background: var(--accent-hover); }
-    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
-    .btn-record { background: #ef4444; color: white; }
-    .btn-record.recording { animation: pulse 1s infinite; background: #dc2626; }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.5; }
+
+    .badge-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--success);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--success);
+      animation: pulse-dot 2s infinite;
     }
-    .result-box {
-      margin-top: 1.5rem;
-      padding: 1.25rem;
-      border-radius: 8px;
-      background: #0f172a;
-      border: 1px solid var(--border);
-      min-height: 120px;
-      white-space: pre-wrap;
-      word-break: break-word;
-      font-family: monospace;
-      font-size: 0.95rem;
+
+    @keyframes pulse-dot {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.2); opacity: 0.7; }
+    }
+
+    h1 {
+      font-size: 2.25rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 50%, var(--primary) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0.5rem;
+    }
+
+    p.subtitle {
+      color: var(--text-muted);
+      font-size: 1rem;
+      max-width: 540px;
+      margin: 0 auto;
+      line-height: 1.5;
+    }
+
+    /* Glass Card */
+    .card {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 1.75rem;
+      box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.6);
+      transition: border-color 0.3s ease;
+    }
+
+    .card:hover {
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    /* Endpoint Config */
+    .endpoint-row {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+    }
+
+    .input-wrapper {
+      flex: 1;
       position: relative;
     }
-    .copy-btn {
-      position: absolute;
-      top: 0.5rem;
-      right: 0.5rem;
-      padding: 0.35rem 0.75rem;
-      font-size: 0.75rem;
-      background: var(--card-bg);
+
+    input[type="text"], select {
+      width: 100%;
+      background: var(--input-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 0.85rem 1rem;
       color: var(--text);
-      border: 1px solid var(--border);
-      border-radius: 6px;
+      font-family: inherit;
+      font-size: 0.95rem;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    input[type="text"]:focus, select:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-glow);
+    }
+
+    .btn-ping {
+      padding: 0.85rem 1.25rem;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--card-border);
+      color: var(--text);
+      font-weight: 600;
+      font-size: 0.875rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .btn-ping:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    /* Dropzone */
+    .dropzone {
+      border: 2px dashed rgba(255, 255, 255, 0.12);
+      border-radius: 16px;
+      padding: 2.25rem 1.5rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      background: rgba(10, 15, 29, 0.4);
+      margin: 1.25rem 0;
+      position: relative;
+    }
+
+    .dropzone:hover, .dropzone.dragover {
+      border-color: var(--primary);
+      background: rgba(56, 189, 248, 0.05);
+      transform: translateY(-2px);
+    }
+
+    .dropzone-icon {
+      font-size: 2.5rem;
+      margin-bottom: 0.75rem;
+      display: block;
+    }
+
+    .dropzone-text {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 0.25rem;
+    }
+
+    .dropzone-hint {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    /* Audio Visualizer & Waveform Canvas */
+    .visualizer-container {
+      width: 100%;
+      height: 70px;
+      background: var(--input-bg);
+      border-radius: 12px;
+      overflow: hidden;
+      margin: 1rem 0;
+      border: 1px solid var(--card-border);
+      display: none;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Action Controls */
+    .controls-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr auto;
+      gap: 0.75rem;
+      align-items: center;
+    }
+
+    @media (max-width: 640px) {
+      .controls-grid {
+        grid-template-columns: 1fr;
+      }
+      .endpoint-row {
+        flex-direction: column;
+        align-items: stretch;
+      }
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.9rem 1.5rem;
+      border-radius: 12px;
+      border: none;
+      font-family: inherit;
+      font-weight: 700;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-record {
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+      color: white;
+      box-shadow: 0 4px 14px rgba(239, 68, 68, 0.35);
+    }
+
+    .btn-record:hover {
+      box-shadow: 0 6px 20px rgba(239, 68, 68, 0.5);
+      transform: translateY(-1px);
+    }
+
+    .btn-record.recording {
+      background: #991b1b;
+      animation: record-pulse 1.2s infinite ease-in-out;
+    }
+
+    @keyframes record-pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6); }
+      50% { box-shadow: 0 0 0 12px rgba(239, 68, 68, 0); }
+    }
+
+    .btn-transcribe {
+      background: linear-gradient(135deg, var(--primary) 0%, #0284c7 100%);
+      color: #090d16;
+      box-shadow: 0 4px 14px var(--primary-glow);
+    }
+
+    .btn-transcribe:hover:not(:disabled) {
+      box-shadow: 0 6px 22px rgba(56, 189, 248, 0.5);
+      transform: translateY(-1px);
+    }
+
+    .btn-transcribe:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .format-select {
+      height: 100%;
+      cursor: pointer;
+    }
+
+    /* Output Card */
+    .output-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .output-title {
+      font-size: 0.9rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .btn-toolbar {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .btn-icon {
+      padding: 0.45rem 0.85rem;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--card-border);
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .btn-icon:hover {
+      background: rgba(255, 255, 255, 0.12);
+      color: var(--text);
+      border-color: var(--primary);
+    }
+
+    .output-box {
+      background: var(--input-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 1.25rem;
+      min-height: 140px;
+      max-height: 320px;
+      overflow-y: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.95rem;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-word;
+      color: var(--text);
+    }
+
+    .placeholder-state {
+      color: var(--text-muted);
+      font-style: italic;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    /* Audio Player Widget */
+    .audio-player-wrapper {
+      margin-top: 1rem;
+      display: none;
+    }
+
+    audio {
+      width: 100%;
+      height: 40px;
+      border-radius: 8px;
+      filter: invert(0.9) hue-rotate(180deg);
+    }
+
+    /* Footer stats */
+    .stats-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 0.5rem;
+    }
+
+    .latency-pill {
+      font-weight: 600;
+      color: var(--success);
     }
   </style>
 </head>
 <body>
+
   <div class="container">
-    <h1>📱 Whisper AI Web Client</h1>
-    <p class="subtitle">Transcribe audio via your mobile-hosted AI Whisper server.</p>
+    <header>
+      <div class="badge-bar">
+        <div class="badge-dot"></div>
+        <span>PhoneWhisper Host: 24/7 Active</span>
+      </div>
+      <h1>Mobile AI Transcription</h1>
+      <p class="subtitle">Lightweight, private, and ultra-fast speech recognition hosted entirely on mobile phone hardware.</p>
+    </header>
 
-    <div class="form-group">
-      <label>Endpoint URL</label>
-      <input type="text" id="endpoint" value="https://hardly-assembly-guides-cache.trycloudflare.com/inference">
+    <!-- Configuration Card -->
+    <div class="card">
+      <div class="endpoint-row">
+        <div class="input-wrapper">
+          <input 
+            type="text" 
+            id="endpointInput" 
+            value="https://hardly-assembly-guides-cache.trycloudflare.com/inference" 
+            placeholder="https://<tunnel-subdomain>.trycloudflare.com/inference"
+          />
+        </div>
+        <button class="btn-ping" id="pingBtn">⚡ Test Ping</button>
+      </div>
     </div>
 
-    <div class="dropzone" id="dropzone">
-      <input type="file" id="fileInput" accept="audio/*" style="display: none;">
-      <p id="fileLabel">📁 Click to upload or drag & drop audio (WAV, MP3, OGG, M4A)</p>
+    <!-- Interactive Studio Card -->
+    <div class="card">
+      <!-- Drag & Drop Zone -->
+      <div class="dropzone" id="dropzone">
+        <input type="file" id="fileInput" accept="audio/*,video/*" style="display: none;" />
+        <span class="dropzone-icon">🎙️</span>
+        <div class="dropzone-text" id="dropzoneText">Click or Drag & Drop audio file here</div>
+        <div class="dropzone-hint">Supports WAV, MP3, OGG, M4A, FLAC, WEBM</div>
+      </div>
+
+      <!-- Real-time Visualizer -->
+      <div class="visualizer-container" id="visualizerContainer">
+        <canvas id="waveformCanvas"></canvas>
+      </div>
+
+      <!-- Local Audio Player Preview -->
+      <div class="audio-player-wrapper" id="playerWrapper">
+        <audio id="audioPreview" controls></audio>
+      </div>
+
+      <!-- Action Controls -->
+      <div class="controls-grid" style="margin-top: 1.25rem;">
+        <button class="btn btn-record" id="recordBtn">
+          <span>●</span> <span id="recordLabel">Record Mic</span>
+        </button>
+        <button class="btn btn-transcribe" id="transcribeBtn" disabled>
+          <span>⚡</span> <span>Transcribe Audio</span>
+        </button>
+        <select id="formatSelect" class="format-select">
+          <option value="json">Format: JSON</option>
+          <option value="text">Format: Text</option>
+          <option value="srt">Format: SRT Subtitles</option>
+          <option value="vtt">Format: VTT Subtitles</option>
+          <option value="verbose_json">Format: Verbose JSON</option>
+        </select>
+      </div>
     </div>
 
-    <div class="btn-row">
-      <button class="btn-record" id="recordBtn">🎙️ Record Mic</button>
-      <button class="btn-primary" id="transcribeBtn" disabled>⚡ Transcribe</button>
-    </div>
-
-    <div class="result-box" id="resultBox">
-      <button class="copy-btn" id="copyBtn" style="display: none;">Copy</button>
-      <span style="color: var(--muted);" id="placeholderText">Transcription result will appear here...</span>
+    <!-- Output Card -->
+    <div class="card">
+      <div class="output-header">
+        <span class="output-title">
+          <span>📝</span> <span>Transcription Result</span>
+        </span>
+        <div class="btn-toolbar">
+          <button class="btn-icon" id="copyBtn">📋 Copy</button>
+          <button class="btn-icon" id="downloadBtn">💾 Download</button>
+        </div>
+      </div>
+      <div class="output-box" id="outputBox">
+        <span class="placeholder-state">Your transcription result will appear here in real-time...</span>
+      </div>
+      <div class="stats-footer">
+        <span id="charCount">0 characters</span>
+        <span id="statusInfo" class="latency-pill">Ready</span>
+      </div>
     </div>
   </div>
 
   <script>
-    let selectedFile = null;
+    // State management
+    let selectedAudioBlob = null;
     let mediaRecorder = null;
     let audioChunks = [];
+    let audioCtx = null;
+    let analyser = null;
+    let animationId = null;
+    let isRecording = false;
 
-    const fileInput = document.getElementById("fileInput");
+    const endpointInput = document.getElementById("endpointInput");
+    const pingBtn = document.getElementById("pingBtn");
     const dropzone = document.getElementById("dropzone");
-    const fileLabel = document.getElementById("fileLabel");
-    const transcribeBtn = document.getElementById("transcribeBtn");
+    const fileInput = document.getElementById("fileInput");
+    const dropzoneText = document.getElementById("dropzoneText");
     const recordBtn = document.getElementById("recordBtn");
-    const endpointInput = document.getElementById("endpoint");
-    const resultBox = document.getElementById("resultBox");
-    const placeholderText = document.getElementById("placeholderText");
+    const recordLabel = document.getElementById("recordLabel");
+    const transcribeBtn = document.getElementById("transcribeBtn");
+    const formatSelect = document.getElementById("formatSelect");
+    const outputBox = document.getElementById("outputBox");
     const copyBtn = document.getElementById("copyBtn");
+    const downloadBtn = document.getElementById("downloadBtn");
+    const charCount = document.getElementById("charCount");
+    const statusInfo = document.getElementById("statusInfo");
+    const playerWrapper = document.getElementById("playerWrapper");
+    const audioPreview = document.getElementById("audioPreview");
+    const visualizerContainer = document.getElementById("visualizerContainer");
+    const canvas = document.getElementById("waveformCanvas");
+    const canvasCtx = canvas.getContext("2d");
 
-    dropzone.addEventListener("click", () => fileInput.click());
-    fileInput.addEventListener("change", (e) => {
-      if (e.target.files.length > 0) {
-        selectedFile = e.target.files[0];
-        fileLabel.innerText = `Selected: ${selectedFile.name} (${(selectedFile.size / 1024).toFixed(1)} KB)`;
-        transcribeBtn.disabled = false;
+    // Endpoint Ping Tester
+    pingBtn.addEventListener("click", async () => {
+      const url = endpointInput.value.trim();
+      pingBtn.innerText = "⏳ Pinging...";
+      const start = performance.now();
+      try {
+        const rootUrl = url.replace(/\/inference$/, "");
+        const res = await fetch(rootUrl, { method: "GET", mode: "no-cors" });
+        const latency = Math.round(performance.now() - start);
+        pingBtn.innerText = `⚡ ${latency}ms (Online)`;
+        pingBtn.style.borderColor = "var(--success)";
+        statusInfo.innerText = `Connected (${latency}ms)`;
+      } catch (e) {
+        pingBtn.innerText = "❌ Unreachable";
+        pingBtn.style.borderColor = "var(--danger)";
       }
     });
 
-    // Recording Handler
+    // File Drag & Drop
+    dropzone.addEventListener("click", () => fileInput.click());
+    dropzone.addEventListener("dragover", (e) => { e.preventDefault(); dropzone.classList.add("dragover"); });
+    dropzone.addEventListener("dragleave", () => dropzone.classList.remove("dragover"));
+    dropzone.addEventListener("drop", (e) => {
+      e.preventDefault();
+      dropzone.classList.remove("dragover");
+      if (e.dataTransfer.files.length > 0) handleSelectedFile(e.dataTransfer.files[0]);
+    });
+    fileInput.addEventListener("change", (e) => {
+      if (e.target.files.length > 0) handleSelectedFile(e.target.files[0]);
+    });
+
+    function handleSelectedFile(file) {
+      selectedAudioBlob = file;
+      dropzoneText.innerText = `Selected: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+      transcribeBtn.disabled = false;
+
+      // Audio preview
+      audioPreview.src = URL.createObjectURL(file);
+      playerWrapper.style.display = "block";
+    }
+
+    // Audio Visualizer Waveform Drawer
+    function setupVisualizer(stream) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      analyser = audioCtx.createAnalyser();
+      const source = audioCtx.createMediaStreamSource(stream);
+      source.connect(analyser);
+      analyser.fftSize = 256;
+      const bufferLength = analyser.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+
+      visualizerContainer.style.display = "block";
+      canvas.width = visualizerContainer.clientWidth * window.devicePixelRatio;
+      canvas.height = visualizerContainer.clientHeight * window.devicePixelRatio;
+
+      function draw() {
+        if (!isRecording) return;
+        animationId = requestAnimationFrame(draw);
+        analyser.getByteFrequencyData(dataArray);
+
+        canvasCtx.fillStyle = "rgba(10, 15, 29, 0.4)";
+        canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+
+        const barWidth = (canvas.width / bufferLength) * 2.5;
+        let barHeight;
+        let x = 0;
+
+        for (let i = 0; i < bufferLength; i++) {
+          barHeight = (dataArray[i] / 255) * canvas.height * 0.85;
+          const gradient = canvasCtx.createLinearGradient(0, canvas.height, 0, 0);
+          gradient.addColorStop(0, "#38bdf8");
+          gradient.addColorStop(1, "#818cf8");
+
+          canvasCtx.fillStyle = gradient;
+          canvasCtx.fillRect(x, canvas.height - barHeight, barWidth - 1, barHeight);
+          x += barWidth;
+        }
+      }
+      draw();
+    }
+
+    // Microphone Recording Handler
     recordBtn.addEventListener("click", async () => {
-      if (!mediaRecorder || mediaRecorder.state === "inactive") {
+      if (!isRecording) {
         try {
           const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
           mediaRecorder = new MediaRecorder(stream);
@@ -166,60 +607,103 @@
 
           mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
           mediaRecorder.onstop = () => {
-            selectedFile = new Blob(audioChunks, { type: "audio/wav" });
-            fileLabel.innerText = `Recorded Audio (${(selectedFile.size / 1024).toFixed(1)} KB)`;
+            selectedAudioBlob = new Blob(audioChunks, { type: "audio/wav" });
+            dropzoneText.innerText = `Recorded Voice (${(selectedAudioBlob.size / 1024).toFixed(1)} KB)`;
             transcribeBtn.disabled = false;
-            recordBtn.innerText = "🎙️ Record Mic";
-            recordBtn.classList.remove("recording");
+            audioPreview.src = URL.createObjectURL(selectedAudioBlob);
+            playerWrapper.style.display = "block";
+            visualizerContainer.style.display = "none";
+            if (audioCtx) audioCtx.close();
           };
 
           mediaRecorder.start();
-          recordBtn.innerText = "⏹️ Stop Recording";
+          isRecording = true;
           recordBtn.classList.add("recording");
+          recordLabel.innerText = "Stop Recording";
+          setupVisualizer(stream);
         } catch (err) {
-          alert("Microphone access denied: " + err.message);
+          alert("Microphone permission denied: " + err.message);
         }
       } else {
         mediaRecorder.stop();
+        isRecording = false;
+        recordBtn.classList.remove("recording");
+        recordLabel.innerText = "Record Mic";
+        cancelAnimationFrame(animationId);
       }
     });
 
-    // Transcribe Handler
+    // Transcribe Inference Request
     transcribeBtn.addEventListener("click", async () => {
-      if (!selectedFile) return;
+      if (!selectedAudioBlob) return;
+
+      const endpoint = endpointInput.value.trim();
+      const format = formatSelect.value;
 
       transcribeBtn.disabled = true;
-      placeholderText.innerText = "⏳ Processing audio on phone AI model...";
-      copyBtn.style.display = "none";
+      statusInfo.innerText = "Inferencing on phone MediaTek CPU...";
+      outputBox.innerHTML = '<span class="placeholder-state">⏳ Phone AI model is processing audio...</span>';
 
       const formData = new FormData();
-      formData.append("file", selectedFile, "audio.wav");
+      formData.append("file", selectedAudioBlob, "input_audio.wav");
       formData.append("temperature", "0.0");
-      formData.append("response_format", "json");
+      formData.append("response_format", format);
+
+      const startTime = performance.now();
 
       try {
-        const res = await fetch(endpointInput.value.trim(), {
+        const response = await fetch(endpoint, {
           method: "POST",
           body: formData
         });
 
-        if (!res.ok) throw new Error(`HTTP error ${res.status}: ${res.statusText}`);
-        const data = await res.json();
-        const text = data.text || JSON.stringify(data, null, 2);
+        if (!response.ok) {
+          const errorMsg = await response.text().catch(() => "");
+          throw new Error(`Server status ${response.status}: ${errorMsg || response.statusText}`);
+        }
 
-        placeholderText.innerText = text.trim();
-        copyBtn.style.display = "block";
+        const elapsed = ((performance.now() - startTime) / 1000).toFixed(2);
+        let resultText = "";
+
+        if (format === "json" || format === "verbose_json") {
+          const data = await response.json();
+          resultText = data.text ? data.text.trim() : JSON.stringify(data, null, 2);
+        } else {
+          resultText = (await response.text()).trim();
+        }
+
+        outputBox.innerText = resultText || "(No speech detected)";
+        charCount.innerText = `${resultText.length} characters`;
+        statusInfo.innerText = `Completed in ${elapsed}s 🚀`;
+
       } catch (err) {
-        placeholderText.innerText = "❌ Error: " + err.message;
+        outputBox.innerHTML = `<span style="color: var(--danger);">❌ Error: ${err.message}</span>`;
+        statusInfo.innerText = "Inference Failed";
       } finally {
         transcribeBtn.disabled = false;
       }
     });
 
+    // Copy to Clipboard
     copyBtn.addEventListener("click", () => {
-      navigator.clipboard.writeText(placeholderText.innerText);
-      copyBtn.innerText = "Copied!";
-      setTimeout(() => copyBtn.innerText = "Copy", 1500);
+      const text = outputBox.innerText;
+      if (!text || text.startsWith("Your transcription")) return;
+      navigator.clipboard.writeText(text);
+      copyBtn.innerText = "✅ Copied!";
+      setTimeout(() => copyBtn.innerText = "📋 Copy", 1600);
+    });
+
+    // Download Transcript File
+    downloadBtn.addEventListener("click", () => {
+      const text = outputBox.innerText;
+      if (!text || text.startsWith("Your transcription")) return;
+      const format = formatSelect.value;
+      const ext = format === "srt" ? "srt" : format === "vtt" ? "vtt" : format === "json" ? "json" : "txt";
+      const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `whisper_transcript.${ext}`;
+      a.click();
     });
   </script>
 </body>
