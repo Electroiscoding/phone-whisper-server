@@ -22,7 +22,11 @@ from socketserver import ThreadingMixIn
 
 WHISPER_URL = "http://127.0.0.1:8000"
 LLAMA_URL = "http://127.0.0.1:8001"
-TELEMETRY_PATH = "/data/local/tmp/telemetry.json"
+TELEMETRY_PATHS = [
+    "/data/local/tmp/battery_telemetry.json",
+    "/data/local/tmp/telemetry.json",
+    os.path.expanduser("~/battery_telemetry.json")
+]
 
 # Global Server-Wide State (Synchronized across all worldwide users)
 _state_lock = threading.Lock()
@@ -107,13 +111,24 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             "ac_powered": False,
             "usb_powered": False
         }
-        if os.path.exists(TELEMETRY_PATH):
-            try:
-                with open(TELEMETRY_PATH, "r") as f:
-                    raw = json.load(f)
-                    battery_data = raw.get("battery", raw)
-            except Exception:
-                pass
+        for p in TELEMETRY_PATHS:
+            if os.path.exists(p):
+                try:
+                    with open(p, "r") as f:
+                        raw = json.load(f)
+                        b = raw.get("battery", raw)
+                        if "level" in b:
+                            battery_data = {
+                                "level": int(b["level"]),
+                                "status": str(b.get("status", "Discharging")),
+                                "temperature": float(b.get("temperature", 30.0)),
+                                "voltage_mv": int(str(b.get("voltage_mv", 4000)).split()[-1]),
+                                "ac_powered": bool(b.get("ac_powered", False)),
+                                "usb_powered": bool(b.get("usb_powered", False))
+                            }
+                            break
+                except Exception:
+                    pass
 
         total_mb, avail_mb = 3790, 1850
         try:
