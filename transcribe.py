@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Optional, Dict, Any, Union
 
 REGISTRY_URL = "https://raw.githubusercontent.com/Electroiscoding/phone-whisper-server/main/endpoint.json"
-FALLBACK_ENDPOINT = "https://stands-evaluating-express-resume.trycloudflare.com/inference"
+FALLBACK_ENDPOINT = "https://black-term-8c36.botmaker583-55e.workers.dev/inference"
 
 _cached_endpoint: Optional[str] = None
 _cached_endpoint_ts: float = 0.0

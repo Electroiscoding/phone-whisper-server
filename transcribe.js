@@ -5,7 +5,7 @@
  */
 
 const REGISTRY_URL = "https://raw.githubusercontent.com/Electroiscoding/phone-whisper-server/main/endpoint.json";
-const FALLBACK_ENDPOINT = "https://stands-evaluating-express-resume.trycloudflare.com/inference";
+const FALLBACK_ENDPOINT = "https://black-term-8c36.botmaker583-55e.workers.dev/inference";
 
 let cachedEndpoint = null;
 let cachedEndpointTs = 0;
