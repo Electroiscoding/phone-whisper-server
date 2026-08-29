@@ -22,6 +22,7 @@ from socketserver import ThreadingMixIn
 
 WHISPER_URL = "http://127.0.0.1:8000"
 LLAMA_URL = "http://127.0.0.1:8001"
+BGE_EMBED_URL = "http://127.0.0.1:8002"
 TELEMETRY_PATHS = [
     "/sdcard/battery_telemetry.json",
     "/data/local/tmp/battery_telemetry.json",
@@ -92,7 +93,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             "modes": {
                 "stt": {"endpoint": "/v1/audio/transcriptions", "model": "Alibaba SenseVoice-Small Q4_K (GGUF)", "status": "ACTIVE"},
                 "slm_chat": {"endpoint": "/v1/chat/completions", "model": "Qwen 2.5 0.5B Instruct (Streaming SSE)", "status": "ACTIVE"},
-                "embeddings": {"endpoint": "/v1/embeddings", "model": "Qwen 2.5 Vector Embeddings (Mean Pooling)", "status": "ACTIVE"},
+                "embeddings": {"endpoint": "/v1/embeddings", "model": "BAAI BGE-Small-en-v1.5 (Contrastive Isotropic Embeddings, 384-Dim)", "status": "ACTIVE"},
                 "tts": {"endpoint": "/v1/audio/speech", "engine": "On-Device Neural Speech Synth", "status": "ACTIVE"},
                 "telemetry": {"endpoint": "/telemetry", "source": "Live Android Kernel & Global Workload Engine", "status": "ACTIVE"}
             },
@@ -378,13 +379,13 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         global _active_inferences, _active_daemon, _total_requests
         with _state_lock:
             _active_inferences += 1
-            _active_daemon = "llama-server (Embeddings)"
+            _active_daemon = "BGE-Small (Embeddings)"
 
         try:
             content_length = int(self.headers.get("Content-Length", 0))
             body = self.rfile.read(content_length) if content_length > 0 else b"{}"
             headers = {"Content-Type": "application/json"}
-            req = urllib.request.Request(f"{LLAMA_URL}/v1/embeddings", data=body, headers=headers, method="POST")
+            req = urllib.request.Request(f"{BGE_EMBED_URL}/v1/embeddings", data=body, headers=headers, method="POST")
             with urllib.request.urlopen(req, timeout=60) as resp:
                 resp_body = resp.read()
                 self.send_response(resp.status)

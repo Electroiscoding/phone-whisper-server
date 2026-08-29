@@ -2549,12 +2549,14 @@ bash mobile/start_ai.sh</code></pre>
           nA += vA[i] * vA[i];
           nB += vB[i] * vB[i];
         }
-        const score = Math.max(0, Math.min(1, dot / (Math.sqrt(nA) * Math.sqrt(nB))));
-        const pct = (score * 100).toFixed(1);
+        const rawSim = dot / (Math.sqrt(nA) * Math.sqrt(nB));
+        // Isotropic Contrast Calibration (Anisotropy baseline subtraction)
+        const calibratedScore = Math.max(0, Math.min(1, (rawSim - 0.45) / 0.55));
+        const pct = (calibratedScore * 100).toFixed(1);
 
         if (percentEl) percentEl.innerText = `${pct}% Match`;
         if (gaugeFill) gaugeFill.style.width = `${pct}%`;
-        if (dimLabel) dimLabel.innerText = `Vector Space: ${vA.length} Dimensions (Cosine Sim: ${score.toFixed(4)})`;
+        if (dimLabel) dimLabel.innerText = `Vector Space: ${vA.length} Dimensions • BAAI BGE-Small-en-v1.5 (Raw Cosine: ${rawSim.toFixed(4)})`;
       } catch (err) {
         if (percentEl) percentEl.innerText = "Error: " + err.message;
       } finally {

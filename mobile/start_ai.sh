@@ -12,20 +12,18 @@ killall -9 llama-server cloudflared python3 2>/dev/null || true
 pkill -f start_ai.sh 2>/dev/null || true
 sleep 1
 
-# 3. Start Llama.cpp Qwen 2.5 SLM & Embeddings on Port 8001
+# 3. Start Llama.cpp Qwen 2.5 SLM on Port 8001 (Chat Completions)
 (
   while true; do
-    if ! pgrep -f "llama-server" > /dev/null; then
-      echo "$(date): Starting Llama-Server (Qwen 2.5)..." >> $HOME/llama.log
+    if ! pgrep -f "8001" > /dev/null; then
+      echo "$(date): Starting Llama-Server (Qwen 2.5 Chat on :8001)..." >> $HOME/llama_chat.log
       $HOME/llama.cpp/build/bin/llama-server \
         -m $HOME/models/qwen2.5-0.5b-instruct-q4_k_m.gguf \
         --port 8001 \
         --host 127.0.0.1 \
         -t 4 \
         -c 2048 \
-        --embedding \
-        --pooling mean \
-        -ngl 0 >> $HOME/llama.log 2>&1
+        -ngl 0 >> $HOME/llama_chat.log 2>&1
     fi
     sleep 5
   done
@@ -33,7 +31,28 @@ sleep 1
 
 sleep 1
 
-# 4. Start Multi-Modal Gateway with Alibaba SenseVoice-Small STT on Port 8080
+# 4. Start BAAI BGE-Small-en-v1.5 on Port 8002 (Dedicated Isotropic Embeddings with CLS Pooling)
+(
+  while true; do
+    if ! pgrep -f "8002" > /dev/null; then
+      echo "$(date): Starting BGE-Small-en-v1.5 (Embeddings on :8002)..." >> $HOME/llama_embed.log
+      $HOME/llama.cpp/build/bin/llama-server \
+        -m $HOME/models/bge-small-en-v1.5-q8_0.gguf \
+        --port 8002 \
+        --host 127.0.0.1 \
+        -t 4 \
+        -c 512 \
+        --embedding \
+        --pooling cls \
+        -ngl 0 >> $HOME/llama_embed.log 2>&1
+    fi
+    sleep 5
+  done
+) &
+
+sleep 1
+
+# 5. Start Multi-Modal Gateway with SenseVoice-Small STT + Qwen + BGE on Port 8080
 (
   while true; do
     if ! pgrep -f "gateway.py" > /dev/null; then
@@ -46,7 +65,7 @@ sleep 1
 
 sleep 1
 
-# 5. Persistent Cloudflare Tunnel (Starts ONCE and NEVER killed by watchdog)
+# 6. Persistent Cloudflare Tunnel (Starts ONCE and NEVER killed by watchdog)
 (
   while true; do
     if ! pgrep -f "cloudflared tunnel" > /dev/null; then
@@ -57,7 +76,7 @@ sleep 1
   done
 ) &
 
-# 6. Broadcaster (Pushes URL to GitHub ONLY ONCE when URL changes)
+# 7. Broadcaster (Pushes URL to GitHub ONLY ONCE when URL changes)
 (
   LAST_URL=""
   while true; do
@@ -86,5 +105,5 @@ JSON_EOF
 ) &
 
 echo "=================================================="
-echo "🚀 24/7 Multi-Modal AI Datacenter Active (SenseVoice-Small STT + Qwen 2.5 SLM + TTS + Embeddings)"
+echo "🚀 24/7 Multi-Modal AI Datacenter Active (SenseVoice STT + Qwen Chat + BGE Embeddings + TTS)"
 echo "=================================================="
