@@ -1,77 +1,34 @@
 #!/usr/bin/env python3
 """
-Universal Python Client for Mobile Whisper AI Server
-Works in: Google Colab, Jupyter Notebooks, Local Terminals, AWS Lambda, FastAPI, Flask
-Features: Zero-config Dynamic Endpoint Discovery, Permanent Global Routing.
+Universal Multi-Modal Python SDK for Mobile AI Datacenter
+Supported Modes:
+1. Speech-to-Text (STT)  -> transcribe()
+2. SLM Chat              -> chat()
+3. Text-to-Speech (TTS)   -> tts()
+4. Vector Embeddings     -> embed()
+5. Live Telemetry        -> get_telemetry()
 """
 
 import os
 import sys
 import time
+import math
 import requests
 from pathlib import Path
-from typing import Optional, Dict, Any, Union
+from typing import Optional, Dict, Any, Union, List
 
-REGISTRY_URL = "https://raw.githubusercontent.com/Electroiscoding/phone-whisper-server/main/endpoint.json"
-FALLBACK_ENDPOINT = "https://black-term-8c36.botmaker583-55e.workers.dev/inference"
-
-_cached_endpoint: Optional[str] = None
-_cached_endpoint_ts: float = 0.0
-
-
-def resolve_endpoint() -> str:
-    """
-    Dynamically resolves the active global Whisper inference endpoint.
-    Checks environment variable -> Local Cache -> Dynamic GitHub Registry -> Fallback.
-    """
-    global _cached_endpoint, _cached_endpoint_ts
-
-    env_url = os.getenv("WHISPER_API_URL")
-    if env_url:
-        return env_url if env_url.endswith("/inference") else f"{env_url.rstrip('/')}/inference"
-
-    now = time.time()
-    if _cached_endpoint and (now - _cached_endpoint_ts) < 60:
-        return _cached_endpoint
-
-    try:
-        res = requests.get(REGISTRY_URL, timeout=4)
-        if res.ok:
-            data = res.json()
-            inference_url = data.get("inference")
-            if inference_url:
-                _cached_endpoint = inference_url
-                _cached_endpoint_ts = now
-                return _cached_endpoint
-    except Exception:
-        pass
-
-    return _cached_endpoint or FALLBACK_ENDPOINT
+BASE_ENDPOINT = os.getenv("WHISPER_API_URL", "https://black-term-8c36.botmaker583-55e.workers.dev")
 
 
 def transcribe(
     audio_source: Union[str, Path, bytes],
-    endpoint: Optional[str] = None,
     response_format: str = "json",
     temperature: float = 0.0,
-    temperature_inc: float = 0.2,
-    no_speech_thold: float = 0.6,
     timeout: int = 120
 ) -> Union[Dict[str, Any], str]:
-    """
-    Transcribes audio by calling the remote mobile AI server.
-    """
-    target_url = endpoint or resolve_endpoint()
-    if not target_url.endswith("/inference"):
-        target_url = f"{target_url.rstrip('/')}/inference"
-
-    payload_data = {
-        "temperature": str(temperature),
-        "temperature_inc": str(temperature_inc),
-        "no_speech_thold": str(no_speech_thold),
-        "response_format": response_format
-    }
-
+    """Transcribes audio using on-device Whisper Base.en model."""
+    url = f"{BASE_ENDPOINT.rstrip('/')}/inference"
+    payload = {"temperature": str(temperature), "response_format": response_format}
     files = {}
     close_file = False
 
@@ -88,45 +45,148 @@ def transcribe(
         raise ValueError("audio_source must be a file path (str/Path) or bytes")
 
     try:
-        response = requests.post(
-            target_url,
-            files=files,
-            data=payload_data,
-            timeout=timeout
-        )
-        response.raise_for_status()
-
+        res = requests.post(url, files=files, data=payload, timeout=timeout)
+        res.raise_for_status()
         if response_format in ["json", "verbose_json"]:
-            return response.json()
-        return response.text
+            return res.json()
+        return res.text
     finally:
         if close_file and "file" in files:
             files["file"][1].close()
 
 
+def chat(
+    prompt: str,
+    system_prompt: Optional[str] = "You are a helpful on-device AI assistant.",
+    temperature: float = 0.7,
+    max_tokens: int = 150,
+    timeout: int = 60
+) -> str:
+    """Generates text completions using on-device Qwen 2.5 0.5B SLM."""
+    url = f"{BASE_ENDPOINT.rstrip('/')}/v1/chat/completions"
+    messages = []
+    if system_prompt:
+        messages.append({"role": "system", "content": system_prompt})
+    messages.append({"role": "user", "content": prompt})
+
+    payload = {
+        "messages": messages,
+        "temperature": temperature,
+        "max_tokens": max_tokens
+    }
+    res = requests.post(url, json=payload, timeout=timeout)
+    res.raise_for_status()
+    data = res.json()
+    return data["choices"][0]["message"]["content"].strip()
+
+
+def tts(
+    text: str,
+    output_path: Optional[Union[str, Path]] = "output.wav",
+    speed: float = 1.0,
+    timeout: int = 30
+) -> bytes:
+    """Synthesizes text into speech WAV audio bytes on-device."""
+    url = f"{BASE_ENDPOINT.rstrip('/')}/v1/audio/speech"
+    payload = {"input": text, "speed": speed}
+    res = requests.post(url, json=payload, timeout=timeout)
+    res.raise_for_status()
+    audio_bytes = res.content
+    if output_path:
+        with open(output_path, "wb") as f:
+            f.write(audio_bytes)
+    return audio_bytes
+
+
+def embed(
+    text: Union[str, List[str]],
+    timeout: int = 30
+) -> List[float]:
+    """Generates dense vector embeddings using on-device Qwen 2.5 model."""
+    url = f"{BASE_ENDPOINT.rstrip('/')}/v1/embeddings"
+    payload = {"input": text}
+    res = requests.post(url, json=payload, timeout=timeout)
+    res.raise_for_status()
+    data = res.json()
+    return data["data"][0]["embedding"]
+
+
+def cosine_similarity(v1: List[float], v2: List[float]) -> float:
+    """Computes cosine similarity between two embedding vectors."""
+    dot = sum(a * b for a, b in zip(v1, v2))
+    norm1 = math.sqrt(sum(a * a for a in v1))
+    norm2 = math.sqrt(sum(b * b for b in v2))
+    return dot / (norm1 * norm2) if norm1 and norm2 else 0.0
+
+
+def get_telemetry(timeout: int = 10) -> Dict[str, Any]:
+    """Fetches real-time Android kernel battery & RAM telemetry."""
+    url = f"{BASE_ENDPOINT.rstrip('/')}/telemetry"
+    res = requests.get(url, timeout=timeout)
+    res.raise_for_status()
+    return res.json()
+
+
 def main():
+    print("==================================================")
+    print("🚀 Mobile AI Datacenter — Universal Python CLI")
+    print(f"🔗 Permanent Endpoint: {BASE_ENDPOINT}")
+    print("==================================================")
+
     if len(sys.argv) < 2:
-        print("Usage: python transcribe.py <path_to_audio_file> [response_format]")
-        print("Example: python transcribe.py sample.wav json")
+        print("\nUsage:")
+        print("  python transcribe.py transcribe <audio.wav>")
+        print("  python transcribe.py chat \"Why is the sky blue?\"")
+        print("  python transcribe.py tts \"Hello world from phone\" [output.wav]")
+        print("  python transcribe.py embed \"Semantic search text\"")
+        print("  python transcribe.py telemetry")
         sys.exit(1)
 
-    file_path = sys.argv[1]
-    fmt = sys.argv[2] if len(sys.argv) > 2 else "json"
+    cmd = sys.argv[1].lower()
 
-    print(f"🎙️ Resolving autonomous global endpoint...")
-    endpoint = resolve_endpoint()
-    print(f"🔗 Target Endpoint: {endpoint}")
-    print(f"⏳ Sending {file_path} for on-device inference...")
+    if cmd == "transcribe" and len(sys.argv) > 2:
+        audio_file = sys.argv[2]
+        print(f"🎙️ Transcribing {audio_file} with Whisper Base.en...")
+        t0 = time.time()
+        res = transcribe(audio_file)
+        print(f"✅ Transcribed in {time.time()-t0:.2f}s:\n{res.get('text', res) if isinstance(res, dict) else res}")
 
-    start_time = time.time()
-    result = transcribe(file_path, response_format=fmt)
-    elapsed = time.time() - start_time
+    elif cmd == "chat" and len(sys.argv) > 2:
+        prompt = sys.argv[2]
+        print(f"💬 Asking Qwen 2.5 SLM: \"{prompt}\"...")
+        t0 = time.time()
+        reply = chat(prompt)
+        print(f"✅ Generated in {time.time()-t0:.2f}s:\n{reply}")
 
-    print(f"✅ Transcribed in {elapsed:.2f}s:\n")
-    if isinstance(result, dict):
-        print(result.get("text", result))
+    elif cmd == "tts" and len(sys.argv) > 2:
+        text = sys.argv[2]
+        out_file = sys.argv[3] if len(sys.argv) > 3 else "speech.wav"
+        print(f"🗣️ Synthesizing speech for: \"{text}\"...")
+        t0 = time.time()
+        tts(text, out_file)
+        print(f"✅ Saved audio to {out_file} in {time.time()-t0:.2f}s")
+
+    elif cmd == "embed" and len(sys.argv) > 2:
+        text = sys.argv[2]
+        print(f"🔍 Generating vector embedding for: \"{text}\"...")
+        t0 = time.time()
+        vec = embed(text)
+        print(f"✅ Generated {len(vec)}-dimensional vector in {time.time()-t0:.2f}s. Preview: {vec[:5]}...")
+
+    elif cmd == "telemetry":
+        print(f"📊 Querying live phone hardware metrics...")
+        stats = get_telemetry()
+        bat = stats.get("battery", {})
+        mem = stats.get("memory", {})
+        print(f"🔋 Battery: {bat.get('level')}% ({bat.get('status')}) | Temp: {bat.get('temperature')}°C | Voltage: {bat.get('voltage_mv')} mV")
+        print(f"🧠 RAM: {mem.get('used_mb')} MB used / {mem.get('total_mb')} MB total ({mem.get('available_mb')} MB free)")
+
     else:
-        print(result)
+        # Backward compatibility for direct file argument
+        audio_file = sys.argv[1]
+        print(f"🎙️ Transcribing {audio_file}...")
+        res = transcribe(audio_file)
+        print(res.get("text", res) if isinstance(res, dict) else res)
 
 
 if __name__ == "__main__":
