@@ -1,5 +1,5 @@
 {
-  "endpoint": "https://phpbb-utilize-zen-removal.trycloudflare.com",
-  "inference": "https://phpbb-utilize-zen-removal.trycloudflare.com/inference",
-  "telemetry": "https://phpbb-utilize-zen-removal.trycloudflare.com/telemetry"
+  "endpoint": "https://api.trycloudflare.com",
+  "inference": "https://api.trycloudflare.com/inference",
+  "telemetry": "https://api.trycloudflare.com/telemetry"
 }
