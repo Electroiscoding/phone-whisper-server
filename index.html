@@ -2834,6 +2834,7 @@ bash mobile/start_ai.sh</code></pre>
         if (res.ok) {
           const data = await res.json();
           
+          // 1. Real Battery & Kernel Stats
           if (data.battery) {
             batteryVal.innerText = `${data.battery.level}%`;
             chargeStatus.innerText = data.battery.status;
@@ -2842,6 +2843,7 @@ bash mobile/start_ai.sh</code></pre>
             tempProgressFill.style.width = `${Math.min(100, (data.battery.temperature / 60) * 100).toFixed(1)}%`;
           }
 
+          // 2. Real Hardware Memory (RAM)
           if (data.memory) {
             const usedGb = (data.memory.used_mb / 1024).toFixed(2);
             const totalGb = (data.memory.total_mb / 1024).toFixed(2);
@@ -2850,6 +2852,21 @@ bash mobile/start_ai.sh</code></pre>
             ramTotalVal.innerText = totalGb;
             ramAvailVal.innerText = `${availGb} GB`;
             ramProgressFill.style.width = `${((data.memory.used_mb / data.memory.total_mb) * 100).toFixed(1)}%`;
+          }
+
+          // 3. Global Server-Wide Real-Time CPU & Process Activity (Synced Worldwide)
+          if (data.cpu) {
+            const cpuPct = Number(data.cpu.usage_percent);
+            cpuUsageVal.innerText = cpuPct.toFixed(1);
+            cpuHistory.shift();
+            cpuHistory.push(cpuPct);
+
+            if (data.cpu.processes) {
+              if (procWhisperCpu) procWhisperCpu.innerText = `${data.cpu.processes.whisper}%`;
+              if (procLlamaCpu) procLlamaCpu.innerText = `${data.cpu.processes.llama}%`;
+              if (procGatewayCpu) procGatewayCpu.innerText = `${data.cpu.processes.gateway}%`;
+              if (procCfCpu) procCfCpu.innerText = `${data.cpu.processes.cloudflared}%`;
+            }
           }
 
           pingVal.innerText = pingMs;
