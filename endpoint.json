@@ -1,5 +1,5 @@
 {
-  "endpoint": "https://gcc-stamps-studio-frequently.trycloudflare.com",
-  "inference": "https://gcc-stamps-studio-frequently.trycloudflare.com/inference",
-  "telemetry": "https://gcc-stamps-studio-frequently.trycloudflare.com/telemetry"
+  "endpoint": "https://conf-reception-urw-series.trycloudflare.com",
+  "inference": "https://conf-reception-urw-series.trycloudflare.com/inference",
+  "telemetry": "https://conf-reception-urw-series.trycloudflare.com/telemetry"
 }
