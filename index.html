@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PhoneWhisper AI — Real-Time Mobile AI Inference Server & Telemetry</title>
+  <title>PhoneWhisper AI — Real-Time Mobile AI Inference Server & Studio</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -27,8 +27,8 @@
       --text-muted: #94a3b8;
       --text-subtle: #64748b;
       --input-bg: rgba(9, 13, 23, 0.9);
-      --pill-bg: #131722;
-      --pill-border: rgba(255, 255, 255, 0.12);
+      --pill-bg: #121622;
+      --pill-border: rgba(255, 255, 255, 0.14);
       --terminal-bg: #090c14;
     }
 
@@ -202,10 +202,12 @@
       margin-bottom: 2.5rem;
     }
 
-    /* Studio Pill Recorder */
+    /* =========================================================================
+       FLAWLESS RECORDER CAPSULE UX & FLUID WAVEFORM
+       ========================================================================= */
     .studio-wrapper {
       width: 100%;
-      max-width: 680px;
+      max-width: 720px;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -217,31 +219,41 @@
       background: var(--pill-bg);
       border: 1px solid var(--pill-border);
       border-radius: 9999px;
-      padding: 0.6rem 0.8rem 0.6rem 1.5rem;
+      padding: 0.5rem 0.6rem 0.5rem 1.25rem;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 1rem;
-      box-shadow: 0 16px 36px -10px rgba(0, 0, 0, 0.7), 0 0 20px rgba(56, 189, 248, 0.05);
+      gap: 0.85rem;
+      box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.7), 0 0 25px rgba(56, 189, 248, 0.04);
       transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
     }
 
     .pill-recorder-bar:hover {
-      border-color: rgba(255, 255, 255, 0.22);
+      border-color: rgba(255, 255, 255, 0.24);
+      box-shadow: 0 22px 45px -10px rgba(0, 0, 0, 0.8), 0 0 30px rgba(56, 189, 248, 0.08);
     }
 
     .pill-recorder-bar.recording-active {
-      border-color: rgba(56, 189, 248, 0.6);
-      box-shadow: 0 0 25px rgba(56, 189, 248, 0.25), 0 16px 36px -10px rgba(0, 0, 0, 0.7);
+      border-color: rgba(56, 189, 248, 0.65);
+      background: #10141f;
+      box-shadow: 0 0 35px rgba(56, 189, 248, 0.25), 0 20px 40px -10px rgba(0, 0, 0, 0.8);
     }
 
+    .pill-recorder-bar.ready-to-send {
+      border-color: rgba(37, 99, 235, 0.6);
+      box-shadow: 0 0 30px rgba(37, 99, 235, 0.25), 0 20px 40px -10px rgba(0, 0, 0, 0.8);
+    }
+
+    /* Wave Area & Live Canvas */
     .wave-area {
       flex: 1;
-      height: 38px;
+      height: 42px;
       display: flex;
       align-items: center;
-      overflow: hidden;
       position: relative;
+      overflow: hidden;
+      cursor: pointer;
     }
 
     .waveform-canvas {
@@ -250,63 +262,115 @@
       display: block;
     }
 
-    .idle-wave-placeholder {
-      display: flex;
+    /* Live Recording Status Badge inside Capsule */
+    .recording-timer-badge {
+      display: none;
       align-items: center;
-      gap: 3px;
-      width: 100%;
-      height: 100%;
-      justify-content: flex-start;
-      opacity: 0.45;
-      transition: opacity 0.3s;
+      gap: 0.5rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #f87171;
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.25);
+      padding: 0.25rem 0.65rem;
+      border-radius: 9999px;
+      margin-right: 0.5rem;
+      flex-shrink: 0;
     }
 
-    .idle-bar {
-      width: 2px;
-      height: 4px;
-      background: #94a3b8;
-      border-radius: 2px;
+    .rec-pulse-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ef4444;
+      box-shadow: 0 0 8px #ef4444;
+      animation: pulse-glow 1.2s infinite ease-in-out;
     }
 
+    /* File / Ready Status inside Capsule */
+    .file-ready-badge {
+      display: none;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--primary);
+      max-width: 320px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* Pill Action Buttons */
     .pill-actions {
       display: flex;
       align-items: center;
       gap: 0.5rem;
+      flex-shrink: 0;
     }
 
-    .btn-stop-record {
-      width: 40px;
-      height: 40px;
+    /* Micro Action Button (Cancel / Discard) */
+    .btn-discard {
+      width: 36px;
+      height: 36px;
       border-radius: 50%;
-      background: #272a33;
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: transparent;
+      border: 1px solid transparent;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--text-muted);
+      transition: all 0.2s;
+      font-size: 0.9rem;
+    }
+
+    .btn-discard:hover {
+      background: rgba(239, 68, 68, 0.15);
+      border-color: rgba(239, 68, 68, 0.3);
+      color: var(--danger);
+    }
+
+    /* Microphone / Play Toggle Button */
+    .btn-capsule-mic {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: #242938;
+      border: 1px solid rgba(255, 255, 255, 0.1);
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      color: #ffffff;
-      transition: all 0.2s;
+      color: #f1f5f9;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      font-size: 1.15rem;
     }
 
-    .btn-stop-record:hover {
-      background: #363a47;
-      transform: scale(1.05);
+    .btn-capsule-mic:hover {
+      background: #333a4f;
+      border-color: rgba(255, 255, 255, 0.2);
+      transform: scale(1.06);
     }
 
-    .btn-stop-record .icon-stop {
-      width: 12px;
-      height: 12px;
-      background: #f1f5f9;
-      border-radius: 2px;
+    .btn-capsule-mic.active-recording {
+      background: #ef4444;
+      border-color: #f87171;
+      color: white;
+      box-shadow: 0 0 16px rgba(239, 68, 68, 0.5);
+      animation: record-ring 1.5s infinite;
     }
 
-    .btn-stop-record.is-mic .icon-mic {
-      font-size: 1.1rem;
+    @keyframes record-ring {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.08); }
     }
 
+    /* Blue Send / Transcribe Arrow Button */
     .btn-send-transcribe {
-      width: 40px;
-      height: 40px;
+      width: 42px;
+      height: 42px;
       border-radius: 50%;
       background: var(--accent-blue);
       border: none;
@@ -316,13 +380,13 @@
       cursor: pointer;
       color: white;
       transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
     }
 
     .btn-send-transcribe:hover:not(:disabled) {
       background: var(--accent-blue-hover);
       transform: scale(1.08);
-      box-shadow: 0 6px 18px rgba(37, 99, 235, 0.6);
+      box-shadow: 0 6px 20px rgba(37, 99, 235, 0.6);
     }
 
     .btn-send-transcribe:disabled {
@@ -330,11 +394,13 @@
       cursor: not-allowed;
       transform: none;
       box-shadow: none;
+      background: #1e293b;
+      color: #64748b;
     }
 
     .btn-send-transcribe svg {
-      width: 18px;
-      height: 18px;
+      width: 20px;
+      height: 20px;
       fill: none;
       stroke: currentColor;
       stroke-width: 2.5;
@@ -342,6 +408,7 @@
       stroke-linejoin: round;
     }
 
+    /* Subcontrols */
     .studio-subcontrols {
       display: flex;
       align-items: center;
@@ -616,7 +683,6 @@
       display: block;
     }
 
-    /* Progress Bar */
     .progress-bar-bg {
       width: 100%;
       height: 6px;
@@ -712,9 +778,7 @@
     .log-tag.warn { color: var(--warning); }
     .log-msg { color: var(--text); }
 
-    /* =========================================================================
-       API CHEATSHEET & ENDPOINT EXPLORER SECTION
-       ========================================================================= */
+    /* API Cheatsheet */
     .cheatsheet-banner {
       background: linear-gradient(135deg, rgba(56, 189, 248, 0.1) 0%, rgba(99, 102, 241, 0.05) 100%);
       border: 1px solid rgba(56, 189, 248, 0.25);
@@ -857,7 +921,7 @@
       line-height: 1.5;
     }
 
-    /* Documentation Section */
+    /* Docs */
     .docs-wrapper {
       background: var(--card-bg);
       backdrop-filter: blur(16px);
@@ -1020,7 +1084,7 @@
 
   <div class="container">
 
-    <!-- HERO & INTERACTIVE PILL RECORDER STUDIO -->
+    <!-- HERO & INTERACTIVE PILL RECORDER STUDIO (FLAWLESS UX) -->
     <section class="hero" id="studio">
       <div class="status-pill">
         <div class="status-dot"></div>
@@ -1033,19 +1097,37 @@
       </p>
 
       <div class="studio-wrapper">
-        <!-- Exact Pill Voice Bar as requested in reference image -->
+        <!-- Interactive Pill Voice Bar -->
         <div class="pill-recorder-bar" id="pillRecorderBar">
-          <div class="wave-area">
-            <canvas id="waveformCanvas" class="waveform-canvas" style="display: none;"></canvas>
-            <div class="idle-wave-placeholder" id="idleWavePlaceholder"></div>
+          
+          <!-- Live Timer Badge (Appears while recording) -->
+          <div class="recording-timer-badge" id="recordingTimerBadge">
+            <span class="rec-pulse-dot"></span>
+            <span id="recordingTimer">00:00</span>
           </div>
 
+          <!-- File Ready Badge (Appears when audio file selected) -->
+          <div class="file-ready-badge" id="fileReadyBadge">
+            <span>🎵</span>
+            <span id="fileReadyName">audio.wav</span>
+          </div>
+
+          <!-- Waveform Canvas Area -->
+          <div class="wave-area" id="waveArea">
+            <canvas id="waveformCanvas" class="waveform-canvas"></canvas>
+          </div>
+
+          <!-- Pill Actions -->
           <div class="pill-actions">
-            <button class="btn-stop-record is-mic" id="recordToggleBtn" title="Start/Stop Recording">
-              <span class="icon-mic" id="micIcon">🎙️</span>
-              <span class="icon-stop" id="stopSquare" style="display: none;"></span>
+            <!-- Discard Button -->
+            <button class="btn-discard" id="discardBtn" title="Discard recording">✕</button>
+
+            <!-- Microphone Button -->
+            <button class="btn-capsule-mic" id="recordToggleBtn" title="Click to Record / Pause">
+              <span id="micBtnIcon">🎙️</span>
             </button>
 
+            <!-- 1-Click Send & Transcribe Button -->
             <button class="btn-send-transcribe" id="sendTranscribeBtn" disabled title="Send & Transcribe Audio">
               <svg viewBox="0 0 24 24"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>
             </button>
@@ -1058,7 +1140,7 @@
             <span>📁 Upload Audio File</span>
             <input type="file" id="fileUploadInput" accept="audio/*,video/*" style="display: none;">
           </label>
-          <span id="audioStatusText" style="font-size: 0.8rem; color: var(--text-subtle);">Ready to record or upload</span>
+          <span id="audioStatusText" style="font-size: 0.8rem; color: var(--text-subtle);">Click 🎙️ to record, or upload audio</span>
           <select id="responseFormatSelect" class="format-pill-select">
             <option value="json">Format: JSON</option>
             <option value="text">Format: Text</option>
@@ -1068,7 +1150,8 @@
           </select>
         </div>
 
-        <audio id="audioPreview" controls style="width: 100%; height: 36px; display: none; margin-top: 0.5rem; filter: invert(0.9) hue-rotate(180deg); border-radius: 8px;"></audio>
+        <!-- Hidden Audio Player for playback -->
+        <audio id="audioPreview" style="display: none;"></audio>
 
         <!-- Output Result Card -->
         <div class="output-card">
@@ -1081,7 +1164,7 @@
               <button class="btn-action" id="downloadOutputBtn">💾 Download</button>
             </div>
           </div>
-          <div class="output-text-area placeholder-mode" id="outputContentArea">Press 🎙️ to record voice, or upload a file, then click the blue [↑] button to transcribe...</div>
+          <div class="output-text-area placeholder-mode" id="outputContentArea">Click 🎙️ on the capsule to speak, or upload an audio file, then click the blue [↑] button to transcribe...</div>
           <div class="output-meta-bar">
             <span id="charCountLabel">0 characters</span>
             <span id="latencyBadge" style="color: var(--success); font-weight: 600;">Server Ready</span>
@@ -1563,15 +1646,21 @@ bash mobile/start_ai.sh</code></pre>
     let isRecording = false;
     let totalInferences = 148;
     let isInferencing = false;
+    let recordStartTime = 0;
+    let timerInterval = null;
 
     // Elements
     const pillRecorderBar = document.getElementById("pillRecorderBar");
+    const waveArea = document.getElementById("waveArea");
     const waveformCanvas = document.getElementById("waveformCanvas");
-    const idleWavePlaceholder = document.getElementById("idleWavePlaceholder");
     const recordToggleBtn = document.getElementById("recordToggleBtn");
-    const micIcon = document.getElementById("micIcon");
-    const stopSquare = document.getElementById("stopSquare");
+    const micBtnIcon = document.getElementById("micBtnIcon");
     const sendTranscribeBtn = document.getElementById("sendTranscribeBtn");
+    const discardBtn = document.getElementById("discardBtn");
+    const recordingTimerBadge = document.getElementById("recordingTimerBadge");
+    const recordingTimer = document.getElementById("recordingTimer");
+    const fileReadyBadge = document.getElementById("fileReadyBadge");
+    const fileReadyName = document.getElementById("fileReadyName");
     const fileUploadInput = document.getElementById("fileUploadInput");
     const audioStatusText = document.getElementById("audioStatusText");
     const responseFormatSelect = document.getElementById("responseFormatSelect");
@@ -1608,20 +1697,97 @@ bash mobile/start_ai.sh</code></pre>
     let cpuHistory = Array(GRAPH_POINTS).fill(0.3);
     let pingHistory = Array(GRAPH_POINTS).fill(38);
 
-    // Build Idle Waveform Tick Marks
-    function buildIdleWaveform() {
-      idleWavePlaceholder.innerHTML = "";
-      const count = 52;
-      for (let i = 0; i < count; i++) {
-        const bar = document.createElement("div");
-        bar.className = "idle-bar";
-        const distanceCenter = Math.abs(i - count / 2) / (count / 2);
-        const height = Math.max(3, Math.round(18 * (1 - distanceCenter * 0.7) * (0.4 + 0.6 * Math.sin(i * 0.4))));
-        bar.style.height = `${height}px`;
-        idleWavePlaceholder.appendChild(bar);
+    // Waveform Animation Parameters
+    const BAR_COUNT = 52;
+    let smoothBars = Array(BAR_COUNT).fill(4);
+    let idlePhase = 0;
+
+    // Fluid Waveform Drawer (Interpolated & Buttery-Smooth)
+    function drawFluidWaveform() {
+      const dpr = window.devicePixelRatio || 1;
+      const width = waveformCanvas.parentElement.clientWidth * dpr;
+      const height = waveformCanvas.parentElement.clientHeight * dpr;
+
+      if (waveformCanvas.width !== width || waveformCanvas.height !== height) {
+        waveformCanvas.width = width;
+        waveformCanvas.height = height;
       }
+
+      canvasCtx.clearRect(0, 0, width, height);
+
+      let targetHeights = [];
+
+      if (isRecording && analyserNode) {
+        const bufferLength = analyserNode.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+        analyserNode.getByteFrequencyData(dataArray);
+
+        for (let i = 0; i < BAR_COUNT; i++) {
+          // Mirrored center distribution
+          const distFromCenter = Math.abs(i - BAR_COUNT / 2) / (BAR_COUNT / 2);
+          const freqIndex = Math.floor((1 - distFromCenter) * (bufferLength * 0.7));
+          const val = dataArray[freqIndex] || 0;
+          
+          const dynamicHeight = Math.max(3 * dpr, (val / 255) * height * 0.95 * (1 - distFromCenter * 0.3));
+          targetHeights.push(dynamicHeight);
+        }
+      } else if (selectedWavBlob) {
+        // Audio loaded preview waveform
+        for (let i = 0; i < BAR_COUNT; i++) {
+          const dist = Math.abs(i - BAR_COUNT / 2) / (BAR_COUNT / 2);
+          const h = Math.max(4 * dpr, (height * 0.65) * (1 - dist * 0.5) * (0.4 + 0.6 * Math.sin(i * 0.6)));
+          targetHeights.push(h);
+        }
+      } else {
+        // Idle ambient fluid breathing wave
+        idlePhase += 0.04;
+        for (let i = 0; i < BAR_COUNT; i++) {
+          const dist = Math.abs(i - BAR_COUNT / 2) / (BAR_COUNT / 2);
+          const waveFactor = 0.5 + 0.5 * Math.sin(idlePhase + i * 0.25);
+          const h = Math.max(3 * dpr, (height * 0.45) * (1 - dist * 0.6) * (0.35 + 0.65 * waveFactor));
+          targetHeights.push(h);
+        }
+      }
+
+      // Smooth Lerp Transition
+      const totalWidth = width;
+      const barWidth = 2.5 * dpr;
+      const gap = (totalWidth - (BAR_COUNT * barWidth)) / (BAR_COUNT - 1);
+
+      let x = 0;
+      for (let i = 0; i < BAR_COUNT; i++) {
+        // Lerp to target height
+        smoothBars[i] += (targetHeights[i] - smoothBars[i]) * 0.25;
+
+        const h = Math.max(3 * dpr, smoothBars[i]);
+        const y = (height - h) / 2;
+
+        // Gradient & Colors
+        if (isRecording) {
+          const grad = canvasCtx.createLinearGradient(0, y, 0, y + h);
+          grad.addColorStop(0, '#38bdf8');
+          grad.addColorStop(1, '#818cf8');
+          canvasCtx.fillStyle = grad;
+        } else if (selectedWavBlob) {
+          canvasCtx.fillStyle = '#60a5fa';
+        } else {
+          canvasCtx.fillStyle = 'rgba(148, 163, 184, 0.45)';
+        }
+
+        canvasCtx.beginPath();
+        if (canvasCtx.roundRect) {
+          canvasCtx.roundRect(x, y, barWidth, h, 2 * dpr);
+        } else {
+          canvasCtx.fillRect(x, y, barWidth, h);
+        }
+        canvasCtx.fill();
+
+        x += barWidth + gap;
+      }
+
+      animFrameId = requestAnimationFrame(drawFluidWaveform);
     }
-    buildIdleWaveform();
+    animFrameId = requestAnimationFrame(drawFluidWaveform);
 
     // Pure Client-side 16kHz 16-bit Mono WAV Encoder
     function encodeToWav(samples, sampleRate = 16000) {
@@ -1673,115 +1839,123 @@ bash mobile/start_ai.sh</code></pre>
       return result;
     }
 
-    function renderWaveform() {
-      if (!isRecording) return;
-      animFrameId = requestAnimationFrame(renderWaveform);
+    // Timer Formatter
+    function updateTimer() {
+      const elapsedMs = Date.now() - recordStartTime;
+      const secs = Math.floor((elapsedMs / 1000) % 60);
+      const mins = Math.floor(elapsedMs / 60000);
+      recordingTimer.innerText = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    }
 
-      const bufferLength = analyserNode.frequencyBinCount;
-      const dataArray = new Uint8Array(bufferLength);
-      analyserNode.getByteFrequencyData(dataArray);
+    // Start Recording Action
+    async function startRecording() {
+      try {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        micStream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true } });
+        
+        sourceNode = audioCtx.createMediaStreamSource(micStream);
+        analyserNode = audioCtx.createAnalyser();
+        analyserNode.fftSize = 128;
 
-      canvasCtx.clearRect(0, 0, waveformCanvas.width, waveformCanvas.height);
+        processorNode = audioCtx.createScriptProcessor(4096, 1, 1);
+        rawPcmChunks = [];
 
-      const barCount = 48;
-      const totalWidth = waveformCanvas.width;
-      const barWidth = 3 * window.devicePixelRatio;
-      const gap = (totalWidth - (barCount * barWidth)) / barCount;
+        processorNode.onaudioprocess = (e) => {
+          if (!isRecording) return;
+          const inputChannel = e.inputBuffer.getChannelData(0);
+          rawPcmChunks.push(new Float32Array(inputChannel));
+        };
 
-      let x = 0;
-      for (let i = 0; i < barCount; i++) {
-        const valIndex = Math.floor((i / barCount) * bufferLength);
-        const rawVal = dataArray[valIndex] || 0;
-        const barHeight = Math.max(4 * window.devicePixelRatio, (rawVal / 255) * waveformCanvas.height * 0.9);
+        sourceNode.connect(analyserNode);
+        sourceNode.connect(processorNode);
+        processorNode.connect(audioCtx.destination);
 
-        canvasCtx.fillStyle = rawVal > 25 ? "#f8fafc" : "#64748b";
-        canvasCtx.beginPath();
-        const y = (waveformCanvas.height - barHeight) / 2;
-        if (canvasCtx.roundRect) {
-          canvasCtx.roundRect(x, y, barWidth, barHeight, 2);
-        } else {
-          canvasCtx.fillRect(x, y, barWidth, barHeight);
-        }
-        canvasCtx.fill();
+        isRecording = true;
+        recordStartTime = Date.now();
+        timerInterval = setInterval(updateTimer, 100);
 
-        x += barWidth + gap;
+        pillRecorderBar.classList.add("recording-active");
+        pillRecorderBar.classList.remove("ready-to-send");
+        recordToggleBtn.classList.add("active-recording");
+        micBtnIcon.innerText = "⏹️";
+        
+        recordingTimerBadge.style.display = "flex";
+        fileReadyBadge.style.display = "none";
+        discardBtn.style.display = "flex";
+        sendTranscribeBtn.disabled = false; // Send button active immediately to stop & transcribe in 1 click!
+
+        audioStatusText.innerText = "Recording voice... Click [↑] to transcribe or [⏹] to stop";
+        addTerminalLog("INFO", "Microphone stream initialized @ 16kHz PCM");
+
+      } catch (err) {
+        alert("Microphone permission denied: " + err.message);
       }
     }
 
-    // Recording Handler
-    recordToggleBtn.addEventListener("click", async () => {
-      if (!isRecording) {
-        try {
-          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-          micStream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true } });
-          
-          sourceNode = audioCtx.createMediaStreamSource(micStream);
-          analyserNode = audioCtx.createAnalyser();
-          analyserNode.fftSize = 128;
+    // Stop Recording & Finalize Audio
+    function stopRecording() {
+      if (!isRecording) return;
+      isRecording = false;
+      clearInterval(timerInterval);
 
-          processorNode = audioCtx.createScriptProcessor(4096, 1, 1);
-          rawPcmChunks = [];
+      pillRecorderBar.classList.remove("recording-active");
+      recordToggleBtn.classList.remove("active-recording");
+      micBtnIcon.innerText = "🎙️";
+      recordingTimerBadge.style.display = "none";
 
-          processorNode.onaudioprocess = (e) => {
-            if (!isRecording) return;
-            const inputChannel = e.inputBuffer.getChannelData(0);
-            rawPcmChunks.push(new Float32Array(inputChannel));
-          };
+      if (processorNode) processorNode.disconnect();
+      if (sourceNode) sourceNode.disconnect();
+      if (micStream) micStream.getTracks().forEach(t => t.stop());
 
-          sourceNode.connect(analyserNode);
-          sourceNode.connect(processorNode);
-          processorNode.connect(audioCtx.destination);
-
-          isRecording = true;
-          pillRecorderBar.classList.add("recording-active");
-          micIcon.style.display = "none";
-          stopSquare.style.display = "block";
-          waveformCanvas.style.display = "block";
-          idleWavePlaceholder.style.display = "none";
-          audioStatusText.innerText = "Recording voice... Click [⏹] when done";
-
-          waveformCanvas.width = waveformCanvas.parentElement.clientWidth * window.devicePixelRatio;
-          waveformCanvas.height = waveformCanvas.parentElement.clientHeight * window.devicePixelRatio;
-
-          renderWaveform();
-          addTerminalLog("INFO", "Microphone stream initialized @ 16kHz PCM");
-        } catch (err) {
-          alert("Microphone permission denied: " + err.message);
-        }
-      } else {
-        isRecording = false;
-        pillRecorderBar.classList.remove("recording-active");
-        micIcon.style.display = "block";
-        stopSquare.style.display = "none";
-        cancelAnimationFrame(animFrameId);
-
-        if (processorNode) processorNode.disconnect();
-        if (sourceNode) sourceNode.disconnect();
-        if (micStream) micStream.getTracks().forEach(t => t.stop());
-
-        let totalLength = 0;
-        for (const chunk of rawPcmChunks) totalLength += chunk.length;
-        const mergedPcm = new Float32Array(totalLength);
-        let offset = 0;
-        for (const chunk of rawPcmChunks) {
-          mergedPcm.set(chunk, offset);
-          offset += chunk.length;
-        }
-
-        const resampled = resampleTo16k(mergedPcm, audioCtx.sampleRate);
-        selectedWavBlob = encodeToWav(resampled, 16000);
-
-        audioPreview.src = URL.createObjectURL(selectedWavBlob);
-        audioPreview.style.display = "block";
-        audioStatusText.innerText = `Recorded 16kHz WAV (${(selectedWavBlob.size / 1024).toFixed(1)} KB)`;
-        sendTranscribeBtn.disabled = false;
-
-        waveformCanvas.style.display = "none";
-        idleWavePlaceholder.style.display = "flex";
-
-        if (audioCtx) audioCtx.close();
-        addTerminalLog("SUCCESS", `Encoded ${(selectedWavBlob.size / 1024).toFixed(1)} KB WAV (Ready for inference)`);
+      let totalLength = 0;
+      for (const chunk of rawPcmChunks) totalLength += chunk.length;
+      const mergedPcm = new Float32Array(totalLength);
+      let offset = 0;
+      for (const chunk of rawPcmChunks) {
+        mergedPcm.set(chunk, offset);
+        offset += chunk.length;
       }
+
+      const resampled = resampleTo16k(mergedPcm, audioCtx.sampleRate);
+      selectedWavBlob = encodeToWav(resampled, 16000);
+
+      audioPreview.src = URL.createObjectURL(selectedWavBlob);
+      fileReadyBadge.style.display = "flex";
+      fileReadyName.innerText = `Voice Note (${(selectedWavBlob.size / 1024).toFixed(1)} KB)`;
+      pillRecorderBar.classList.add("ready-to-send");
+      sendTranscribeBtn.disabled = false;
+      discardBtn.style.display = "flex";
+
+      audioStatusText.innerText = `Recorded ${(selectedWavBlob.size / 1024).toFixed(1)} KB WAV • Ready to transcribe [↑]`;
+      if (audioCtx) audioCtx.close();
+      addTerminalLog("SUCCESS", `Captured voice recording (${(selectedWavBlob.size / 1024).toFixed(1)} KB WAV)`);
+    }
+
+    // Discard Recording / Selection
+    function discardAudio() {
+      if (isRecording) stopRecording();
+      selectedWavBlob = null;
+      fileUploadInput.value = "";
+      fileReadyBadge.style.display = "none";
+      recordingTimerBadge.style.display = "none";
+      discardBtn.style.display = "none";
+      sendTranscribeBtn.disabled = true;
+      pillRecorderBar.classList.remove("ready-to-send", "recording-active");
+      audioStatusText.innerText = "Click 🎙️ to record, or upload audio";
+    }
+
+    // Toggle Record Button Handler
+    recordToggleBtn.addEventListener("click", () => {
+      if (!isRecording) {
+        startRecording();
+      } else {
+        stopRecording();
+      }
+    });
+
+    discardBtn.addEventListener("click", discardAudio);
+    waveArea.addEventListener("click", () => {
+      if (!isRecording && !selectedWavBlob) startRecording();
     });
 
     // File Upload Handler
@@ -1811,22 +1985,33 @@ bash mobile/start_ai.sh</code></pre>
           tempCtx.close();
 
           audioPreview.src = URL.createObjectURL(selectedWavBlob);
-          audioPreview.style.display = "block";
-          audioStatusText.innerText = `Ready: ${file.name} (${(selectedWavBlob.size / 1024).toFixed(1)} KB WAV)`;
+          fileReadyBadge.style.display = "flex";
+          fileReadyName.innerText = `${file.name} (${(selectedWavBlob.size / 1024).toFixed(1)} KB)`;
+          pillRecorderBar.classList.add("ready-to-send");
+          discardBtn.style.display = "flex";
           sendTranscribeBtn.disabled = false;
+          audioStatusText.innerText = `Ready: ${file.name} • Click [↑] to transcribe`;
           addTerminalLog("SUCCESS", `Decoded ${file.name} -> 16kHz Mono WAV`);
         } catch (err) {
           selectedWavBlob = file;
           audioPreview.src = URL.createObjectURL(file);
-          audioPreview.style.display = "block";
-          audioStatusText.innerText = `File: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+          fileReadyBadge.style.display = "flex";
+          fileReadyName.innerText = file.name;
+          pillRecorderBar.classList.add("ready-to-send");
+          discardBtn.style.display = "flex";
           sendTranscribeBtn.disabled = false;
+          audioStatusText.innerText = `File: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
         }
       }
     });
 
-    // Transcribe Inference
+    // 1-Click Send & Transcribe Action (Stops recording if active and transcribes immediately!)
     sendTranscribeBtn.addEventListener("click", async () => {
+      // If user clicks Send while actively recording, stop and process seamlessly!
+      if (isRecording) {
+        stopRecording();
+      }
+
       if (!selectedWavBlob) return;
 
       const format = responseFormatSelect.value;
