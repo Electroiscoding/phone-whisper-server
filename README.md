@@ -139,7 +139,7 @@ async function onAudioCaptured(audioBlob) {
 ### 💻 cURL / REST API
 
 ```bash
-curl -X POST "https://<your-subdomain>.trycloudflare.com/inference" \
+curl -X POST "https://consumer-capacity-replies-adams.trycloudflare.com/inference" \
   -H "Content-Type: multipart/form-data" \
   -F "file=@sample.wav" \
   -F "temperature=0.0" \

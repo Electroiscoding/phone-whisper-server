@@ -19,7 +19,7 @@ except ImportError:
 # Default public endpoint (can be overridden via argument or env var WHISPER_API_URL)
 DEFAULT_ENDPOINT = os.getenv(
     "WHISPER_API_URL",
-    "https://hardly-assembly-guides-cache.trycloudflare.com/inference"
+    "https://consumer-capacity-replies-adams.trycloudflare.com/inference"
 )
 
 
