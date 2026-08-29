@@ -2025,79 +2025,149 @@
         <div class="docs-content">
           <!-- Python Tab -->
           <div id="tab-python" class="tab-pane active">
-            <p style="color: var(--text-muted); font-size: 0.9rem;">
-              Drop-in snippet for Google Colab, Jupyter Notebooks, FastAPI, Flask, or backend services:
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.75rem;">
+              Universal drop-in snippet for Google Colab, Jupyter Notebooks, FastAPI, Flask, or backend services supporting all 5 AI modes:
             </p>
-            <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>import requests
+            <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>import requests, json
 
-API_ENDPOINT = "https://black-term-8c36.botmaker583-55e.workers.dev/inference"
+BASE_URL = "https://black-term-8c36.botmaker583-55e.workers.dev"
 
-def transcribe(audio_path: str, response_format: str = "json") -> dict:
+# 1. Speech-to-Text (Whisper Base.en)
+def transcribe(audio_path: str):
     with open(audio_path, "rb") as f:
-        files = {"file": f}
-        data = {
-            "temperature": "0.0",
-            "response_format": response_format  # 'json', 'text', 'srt', 'vtt'
-        }
-        res = requests.post(API_ENDPOINT, files=files, data=data, timeout=60)
-        res.raise_for_status()
-        return res.json() if response_format == "json" else res.text
+        res = requests.post(f"{BASE_URL}/inference", files={"file": f}, data={"temperature": "0.0"})
+        return res.json()
 
-# Run transcription
-result = transcribe("my_voice.wav")
-print("Result:", result.get("text"))</code></pre>
+# 2. Token Streaming Chat (Qwen 2.5 SLM)
+def chat_stream(prompt: str):
+    payload = {"messages": [{"role": "user", "content": prompt}], "stream": True}
+    res = requests.post(f"{BASE_URL}/v1/chat/completions", json=payload, headers={"Accept": "text/event-stream"}, stream=True)
+    for line in res.iter_lines(decode_unicode=True):
+        if line and line.startswith("data: ") and "[DONE]" not in line:
+            chunk = json.loads(line[6:])
+            yield chunk["choices"][0]["delta"].get("content", "")
+
+# 3. Text-to-Speech (On-Device TTS)
+def text_to_speech(text: str, out_file="speech.wav"):
+    res = requests.post(f"{BASE_URL}/v1/audio/speech", json={"input": text, "speed": 1.0})
+    with open(out_file, "wb") as f:
+        f.write(res.content)
+
+# 4. Dense Vector Embeddings (896 Dimensions)
+def embed_text(text: str):
+    res = requests.post(f"{BASE_URL}/v1/embeddings", json={"input": text})
+    return res.json()["data"][0]["embedding"]
+
+# 5. Real-Time Hardware Telemetry
+def get_telemetry():
+    return requests.get(f"{BASE_URL}/telemetry").json()</code></pre>
           </div>
 
           <!-- JavaScript Tab -->
           <div id="tab-javascript" class="tab-pane">
-            <p style="color: var(--text-muted); font-size: 0.9rem;">
-              Native Fetch with zero npm dependencies — works in Node.js (v18+), React, Vue, Next.js, and Browser:
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.75rem;">
+              Native Fetch with zero npm dependencies — works in Node.js (v18+), React, Vue, Next.js, and Browsers:
             </p>
-            <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>const API_ENDPOINT = "https://black-term-8c36.botmaker583-55e.workers.dev/inference";
+            <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>const BASE_URL = "https://black-term-8c36.botmaker583-55e.workers.dev";
 
-async function transcribeAudio(audioBlobOrBuffer, format = "json") {
-  const formData = new FormData();
-  formData.append("file", audioBlobOrBuffer, "audio.wav");
-  formData.append("temperature", "0.0");
-  formData.append("response_format", format);
+// 1. Speech-to-Text (STT)
+async function transcribe(audioBlob) {
+  const fd = new FormData();
+  fd.append("file", audioBlob, "audio.wav");
+  const res = await fetch(`${BASE_URL}/inference`, { method: "POST", body: fd });
+  return await res.json();
+}
 
-  const res = await fetch(API_ENDPOINT, {
+// 2. Token-by-Token Streaming Chat (Qwen 2.5 SLM)
+async function streamChat(prompt, onToken) {
+  const res = await fetch(`${BASE_URL}/v1/chat/completions`, {
     method: "POST",
-    body: formData,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ messages: [{ role: "user", content: prompt }], stream: true })
   });
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    const text = decoder.decode(value);
+    for (const line of text.split("\n")) {
+      if (line.startsWith("data: ") && !line.includes("[DONE]")) {
+        const delta = JSON.parse(line.slice(6))?.choices?.[0]?.delta?.content;
+        if (delta) onToken(delta);
+      }
+    }
+  }
+}
 
-  if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
-  return format === "json" ? await res.json() : await res.text();
+// 3. Text-to-Speech (TTS)
+async function textToSpeech(text) {
+  const res = await fetch(`${BASE_URL}/v1/audio/speech`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ input: text })
+  });
+  return await res.blob();
+}
+
+// 4. Vector Embeddings
+async function getEmbedding(text) {
+  const res = await fetch(`${BASE_URL}/v1/embeddings`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ input: text })
+  });
+  const data = await res.json();
+  return data.data[0].embedding;
+}
+
+// 5. Hardware Telemetry
+async function fetchTelemetry() {
+  return await fetch(`${BASE_URL}/telemetry`).then(r => r.json());
 }</code></pre>
           </div>
 
           <!-- cURL Tab -->
           <div id="tab-curl" class="tab-pane">
-            <p style="color: var(--text-muted); font-size: 0.9rem;">
-              Send audio directly from any command-line or bash pipeline:
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.75rem;">
+              Call all 5 AI modes from any terminal or bash automated pipeline:
             </p>
-            <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>curl -X POST "https://black-term-8c36.botmaker583-55e.workers.dev/inference" \
-  -H "Content-Type: multipart/form-data" \
-  -F "file=@sample.wav" \
-  -F "temperature=0.0" \
-  -F "response_format=json"</code></pre>
+            <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code># 1. Chat Completion (Streaming SSE)
+curl -N -X POST "https://black-term-8c36.botmaker583-55e.workers.dev/v1/chat/completions" \
+  -H "Content-Type: application/json" \
+  -d '{"messages": [{"role": "user", "content": "Explain relativity in 10 words"}], "stream": true}'
+
+# 2. Audio Transcription (STT Base.en)
+curl -X POST "https://black-term-8c36.botmaker583-55e.workers.dev/inference" \
+  -F "file=@speech.wav" -F "temperature=0.0"
+
+# 3. Text-to-Speech Synthesis (TTS)
+curl -X POST "https://black-term-8c36.botmaker583-55e.workers.dev/v1/audio/speech" \
+  -H "Content-Type: application/json" \
+  -d '{"input": "Hello from your phone AI datacenter"}' --output speech.wav
+
+# 4. Vector Embeddings (896 Dimensions)
+curl -X POST "https://black-term-8c36.botmaker583-55e.workers.dev/v1/embeddings" \
+  -H "Content-Type: application/json" \
+  -d '{"input": "Semantic vector search"}'
+
+# 5. Global Live Telemetry
+curl -s "https://black-term-8c36.botmaker583-55e.workers.dev/telemetry"</code></pre>
           </div>
 
           <!-- Phone Setup Tab -->
           <div id="tab-phone" class="tab-pane">
-            <p style="color: var(--text-muted); font-size: 0.9rem;">
-              Turn any Android phone into a self-healing server in 3 minutes via Termux:
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.75rem;">
+              Turn any spare Android phone into a 5-in-1 self-healing AI host in Termux:
             </p>
             <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code># 1. Install dependencies in Termux
-pkg update && pkg install -y git clang cmake cloudflared tmux daemonize
+pkg update && pkg install -y git clang cmake cloudflared tmux espeak python
 
-# 2. Clone & Build Whisper C++ engine
-git clone --recursive https://github.com/ggerganov/whisper.cpp
-cd whisper.cpp
-cmake -B build && cmake --build build --config Release -j4
-bash ./models/download-ggml-model.sh tiny.en
+# 2. Clone repo & build whisper.cpp + llama.cpp with ARM NEON
+git clone --recursive https://github.com/Electroiscoding/phone-whisper-server
+cd phone-whisper-server
 
-# 3. Launch 24/7 self-healing supervisor
+# 3. Launch 24/7 self-healing supervisor (survives power cuts & reboots)
 bash mobile/start_ai.sh</code></pre>
           </div>
         </div>
