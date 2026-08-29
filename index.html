@@ -83,6 +83,22 @@
       margin: 0.75rem 0;
     }
 
+
+    /* Streaming Typing Cursor */
+    .streaming-cursor {
+      display: inline-block;
+      width: 6px;
+      height: 14px;
+      background: var(--primary);
+      margin-left: 4px;
+      vertical-align: middle;
+      animation: blinkCur 0.8s infinite;
+    }
+    @keyframes blinkCur {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
     /* Multi-Modal Interactive Studios */
     .chat-container-card {
       background: var(--card-bg);
@@ -1538,9 +1554,14 @@
 
     <!-- HERO & INTERACTIVE PILL RECORDER STUDIO -->
     <section class="hero" id="studio">
-      <div class="status-pill">
-        <div class="status-dot"></div>
-        <span>Phone Host: 24/7 Active • 100% Publicly Reachable Worldwide</span>
+      <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; justify-content: center; align-items: center; margin-bottom: 1.5rem;">
+        <div class="status-pill" style="margin-bottom: 0;">
+          <div class="status-dot"></div>
+          <span>Phone Host: 24/7 Active • 100% Publicly Reachable Worldwide</span>
+        </div>
+        <a href="/chat.html" class="nav-btn" style="background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(129, 140, 248, 0.2)); border-color: var(--primary); color: #fff; font-weight: 700;">
+          <span>🤖</span> <span>Launch Full Voice & Chat Studio →</span>
+        </a>
       </div>
 
       <h1 class="hero-title">Worldwide Mobile AI Speech-to-Text</h1>
@@ -2339,15 +2360,12 @@ bash mobile/start_ai.sh</code></pre>
       chatBox.appendChild(userBubble);
       inputEl.value = "";
 
-      // AI bubble with live text content span and pulsing cursor
+      // AI bubble with live text content span and sleek cyan cursor
       const aiBubble = document.createElement("div");
       aiBubble.className = "chat-bubble ai";
       const contentSpan = document.createElement("span");
       const cursorSpan = document.createElement("span");
-      cursorSpan.className = "rec-pulse-dot";
-      cursorSpan.style.display = "inline-block";
-      cursorSpan.style.marginLeft = "6px";
-      cursorSpan.style.verticalAlign = "middle";
+      cursorSpan.className = "streaming-cursor";
       aiBubble.appendChild(contentSpan);
       aiBubble.appendChild(cursorSpan);
       chatBox.appendChild(aiBubble);
