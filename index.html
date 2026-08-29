@@ -1901,31 +1901,10 @@ bash mobile/start_ai.sh</code></pre>
     mobileCloseBtn.addEventListener("click", closeMobileDrawer);
     mobileDrawerOverlay.addEventListener("click", closeMobileDrawer);
 
-    // Permanent Immortal Cloudflare Worker Gateway
-    let BASE_ENDPOINT = "https://black-term-8c36.botmaker583-55e.workers.dev";
-    let API_ENDPOINT = `${BASE_ENDPOINT}/inference`;
-    let TELEMETRY_ENDPOINT = `${BASE_ENDPOINT}/telemetry`;
-
-    async function syncDynamicRegistry() {
-      try {
-        const res = await fetch(REGISTRY_URL, { cache: "no-store" });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.endpoint && data.endpoint !== BASE_ENDPOINT) {
-            BASE_ENDPOINT = data.endpoint.replace(/\/+$/, "");
-            API_ENDPOINT = `${BASE_ENDPOINT}/inference`;
-            TELEMETRY_ENDPOINT = `${BASE_ENDPOINT}/telemetry`;
-            const cheatsheetEl = document.getElementById("cheatsheetBaseUrl");
-            if (cheatsheetEl) cheatsheetEl.innerText = BASE_ENDPOINT;
-            addTerminalLog("INFO", `[AUTO-DISCOVERY] Synced live backend endpoint: ${BASE_ENDPOINT}`);
-          }
-        }
-      } catch (e) {
-        // Fallback
-      }
-    }
-    syncDynamicRegistry();
-    setInterval(syncDynamicRegistry, 30000);
+    // 100% Permanent Immortal Cloudflare Worker Gateway (Used across Demo & Telemetry)
+    const BASE_ENDPOINT = "https://black-term-8c36.botmaker583-55e.workers.dev";
+    const API_ENDPOINT = `${BASE_ENDPOINT}/inference`;
+    const TELEMETRY_ENDPOINT = `${BASE_ENDPOINT}/telemetry`;
 
     let selectedWavBlob = null;
     let audioCtx = null;
