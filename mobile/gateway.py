@@ -23,8 +23,8 @@ from socketserver import ThreadingMixIn
 WHISPER_URL = "http://127.0.0.1:8000"
 LLAMA_URL = "http://127.0.0.1:8001"
 TELEMETRY_PATHS = [
+    "/sdcard/battery_telemetry.json",
     "/data/local/tmp/battery_telemetry.json",
-    "/data/local/tmp/telemetry.json",
     os.path.expanduser("~/battery_telemetry.json")
 ]
 
