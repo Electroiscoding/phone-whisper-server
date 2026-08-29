@@ -1,5 +1,5 @@
 {
-  "endpoint": "https://api.trycloudflare.com",
-  "inference": "https://api.trycloudflare.com/inference",
-  "telemetry": "https://api.trycloudflare.com/telemetry"
+  "endpoint": "https://investigate-sum-backed-sites.trycloudflare.com",
+  "inference": "https://investigate-sum-backed-sites.trycloudflare.com/inference",
+  "telemetry": "https://investigate-sum-backed-sites.trycloudflare.com/telemetry"
 }
