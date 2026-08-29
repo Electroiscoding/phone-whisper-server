@@ -1,5 +1,5 @@
 {
-  "endpoint": "",
-  "inference": "/inference",
-  "telemetry": "/telemetry"
+  "endpoint": "https://pool-below-souls-flows.trycloudflare.com",
+  "inference": "https://pool-below-souls-flows.trycloudflare.com/inference",
+  "telemetry": "https://pool-below-souls-flows.trycloudflare.com/telemetry"
 }
