@@ -62,22 +62,36 @@ sleep 1
 
 sleep 1
 
-# 6. Smart Self-Healing Cloudflare Tunnel
+# 6. Active Self-Healing Cloudflare Tunnel
 (
+  FAIL_COUNT=0
   while true; do
     if ! pgrep -f "cloudflared tunnel" > /dev/null; then
       echo "$(date): Starting cloudflared tunnel..." >> $HOME/tunnel_watchdog.log
-      cloudflared tunnel --url http://127.0.0.1:8080 --protocol http2 --no-autoupdate > $HOME/cf_tunnel.log 2>&1 &
+      cloudflared tunnel --url http://127.0.0.1:8080 --no-autoupdate > $HOME/cf_tunnel.log 2>&1 &
+      FAIL_COUNT=0
+      sleep 12
     else
-      if grep -q "Incoming request ended abruptly" $HOME/cf_tunnel.log 2>/dev/null; then
-        echo "$(date): Network reconnection detected, recycling tunnel..." >> $HOME/tunnel_watchdog.log
-        killall -9 cloudflared 2>/dev/null
-        rm -f $HOME/cf_tunnel.log
-        sleep 2
-        continue
+      CURRENT_PUB_URL=$(grep -oE "https://[a-zA-Z0-9.-]+\.trycloudflare\.com" $HOME/cf_tunnel.log 2>/dev/null | tail -n 1)
+      if [ -n "$CURRENT_PUB_URL" ]; then
+        STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" -m 5 "$CURRENT_PUB_URL/telemetry" 2>/dev/null || echo "000")
+        if [ "$STATUS_CODE" != "200" ] && [ "$STATUS_CODE" != "404" ]; then
+          FAIL_COUNT=$((FAIL_COUNT + 1))
+          echo "$(date): Tunnel probe: $STATUS_CODE (consecutive fails: $FAIL_COUNT)" >> $HOME/tunnel_watchdog.log
+          if [ $FAIL_COUNT -ge 6 ]; then
+            echo "$(date): Tunnel consistently unreachable ($STATUS_CODE). Restarting..." >> $HOME/tunnel_watchdog.log
+            killall -9 cloudflared 2>/dev/null
+            rm -f $HOME/cf_tunnel.log
+            FAIL_COUNT=0
+            sleep 3
+            continue
+          fi
+        else
+          FAIL_COUNT=0
+        fi
       fi
     fi
-    sleep 4
+    sleep 5
   done
 ) &
 
@@ -87,22 +101,25 @@ sleep 1
   while true; do
     URL=$(grep -oE "https://[a-zA-Z0-9.-]+\.trycloudflare\.com" $HOME/cf_tunnel.log 2>/dev/null | tail -n 1)
     if [ -n "$URL" ] && [ "$URL" != "$LAST_URL" ]; then
-      LAST_URL="$URL"
-      echo "$URL" > $HOME/current_url.txt
-      if [ -d "$HOME/phone-whisper-server" ]; then
-        cd $HOME/phone-whisper-server
-        git pull --rebase origin main 2>/dev/null || true
-        cat << JSON_EOF > $HOME/phone-whisper-server/endpoint.json
+      HEALTH=$(curl -s -o /dev/null -w "%{http_code}" -m 5 "$URL/telemetry" 2>/dev/null || echo "000")
+      if [ "$HEALTH" = "200" ]; then
+        LAST_URL="$URL"
+        echo "$URL" > $HOME/current_url.txt
+        if [ -d "$HOME/phone-whisper-server" ]; then
+          cd $HOME/phone-whisper-server
+          git pull --rebase origin main 2>/dev/null || true
+          cat << JSON_EOF > $HOME/phone-whisper-server/endpoint.json
 {
   "endpoint": "$URL",
   "inference": "$URL/inference",
   "telemetry": "$URL/telemetry"
 }
 JSON_EOF
-        git add endpoint.json 2>/dev/null || true
-        git commit -m "chore(tunnel): Auto-sync live endpoint [$URL]" 2>/dev/null || true
-        git push origin main 2>/dev/null || true
-        echo "$(date): Successfully synced new tunnel to GitHub: $URL" >> $HOME/tunnel_watchdog.log
+          git add endpoint.json 2>/dev/null || true
+          git commit -m "chore(tunnel): Auto-sync live endpoint [$URL]" 2>/dev/null || true
+          git push origin main 2>/dev/null || true
+          echo "$(date): Successfully synced verified healthy tunnel to GitHub: $URL" >> $HOME/tunnel_watchdog.log
+        fi
       fi
     fi
     sleep 4
