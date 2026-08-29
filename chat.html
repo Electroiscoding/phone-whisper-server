@@ -994,8 +994,65 @@
     // =========================================================================
     // 🎙️ SPEECH-TO-TEXT (WHISPER BASE.EN) IN THE INPUT BAR
     // =========================================================================
+    // -------------------------------------------------------------
+    // 16kHz PCM WAV Encoder for Whisper STT Backend
+    // -------------------------------------------------------------
+    function encodeToWav(samples, sampleRate = 16000) {
+      const buffer = new ArrayBuffer(44 + samples.length * 2);
+      const view = new DataView(buffer);
+
+      function writeString(view, offset, string) {
+        for (let i = 0; i < string.length; i++) {
+          view.setUint8(offset + i, string.charCodeAt(i));
+        }
+      }
+
+      writeString(view, 0, 'RIFF');
+      view.setUint32(4, 36 + samples.length * 2, true);
+      writeString(view, 8, 'WAVE');
+      writeString(view, 12, 'fmt ');
+      view.setUint32(16, 16, true);
+      view.setUint16(20, 1, true);
+      view.setUint16(22, 1, true);
+      view.setUint32(24, sampleRate, true);
+      view.setUint32(28, sampleRate * 2, true);
+      view.setUint16(32, 2, true);
+      view.setUint16(34, 16, true);
+      writeString(view, 36, 'data');
+      view.setUint32(40, samples.length * 2, true);
+
+      let offset = 44;
+      for (let i = 0; i < samples.length; i++, offset += 2) {
+        let s = Math.max(-1, Math.min(1, samples[i]));
+        view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+      }
+
+      return new Blob([view], { type: 'audio/wav' });
+    }
+
+    function resampleTo16k(inputData, inputSampleRate) {
+      if (inputSampleRate === 16000) return inputData;
+      const targetRate = 16000;
+      const ratio = inputSampleRate / targetRate;
+      const targetLength = Math.round(inputData.length / ratio);
+      const result = new Float32Array(targetLength);
+      for (let i = 0; i < targetLength; i++) {
+        const originIndex = i * ratio;
+        const low = Math.floor(originIndex);
+        const high = Math.min(low + 1, inputData.length - 1);
+        const frac = originIndex - low;
+        result[i] = inputData[low] * (1 - frac) + inputData[high] * frac;
+      }
+      return result;
+    }
+
+    let pcmAudioCtx = null;
+    let pcmMicStream = null;
+    let pcmProcessorNode = null;
+    let pcmSourceNode = null;
+    let pcmRawChunks = [];
+
     async function toggleVoiceInput() {
-      const micBtn = document.getElementById("micRecordBtn");
       if (isRecordingAudio) {
         stopVoiceRecording();
       } else {
@@ -1005,57 +1062,85 @@
 
     async function startVoiceRecording() {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaRecorder = new MediaRecorder(stream);
-        audioChunks = [];
+        pcmAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        pcmMicStream = await navigator.mediaDevices.getUserMedia({
+          audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true }
+        });
+        
+        pcmSourceNode = pcmAudioCtx.createMediaStreamSource(pcmMicStream);
+        pcmProcessorNode = pcmAudioCtx.createScriptProcessor(4096, 1, 1);
+        pcmRawChunks = [];
 
-        mediaRecorder.ondataavailable = e => {
-          if (e.data.size > 0) audioChunks.push(e.data);
+        pcmProcessorNode.onaudioprocess = (e) => {
+          if (!isRecordingAudio) return;
+          const inputChannel = e.inputBuffer.getChannelData(0);
+          pcmRawChunks.push(new Float32Array(inputChannel));
         };
 
-        mediaRecorder.onstop = async () => {
-          const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
-          const input = document.getElementById("mainChatInput");
-          input.placeholder = "🧠 Transcribing audio with Whisper Base.en...";
+        pcmSourceNode.connect(pcmProcessorNode);
+        pcmProcessorNode.connect(pcmAudioCtx.destination);
 
-          try {
-            const fd = new FormData();
-            fd.append("file", audioBlob, "speech.wav");
-            fd.append("temperature", "0.0");
-            fd.append("response_format", "json");
-
-            const res = await fetch(`${BASE_ENDPOINT}/inference`, {
-              method: "POST",
-              body: fd
-            });
-            if (!res.ok) throw new Error(`STT HTTP ${res.status}`);
-            const data = await res.json();
-            const transcribed = data.text ? data.text.trim() : "";
-            if (transcribed) {
-              input.value = transcribed;
-              submitUserPrompt();
-            }
-          } catch (e) {
-            alert("Transcription error: " + e.message);
-          } finally {
-            input.placeholder = "Ask anything...";
-          }
-        };
-
-        mediaRecorder.start();
         isRecordingAudio = true;
         document.getElementById("micRecordBtn").classList.add("recording");
+        const input = document.getElementById("mainChatInput");
+        input.placeholder = "Listening... Speak now, click mic again to transcribe";
       } catch (err) {
         alert("Microphone access required: " + err.message);
       }
     }
 
-    function stopVoiceRecording() {
-      if (mediaRecorder && isRecordingAudio) {
-        mediaRecorder.stop();
-        mediaRecorder.stream.getTracks().forEach(t => t.stop());
-        isRecordingAudio = false;
-        document.getElementById("micRecordBtn").classList.remove("recording");
+    async function stopVoiceRecording() {
+      if (!isRecordingAudio) return;
+      isRecordingAudio = false;
+      document.getElementById("micRecordBtn").classList.remove("recording");
+
+      if (pcmProcessorNode) pcmProcessorNode.disconnect();
+      if (pcmSourceNode) pcmSourceNode.disconnect();
+      if (pcmMicStream) pcmMicStream.getTracks().forEach(t => t.stop());
+
+      const input = document.getElementById("mainChatInput");
+      input.placeholder = "🧠 Transcribing audio with Whisper Base.en...";
+
+      try {
+        let totalLength = 0;
+        for (const chunk of pcmRawChunks) totalLength += chunk.length;
+        const mergedPcm = new Float32Array(totalLength);
+        let offset = 0;
+        for (const chunk of pcmRawChunks) {
+          mergedPcm.set(chunk, offset);
+          offset += chunk.length;
+        }
+
+        if (totalLength === 0) {
+          input.placeholder = "Ask anything...";
+          return;
+        }
+
+        const resampled = resampleTo16k(mergedPcm, pcmAudioCtx.sampleRate);
+        const audioBlob = encodeToWav(resampled, 16000);
+        if (pcmAudioCtx) pcmAudioCtx.close();
+
+        const fd = new FormData();
+        fd.append("file", audioBlob, "whisper_audio.wav");
+        fd.append("temperature", "0.0");
+        fd.append("response_format", "json");
+
+        const res = await fetch(`${BASE_ENDPOINT}/inference`, {
+          method: "POST",
+          body: fd
+        });
+
+        if (!res.ok) throw new Error(`STT HTTP ${res.status}`);
+        const data = await res.json();
+        const transcribed = data.text ? data.text.trim() : "";
+        if (transcribed) {
+          input.value = transcribed;
+          submitUserPrompt();
+        }
+      } catch (e) {
+        alert("Transcription error: " + e.message);
+      } finally {
+        input.placeholder = "Ask anything...";
       }
     }
 
@@ -1086,26 +1171,64 @@
       transcriptEl.innerText = "Speak now — phone is listening...";
 
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        const voiceRec = new MediaRecorder(stream);
-        let chunks = [];
+        const loopCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const loopStream = await navigator.mediaDevices.getUserMedia({
+          audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true }
+        });
+        
+        const src = loopCtx.createMediaStreamSource(loopStream);
+        const proc = loopCtx.createScriptProcessor(4096, 1, 1);
+        let loopChunks = [];
 
-        voiceRec.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
-        voiceRec.onstop = async () => {
+        proc.onaudioprocess = (e) => {
           if (!voiceModeActive) return;
+          loopChunks.push(new Float32Array(e.inputBuffer.getChannelData(0)));
+        };
+
+        src.connect(proc);
+        proc.connect(loopCtx.destination);
+
+        // Record 4-second audio window for conversational voice turn
+        setTimeout(async () => {
+          if (!voiceModeActive) {
+            proc.disconnect();
+            src.disconnect();
+            loopStream.getTracks().forEach(t => t.stop());
+            if (loopCtx) loopCtx.close();
+            return;
+          }
+
+          proc.disconnect();
+          src.disconnect();
+          loopStream.getTracks().forEach(t => t.stop());
+
+          let totalLength = 0;
+          for (const chunk of loopChunks) totalLength += chunk.length;
+          const mergedPcm = new Float32Array(totalLength);
+          let offset = 0;
+          for (const chunk of loopChunks) {
+            mergedPcm.set(chunk, offset);
+            offset += chunk.length;
+          }
+
+          const resampled = resampleTo16k(mergedPcm, loopCtx.sampleRate);
+          const wavBlob = encodeToWav(resampled, 16000);
+          if (loopCtx) loopCtx.close();
+
           statusEl.innerText = "Transcribing with Whisper Base.en...";
-          const blob = new Blob(chunks, { type: "audio/wav" });
           const fd = new FormData();
-          fd.append("file", blob, "voice.wav");
+          fd.append("file", wavBlob, "voice.wav");
+          fd.append("temperature", "0.0");
           fd.append("response_format", "json");
 
           try {
             const sttRes = await fetch(`${BASE_ENDPOINT}/inference`, { method: "POST", body: fd });
+            if (!sttRes.ok) throw new Error(`STT HTTP ${sttRes.status}`);
             const sttData = await sttRes.json();
             const userSaid = sttData.text ? sttData.text.trim() : "";
             if (!userSaid) {
               statusEl.innerText = "Didn't catch that.";
-              setTimeout(startPureVoiceLoop, 1000);
+              if (voiceModeActive) setTimeout(startPureVoiceLoop, 1000);
               return;
             }
 
@@ -1125,7 +1248,7 @@
               })
             });
             const chatData = await chatRes.json();
-            const reply = chatData.choices[0].message.content.trim();
+            const reply = (chatData.choices && chatData.choices[0].message ? chatData.choices[0].message.content : "").trim();
             transcriptEl.innerText = `AI: "${reply}"`;
             statusEl.innerText = "Speaking...";
 
@@ -1146,59 +1269,15 @@
             };
           } catch (e) {
             statusEl.innerText = "Error: " + e.message;
-            setTimeout(startPureVoiceLoop, 2000);
-          }
-        };
-
-        voiceRec.start();
-        // Record 4-second audio window for conversational voice turn
-        setTimeout(() => {
-          if (voiceRec.state === "recording") {
-            voiceRec.stop();
-            stream.getTracks().forEach(t => t.stop());
+            if (voiceModeActive) setTimeout(startPureVoiceLoop, 2000);
           }
         }, 4000);
 
       } catch (err) {
-        statusEl.innerText = "Microphone error";
+        statusEl.innerText = "Mic error: " + err.message;
+        if (voiceModeActive) setTimeout(startPureVoiceLoop, 3000);
       }
     }
-
-    // Telemetry Poller for Header Status (100% Real Silicon State)
-    async function updateHeaderTelemetry() {
-      const badge = document.getElementById("telemetryBadge");
-      const statusText = document.getElementById("telemetryStatusText");
-      try {
-        const res = await fetch(`${BASE_ENDPOINT}/telemetry`, { cache: "no-store" });
-        if (res.ok) {
-          const d = await res.json();
-          badge.style.background = "rgba(16, 185, 129, 0.1)";
-          badge.style.borderColor = "rgba(16, 185, 129, 0.25)";
-          badge.style.color = "#34d399";
-          const dot = badge.querySelector(".status-dot");
-          if (dot) { dot.style.background = "#34d399"; dot.style.boxShadow = "0 0 8px #34d399"; }
-          const bat = d.battery ? d.battery.level : 80;
-          const temp = d.battery ? d.battery.temperature : 35.0;
-          statusText.innerText = `Redmi 9i • ${bat}% Bat • ${temp}°C`;
-        } else {
-          badge.style.background = "rgba(239, 68, 68, 0.1)";
-          badge.style.borderColor = "rgba(239, 68, 68, 0.3)";
-          badge.style.color = "#f87171";
-          const dot = badge.querySelector(".status-dot");
-          if (dot) { dot.style.background = "#ef4444"; dot.style.boxShadow = "0 0 8px #ef4444"; }
-          statusText.innerText = "Phone Reconnecting...";
-        }
-      } catch (e) {
-        badge.style.background = "rgba(239, 68, 68, 0.1)";
-        badge.style.borderColor = "rgba(239, 68, 68, 0.3)";
-        badge.style.color = "#f87171";
-        const dot = badge.querySelector(".status-dot");
-        if (dot) { dot.style.background = "#ef4444"; dot.style.boxShadow = "0 0 8px #ef4444"; }
-        statusText.innerText = "Phone Reconnecting...";
-      }
-    }
-    setInterval(updateHeaderTelemetry, 3000);
-    updateHeaderTelemetry();
   </script>
 </body>
 </html>
