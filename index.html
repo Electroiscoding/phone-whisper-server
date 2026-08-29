@@ -1740,6 +1740,49 @@
       </div>
     </section>
 
+    <!-- SECTION 5: DEEP SEMANTIC CROSS-ENCODER RERANKER STUDIO -->
+    <section id="reranker-studio" style="margin-top: 2rem;">
+      <div class="section-head">
+        <span class="section-tag">
+          <span>🎯</span>
+          <span>Mode 5: Deep Cross-Attention NLI</span>
+        </span>
+        <h2 class="section-title">Worldwide Mobile AI Semantic Reranker (BGE-Reranker-Base)</h2>
+        <p class="section-desc">Resolves role inversions, negations, and subtle semantic contradictions by evaluating joint cross-attention across candidate sentences.</p>
+      </div>
+
+      <div class="chat-container-card">
+        <div style="margin-bottom: 1rem;">
+          <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 0.4rem;">Reference Query / Statement:</label>
+          <input type="text" id="rerankQuery" class="chat-input" style="width: 100%;" value="The company decided to approve the investment proposal." />
+        </div>
+
+        <div style="margin-bottom: 1rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+            <label style="font-size: 0.85rem; color: var(--text-muted);">Candidate Documents (One per line):</label>
+            <div style="display: flex; gap: 0.5rem;">
+              <button class="btn-action" style="font-size: 0.75rem; padding: 0.2rem 0.5rem;" onclick="loadRerankPreset('contradiction')">Preset: Contradiction</button>
+              <button class="btn-action" style="font-size: 0.75rem; padding: 0.2rem 0.5rem;" onclick="loadRerankPreset('role')">Preset: Role Inversion</button>
+              <button class="btn-action" style="font-size: 0.75rem; padding: 0.2rem 0.5rem;" onclick="loadRerankPreset('paraphrase')">Preset: Paraphrase</button>
+            </div>
+          </div>
+          <textarea id="rerankDocs" class="chat-input" style="width: 100%; height: 120px; font-family: monospace; font-size: 0.85rem; resize: vertical;">The company decided to reject the investment proposal.
+The board voted in favor of funding the venture.
+The hydraulic robotic arm assembles automotive chassis using mechanical joints.</textarea>
+        </div>
+
+        <button class="btn-send-chat" id="executeRerankBtn" onclick="executeRerankerPlayground()" style="margin-bottom: 1.25rem;">
+          <span>🎯 Execute Deep Cross-Attention Reranking</span>
+        </button>
+
+        <div id="rerankResultsContainer" style="display: flex; flex-direction: column; gap: 0.75rem;">
+          <div style="background: rgba(5, 8, 15, 0.8); padding: 1rem; border-radius: 12px; border: 1px solid var(--card-border); color: var(--text-muted); font-size: 0.9rem;">
+            Click <b>"Execute Deep Cross-Attention Reranking"</b> above to test real-time semantic discrimination and contradiction detection.
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- PUBLIC API CHEATSHEET & ENDPOINT EXPLORER -->
     <section id="cheatsheet">
       <div class="section-head">
@@ -1868,6 +1911,35 @@
   },
   "timestamp": 1787986672
 }</code></pre>
+        </div>
+      </div>
+
+      
+      <!-- Endpoint: /v1/rerank -->
+      <div class="endpoint-card">
+        <div class="endpoint-card-header">
+          <div class="endpoint-path">
+            <span class="method-badge method-post">POST</span>
+            <span>/v1/rerank</span>
+          </div>
+          <div class="feature-tags-row" style="margin: 0;">
+            <span class="feature-tag">🎯 Deep Cross-Attention</span>
+            <span class="feature-tag">🧠 NLI Reranker</span>
+          </div>
+        </div>
+        <div class="endpoint-body">
+          <p style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+            Deep semantic cross-encoder reranking that accurately discriminates negations, antonyms, and subject-object role swaps:
+          </p>
+          <pre><code>curl -X POST "https://black-term-8c36.botmaker583-55e.workers.dev/v1/rerank" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "The company decided to approve the investment proposal.",
+    "documents": [
+      "The company decided to reject the investment proposal.",
+      "The board voted in favor of funding the venture."
+    ]
+  }'</code></pre>
         </div>
       </div>
 
@@ -2585,6 +2657,113 @@ bash mobile/start_ai.sh</code></pre>
       }
     }
     window.computeSimilarity = computeSimilarity;
+
+    // =========================================================================
+    // 🎯 DEEP SEMANTIC CROSS-ENCODER RERANKER PLAYGROUND
+    // =========================================================================
+    function loadRerankPreset(type) {
+      const qEl = document.getElementById("rerankQuery");
+      const dEl = document.getElementById("rerankDocs");
+      if (!qEl || !dEl) return;
+
+      if (type === 'contradiction') {
+        qEl.value = "The company decided to approve the investment proposal.";
+        dEl.value = "The company decided to reject the investment proposal.\nThe board voted in favor of funding the venture.\nThe hydraulic robotic arm assembles automotive chassis using mechanical joints.";
+      } else if (type === 'role') {
+        qEl.value = "The server blocked the client due to a rate limit violation.";
+        dEl.value = "The client blocked the server due to a rate limit violation.\nThe firewall dropped incoming client packets exceeding quota.\nArtificial intelligence and robotics.";
+      } else if (type === 'paraphrase') {
+        qEl.value = "The physician advised the patient to reduce sodium consumption.";
+        dEl.value = "The doctor told the client to cut down on salty foods.\nThe patient increased their daily salt intake.\nA supersonic aircraft broke the sound barrier.";
+      }
+    }
+    window.loadRerankPreset = loadRerankPreset;
+
+    async function executeRerankerPlayground() {
+      const query = document.getElementById("rerankQuery").value.trim();
+      const docsText = document.getElementById("rerankDocs").value.trim();
+      const resultsContainer = document.getElementById("rerankResultsContainer");
+      const btn = document.getElementById("executeRerankBtn");
+
+      if (!query || !docsText || !resultsContainer) return;
+      const documents = docsText.split("\n").map(d => d.trim()).filter(d => d.length > 0);
+      if (documents.length === 0) return;
+
+      btn.disabled = true;
+      btn.innerHTML = "<span>⏳ Computing Deep Cross-Attention...</span>";
+      resultsContainer.innerHTML = `<div style="color: var(--primary); font-size: 0.9rem; padding: 1rem; text-align: center;">⚡ Evaluating joint transformer self-attention across ${documents.length} candidates on phone CPU...</div>`;
+
+      try {
+        const resp = await fetch(`${BASE_ENDPOINT}/v1/rerank`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: query, documents: documents })
+        });
+        const data = await resp.json();
+
+        if (!data.results || data.results.length === 0) {
+          resultsContainer.innerHTML = `<div style="color: var(--danger); padding: 1rem;">No reranking results returned.</div>`;
+          return;
+        }
+
+        // Sort descending by score
+        const sorted = [...data.results].sort((a, b) => b.score - a.score);
+
+        let htmlCards = "";
+        sorted.forEach((item, rankIdx) => {
+          const docText = documents[item.index] || `Document #${item.index}`;
+          const pct = typeof item.percentage === "number" ? item.percentage : (item.score * 100);
+          const logit = item.raw_logit !== undefined ? item.raw_logit.toFixed(2) : (item.relevance_score ? item.relevance_score.toFixed(2) : "0.00");
+          
+          let badgeColor = "var(--primary)";
+          let badgeText = "🎯 Relevant";
+          let barBg = "linear-gradient(90deg, #38bdf8, #818cf8)";
+
+          if (pct > 70) {
+            badgeColor = "var(--success)";
+            badgeText = "✅ High Relevance / Paraphrase";
+            barBg = "linear-gradient(90deg, #10b981, #34d399)";
+          } else if (pct < 5) {
+            badgeColor = "var(--danger)";
+            badgeText = "🛑 Contradiction / Polar Opposite";
+            barBg = "linear-gradient(90deg, #ef4444, #f87171)";
+          } else if (pct < 30) {
+            badgeColor = "var(--text-subtle)";
+            badgeText = "⚠️ Low Relevance / Unrelated";
+            barBg = "rgba(255,255,255,0.2)";
+          }
+
+          htmlCards += `
+            <div style="background: rgba(10, 15, 29, 0.9); padding: 1rem; border-radius: 12px; border: 1px solid var(--card-border); display: flex; flex-direction: column; gap: 0.5rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                  <span style="background: rgba(56, 189, 248, 0.15); color: var(--primary); font-weight: 800; font-size: 0.8rem; padding: 0.2rem 0.55rem; border-radius: 6px;">#${rankIdx + 1}</span>
+                  <span style="font-size: 0.75rem; color: ${badgeColor}; font-weight: 600; border: 1px solid ${badgeColor}; padding: 0.15rem 0.45rem; border-radius: 4px;">${badgeText}</span>
+                </div>
+                <div style="display: flex; align-items: baseline; gap: 0.4rem;">
+                  <span style="font-size: 1.15rem; font-weight: 800; color: ${badgeColor};">${pct.toFixed(2)}%</span>
+                  <span style="font-size: 0.75rem; color: var(--text-subtle);">(Logit: ${logit})</span>
+                </div>
+              </div>
+              <div style="font-size: 0.9rem; color: var(--text); line-height: 1.4;">${docText}</div>
+              <div style="width: 100%; height: 6px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; margin-top: 0.25rem;">
+                <div style="width: ${Math.max(0.5, Math.min(100, pct))}%; height: 100%; background: ${barBg}; border-radius: 3px;"></div>
+              </div>
+            </div>
+          `;
+        });
+
+        resultsContainer.innerHTML = htmlCards;
+
+      } catch (err) {
+        resultsContainer.innerHTML = `<div style="color: var(--danger); padding: 1rem;">Error: ${err.message}</div>`;
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = "<span>🎯 Execute Deep Cross-Attention Reranking</span>";
+      }
+    }
+    window.executeRerankerPlayground = executeRerankerPlayground;
+
     const API_ENDPOINT = `${BASE_ENDPOINT}/inference`;
     const TELEMETRY_ENDPOINT = `${BASE_ENDPOINT}/telemetry`;
 
