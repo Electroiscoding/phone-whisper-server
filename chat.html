@@ -177,7 +177,7 @@
     /* Welcome Hero in Chat */
     .welcome-container {
       text-align: center;
-      margin: 14vh auto 2rem;
+      margin: 4vh auto 1.5rem;
       max-width: 680px;
       display: flex;
       flex-direction: column;
@@ -782,8 +782,54 @@
       document.getElementById("welcomeContainer").style.display = "flex";
     }
 
-    // Set random title on page load
+    function renderInitialGreeting() {
+      const thread = document.getElementById("messagesThread");
+      if (!thread) return;
+      thread.innerHTML = "";
+      
+      const aiRow = document.createElement("div");
+      aiRow.className = "message-row ai";
+      
+      const contentEl = document.createElement("div");
+      contentEl.className = "ai-bubble-content";
+      contentEl.innerHTML = "Hi. How can I help you today?";
+      aiRow.appendChild(contentEl);
+      
+      const actionBar = document.createElement("div");
+      actionBar.className = "ai-action-bar";
+      actionBar.innerHTML = `
+        <button class="btn-ai-action" onclick="copyAiResponse(this)" title="Copy text">
+          <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2" fill="none"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+          <span>Copy</span>
+        </button>
+        <button class="btn-ai-action" onclick="readAloudText(this, 'Hi. How can I help you today?')" title="Read Aloud (TTS)">
+          <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2" fill="none"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+          <span>Read Aloud</span>
+        </button>
+      `;
+      aiRow.appendChild(actionBar);
+      
+      const chipsContainer = document.createElement("div");
+      chipsContainer.className = "followup-chips";
+      ["How can I help you today?", "What topics interest you?"].forEach(f => {
+        const chip = document.createElement("button");
+        chip.className = "followup-chip";
+        chip.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 10 20 15 15 20"></polyline><path d="M4 4v7a4 4 0 0 0 4 4h12"></path></svg> <span>${f}</span>`;
+        chip.onclick = () => sendQuickPrompt(f);
+        chipsContainer.appendChild(chip);
+      });
+      aiRow.appendChild(chipsContainer);
+      thread.appendChild(aiRow);
+    }
+
+    function clearChatHistory() {
+      applyRandomTitle();
+      renderInitialGreeting();
+    }
+
+    // Set random title and initial greeting on page load
     applyRandomTitle();
+    renderInitialGreeting();
 
     async function submitUserPrompt() {
       const input = document.getElementById("mainChatInput");
@@ -1158,17 +1204,38 @@
       }
     }
 
-    // Telemetry Poller for Header Status
+    // Telemetry Poller for Header Status (100% Real Silicon State)
     async function updateHeaderTelemetry() {
+      const badge = document.getElementById("telemetryBadge");
+      const statusText = document.getElementById("telemetryStatusText");
       try {
-        const res = await fetch(`${BASE_ENDPOINT}/telemetry`);
+        const res = await fetch(`${BASE_ENDPOINT}/telemetry`, { cache: "no-store" });
         if (res.ok) {
           const d = await res.json();
+          badge.style.background = "rgba(16, 185, 129, 0.1)";
+          badge.style.borderColor = "rgba(16, 185, 129, 0.25)";
+          badge.style.color = "#34d399";
+          const dot = badge.querySelector(".status-dot");
+          if (dot) { dot.style.background = "#34d399"; dot.style.boxShadow = "0 0 8px #34d399"; }
           const bat = d.battery ? d.battery.level : 80;
           const temp = d.battery ? d.battery.temperature : 35.0;
-          document.getElementById("telemetryStatusText").innerText = `Redmi 9i • ${bat}% Bat • ${temp}°C`;
+          statusText.innerText = `Redmi 9i • ${bat}% Bat • ${temp}°C`;
+        } else {
+          badge.style.background = "rgba(239, 68, 68, 0.1)";
+          badge.style.borderColor = "rgba(239, 68, 68, 0.3)";
+          badge.style.color = "#f87171";
+          const dot = badge.querySelector(".status-dot");
+          if (dot) { dot.style.background = "#ef4444"; dot.style.boxShadow = "0 0 8px #ef4444"; }
+          statusText.innerText = "Phone Reconnecting...";
         }
-      } catch (e) {}
+      } catch (e) {
+        badge.style.background = "rgba(239, 68, 68, 0.1)";
+        badge.style.borderColor = "rgba(239, 68, 68, 0.3)";
+        badge.style.color = "#f87171";
+        const dot = badge.querySelector(".status-dot");
+        if (dot) { dot.style.background = "#ef4444"; dot.style.boxShadow = "0 0 8px #ef4444"; }
+        statusText.innerText = "Phone Reconnecting...";
+      }
     }
     setInterval(updateHeaderTelemetry, 3000);
     updateHeaderTelemetry();
