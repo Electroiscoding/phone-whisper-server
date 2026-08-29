@@ -288,12 +288,15 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                     self.end_headers()
 
                     # Stream tokens in real-time as they arrive from llama-server
-                    while True:
-                        chunk = resp.readline()
-                        if not chunk:
-                            break
-                        self.wfile.write(chunk)
-                        self.wfile.flush()
+                    try:
+                        while True:
+                            chunk = resp.readline()
+                            if not chunk:
+                                break
+                            self.wfile.write(chunk)
+                            self.wfile.flush()
+                    except (BrokenPipeError, ConnectionResetError):
+                        pass
                 else:
                     resp_body = resp.read()
                     for k, v in resp.headers.items():
