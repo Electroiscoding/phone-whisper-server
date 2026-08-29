@@ -770,9 +770,14 @@
     }
 
     .section-title {
-      font-size: 2.2rem;
+      font-size: clamp(2rem, 4.5vw, 2.75rem);
       font-weight: 800;
-      letter-spacing: -0.025em;
+      letter-spacing: -0.035em;
+      line-height: 1.2;
+      background: linear-gradient(135deg, #ffffff 10%, #cbd5e1 55%, #38bdf8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0.5rem;
     }
 
     .section-desc {
@@ -1538,7 +1543,7 @@
           <span>💬</span>
           <span>Mode 2: Small Language Model (SLM)</span>
         </span>
-        <h2 class="section-title">Qwen 2.5 0.5B Instruct Chat</h2>
+        <h2 class="section-title">Worldwide Mobile AI Chat (Qwen 2.5 SLM)</h2>
         <p class="section-desc">Zero cloud fees. High-speed reasoning running in-memory on MediaTek 8-Core ARM CPU (~20 tokens/sec).</p>
       </div>
 
@@ -1570,7 +1575,7 @@
           <span>🗣️</span>
           <span>Mode 3: Neural Voice Synthesis</span>
         </span>
-        <h2 class="section-title">On-Device Text-to-Speech (TTS)</h2>
+        <h2 class="section-title">Worldwide Mobile AI Text-to-Speech (TTS)</h2>
         <p class="section-desc">Type any sentence to generate neural voice audio streams directly on the phone in ~50 milliseconds.</p>
       </div>
 
@@ -1606,7 +1611,7 @@
           <span>🔍</span>
           <span>Mode 4: Dense Vector Search</span>
         </span>
-        <h2 class="section-title">Vector Embeddings & Semantic Search</h2>
+        <h2 class="section-title">Worldwide Mobile AI Vector Embeddings</h2>
         <p class="section-desc">Generate 896-dimensional text embeddings and compute on-device Cosine Similarity scores in real-time.</p>
       </div>
 
