@@ -4,7 +4,7 @@
  * Zero external dependencies.
  */
 
-const DEFAULT_ENDPOINT = "https://hardly-assembly-guides-cache.trycloudflare.com/inference";
+const DEFAULT_ENDPOINT = "https://stands-evaluating-express-resume.trycloudflare.com/inference";
 
 /**
  * Transcribes audio using the remote mobile Whisper AI server.
