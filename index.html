@@ -1916,23 +1916,31 @@
               <tbody>
                 <tr>
                   <td><code>whisper-server</code></td>
-                  <td>29573</td>
+                  <td>7344</td>
                   <td id="procWhisperCpu">0.2%</td>
-                  <td>114.2 MB</td>
+                  <td>141.2 MB (Base.en)</td>
                   <td>4 (NEON)</td>
-                  <td><span class="process-state-running"><span class="state-dot-mini"></span> Listening :8000</span></td>
+                  <td><span class="process-state-running"><span class="state-dot-mini"></span> Active :8000</span></td>
+                </tr>
+                <tr>
+                  <td><code>llama-server</code></td>
+                  <td>7380</td>
+                  <td id="procLlamaCpu">0.2%</td>
+                  <td>469.0 MB (Qwen 2.5)</td>
+                  <td>4 (ARMv8)</td>
+                  <td><span class="process-state-running"><span class="state-dot-mini"></span> Active :8001</span></td>
                 </tr>
                 <tr>
                   <td><code>gateway.py</code></td>
-                  <td>29673</td>
-                  <td>0.1%</td>
-                  <td>18.4 MB</td>
-                  <td>2 (Python)</td>
+                  <td>11488</td>
+                  <td id="procGatewayCpu">0.1%</td>
+                  <td>22.4 MB (Router)</td>
+                  <td>4 (Python)</td>
                   <td><span class="process-state-running"><span class="state-dot-mini"></span> Active :8080</span></td>
                 </tr>
                 <tr>
                   <td><code>cloudflared</code></td>
-                  <td>29702</td>
+                  <td>7352</td>
                   <td id="procCfCpu">0.1%</td>
                   <td>42.8 MB</td>
                   <td>6 (Go/QUIC)</td>
@@ -2166,6 +2174,8 @@ bash mobile/start_ai.sh</code></pre>
       if (btn) btn.disabled = true;
 
       try {
+        isInferencing = true;
+        activeDaemon = "llama";
         const t0 = performance.now();
         const res = await fetch(`${BASE_ENDPOINT}/v1/chat/completions`, {
           method: "POST",
@@ -2185,6 +2195,8 @@ bash mobile/start_ai.sh</code></pre>
       } catch (err) {
         aiBubble.innerHTML = `<span style="color: var(--danger);">❌ Generation failed: ${err.message}</span>`;
       } finally {
+        isInferencing = false;
+        activeDaemon = null;
         if (btn) btn.disabled = false;
         chatBox.scrollTop = chatBox.scrollHeight;
       }
@@ -2208,6 +2220,8 @@ bash mobile/start_ai.sh</code></pre>
       }
 
       try {
+        isInferencing = true;
+        activeDaemon = "gateway";
         const res = await fetch(`${BASE_ENDPOINT}/v1/audio/speech`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -2231,6 +2245,8 @@ bash mobile/start_ai.sh</code></pre>
       } catch (err) {
         alert("TTS synthesis error: " + err.message);
       } finally {
+        isInferencing = false;
+        activeDaemon = null;
         if (btn) {
           btn.disabled = false;
           btn.innerHTML = "<span>🔊 Generate & Speak</span>";
@@ -2254,6 +2270,8 @@ bash mobile/start_ai.sh</code></pre>
       if (percentEl) percentEl.innerText = "Computing...";
 
       try {
+        isInferencing = true;
+        activeDaemon = "llama";
         const [resA, resB] = await Promise.all([
           fetch(`${BASE_ENDPOINT}/v1/embeddings`, {
             method: "POST",
@@ -2284,6 +2302,9 @@ bash mobile/start_ai.sh</code></pre>
         if (dimLabel) dimLabel.innerText = `Vector Space: ${vA.length} Dimensions (Cosine Sim: ${score.toFixed(4)})`;
       } catch (err) {
         if (percentEl) percentEl.innerText = "Error: " + err.message;
+      } finally {
+        isInferencing = false;
+        activeDaemon = null;
       }
     }
     window.computeSimilarity = computeSimilarity;
@@ -2843,16 +2864,34 @@ bash mobile/start_ai.sh</code></pre>
       }
     }
 
+    let activeDaemon = null;
+    const procLlamaCpu = document.getElementById("procLlamaCpu");
+    const procGatewayCpu = document.getElementById("procGatewayCpu");
+
     setInterval(() => {
       let currentCpu = 0;
       if (isInferencing) {
-        currentCpu = 75 + Math.random() * 20;
-        procWhisperCpu.innerText = `${(currentCpu * 0.92).toFixed(1)}%`;
-        procCfCpu.innerText = `${(2.5 + Math.random() * 2).toFixed(1)}%`;
+        currentCpu = 78 + Math.random() * 18;
+        if (activeDaemon === "llama") {
+          if (procLlamaCpu) procLlamaCpu.innerText = `${(currentCpu * 0.88).toFixed(1)}%`;
+          if (procWhisperCpu) procWhisperCpu.innerText = "0.2%";
+          if (procGatewayCpu) procGatewayCpu.innerText = "3.5%";
+        } else if (activeDaemon === "gateway") {
+          if (procGatewayCpu) procGatewayCpu.innerText = `${(currentCpu * 0.75).toFixed(1)}%`;
+          if (procLlamaCpu) procLlamaCpu.innerText = "0.2%";
+          if (procWhisperCpu) procWhisperCpu.innerText = "0.2%";
+        } else {
+          if (procWhisperCpu) procWhisperCpu.innerText = `${(currentCpu * 0.92).toFixed(1)}%`;
+          if (procLlamaCpu) procLlamaCpu.innerText = "0.2%";
+          if (procGatewayCpu) procGatewayCpu.innerText = "1.5%";
+        }
+        if (procCfCpu) procCfCpu.innerText = `${(2.5 + Math.random() * 2).toFixed(1)}%`;
       } else {
-        currentCpu = 0.2 + Math.random() * 0.5;
-        procWhisperCpu.innerText = `${currentCpu.toFixed(1)}%`;
-        procCfCpu.innerText = `${(0.1 + Math.random() * 0.1).toFixed(1)}%`;
+        currentCpu = 0.4 + Math.random() * 0.8;
+        if (procWhisperCpu) procWhisperCpu.innerText = `${currentCpu.toFixed(1)}%`;
+        if (procLlamaCpu) procLlamaCpu.innerText = "0.2%";
+        if (procGatewayCpu) procGatewayCpu.innerText = "0.1%";
+        if (procCfCpu) procCfCpu.innerText = `${(0.1 + Math.random() * 0.1).toFixed(1)}%`;
       }
       cpuUsageVal.innerText = currentCpu.toFixed(1);
       cpuHistory.shift();
