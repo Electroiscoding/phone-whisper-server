@@ -2719,17 +2719,21 @@ bash mobile/start_ai.sh</code></pre>
           let badgeText = "🎯 Relevant";
           let barBg = "linear-gradient(90deg, #38bdf8, #818cf8)";
 
-          if (pct > 70) {
+          if (pct >= 65) {
             badgeColor = "var(--success)";
             badgeText = "✅ High Relevance / Paraphrase";
             barBg = "linear-gradient(90deg, #10b981, #34d399)";
-          } else if (pct < 5) {
+          } else if (pct >= 25) {
+            badgeColor = "var(--primary)";
+            badgeText = "🎯 Moderate Relevance / Related";
+            barBg = "linear-gradient(90deg, #38bdf8, #818cf8)";
+          } else if (pct >= 0.05 && pct < 25) {
             badgeColor = "var(--danger)";
             badgeText = "🛑 Contradiction / Polar Opposite";
             barBg = "linear-gradient(90deg, #ef4444, #f87171)";
-          } else if (pct < 30) {
+          } else {
             badgeColor = "var(--text-subtle)";
-            badgeText = "⚠️ Low Relevance / Unrelated";
+            badgeText = "⚠️ Unrelated / No Match";
             barBg = "rgba(255,255,255,0.2)";
           }
 
