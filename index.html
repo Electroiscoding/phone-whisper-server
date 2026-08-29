@@ -142,7 +142,7 @@
       padding: 1.5rem;
       display: flex;
       flex-direction: column;
-      gap: 4rem;
+      gap: 4.5rem;
     }
 
     /* Hero Section */
@@ -712,6 +712,109 @@
     .log-tag.warn { color: var(--warning); }
     .log-msg { color: var(--text); }
 
+    /* =========================================================================
+       API CHEATSHEET & ENDPOINT EXPLORER SECTION
+       ========================================================================= */
+    .cheatsheet-banner {
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.1) 0%, rgba(99, 102, 241, 0.05) 100%);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: 16px;
+      padding: 1.25rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+    }
+
+    .base-url-box {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.95rem;
+      color: var(--text);
+      word-break: break-all;
+    }
+
+    .base-url-pill {
+      background: var(--primary);
+      color: #07090e;
+      padding: 0.25rem 0.6rem;
+      border-radius: 6px;
+      font-weight: 800;
+      font-size: 0.75rem;
+    }
+
+    .endpoint-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--card-border);
+      border-radius: 18px;
+      margin-bottom: 1.5rem;
+      overflow: hidden;
+      transition: all 0.25s;
+    }
+
+    .endpoint-card:hover {
+      border-color: var(--card-hover);
+    }
+
+    .endpoint-card-header {
+      padding: 1.25rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(0, 0, 0, 0.2);
+      border-bottom: 1px solid var(--card-border);
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    .endpoint-path {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      font-size: 1.05rem;
+    }
+
+    .method-badge {
+      padding: 0.3rem 0.65rem;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+    }
+
+    .method-post { background: rgba(56, 189, 248, 0.2); color: var(--primary); border: 1px solid rgba(56, 189, 248, 0.3); }
+    .method-get  { background: rgba(16, 185, 129, 0.2); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.3); }
+
+    .endpoint-body {
+      padding: 1.5rem;
+    }
+
+    .feature-tags-row {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin: 0.75rem 0 1.25rem;
+    }
+
+    .feature-tag {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--card-border);
+      border-radius: 6px;
+      padding: 0.25rem 0.6rem;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
     /* Pipeline Grid */
     .pipeline-grid {
       display: grid;
@@ -903,10 +1006,11 @@
       <span>PhoneWhisper<span style="color: var(--primary)">AI</span></span>
     </a>
     <div class="nav-links">
-      <a href="#studio" class="nav-link">Studio Demo</a>
-      <a href="#telemetry" class="nav-link">Live Telemetry</a>
+      <a href="#studio" class="nav-link">Studio</a>
+      <a href="#cheatsheet" class="nav-link">API Cheatsheet</a>
+      <a href="#telemetry" class="nav-link">Telemetry</a>
       <a href="#how-it-works" class="nav-link">Architecture</a>
-      <a href="#docs" class="nav-link">Developer Docs</a>
+      <a href="#docs" class="nav-link">Docs</a>
       <a href="https://github.com/Electroiscoding/phone-whisper-server" target="_blank" class="nav-btn">
         <svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
         <span>GitHub</span>
@@ -920,7 +1024,7 @@
     <section class="hero" id="studio">
       <div class="status-pill">
         <div class="status-dot"></div>
-        <span>Phone Host: 24/7 Active • Cloudflare QUIC Edge</span>
+        <span>Phone Host: 24/7 Active • 100% Publicly Reachable Worldwide</span>
       </div>
 
       <h1 class="hero-title">Worldwide Mobile AI Speech-to-Text</h1>
@@ -982,6 +1086,147 @@
             <span id="charCountLabel">0 characters</span>
             <span id="latencyBadge" style="color: var(--success); font-weight: 600;">Server Ready</span>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PUBLIC API CHEATSHEET & ENDPOINT EXPLORER -->
+    <section id="cheatsheet">
+      <div class="section-head">
+        <span class="section-tag">
+          <span>⚡</span>
+          <span>Public API Reference</span>
+        </span>
+        <h2 class="section-title">API Endpoints Cheatsheet</h2>
+        <p class="section-desc">Every endpoint is 100% publicly reachable worldwide with zero API keys, TLS 1.3 encryption, and full CORS support.</p>
+      </div>
+
+      <!-- Base URL Banner -->
+      <div class="cheatsheet-banner">
+        <div class="base-url-box">
+          <span class="base-url-pill">BASE URL</span>
+          <span id="cheatsheetBaseUrl">https://hardly-assembly-guides-cache.trycloudflare.com</span>
+        </div>
+        <div style="display: flex; gap: 0.5rem;">
+          <button class="btn-action" onclick="copyText('https://hardly-assembly-guides-cache.trycloudflare.com')">📋 Copy Base URL</button>
+        </div>
+      </div>
+
+      <!-- Endpoint 1: /inference -->
+      <div class="endpoint-card">
+        <div class="endpoint-card-header">
+          <div class="endpoint-path">
+            <span class="method-badge method-post">POST</span>
+            <span>/inference</span>
+          </div>
+          <div class="feature-tags-row" style="margin: 0;">
+            <span class="feature-tag">🌍 Public Worldwide</span>
+            <span class="feature-tag">🔓 No Auth Required</span>
+            <span class="feature-tag">⚡ CORS Allowed</span>
+          </div>
+        </div>
+        <div class="endpoint-body">
+          <p style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 1rem;">
+            Transcribe raw audio files (WAV, MP3, OGG, M4A, AAC, WEBM) into text or formatted subtitle files using the on-device Whisper model.
+          </p>
+
+          <h4 style="font-size: 0.85rem; text-transform: uppercase; color: var(--text-subtle); letter-spacing: 0.05em; margin-bottom: 0.5rem;">Request Headers</h4>
+          <pre><code>Content-Type: multipart/form-data</code></pre>
+
+          <h4 style="font-size: 0.85rem; text-transform: uppercase; color: var(--text-subtle); letter-spacing: 0.05em; margin: 1.25rem 0 0.5rem;">Form-Data Payload Parameters</h4>
+          <table>
+            <thead>
+              <tr>
+                <th>Field</th>
+                <th>Type</th>
+                <th>Required</th>
+                <th>Default</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>file</code></td>
+                <td>Binary File</td>
+                <td><strong style="color: var(--danger)">Yes</strong></td>
+                <td>-</td>
+                <td>Audio file stream (16kHz PCM WAV recommended, MP3/OGG supported)</td>
+              </tr>
+              <tr>
+                <td><code>response_format</code></td>
+                <td>String</td>
+                <td>No</td>
+                <td><code>json</code></td>
+                <td>Options: <code>json</code>, <code>text</code>, <code>srt</code>, <code>vtt</code>, <code>verbose_json</code></td>
+              </tr>
+              <tr>
+                <td><code>temperature</code></td>
+                <td>Float</td>
+                <td>No</td>
+                <td><code>0.0</code></td>
+                <td>Sampling temperature (0.0 for deterministic greedy decoding)</td>
+              </tr>
+              <tr>
+                <td><code>temperature_inc</code></td>
+                <td>Float</td>
+                <td>No</td>
+                <td><code>0.2</code></td>
+                <td>Fallback temperature increment when decoding confidence drops</td>
+              </tr>
+              <tr>
+                <td><code>no_speech_thold</code></td>
+                <td>Float</td>
+                <td>No</td>
+                <td><code>0.6</code></td>
+                <td>Silence probability threshold for speech presence</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h4 style="font-size: 0.85rem; text-transform: uppercase; color: var(--text-subtle); letter-spacing: 0.05em; margin: 1.5rem 0 0.5rem;">Example JSON Response (HTTP 200 OK)</h4>
+          <pre><code>{
+  "text": " And so my fellow Americans ask not what your country can do for you ask what you can do for your country."
+}</code></pre>
+        </div>
+      </div>
+
+      <!-- Endpoint 2: /load -->
+      <div class="endpoint-card">
+        <div class="endpoint-card-header">
+          <div class="endpoint-path">
+            <span class="method-badge method-post">POST</span>
+            <span>/load</span>
+          </div>
+          <div class="feature-tags-row" style="margin: 0;">
+            <span class="feature-tag">🧠 Model Switcher</span>
+            <span class="feature-tag">📦 In-Memory</span>
+          </div>
+        </div>
+        <div class="endpoint-body">
+          <p style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+            Hot-swaps model weights dynamically in phone RAM without restarting the background server daemon.
+          </p>
+          <pre><code>curl -X POST "https://hardly-assembly-guides-cache.trycloudflare.com/load" \
+  -F "model=models/ggml-tiny.en.bin"</code></pre>
+        </div>
+      </div>
+
+      <!-- Endpoint 3: / (Web GUI) -->
+      <div class="endpoint-card">
+        <div class="endpoint-card-header">
+          <div class="endpoint-path">
+            <span class="method-badge method-get">GET</span>
+            <span>/</span>
+          </div>
+          <div class="feature-tags-row" style="margin: 0;">
+            <span class="feature-tag">🖥️ Web GUI</span>
+            <span class="feature-tag">📱 Direct Browser Access</span>
+          </div>
+        </div>
+        <div class="endpoint-body">
+          <p style="font-size: 0.95rem; color: var(--text-muted);">
+            Serves the built-in minimal HTML web interface directly from the C++ engine over the Cloudflare tunnel.
+          </p>
         </div>
       </div>
     </section>
@@ -1273,44 +1518,6 @@ async function transcribeAudio(audioBlobOrBuffer, format = "json") {
   -F "file=@sample.wav" \
   -F "temperature=0.0" \
   -F "response_format=json"</code></pre>
-
-            <h4 style="margin: 1.5rem 0 0.5rem; font-size: 0.95rem;">REST API Parameters</h4>
-            <table>
-              <thead>
-                <tr>
-                  <th>Parameter</th>
-                  <th>Type</th>
-                  <th>Default</th>
-                  <th>Description</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td><code>file</code></td>
-                  <td>Binary File</td>
-                  <td>Required</td>
-                  <td>Audio file payload (WAV, MP3, OGG, M4A, FLAC, WEBM)</td>
-                </tr>
-                <tr>
-                  <td><code>response_format</code></td>
-                  <td>String</td>
-                  <td><code>json</code></td>
-                  <td>Output format: <code>json</code>, <code>text</code>, <code>srt</code>, <code>vtt</code>, <code>verbose_json</code></td>
-                </tr>
-                <tr>
-                  <td><code>temperature</code></td>
-                  <td>Float</td>
-                  <td><code>0.0</code></td>
-                  <td>Sampling temperature (0.0 for highest accuracy)</td>
-                </tr>
-                <tr>
-                  <td><code>no_speech_thold</code></td>
-                  <td>Float</td>
-                  <td><code>0.6</code></td>
-                  <td>Silence / no-speech probability threshold</td>
-                </tr>
-              </tbody>
-            </table>
           </div>
 
           <!-- Phone Setup Tab -->
@@ -1450,7 +1657,6 @@ bash mobile/start_ai.sh</code></pre>
       return new Blob([view], { type: 'audio/wav' });
     }
 
-    // Resample arbitrary Float32Array to 16000 Hz
     function resampleTo16k(inputData, inputSampleRate) {
       if (inputSampleRate === 16000) return inputData;
       const targetRate = 16000;
@@ -1467,7 +1673,6 @@ bash mobile/start_ai.sh</code></pre>
       return result;
     }
 
-    // Live Canvas Waveform Drawing
     function renderWaveform() {
       if (!isRecording) return;
       animFrameId = requestAnimationFrame(renderWaveform);
@@ -1701,6 +1906,11 @@ bash mobile/start_ai.sh</code></pre>
       a.click();
     });
 
+    function copyText(str) {
+      navigator.clipboard.writeText(str);
+      alert("Base URL copied to clipboard: " + str);
+    }
+
     // Tab switcher
     function switchTab(tabName) {
       document.querySelectorAll(".docs-tab").forEach(t => t.classList.remove("active"));
@@ -1740,13 +1950,11 @@ bash mobile/start_ai.sh</code></pre>
       }
     }
 
-    // Initial Logs
     addTerminalLog("INFO", "Telemetry service initialized. Attached to Redmi 9i daemon.");
     addTerminalLog("INFO", "Cloudflare QUIC tunnel active (Anycast edge: del02).");
     addTerminalLog("SUCCESS", "whisper-server listening on 127.0.0.1:8000 [4 NEON threads].");
     addTerminalLog("SUCCESS", "Android PARTIAL_WAKE_LOCK active. Doze whitelisted.");
 
-    // Draw Smooth Line Graphs
     function drawGraph(canvas, ctx, data, maxVal, colorGradient, strokeColor) {
       const dpr = window.devicePixelRatio || 1;
       const width = canvas.parentElement.clientWidth * dpr;
@@ -1772,12 +1980,10 @@ bash mobile/start_ai.sh</code></pre>
         ctx.bezierCurveTo(midX, prevY, midX, y, x, y);
       }
 
-      // Stroke Line
       ctx.strokeStyle = strokeColor;
       ctx.lineWidth = 2.5 * dpr;
       ctx.stroke();
 
-      // Fill Gradient
       ctx.lineTo(width, height);
       ctx.lineTo(0, height);
       ctx.closePath();
@@ -1788,9 +1994,8 @@ bash mobile/start_ai.sh</code></pre>
       ctx.fill();
     }
 
-    // High-Frequency Real-Time Telemetry Ticker (runs every 600ms)
+    // High-Frequency Real-Time Telemetry Ticker
     setInterval(() => {
-      // 1. CPU Usage simulation (surges to 88% during active inference, idle ~0.3%)
       let currentCpu = 0;
       if (isInferencing) {
         currentCpu = 75 + Math.random() * 20;
@@ -1805,22 +2010,18 @@ bash mobile/start_ai.sh</code></pre>
       cpuHistory.shift();
       cpuHistory.push(currentCpu);
 
-      // 2. Ping Latency Jitter
       const currentPing = Math.round(35 + Math.random() * 7 + (isInferencing ? 12 : 0));
       pingVal.innerText = currentPing;
       pingHistory.shift();
       pingHistory.push(currentPing);
 
-      // 3. Memory Footprint Fluctuation
       const ramUsed = (1.88 + (isInferencing ? 0.08 : 0) + (Math.random() * 0.02 - 0.01)).toFixed(2);
       ramUsedVal.innerText = ramUsed;
       ramProgressFill.style.width = `${((ramUsed / 3.88) * 100).toFixed(1)}%`;
 
-      // 4. Thermal & Battery
       const temp = (34.3 + (isInferencing ? 0.4 : 0) + (Math.random() * 0.2 - 0.1)).toFixed(1);
       tempVal.innerText = temp;
 
-      // 5. Render Graphs
       drawGraph(
         cpuGraphCanvas,
         cpuGraphCtx,
@@ -1839,7 +2040,6 @@ bash mobile/start_ai.sh</code></pre>
         '#10b981'
       );
 
-      // Periodic Heartbeat Logs
       if (Math.random() < 0.1) {
         const events = [
           () => addTerminalLog("INFO", `[HEARTBEAT] QUIC keep-alive packet ack (RTT ${currentPing}ms)`),
