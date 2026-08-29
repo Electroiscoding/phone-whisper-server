@@ -1,0 +1,9 @@
+{
+  "endpoint": "https://stands-evaluating-express-resume.trycloudflare.com",
+  "inference": "https://stands-evaluating-express-resume.trycloudflare.com/inference",
+  "telemetry": "https://stands-evaluating-express-resume.trycloudflare.com/telemetry",
+  "status": "ONLINE",
+  "device": "Xiaomi Redmi 9i (Helio Octa-Core)",
+  "mode": "24/7 Autonomous Global Edge",
+  "updated_at": 1788002056
+}

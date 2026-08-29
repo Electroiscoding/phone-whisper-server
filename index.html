@@ -1901,10 +1901,32 @@ bash mobile/start_ai.sh</code></pre>
     mobileCloseBtn.addEventListener("click", closeMobileDrawer);
     mobileDrawerOverlay.addEventListener("click", closeMobileDrawer);
 
-    // State & Endpoints
-    const BASE_ENDPOINT = "https://stands-evaluating-express-resume.trycloudflare.com";
-    const API_ENDPOINT = `${BASE_ENDPOINT}/inference`;
-    const TELEMETRY_ENDPOINT = `${BASE_ENDPOINT}/telemetry`;
+    // Autonomous Dynamic Endpoint Resolver
+    const REGISTRY_URL = "https://raw.githubusercontent.com/Electroiscoding/phone-whisper-server/main/endpoint.json";
+    let BASE_ENDPOINT = "https://stands-evaluating-express-resume.trycloudflare.com";
+    let API_ENDPOINT = `${BASE_ENDPOINT}/inference`;
+    let TELEMETRY_ENDPOINT = `${BASE_ENDPOINT}/telemetry`;
+
+    async function syncDynamicRegistry() {
+      try {
+        const res = await fetch(REGISTRY_URL, { cache: "no-store" });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.endpoint && data.endpoint !== BASE_ENDPOINT) {
+            BASE_ENDPOINT = data.endpoint.replace(/\/+$/, "");
+            API_ENDPOINT = `${BASE_ENDPOINT}/inference`;
+            TELEMETRY_ENDPOINT = `${BASE_ENDPOINT}/telemetry`;
+            const cheatsheetEl = document.getElementById("cheatsheetBaseUrl");
+            if (cheatsheetEl) cheatsheetEl.innerText = BASE_ENDPOINT;
+            addTerminalLog("INFO", `[AUTO-DISCOVERY] Synced live backend endpoint: ${BASE_ENDPOINT}`);
+          }
+        }
+      } catch (e) {
+        // Fallback
+      }
+    }
+    syncDynamicRegistry();
+    setInterval(syncDynamicRegistry, 30000);
 
     let selectedWavBlob = null;
     let audioCtx = null;
