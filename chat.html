@@ -458,7 +458,7 @@
       gap: 0.5rem;
     }
 
-    /* Mic Button (Whisper STT) */
+    /* Mic Button (SenseVoice STT) */
     .btn-mic-input {
       width: 40px;
       height: 40px;
@@ -685,7 +685,7 @@
       
       <div class="input-actions-right">
         <!-- Mic Button for Speech-to-Text -->
-        <button class="btn-mic-input" id="micRecordBtn" onclick="toggleVoiceInput()" title="Voice-to-Text (Whisper Base.en)">
+        <button class="btn-mic-input" id="micRecordBtn" onclick="toggleVoiceInput()" title="Voice-to-Text (Alibaba SenseVoice-Small)">
           <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
             <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
@@ -724,7 +724,7 @@
       </div>
     </div>
     <div class="voice-modal-status" id="voiceModalStatus">Listening...</div>
-    <div class="voice-modal-transcript" id="voiceModalTranscript">Speak freely — your voice is transcribed on-device by Whisper Base.en.</div>
+    <div class="voice-modal-transcript" id="voiceModalTranscript">Speak freely — your voice is transcribed on-device by Alibaba SenseVoice-Small.</div>
     <button class="voice-modal-close" onclick="closePureVoiceMode()">End Voice Chat</button>
   </div>
 
@@ -995,7 +995,7 @@
     // 🎙️ SPEECH-TO-TEXT (WHISPER BASE.EN) IN THE INPUT BAR
     // =========================================================================
     // -------------------------------------------------------------
-    // 16kHz PCM WAV Encoder for Whisper STT Backend
+    // 16kHz PCM WAV Encoder for SenseVoice STT Backend
     // -------------------------------------------------------------
     function encodeToWav(samples, sampleRate = 16000) {
       const buffer = new ArrayBuffer(44 + samples.length * 2);
@@ -1099,7 +1099,7 @@
       if (pcmMicStream) pcmMicStream.getTracks().forEach(t => t.stop());
 
       const input = document.getElementById("mainChatInput");
-      input.placeholder = "🧠 Transcribing audio with Whisper Base.en...";
+      input.placeholder = "🧠 Transcribing audio with Alibaba SenseVoice-Small...";
 
       try {
         let totalLength = 0;
@@ -1215,7 +1215,7 @@
           const wavBlob = encodeToWav(resampled, 16000);
           if (loopCtx) loopCtx.close();
 
-          statusEl.innerText = "Transcribing with Whisper Base.en...";
+          statusEl.innerText = "Transcribing with Alibaba SenseVoice-Small...";
           const fd = new FormData();
           fd.append("file", wavBlob, "voice.wav");
           fd.append("temperature", "0.0");

@@ -2,34 +2,17 @@
 export PREFIX=/data/data/com.termux/files/usr
 export PATH=$PREFIX/bin:$PATH
 export HOME=/data/data/com.termux/files/home
-export LD_LIBRARY_PATH=$HOME/whisper.cpp/build:$HOME/whisper.cpp/build/bin:$HOME/llama.cpp/build/bin:$PREFIX/lib
+export LD_LIBRARY_PATH=$HOME/SenseVoice.cpp/build/lib:$HOME/llama.cpp/build/bin:$PREFIX/lib
 
 # 1. Acquire Partial WakeLock
 termux-wake-lock 2>/dev/null || true
 
-# 2. Kill all existing instances cleanly
-killall -9 whisper-server llama-server cloudflared python3 2>/dev/null || true
+# 2. Kill old processes cleanly
+killall -9 llama-server cloudflared python3 2>/dev/null || true
 pkill -f start_ai.sh 2>/dev/null || true
 sleep 1
 
-# 3. Start Whisper STT Backend on Port 8000
-(
-  while true; do
-    if ! pgrep -f "whisper-server" > /dev/null; then
-      echo "$(date): Starting Whisper-Server (Base.en 148MB)..." >> $HOME/whisper.log
-      $HOME/whisper.cpp/build/bin/whisper-server \
-        -m $HOME/whisper.cpp/models/ggml-base.en.bin \
-        --port 8000 \
-        --host 127.0.0.1 \
-        -t 4 >> $HOME/whisper.log 2>&1
-    fi
-    sleep 5
-  done
-) &
-
-sleep 1
-
-# 4. Start Llama.cpp Qwen 2.5 SLM & Embeddings on Port 8001
+# 3. Start Llama.cpp Qwen 2.5 SLM & Embeddings on Port 8001
 (
   while true; do
     if ! pgrep -f "llama-server" > /dev/null; then
@@ -50,7 +33,7 @@ sleep 1
 
 sleep 1
 
-# 5. Start Multi-Modal Gateway on Port 8080
+# 4. Start Multi-Modal Gateway with Alibaba SenseVoice-Small STT on Port 8080
 (
   while true; do
     if ! pgrep -f "gateway.py" > /dev/null; then
@@ -63,18 +46,18 @@ sleep 1
 
 sleep 1
 
-# 6. Persistent Cloudflare Tunnel (Starts ONCE and NEVER killed by watchdog)
+# 5. Persistent Cloudflare Tunnel (Starts ONCE and NEVER killed by watchdog)
 (
   while true; do
     if ! pgrep -f "cloudflared tunnel" > /dev/null; then
       echo "$(date): Starting persistent cloudflared tunnel..." >> $HOME/tunnel_watchdog.log
-      cloudflared tunnel --url http://127.0.0.1:8080 --no-autoupdate > $HOME/cf_tunnel.log 2>&1 &
+      cloudflared tunnel --url http://127.0.0.1:8080 --protocol http2 --edge-ip-version 4 --no-autoupdate > $HOME/cf_tunnel.log 2>&1 &
     fi
     sleep 10
   done
 ) &
 
-# 7. Broadcaster (Pushes URL to GitHub ONLY ONCE when URL changes)
+# 6. Broadcaster (Pushes URL to GitHub ONLY ONCE when URL changes)
 (
   LAST_URL=""
   while true; do
@@ -93,7 +76,7 @@ sleep 1
 }
 JSON_EOF
         git add endpoint.json 2>/dev/null || true
-        git commit -m "chore(tunnel): Auto-sync stable live endpoint [$URL]" 2>/dev/null || true
+        git commit -m "chore(tunnel): Auto-sync live endpoint [$URL]" 2>/dev/null || true
         git push origin main 2>/dev/null || true
         echo "$(date): Successfully synced stable tunnel to GitHub: $URL" >> $HOME/tunnel_watchdog.log
       fi
@@ -103,5 +86,5 @@ JSON_EOF
 ) &
 
 echo "=================================================="
-echo "🚀 24/7 Multi-Modal AI Datacenter Active (STT + SLM + TTS + Embeddings + Telemetry)"
+echo "🚀 24/7 Multi-Modal AI Datacenter Active (SenseVoice-Small STT + Qwen 2.5 SLM + TTS + Embeddings)"
 echo "=================================================="

@@ -90,7 +90,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             "service": "Autonomous Mobile AI Datacenter",
             "device": "Xiaomi Redmi 9i (MediaTek Octa-Core ARM)",
             "modes": {
-                "stt": {"endpoint": "/v1/audio/transcriptions", "model": "Whisper Base.en (148MB)", "status": "ACTIVE"},
+                "stt": {"endpoint": "/v1/audio/transcriptions", "model": "Alibaba SenseVoice-Small Q4_K (GGUF)", "status": "ACTIVE"},
                 "slm_chat": {"endpoint": "/v1/chat/completions", "model": "Qwen 2.5 0.5B Instruct (Streaming SSE)", "status": "ACTIVE"},
                 "embeddings": {"endpoint": "/v1/embeddings", "model": "Qwen 2.5 Vector Embeddings (Mean Pooling)", "status": "ACTIVE"},
                 "tts": {"endpoint": "/v1/audio/speech", "engine": "On-Device Neural Speech Synth", "status": "ACTIVE"},
@@ -209,40 +209,71 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         self.wfile.write(json.dumps(telemetry).encode())
 
     def proxy_whisper(self):
+        """Ultra low-latency Alibaba SenseVoice-Small STT engine (GGUF)"""
         global _active_inferences, _active_daemon, _total_requests
         with _state_lock:
             _active_inferences += 1
-            _active_daemon = "whisper-server"
+            _active_daemon = "SenseVoice-Small"
 
         try:
             content_length = int(self.headers.get("Content-Length", 0))
             body = self.rfile.read(content_length) if content_length > 0 else b""
-            headers = {k: v for k, v in self.headers.items() if k.lower() not in ["host", "content-length"]}
 
-            req = urllib.request.Request(f"{WHISPER_URL}/inference", data=body, headers=headers, method="POST")
-            with urllib.request.urlopen(req, timeout=120) as resp:
-                resp_body = resp.read()
-                self.send_response(resp.status)
-                self._send_cors_headers()
-                for k, v in resp.headers.items():
-                    if k.lower() not in ["transfer-encoding", "content-length", "access-control-allow-origin"]:
-                        self.send_header(k, v)
-                self.send_header("Content-Length", str(len(resp_body)))
-                self.end_headers()
-                self.wfile.write(resp_body)
-        except urllib.error.HTTPError as e:
-            err_body = e.read()
-            self.send_response(e.code)
+            wav_bytes = body
+            if b"RIFF" in body:
+                riff_idx = body.find(b"RIFF")
+                wav_bytes = body[riff_idx:]
+                if b"\r\n--" in wav_bytes:
+                    wav_bytes = wav_bytes[:wav_bytes.rfind(b"\r\n--")]
+                elif b"\n--" in wav_bytes:
+                    wav_bytes = wav_bytes[:wav_bytes.rfind(b"\n--")]
+
+            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
+                tmp.write(wav_bytes)
+                tmp_path = tmp.name
+
+            sense_voice_bin = "/data/data/com.termux/files/home/SenseVoice.cpp/build/bin/sense-voice-main"
+            model_path = "/data/data/com.termux/files/home/models/sense-voice-small-q4_k.gguf"
+
+            cmd = [
+                sense_voice_bin,
+                "-m", model_path,
+                "-t", "4",
+                "-l", "auto",
+                "-itn",
+                "-f", tmp_path
+            ]
+
+            proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=30)
+            try:
+                os.remove(tmp_path)
+            except Exception:
+                pass
+
+            segments = []
+            for line in proc.stdout.splitlines():
+                if line.startswith("[") and "]" in line:
+                    seg = line.split("]", 1)[1].strip()
+                    if seg:
+                        segments.append(seg)
+
+            transcribed = " ".join(segments).strip()
+            resp_data = {"text": transcribed}
+            resp_bytes = json.dumps(resp_data).encode("utf-8")
+
+            self.send_response(200)
             self._send_cors_headers()
             self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(resp_bytes)))
             self.end_headers()
-            self.wfile.write(err_body)
+            self.wfile.write(resp_bytes)
+
         except Exception as e:
-            self.send_response(502)
+            self.send_response(500)
             self._send_cors_headers()
             self.send_header("Content-Type", "application/json")
             self.end_headers()
-            self.wfile.write(json.dumps({"error": f"STT backend unreachable: {str(e)}"}).encode())
+            self.wfile.write(json.dumps({"error": f"SenseVoice STT error: {str(e)}"}).encode())
         finally:
             with _state_lock:
                 _active_inferences = max(0, _active_inferences - 1)
