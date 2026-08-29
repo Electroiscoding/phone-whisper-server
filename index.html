@@ -7,7 +7,82 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <style>
+
+    /* Markdown Formatting in Qwen AI Chat */
+    .chat-bubble.ai h1, .chat-bubble.ai h2, .chat-bubble.ai h3, .chat-bubble.ai h4 {
+      color: #fff;
+      font-weight: 700;
+      margin: 0.6rem 0 0.3rem;
+      line-height: 1.25;
+    }
+    .chat-bubble.ai h1 { font-size: 1.25rem; color: var(--primary); }
+    .chat-bubble.ai h2 { font-size: 1.1rem; color: var(--primary); }
+    .chat-bubble.ai h3 { font-size: 1.0rem; color: var(--accent); }
+    .chat-bubble.ai p {
+      margin: 0.35rem 0;
+      line-height: 1.55;
+    }
+    .chat-bubble.ai strong {
+      color: #fff;
+      font-weight: 700;
+    }
+    .chat-bubble.ai em {
+      color: #cbd5e1;
+      font-style: italic;
+    }
+    .chat-bubble.ai del {
+      color: var(--text-subtle);
+      text-decoration: line-through;
+    }
+    .chat-bubble.ai ul, .chat-bubble.ai ol {
+      padding-left: 1.4rem;
+      margin: 0.4rem 0;
+    }
+    .chat-bubble.ai li {
+      margin-bottom: 0.25rem;
+      line-height: 1.5;
+    }
+    .chat-bubble.ai code {
+      font-family: 'JetBrains Mono', monospace;
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      color: #38bdf8;
+      padding: 0.15rem 0.4rem;
+      border-radius: 6px;
+      font-size: 0.88em;
+    }
+    .chat-bubble.ai pre {
+      background: rgba(5, 8, 15, 0.95);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 10px;
+      padding: 0.85rem 1rem;
+      overflow-x: auto;
+      margin: 0.6rem 0;
+    }
+    .chat-bubble.ai pre code {
+      background: transparent;
+      border: none;
+      padding: 0;
+      color: #e2e8f0;
+      font-size: 0.85rem;
+      line-height: 1.5;
+    }
+    .chat-bubble.ai blockquote {
+      border-left: 3px solid var(--primary);
+      background: rgba(56, 189, 248, 0.05);
+      padding: 0.4rem 0.8rem;
+      border-radius: 0 8px 8px 0;
+      margin: 0.5rem 0;
+      color: var(--text-muted);
+    }
+    .chat-bubble.ai hr {
+      border: 0;
+      border-top: 1px solid rgba(255, 255, 255, 0.12);
+      margin: 0.75rem 0;
+    }
+
     /* Multi-Modal Interactive Studios */
     .chat-container-card {
       background: var(--card-bg);
@@ -2187,6 +2262,32 @@ bash mobile/start_ai.sh</code></pre>
   </div>
 
   <script>
+        // Markdown Parser Helper for AI Responses
+    function renderMarkdown(raw) {
+      if (typeof marked !== "undefined" && marked.parse) {
+        try {
+          return marked.parse(raw, { breaks: true, gfm: true });
+        } catch (e) {}
+      }
+      return raw
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+        .replace(/```([a-z]*)\n([\s\S]*?)```/g, '<pre><code class="language-$1">$2</code></pre>')
+        .replace(/`([^`]+)`/g, '<code>$1</code>')
+        .replace(/\*\*\*([^*]+)\*\*\*/g, '<strong><em>$1</em></strong>')
+        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+        .replace(/__([^_]+)__/g, '<strong>$1</strong>')
+        .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+        .replace(/_([^_]+)_/g, '<em>$1</em>')
+        .replace(/~~([^~]+)~~/g, '<del>$1</del>')
+        .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+        .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+        .replace(/^# (.*$)/gim, '<h1>$1</h1>')
+        .replace(/^\> (.*$)/gim, '<blockquote>$1</blockquote>')
+        .replace(/^[\*\-] (.*$)/gim, '<ul><li>$1</li></ul>')
+        .replace(/^---$/gim, '<hr/>')
+        .replace(/\n/g, '<br/>');
+    }
+
     // Navigation Drawer Controls (Mobile)
     const mobileMenuBtn = document.getElementById("mobileMenuBtn");
     const mobileCloseBtn = document.getElementById("mobileCloseBtn");
@@ -2299,7 +2400,7 @@ bash mobile/start_ai.sh</code></pre>
                 const delta = parsed.choices?.[0]?.delta?.content;
                 if (delta) {
                   fullText += delta;
-                  contentSpan.innerHTML = fullText.replace(/\n/g, "<br/>");
+                  contentSpan.innerHTML = renderMarkdown(fullText);
                   chatBox.scrollTop = chatBox.scrollHeight;
                 }
               } catch (e) {
