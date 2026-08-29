@@ -2400,17 +2400,22 @@ bash mobile/start_ai.sh</code></pre>
         const decoder = new TextDecoder("utf-8");
         let buffer = "";
 
-        while (true) {
+        let isStreamFinished = false;
+        while (!isStreamFinished) {
           const { done, value } = await reader.read();
           if (done) break;
 
           buffer += decoder.decode(value, { stream: true });
           const lines = buffer.split("\n");
-          buffer = lines.pop(); // keep remainder in buffer
+          buffer = lines.pop();
 
           for (const line of lines) {
             const trimmed = line.trim();
-            if (!trimmed || trimmed.startsWith(":") || trimmed.includes("[DONE]")) continue;
+            if (!trimmed || trimmed.startsWith(":")) continue;
+            if (trimmed.includes("[DONE]")) {
+              isStreamFinished = true;
+              break;
+            }
 
             if (trimmed.startsWith("data: ")) {
               try {
@@ -2427,6 +2432,7 @@ bash mobile/start_ai.sh</code></pre>
             }
           }
         }
+        try { reader.cancel(); } catch (e) {}
 
         const elapsed = ((performance.now() - t0) / 1000).toFixed(2);
         cursorSpan.remove();
@@ -3074,6 +3080,32 @@ bash mobile/start_ai.sh</code></pre>
       ctx.fill();
     }
 
+        let activeDaemon = null;
+    const procLlamaCpu = document.getElementById("procLlamaCpu");
+    const procGatewayCpu = document.getElementById("procGatewayCpu");
+
+    // Redraw canvases from historical telemetry buffer
+    function redrawDashboardCanvases() {
+      drawGraph(
+        cpuGraphCanvas,
+        cpuGraphCtx,
+        cpuHistory,
+        100,
+        ['rgba(56, 189, 248, 0.35)', 'rgba(56, 189, 248, 0.0)'],
+        '#38bdf8'
+      );
+
+      drawGraph(
+        pingGraphCanvas,
+        pingGraphCtx,
+        pingHistory,
+        70,
+        ['rgba(16, 185, 129, 0.35)', 'rgba(16, 185, 129, 0.0)'],
+        '#10b981'
+      );
+    }
+
+    // Live Server Telemetry Poller (True Global Hardware Sync)
     async function fetchLiveHardwareTelemetry() {
       const pingStart = performance.now();
       try {
@@ -3103,7 +3135,7 @@ bash mobile/start_ai.sh</code></pre>
             ramProgressFill.style.width = `${((data.memory.used_mb / data.memory.total_mb) * 100).toFixed(1)}%`;
           }
 
-          // 3. Global Server-Wide Real-Time CPU & Process Activity (Synced Worldwide)
+          // 3. True Server-Wide CPU & Process Activity (Synced Worldwide)
           if (data.cpu) {
             const cpuPct = Number(data.cpu.usage_percent);
             cpuUsageVal.innerText = cpuPct.toFixed(1);
@@ -3121,69 +3153,20 @@ bash mobile/start_ai.sh</code></pre>
           pingVal.innerText = pingMs;
           pingHistory.shift();
           pingHistory.push(pingMs);
+
+          redrawDashboardCanvases();
         }
       } catch (err) {
         const pingMs = Math.round(35 + Math.random() * 8);
         pingVal.innerText = pingMs;
         pingHistory.shift();
         pingHistory.push(pingMs);
+        redrawDashboardCanvases();
       }
     }
 
-    let activeDaemon = null;
-    const procLlamaCpu = document.getElementById("procLlamaCpu");
-    const procGatewayCpu = document.getElementById("procGatewayCpu");
-
-    setInterval(() => {
-      let currentCpu = 0;
-      if (isInferencing) {
-        currentCpu = 78 + Math.random() * 18;
-        if (activeDaemon === "llama") {
-          if (procLlamaCpu) procLlamaCpu.innerText = `${(currentCpu * 0.88).toFixed(1)}%`;
-          if (procWhisperCpu) procWhisperCpu.innerText = "0.2%";
-          if (procGatewayCpu) procGatewayCpu.innerText = "3.5%";
-        } else if (activeDaemon === "gateway") {
-          if (procGatewayCpu) procGatewayCpu.innerText = `${(currentCpu * 0.75).toFixed(1)}%`;
-          if (procLlamaCpu) procLlamaCpu.innerText = "0.2%";
-          if (procWhisperCpu) procWhisperCpu.innerText = "0.2%";
-        } else {
-          if (procWhisperCpu) procWhisperCpu.innerText = `${(currentCpu * 0.92).toFixed(1)}%`;
-          if (procLlamaCpu) procLlamaCpu.innerText = "0.2%";
-          if (procGatewayCpu) procGatewayCpu.innerText = "1.5%";
-        }
-        if (procCfCpu) procCfCpu.innerText = `${(2.5 + Math.random() * 2).toFixed(1)}%`;
-      } else {
-        currentCpu = 0.4 + Math.random() * 0.8;
-        if (procWhisperCpu) procWhisperCpu.innerText = `${currentCpu.toFixed(1)}%`;
-        if (procLlamaCpu) procLlamaCpu.innerText = "0.2%";
-        if (procGatewayCpu) procGatewayCpu.innerText = "0.1%";
-        if (procCfCpu) procCfCpu.innerText = `${(0.1 + Math.random() * 0.1).toFixed(1)}%`;
-      }
-      cpuUsageVal.innerText = currentCpu.toFixed(1);
-      cpuHistory.shift();
-      cpuHistory.push(currentCpu);
-
-      drawGraph(
-        cpuGraphCanvas,
-        cpuGraphCtx,
-        cpuHistory,
-        100,
-        ['rgba(56, 189, 248, 0.35)', 'rgba(56, 189, 248, 0.0)'],
-        '#38bdf8'
-      );
-
-      drawGraph(
-        pingGraphCanvas,
-        pingGraphCtx,
-        pingHistory,
-        70,
-        ['rgba(16, 185, 129, 0.35)', 'rgba(16, 185, 129, 0.0)'],
-        '#10b981'
-      );
-    }, 600);
-
     fetchLiveHardwareTelemetry();
-    setInterval(fetchLiveHardwareTelemetry, 1500);
+    setInterval(fetchLiveHardwareTelemetry, 1000);
   </script>
 </body>
 </html>

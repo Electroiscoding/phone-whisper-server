@@ -843,7 +843,8 @@
         const decoder = new TextDecoder("utf-8");
         let buffer = "";
 
-        while (true) {
+        let isStreamFinished = false;
+        while (!isStreamFinished) {
           const { done, value } = await reader.read();
           if (done) break;
 
@@ -853,7 +854,11 @@
 
           for (const line of lines) {
             const trimmed = line.trim();
-            if (!trimmed || trimmed.startsWith(":") || trimmed.includes("[DONE]")) continue;
+            if (!trimmed || trimmed.startsWith(":")) continue;
+            if (trimmed.includes("[DONE]")) {
+              isStreamFinished = true;
+              break;
+            }
             if (trimmed.startsWith("data: ")) {
               try {
                 const parsed = JSON.parse(trimmed.slice(6));
@@ -867,6 +872,7 @@
             }
           }
         }
+        try { reader.cancel(); } catch (e) {}
 
         // Remove cursor immediately when generation completes
         cursorEl.remove();
