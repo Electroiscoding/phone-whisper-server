@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mobile Whisper AI - Universal Web Client</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --text: #f8fafc;
+      --accent: #38bdf8;
+      --accent-hover: #0284c7;
+      --border: #334155;
+      --muted: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 1.5rem;
+    }
+    .container {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2rem;
+      max-width: 650px;
+      width: 100%;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+    h1 { font-size: 1.75rem; margin-bottom: 0.5rem; color: var(--accent); display: flex; align-items: center; gap: 0.5rem; }
+    p.subtitle { color: var(--muted); font-size: 0.95rem; margin-bottom: 1.5rem; }
+    .form-group { margin-bottom: 1.25rem; }
+    label { display: block; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; color: var(--muted); margin-bottom: 0.5rem; }
+    input[type="text"], select {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #0f172a;
+      color: var(--text);
+      font-size: 0.95rem;
+    }
+    .dropzone {
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      padding: 2rem 1rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: 1.25rem;
+    }
+    .dropzone:hover, .dropzone.dragover {
+      border-color: var(--accent);
+      background: rgba(56, 189, 248, 0.05);
+    }
+    .btn-row { display: flex; gap: 0.75rem; }
+    button {
+      flex: 1;
+      padding: 0.85rem 1.25rem;
+      border-radius: 8px;
+      border: none;
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-primary { background: var(--accent); color: #0f172a; }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-record { background: #ef4444; color: white; }
+    .btn-record.recording { animation: pulse 1s infinite; background: #dc2626; }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    .result-box {
+      margin-top: 1.5rem;
+      padding: 1.25rem;
+      border-radius: 8px;
+      background: #0f172a;
+      border: 1px solid var(--border);
+      min-height: 120px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: monospace;
+      font-size: 0.95rem;
+      position: relative;
+    }
+    .copy-btn {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      padding: 0.35rem 0.75rem;
+      font-size: 0.75rem;
+      background: var(--card-bg);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📱 Whisper AI Web Client</h1>
+    <p class="subtitle">Transcribe audio via your mobile-hosted AI Whisper server.</p>
+
+    <div class="form-group">
+      <label>Endpoint URL</label>
+      <input type="text" id="endpoint" value="https://hardly-assembly-guides-cache.trycloudflare.com/inference">
+    </div>
+
+    <div class="dropzone" id="dropzone">
+      <input type="file" id="fileInput" accept="audio/*" style="display: none;">
+      <p id="fileLabel">📁 Click to upload or drag & drop audio (WAV, MP3, OGG, M4A)</p>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-record" id="recordBtn">🎙️ Record Mic</button>
+      <button class="btn-primary" id="transcribeBtn" disabled>⚡ Transcribe</button>
+    </div>
+
+    <div class="result-box" id="resultBox">
+      <button class="copy-btn" id="copyBtn" style="display: none;">Copy</button>
+      <span style="color: var(--muted);" id="placeholderText">Transcription result will appear here...</span>
+    </div>
+  </div>
+
+  <script>
+    let selectedFile = null;
+    let mediaRecorder = null;
+    let audioChunks = [];
+
+    const fileInput = document.getElementById("fileInput");
+    const dropzone = document.getElementById("dropzone");
+    const fileLabel = document.getElementById("fileLabel");
+    const transcribeBtn = document.getElementById("transcribeBtn");
+    const recordBtn = document.getElementById("recordBtn");
+    const endpointInput = document.getElementById("endpoint");
+    const resultBox = document.getElementById("resultBox");
+    const placeholderText = document.getElementById("placeholderText");
+    const copyBtn = document.getElementById("copyBtn");
+
+    dropzone.addEventListener("click", () => fileInput.click());
+    fileInput.addEventListener("change", (e) => {
+      if (e.target.files.length > 0) {
+        selectedFile = e.target.files[0];
+        fileLabel.innerText = `Selected: ${selectedFile.name} (${(selectedFile.size / 1024).toFixed(1)} KB)`;
+        transcribeBtn.disabled = false;
+      }
+    });
+
+    // Recording Handler
+    recordBtn.addEventListener("click", async () => {
+      if (!mediaRecorder || mediaRecorder.state === "inactive") {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          mediaRecorder = new MediaRecorder(stream);
+          audioChunks = [];
+
+          mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
+          mediaRecorder.onstop = () => {
+            selectedFile = new Blob(audioChunks, { type: "audio/wav" });
+            fileLabel.innerText = `Recorded Audio (${(selectedFile.size / 1024).toFixed(1)} KB)`;
+            transcribeBtn.disabled = false;
+            recordBtn.innerText = "🎙️ Record Mic";
+            recordBtn.classList.remove("recording");
+          };
+
+          mediaRecorder.start();
+          recordBtn.innerText = "⏹️ Stop Recording";
+          recordBtn.classList.add("recording");
+        } catch (err) {
+          alert("Microphone access denied: " + err.message);
+        }
+      } else {
+        mediaRecorder.stop();
+      }
+    });
+
+    // Transcribe Handler
+    transcribeBtn.addEventListener("click", async () => {
+      if (!selectedFile) return;
+
+      transcribeBtn.disabled = true;
+      placeholderText.innerText = "⏳ Processing audio on phone AI model...";
+      copyBtn.style.display = "none";
+
+      const formData = new FormData();
+      formData.append("file", selectedFile, "audio.wav");
+      formData.append("temperature", "0.0");
+      formData.append("response_format", "json");
+
+      try {
+        const res = await fetch(endpointInput.value.trim(), {
+          method: "POST",
+          body: formData
+        });
+
+        if (!res.ok) throw new Error(`HTTP error ${res.status}: ${res.statusText}`);
+        const data = await res.json();
+        const text = data.text || JSON.stringify(data, null, 2);
+
+        placeholderText.innerText = text.trim();
+        copyBtn.style.display = "block";
+      } catch (err) {
+        placeholderText.innerText = "❌ Error: " + err.message;
+      } finally {
+        transcribeBtn.disabled = false;
+      }
+    });
+
+    copyBtn.addEventListener("click", () => {
+      navigator.clipboard.writeText(placeholderText.innerText);
+      copyBtn.innerText = "Copied!";
+      setTimeout(() => copyBtn.innerText = "Copy", 1500);
+    });
+  </script>
+</body>
+</html>
