@@ -2,17 +2,35 @@
 export PREFIX=/data/data/com.termux/files/usr
 export PATH=$PREFIX/bin:$PATH
 export HOME=/data/data/com.termux/files/home
-export LD_LIBRARY_PATH=$HOME/SenseVoice.cpp/build/lib:$HOME/llama.cpp/build/bin:$PREFIX/lib
+export LD_LIBRARY_PATH=$HOME/whisper.cpp/build/bin:$HOME/llama.cpp/build/bin:$PREFIX/lib
 
 # 1. Acquire Partial WakeLock
 termux-wake-lock 2>/dev/null || true
 
 # 2. Kill old processes cleanly
-killall -9 llama-server cloudflared python3 2>/dev/null || true
+killall -9 whisper-server llama-server cloudflared python3 2>/dev/null || true
 pkill -f start_ai.sh 2>/dev/null || true
 sleep 1
 
-# 3. Start Llama.cpp Qwen 2.5 SLM on Port 8001 (Chat Completions)
+# 3. Start Whisper-Server on Port 8000 (OpenAI Whisper Base.en Q5_1 - High Accuracy STT)
+(
+  while true; do
+    if ! pgrep -f "8000" > /dev/null; then
+      echo "$(date): Starting Whisper-Server (Base.en Q5_1 on :8000)..." >> $HOME/whisper_server.log
+      $HOME/whisper.cpp/build/bin/whisper-server \
+        -m $HOME/whisper.cpp/models/ggml-base.en-q5_1.bin \
+        --port 8000 \
+        --host 127.0.0.1 \
+        -t 4 \
+        --no-timestamps >> $HOME/whisper_server.log 2>&1
+    fi
+    sleep 5
+  done
+) &
+
+sleep 1
+
+# 4. Start Llama.cpp Qwen 2.5 SLM on Port 8001 (Chat Completions)
 (
   while true; do
     if ! pgrep -f "8001" > /dev/null; then
@@ -31,7 +49,7 @@ sleep 1
 
 sleep 1
 
-# 4. Start BAAI BGE-Small-en-v1.5 on Port 8002 (Dedicated Isotropic Embeddings)
+# 5. Start BAAI BGE-Small-en-v1.5 on Port 8002 (Dedicated Isotropic Embeddings)
 (
   while true; do
     if ! pgrep -f "8002" > /dev/null; then
@@ -52,7 +70,7 @@ sleep 1
 
 sleep 1
 
-# 5. Start BAAI BGE-Reranker-Base on Port 8003 (Deep Cross-Attention NLI Reranker)
+# 6. Start BAAI BGE-Reranker-Base on Port 8003 (Deep Cross-Attention NLI Reranker)
 (
   while true; do
     if ! pgrep -f "8003" > /dev/null; then
@@ -73,7 +91,7 @@ sleep 1
 
 sleep 1
 
-# 6. Start Multi-Modal Gateway with SenseVoice STT + Qwen + BGE Embeddings + Reranker + TTS on Port 8080
+# 7. Start Multi-Modal Gateway with Whisper STT + Qwen + BGE Embeddings + Reranker + TTS on Port 8080
 (
   while true; do
     if ! pgrep -f "gateway.py" > /dev/null; then
@@ -86,7 +104,7 @@ sleep 1
 
 sleep 1
 
-# 7. Persistent Cloudflare Tunnel (Starts ONCE and NEVER killed by watchdog)
+# 8. Persistent Cloudflare Tunnel (Starts ONCE and NEVER killed by watchdog)
 (
   while true; do
     if ! pgrep -f "cloudflared tunnel" > /dev/null; then
@@ -97,7 +115,7 @@ sleep 1
   done
 ) &
 
-# 8. Broadcaster (Pushes URL to GitHub ONLY ONCE when URL changes)
+# 9. Broadcaster (Pushes URL to GitHub ONLY ONCE when URL changes)
 (
   LAST_URL=""
   while true; do
@@ -126,5 +144,5 @@ JSON_EOF
 ) &
 
 echo "=================================================="
-echo "🚀 6-in-1 Autonomous Mobile AI Datacenter Active (SenseVoice STT + Qwen Chat + BGE Embeddings + Cross-Encoder Reranker + TTS + Telemetry)"
+echo "🚀 6-in-1 Mobile AI Datacenter Active (OpenAI Whisper Base.en STT + Qwen Chat + BGE Embeddings + Cross-Encoder Reranker + TTS + Telemetry)"
 echo "=================================================="

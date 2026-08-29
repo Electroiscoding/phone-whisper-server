@@ -20,7 +20,7 @@
 
 | Mode | Engine / Model | Endpoint | Description |
 | :--- | :--- | :--- | :--- |
-| **🎙️ 1. Speech-to-Text (STT)** | `SenseVoice.cpp` (`Alibaba SenseVoice-Small` 174MB) | `POST /inference` | High-accuracy non-autoregressive speech transcription (<100ms). |
+| **🎙️ 1. Speech-to-Text (STT)** | `whisper.cpp` (`OpenAI Whisper Base.en Q5_1` 59MB) | `POST /inference` | High-accuracy non-autoregressive speech transcription (<100ms). |
 | **💬 2. SLM / Chat Assistant** | `llama.cpp` (`Qwen 2.5 0.5B Instruct`) | `POST /v1/chat/completions` | On-device conversational AI & code assistant (~20 tokens/sec). |
 | **🔍 3. Vector Embeddings** | `llama.cpp` (`BAAI BGE-Small-en-v1.5`) | `POST /v1/embeddings` | 384-dimensional isotropic contrastive vectors for RAG & ANN search. |
 | **🎯 4. Semantic Reranker** | `llama.cpp` (`BAAI BGE-Reranker-Base`) | `POST /v1/rerank` | Deep Cross-Attention NLI scoring (resolves role flips & negations). |
@@ -47,7 +47,7 @@ flowchart TD
     Client["Worldwide Developers & Users (Web, Python, Node, cURL)"] --> CF["Cloudflare Edge Worker (Permanent URL)"]
     CF --> Phone["Phone Supervisor Gateway (gateway.py :8080)"]
     
-    Phone -->|"/inference"| SenseVoice["SenseVoice.cpp (:8080) [SenseVoice-Small]"]
+    Phone -->|"/inference"| Whisper["whisper-server (:8000) [Whisper Base.en]"]
     Phone -->|"/v1/chat/completions"| LlamaChat["llama-server (:8001) [Qwen 2.5 SLM]"]
     Phone -->|"/v1/embeddings"| LlamaEmb["llama-server (:8002) [BGE-Small-v1.5]"]
     Phone -->|"/v1/rerank"| LlamaRerank["llama-server (:8003) [BGE-Reranker-Base]"]
