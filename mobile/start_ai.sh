@@ -67,7 +67,7 @@ sleep 1
   while true; do
     if ! pgrep -f "cloudflared tunnel" > /dev/null; then
       echo "$(date): Starting cloudflared tunnel..." >> $HOME/tunnel_watchdog.log
-      cloudflared tunnel --url http://127.0.0.1:8080 --no-autoupdate > $HOME/cf_tunnel.log 2>&1 &
+      cloudflared tunnel --url http://127.0.0.1:8080 --protocol http2 --no-autoupdate > $HOME/cf_tunnel.log 2>&1 &
     else
       if grep -q "Incoming request ended abruptly" $HOME/cf_tunnel.log 2>/dev/null; then
         echo "$(date): Network reconnection detected, recycling tunnel..." >> $HOME/tunnel_watchdog.log
