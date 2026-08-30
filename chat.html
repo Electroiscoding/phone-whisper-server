@@ -778,7 +778,28 @@
   <audio id="globalTtsAudio" style="display: none;"></audio>
 
   <script>
-    const BASE_ENDPOINT = "https://black-term-8c36.botmaker583-55e.workers.dev";
+    // 100% Permanent Immortal Cloudflare Worker Gateway + Dual-Target Failover Resolver
+    let BASE_ENDPOINT = "https://black-term-8c36.botmaker583-55e.workers.dev";
+    let isResolvingTunnel = false;
+
+    async function autoResolveDirectTunnel() {
+      if (isResolvingTunnel) return;
+      isResolvingTunnel = true;
+      try {
+        const res = await fetch("https://raw.githubusercontent.com/Electroiscoding/phone-whisper-server/main/endpoint.json?_t=" + Date.now(), { cache: "no-store" });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.endpoint && data.endpoint.startsWith("https://")) {
+            BASE_ENDPOINT = data.endpoint.replace(/\/+$/, "");
+            console.log("⚡ [Nuclear Failover] Dynamically routed direct to phone tunnel:", BASE_ENDPOINT);
+          }
+        }
+      } catch (err) {
+        console.warn("Tunnel resolver check:", err);
+      } finally {
+        isResolvingTunnel = false;
+      }
+    }
     let isGenerating = false;
     let isRecordingAudio = false;
     let mediaRecorder = null;
