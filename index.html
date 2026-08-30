@@ -2528,8 +2528,8 @@ bash mobile/start_ai.sh</code></pre>
     mobileCloseBtn.addEventListener("click", closeMobileDrawer);
     mobileDrawerOverlay.addEventListener("click", closeMobileDrawer);
 
-    // 100% Direct Zero-530 Dynamic Phone Tunnel with Edge Fallback
-    let BASE_ENDPOINT = "https://eau-illustrated-reasonably-regular.trycloudflare.com";
+    // Universal CORS-Shielded Edge Worker with Live Tunnel Auto-Sync
+    let BASE_ENDPOINT = "https://black-term-8c36.botmaker583-55e.workers.dev";
     let isResolvingTunnel = false;
 
     async function autoResolveDirectTunnel() {
@@ -2540,17 +2540,14 @@ bash mobile/start_ai.sh</code></pre>
         if (res.ok) {
           const data = await res.json();
           if (data.endpoint && data.endpoint.startsWith("https://")) {
-            BASE_ENDPOINT = data.endpoint.replace(/\/+$/, "");
-            console.log("⚡ [Live Phone Tunnel Active]:", BASE_ENDPOINT);
+            console.log("⚡ [Verified Active Phone Origin]:", data.endpoint);
           }
         }
       } catch (err) {
-        console.warn("Tunnel resolver check:", err);
       } finally {
         isResolvingTunnel = false;
       }
     }
-    // Auto-resolve live tunnel on page boot and every 15s
     autoResolveDirectTunnel();
     setInterval(autoResolveDirectTunnel, 15000);
 
