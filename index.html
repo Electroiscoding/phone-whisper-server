@@ -1503,6 +1503,7 @@
       <a href="#studio" class="nav-link">Studio</a>
       <a href="#cheatsheet" class="nav-link">API Cheatsheet</a>
       <a href="#telemetry" class="nav-link">Telemetry</a>
+      <a href="#swades-studio" class="nav-link">🤖 Agent</a>
       <a href="#how-it-works" class="nav-link">Architecture</a>
       <a href="#docs" class="nav-link">Docs</a>
       <a href="https://github.com/Electroiscoding/phone-whisper-server" target="_blank" class="nav-btn">
@@ -1537,6 +1538,9 @@
       </a>
       <a href="#telemetry" class="mobile-nav-item" onclick="closeMobileDrawer()">
         <span>📊</span> <span>Live Telemetry</span>
+      </a>
+      <a href="#swades-studio" class="mobile-nav-item" onclick="closeMobileDrawer()">
+        <span>🤖</span> <span>Agent</span>
       </a>
       <a href="#how-it-works" class="mobile-nav-item" onclick="closeMobileDrawer()">
         <span>🏗️</span> <span>Architecture</span>
@@ -1883,6 +1887,67 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
   "hint": "Select any MediaPipe task above and click 'Run Vision Task' to execute on phone hardware."
 }</pre>
           </div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- 🤖 SWADES AGENT STUDIO -->
+    <section id="swades-studio" style="margin-top: 3rem;">
+      <div class="section-head">
+        <span class="section-tag">
+          <span>🤖</span>
+          <span>Autonomous Coding Agent</span>
+        </span>
+        <h2 class="section-title">Swades Agent — Submit & Forget</h2>
+        <p class="section-desc">Submit a coding task against any GitHub repository. The agent works autonomously in the background — clone, analyze, edit, test, and open a Pull Request. You can close this page.</p>
+      </div>
+
+      <div class="chat-container-card" style="margin-bottom: 2rem;">
+        <h3 style="margin-bottom: 1rem; font-size: 1.1rem;">🚀 Submit Task</h3>
+        <div style="display: flex; flex-direction: column; gap: 1rem;">
+          <input type="text" id="swadesRepoUrl" class="chat-input" placeholder="https://github.com/username/repository" style="width: 100%;">
+          <textarea id="swadesTaskDesc" class="chat-input" placeholder="Describe what you want the agent to do..." style="width: 100%; min-height: 100px; resize: vertical;"></textarea>
+          
+          <div style="border: 1px solid var(--card-border); border-radius: 12px; background: rgba(0,0,0,0.2); overflow: hidden;">
+            <div style="padding: 0.85rem 1.1rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center;" onclick="document.getElementById('swadesAdvanced').style.display = document.getElementById('swadesAdvanced').style.display === 'none' ? 'flex' : 'none'">
+              <span style="font-weight: 600; font-size: 0.95rem;">⚙️ Advanced Options</span>
+              <span style="font-size: 0.8rem; color: var(--text-muted);">Toggle</span>
+            </div>
+            <div id="swadesAdvanced" style="display: none; flex-direction: column; gap: 1rem; padding: 0 1.1rem 1.1rem 1.1rem;">
+              <input type="password" id="swadesGhPat" class="chat-input" placeholder="ghp_xxxxxxxxxxxx (required for private repos & PR creation)" style="width: 100%;">
+              <input type="password" id="swadesLlmKey" class="chat-input" placeholder="Optional: OpenRouter/OpenAI key for stronger models" style="width: 100%;">
+              <select id="swadesLlmProvider" class="chat-input" style="width: 100%; cursor: pointer;">
+                <option value="phone" selected>📱 Phone Qwen 2.5 (Free, Local)</option>
+                <option value="openrouter">OpenRouter</option>
+                <option value="openai">OpenAI</option>
+                <option value="groq">Groq</option>
+                <option value="custom">Custom</option>
+              </select>
+            </div>
+          </div>
+
+          <button id="btnSubmitSwades" class="btn-send-chat" style="justify-content: center; padding: 0.85rem;" onclick="submitSwadeTask()">🚀 Submit Task</button>
+          <div id="swadesSubmitStatus" style="font-size: 0.9rem; text-align: center; min-height: 1.5rem; color: var(--text-muted);"></div>
+        </div>
+      </div>
+
+      <div class="chat-container-card" style="margin-bottom: 2rem;">
+        <h3 style="margin-bottom: 1rem; font-size: 1.1rem;">📋 Job Queue & History</h3>
+        <div id="swadesJobList" style="display: flex; flex-direction: column; gap: 0.75rem; min-height: 100px;">
+          <div style="text-align: center; padding: 2rem; color: var(--text-muted); font-size: 0.95rem;">
+            No jobs yet. Submit your first task above! 🚀
+          </div>
+        </div>
+      </div>
+
+      <div class="chat-container-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <h3 style="font-size: 1.1rem;">🖥️ Live Agent Terminal</h3>
+          <span id="swadesStreamStatus" style="font-size: 0.75rem; padding: 0.2rem 0.6rem; border-radius: 9999px; background: rgba(100,116,139,0.1); border: 1px solid rgba(100,116,139,0.3); color: var(--text-muted);">Disconnected</span>
+        </div>
+        <div id="swadesTerminal" style="background: var(--terminal-bg); border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); padding: 1rem; height: 350px; overflow-y: auto; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; line-height: 1.6; display: flex; flex-direction: column; gap: 0.4rem;">
+          <div style="color: var(--text-muted); font-style: italic;">Select a job to view live logs...</div>
         </div>
       </div>
     </section>
@@ -4829,6 +4894,260 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       }
     }
     window.testLiveSdkIntegration = testLiveSdkIntegration;
+
+  
+    // =========================================================================
+    // 🤖 SWADES AGENT HANDLERS
+    // =========================================================================
+
+    let swadesJobsInterval = null;
+    let swadesActiveStream = null;
+    let swadesCurrentJobId = null;
+
+    async function submitSwadeTask() {
+      const repoUrl = document.getElementById('swadesRepoUrl').value.trim();
+      const taskDesc = document.getElementById('swadesTaskDesc').value.trim();
+      const statusDiv = document.getElementById('swadesSubmitStatus');
+      const btn = document.getElementById('btnSubmitSwades');
+
+      if (!repoUrl.startsWith('https://github.com/')) {
+        statusDiv.innerText = 'Error: Repo URL must start with https://github.com/';
+        statusDiv.style.color = 'var(--danger)';
+        return;
+      }
+      if (!taskDesc) {
+        statusDiv.innerText = 'Error: Task description cannot be empty.';
+        statusDiv.style.color = 'var(--danger)';
+        return;
+      }
+
+      const ghPat = document.getElementById('swadesGhPat').value.trim();
+      const llmKey = document.getElementById('swadesLlmKey').value.trim();
+      const llmProvider = document.getElementById('swadesLlmProvider').value;
+
+      try {
+        btn.disabled = true;
+        btn.innerText = '⏳ Submitting...';
+        statusDiv.innerText = '';
+
+        const res = await fetch(`${BASE_ENDPOINT}/v1/agent/submit`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            repo_url: repoUrl,
+            task: taskDesc,
+            github_token: ghPat,
+            llm_api_key: llmKey,
+            llm_provider: llmProvider
+          })
+        });
+
+        const data = await res.json();
+        
+        if (res.ok) {
+          statusDiv.innerText = `✅ Task submitted successfully! Job ID: ${data.job_id}`;
+          statusDiv.style.color = 'var(--success)';
+          document.getElementById('swadesRepoUrl').value = '';
+          document.getElementById('swadesTaskDesc').value = '';
+          
+          if (!swadesJobsInterval) {
+            swadesJobsInterval = setInterval(refreshSwadeJobs, 5000);
+          }
+          refreshSwadeJobs();
+          connectSwadeStream(data.job_id);
+        } else {
+          throw new Error(data.error || 'Submission failed');
+        }
+      } catch (err) {
+        statusDiv.innerText = `Error: ${err.message}`;
+        statusDiv.style.color = 'var(--danger)';
+      } finally {
+        btn.disabled = false;
+        btn.innerText = '🚀 Submit Task';
+      }
+    }
+
+    async function refreshSwadeJobs() {
+      try {
+        const res = await fetch(`${BASE_ENDPOINT}/v1/agent/jobs`);
+        if (!res.ok) return;
+        const data = await res.json();
+        
+        const listDiv = document.getElementById('swadesJobList');
+        
+        if (!data.jobs || data.jobs.length === 0) {
+          listDiv.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-muted); font-size: 0.95rem;">No jobs yet. Submit your first task above! 🚀</div>';
+          return;
+        }
+
+        listDiv.innerHTML = '';
+        
+        data.jobs.forEach(job => {
+          const repoName = (job.repo_url || '').split('/').slice(-2).join('/') || 'repo';
+          const shortTask = (job.task || '').length > 100 ? job.task.substring(0, 100) + '...' : (job.task || '');
+          
+          let badgeColor = 'var(--warning)';
+          let badgeText = '🟡 QUEUED';
+          if (job.status === 'RUNNING') { badgeColor = 'var(--success)'; badgeText = '🟢 RUNNING'; }
+          else if (job.status === 'COMPLETED') { badgeColor = 'var(--success)'; badgeText = '✅ COMPLETED'; }
+          else if (job.status === 'FAILED') { badgeColor = 'var(--danger)'; badgeText = '❌ FAILED'; }
+          else if (job.status === 'CANCELLED') { badgeColor = '#64748b'; badgeText = '⚫ CANCELLED'; }
+          else if (job.status === 'CLONING') { badgeColor = 'var(--primary)'; badgeText = '🔵 CLONING'; }
+
+          let buttonsHtml = '';
+          if (job.status === 'RUNNING' || job.status === 'QUEUED' || job.status === 'CLONING') {
+            buttonsHtml = `
+              <button class="btn-action" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;" onclick="viewSwadeLogs('${job.id}')">View Logs</button>
+              <button class="btn-action" style="padding: 0.2rem 0.5rem; font-size: 0.75rem; color: var(--danger); border-color: rgba(239,68,68,0.3);" onclick="cancelSwadeJob('${job.id}')">Cancel</button>
+            `;
+          } else if (job.status === 'COMPLETED') {
+            buttonsHtml = `
+              ${job.pr_url ? `<button class="btn-action" style="padding: 0.2rem 0.5rem; font-size: 0.75rem; color: var(--primary);" onclick="window.open('${job.pr_url}', '_blank')">View PR ↗</button>` : ''}
+              <button class="btn-action" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;" onclick="viewSwadeLogs('${job.id}')">View Logs</button>
+            `;
+          } else {
+            buttonsHtml = `<button class="btn-action" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;" onclick="viewSwadeLogs('${job.id}')">View Logs</button>`;
+          }
+
+          const card = document.createElement('div');
+          card.style.cssText = 'background: rgba(255,255,255,0.03); border: 1px solid var(--card-border); border-radius: 12px; padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem;';
+          card.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+              <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <span style="font-size: 0.7rem; font-weight: 700; color: ${badgeColor}; border: 1px solid ${badgeColor}; border-radius: 9999px; padding: 0.15rem 0.5rem;">${badgeText}</span>
+                <span style="font-family: monospace; font-size: 0.8rem; color: var(--text-muted);">${job.id.substring(0, 8)}</span>
+              </div>
+              <div style="font-size: 0.85rem; font-weight: 600;">${repoName}</div>
+            </div>
+            <div style="font-size: 0.85rem; color: var(--text-muted);">${shortTask}</div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem;">
+              <div style="font-size: 0.75rem; color: var(--text-muted);">${job.elapsed_time ? job.elapsed_time : (job.total_time ? 'Total: ' + job.total_time : '')}</div>
+              <div style="display: flex; gap: 0.5rem;">${buttonsHtml}</div>
+            </div>
+          `;
+          listDiv.appendChild(card);
+        });
+      } catch (err) {}
+    }
+
+    function connectSwadeStream(jobId) {
+      if (swadesActiveStream) {
+        swadesActiveStream.close();
+      }
+      swadesCurrentJobId = jobId;
+      
+      const terminal = document.getElementById('swadesTerminal');
+      const statusBadge = document.getElementById('swadesStreamStatus');
+      
+      terminal.innerHTML = `<div style="color: var(--text-muted); font-style: italic;">Connecting to logs for job ${jobId.substring(0,8)}...</div>`;
+      
+      statusBadge.innerText = 'Connecting...';
+      statusBadge.style.color = 'var(--warning)';
+      statusBadge.style.borderColor = 'rgba(245,158,11,0.3)';
+
+      swadesActiveStream = new EventSource(`${BASE_ENDPOINT}/v1/agent/stream/${jobId}`);
+
+      swadesActiveStream.onopen = () => {
+        statusBadge.innerText = 'Connected';
+        statusBadge.style.color = 'var(--success)';
+        statusBadge.style.borderColor = 'rgba(16,185,129,0.3)';
+        terminal.innerHTML = '';
+      };
+
+      swadesActiveStream.onmessage = (e) => {
+        try {
+          const log = JSON.parse(e.data);
+          appendSwadeLog(log, terminal);
+        } catch (err) {}
+      };
+
+      swadesActiveStream.onerror = () => {
+        statusBadge.innerText = 'Disconnected';
+        statusBadge.style.color = 'var(--danger)';
+        statusBadge.style.borderColor = 'rgba(239,68,68,0.3)';
+        swadesActiveStream.close();
+        
+        setTimeout(() => {
+          if (swadesCurrentJobId === jobId) {
+            connectSwadeStream(jobId);
+          }
+        }, 3000);
+      };
+    }
+
+    function appendSwadeLog(log, terminal) {
+      const entry = document.createElement('div');
+      entry.style.display = 'flex';
+      entry.style.gap = '0.5rem';
+      
+      const ts = new Date(log.timestamp || Date.now()).toLocaleTimeString([], {hour12: false});
+      let content = '';
+      let color = 'var(--text)';
+      
+      if (log.type === 'THINKING') {
+        color = 'var(--primary)'; // cyan
+        content = `💭 ${log.content}`;
+      } else if (log.type === 'TOOL_CALL') {
+        color = 'var(--warning)'; // yellow
+        content = `🔧 ${log.tool} (${JSON.stringify(log.args)})`;
+      } else if (log.type === 'TOOL_RESULT') {
+        color = 'var(--success)'; // green
+        let resText = log.result || '';
+        if (resText.length > 200) resText = resText.substring(0, 200) + '...';
+        content = `✅ ${resText}`;
+      } else if (log.type === 'ERROR') {
+        color = 'var(--danger)'; // red
+        content = `❌ ${log.error}`;
+      } else if (log.type === 'COMPLETE') {
+        color = '#10b981'; // bright green
+        content = `🎉 ${log.content}`;
+      } else {
+        content = log.content || JSON.stringify(log);
+      }
+
+      entry.innerHTML = `<span style="color: var(--text-muted); flex-shrink: 0;">[${ts}]</span> <span style="color: ${color}; word-break: break-all;">${content}</span>`;
+      terminal.appendChild(entry);
+      
+      while (terminal.children.length > 200) {
+        terminal.removeChild(terminal.firstChild);
+      }
+      
+      terminal.scrollTop = terminal.scrollHeight;
+    }
+
+    async function cancelSwadeJob(jobId) {
+      try {
+        await fetch(`${BASE_ENDPOINT}/v1/agent/cancel/${jobId}`, { method: 'POST' });
+        refreshSwadeJobs();
+      } catch (err) {}
+    }
+
+    async function viewSwadeLogs(jobId) {
+      const terminal = document.getElementById('swadesTerminal');
+      terminal.innerHTML = '<div style="color: var(--text-muted); font-style: italic;">Fetching historical logs...</div>';
+      
+      try {
+        const res = await fetch(`${BASE_ENDPOINT}/v1/agent/logs/${jobId}`);
+        if (res.ok) {
+          const data = await res.json();
+          terminal.innerHTML = '';
+          if (data.logs && data.logs.length) {
+            data.logs.forEach(log => appendSwadeLog(log, terminal));
+          } else {
+            terminal.innerHTML = '<div style="color: var(--text-muted); font-style: italic;">No logs found.</div>';
+          }
+        }
+      } catch (e) {
+        terminal.innerHTML = '<div style="color: var(--danger);">Failed to fetch logs.</div>';
+      }
+
+      connectSwadeStream(jobId);
+    }
+    
+    window.addEventListener('DOMContentLoaded', () => {
+      swadesJobsInterval = setInterval(refreshSwadeJobs, 5000);
+      refreshSwadeJobs();
+    });
 
   </script>
 </body>

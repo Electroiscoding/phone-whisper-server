@@ -1,0 +1,10 @@
+{
+  "name": "swades-server",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "dependencies": {
+    "openai": "^4.86.2",
+    "better-sqlite3": "^11.0.0"
+  }
+}

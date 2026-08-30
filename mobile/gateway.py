@@ -13,6 +13,11 @@ Features:
 """
 
 import os
+import sqlite3
+import uuid
+import subprocess as sp
+from datetime import datetime, timezone
+import signal
 import re
 import json
 import time
@@ -113,6 +118,115 @@ def get_real_hardware_cpu():
         pass
     return 0.8
 
+
+
+class SwadeJobManager:
+    def __init__(self):
+        os.makedirs('/tmp/swades_jobs', exist_ok=True)
+        self.db_path = '/tmp/swades_jobs/swades.db'
+        self._init_db()
+        self.active_worker_pid = None
+        self.lock = threading.Lock()
+    
+    def _init_db(self):
+        conn = sqlite3.connect(self.db_path)
+        conn.execute('CREATE TABLE IF NOT EXISTS jobs (id TEXT PRIMARY KEY, repo_url TEXT, task TEXT, status TEXT DEFAULT "QUEUED", branch_name TEXT, pr_url TEXT, pr_number INTEGER, created_at TEXT, started_at TEXT, completed_at TEXT, files_changed TEXT, error_message TEXT, total_steps INTEGER DEFAULT 0, worker_pid INTEGER, github_pat TEXT, api_key TEXT, base_url TEXT, model TEXT)')
+        conn.execute('CREATE TABLE IF NOT EXISTS job_logs (id INTEGER PRIMARY KEY AUTOINCREMENT, job_id TEXT, timestamp TEXT, type TEXT, data TEXT, step_number INTEGER)')
+        conn.commit()
+        conn.close()
+    
+    def create_job(self, repo_url, task, github_pat=None, api_key=None, base_url=None, model=None):
+        job_id = str(uuid.uuid4())[:8]  # Short IDs for readability
+        now = datetime.now(timezone.utc).isoformat()
+        conn = sqlite3.connect(self.db_path)
+        conn.execute('INSERT INTO jobs (id, repo_url, task, status, created_at, github_pat, api_key, base_url, model) VALUES (?, ?, ?, "QUEUED", ?, ?, ?, ?, ?)',
+                     (job_id, repo_url, task, now, github_pat, api_key, base_url, model))
+        conn.commit()
+        conn.close()
+        return job_id
+    
+    def get_job(self, job_id):
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        row = conn.execute('SELECT * FROM jobs WHERE id = ?', (job_id,)).fetchone()
+        conn.close()
+        return dict(row) if row else None
+    
+    def update_job(self, job_id, **fields):
+        conn = sqlite3.connect(self.db_path)
+        for k, v in fields.items():
+            conn.execute(f'UPDATE jobs SET {k} = ? WHERE id = ?', (v, job_id))
+        conn.commit()
+        conn.close()
+    
+    def get_logs(self, job_id, since=None):
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        if since:
+            rows = conn.execute('SELECT * FROM job_logs WHERE job_id = ? AND timestamp > ? ORDER BY id ASC', (job_id, since)).fetchall()
+        else:
+            rows = conn.execute('SELECT * FROM job_logs WHERE job_id = ? ORDER BY id ASC', (job_id,)).fetchall()
+        conn.close()
+        return [dict(r) for r in rows]
+    
+    def list_jobs(self, limit=20, offset=0):
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute('SELECT * FROM jobs ORDER BY created_at DESC LIMIT ? OFFSET ?', (limit, offset)).fetchall()
+        total = conn.execute('SELECT COUNT(*) FROM jobs').fetchone()[0]
+        conn.close()
+        return [dict(r) for r in rows], total
+    
+    def get_queue_position(self, job_id):
+        conn = sqlite3.connect(self.db_path)
+        job = conn.execute('SELECT created_at FROM jobs WHERE id = ?', (job_id,)).fetchone()
+        if not job:
+            conn.close()
+            return -1
+        pos = conn.execute('SELECT COUNT(*) FROM jobs WHERE status = "QUEUED" AND created_at < ?', (job[0],)).fetchone()[0]
+        conn.close()
+        return pos
+    
+    def get_next_queued(self):
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        row = conn.execute('SELECT * FROM jobs WHERE status = "QUEUED" ORDER BY created_at ASC LIMIT 1').fetchone()
+        conn.close()
+        return dict(row) if row else None
+
+_job_manager = SwadeJobManager()
+
+def _agent_job_worker_loop():
+    while True:
+        try:
+            with _job_manager.lock:
+                if _job_manager.active_worker_pid:
+                    try:
+                        os.kill(_job_manager.active_worker_pid, 0)
+                    except OSError:
+                        _job_manager.active_worker_pid = None
+                
+                if _job_manager.active_worker_pid:
+                    time.sleep(3)
+                    continue
+                
+                job = _job_manager.get_next_queued()
+                if not job:
+                    time.sleep(3)
+                    continue
+                
+                job_id = job['id']
+                worker_cmd = ['node', os.path.join(os.path.dirname(__file__), '..', 'swades-server', 'worker.js'), '--job', job_id]
+                proc = sp.Popen(worker_cmd, stdout=sp.DEVNULL, stderr=sp.DEVNULL, start_new_session=True)
+                _job_manager.active_worker_pid = proc.pid
+                _job_manager.update_job(job_id, worker_pid=proc.pid)
+                print(f"[SWADES] Spawned worker PID {proc.pid} for job {job_id}")
+        except Exception as e:
+            print(f"[SWADES] Worker loop error: {e}")
+        time.sleep(3)
+
+_agent_worker_thread = threading.Thread(target=_agent_job_worker_loop, daemon=True)
+_agent_worker_thread.start()
 
 class ModelGovernor:
     """
@@ -748,6 +862,17 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_telemetry()
         elif path in ["", "/health"]:
             self.handle_health()
+        elif path.startswith('/v1/agent/status/'):
+            job_id = path.split('/')[-1]
+            self.handle_agent_status(job_id)
+        elif path.startswith('/v1/agent/logs/'):
+            job_id = path.split('/')[-1]
+            self.handle_agent_logs(job_id)
+        elif path.startswith('/v1/agent/stream/'):
+            job_id = path.split('/')[-1]
+            self.handle_agent_stream(job_id)
+        elif path == '/v1/agent/jobs':
+            self.handle_agent_list_jobs()
         else:
             self.send_error(404, f"Unknown endpoint: {path}")
 
@@ -770,9 +895,161 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         elif path.startswith("/v1/vision") or path.startswith("/vision"):
             task = path.split("/")[-1]
             self.handle_mediapipe_vision(task)
+        elif path == '/v1/agent/submit':
+            self.handle_agent_submit()
+        elif path.startswith('/v1/agent/cancel/'):
+            job_id = path.split('/')[-1]
+            self.handle_agent_cancel(job_id)
         else:
             self.send_error(404, f"Unknown endpoint: {path}")
 
+
+
+    def handle_agent_submit(self):
+        content_length = int(self.headers.get("Content-Length", 0))
+        body = self.rfile.read(content_length)
+        payload = json.loads(body.decode("utf-8"))
+        repo_url = payload.get("repo_url")
+        task = payload.get("task")
+        
+        if not repo_url or not str(repo_url).startswith("https://github.com/") or not task:
+            self.send_error(400, "Invalid payload")
+            return
+            
+        gh_pat = payload.get("github_pat") or payload.get("github_token") or None
+        api_key = payload.get("api_key") or payload.get("llm_api_key") or None
+        base_url = payload.get("base_url")
+        model = payload.get("model")
+        
+        provider = payload.get("llm_provider", "phone")
+        if provider == "openrouter" and not base_url:
+            base_url = "https://openrouter.ai/api/v1"
+            if not model: model = "openrouter/free"
+        elif provider == "openai" and not base_url:
+            base_url = "https://api.openai.com/v1"
+            if not model: model = "gpt-4o-mini"
+        elif provider == "groq" and not base_url:
+            base_url = "https://api.groq.com/openai/v1"
+            if not model: model = "llama-3.3-70b-versatile"
+        elif provider == "phone" or not base_url:
+            base_url = "http://127.0.0.1:8001/v1"
+            api_key = "local"
+            model = "qwen2.5"
+
+        job_id = _job_manager.create_job(
+            repo_url, task,
+            gh_pat, api_key,
+            base_url, model
+        )
+        pos = _job_manager.get_queue_position(job_id)
+        
+        self.send_response(200)
+        self._send_cors_headers()
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(json.dumps({"job_id": job_id, "status": "queued", "queue_position": pos}).encode())
+
+    def handle_agent_status(self, job_id):
+        job = _job_manager.get_job(job_id)
+        if not job:
+            self.send_error(404, "Job not found")
+            return
+            
+        if "github_pat" in job: del job["github_pat"]
+        if "api_key" in job: del job["api_key"]
+            
+        self.send_response(200)
+        self._send_cors_headers()
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(json.dumps(job).encode())
+
+    def handle_agent_logs(self, job_id):
+        parsed = urllib.parse.urlparse(self.path)
+        qs = urllib.parse.parse_qs(parsed.query)
+        since = qs.get("since", [None])[0]
+        
+        logs = _job_manager.get_logs(job_id, since)
+        self.send_response(200)
+        self._send_cors_headers()
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(json.dumps({"logs": logs, "count": len(logs)}).encode())
+
+    def handle_agent_stream(self, job_id):
+        self.send_response(200)
+        self._send_cors_headers()
+        self.send_header("Content-Type", "text/event-stream")
+        self.send_header("Cache-Control", "no-cache")
+        self.send_header("Connection", "keep-alive")
+        self.send_header("X-Accel-Buffering", "no")
+        self.end_headers()
+        
+        log_file = f"/tmp/swades_jobs/{job_id}/agent.log"
+        pos = 0
+        try:
+            while True:
+                job = _job_manager.get_job(job_id)
+                if not job:
+                    break
+                    
+                if os.path.exists(log_file):
+                    with open(log_file, "r") as f:
+                        f.seek(pos)
+                        lines = f.readlines()
+                        pos = f.tell()
+                        for line in lines:
+                            self.wfile.write(f"data: {line.strip()}\n\n".encode())
+                            self.wfile.flush()
+                            
+                if job.get("status") in ["COMPLETED", "FAILED", "CANCELLED"]:
+                    self.wfile.write(b"data: {\"status\": \"FINAL\"}\n\n")
+                    self.wfile.flush()
+                    break
+                    
+                time.sleep(0.5)
+        except BrokenPipeError:
+            pass
+        except Exception:
+            pass
+
+    def handle_agent_list_jobs(self):
+        parsed = urllib.parse.urlparse(self.path)
+        qs = urllib.parse.parse_qs(parsed.query)
+        limit = int(qs.get("limit", ["20"])[0])
+        offset = int(qs.get("offset", ["0"])[0])
+        
+        jobs, total = _job_manager.list_jobs(limit, offset)
+        for j in jobs:
+            if "github_pat" in j: del j["github_pat"]
+            if "api_key" in j: del j["api_key"]
+            
+        self.send_response(200)
+        self._send_cors_headers()
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(json.dumps({"jobs": jobs, "total": total, "limit": limit, "offset": offset}).encode())
+
+    def handle_agent_cancel(self, job_id):
+        job = _job_manager.get_job(job_id)
+        if not job:
+            self.send_error(404, "Job not found")
+            return
+            
+        if job["status"] == "QUEUED":
+            _job_manager.update_job(job_id, status="CANCELLED")
+        elif job["status"] == "RUNNING" and job.get("worker_pid"):
+            try:
+                os.kill(job["worker_pid"], signal.SIGTERM)
+            except OSError:
+                pass
+            _job_manager.update_job(job_id, status="CANCELLED")
+            
+        self.send_response(200)
+        self._send_cors_headers()
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(json.dumps({"job_id": job_id, "status": "cancelled"}).encode())
 
     def handle_mediapipe_vision(self, task):
         global _active_inferences, _active_daemon, _total_requests
