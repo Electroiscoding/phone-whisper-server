@@ -4,11 +4,12 @@
  */
 
 const GITHUB_ENDPOINT_URL = "https://raw.githubusercontent.com/Electroiscoding/phone-whisper-server/main/endpoint.json";
+const SHARED_SECRET = "mobile_ai_nuclear_key";
 
 // In-Memory Edge Cache for Active Tunnel Target
-let cachedOrigin = null;
-let lastFetchTime = 0;
-const CACHE_TTL_MS = 10000; // 10 seconds
+let cachedOrigin = "https://eau-illustrated-reasonably-regular.trycloudflare.com";
+let lastFetchTime = Date.now();
+const CACHE_TTL_MS = 8000; // 8 seconds
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -41,7 +42,7 @@ async function getLiveOrigin(forceRefresh = false) {
     console.error("Failed to fetch fresh endpoint.json:", err);
   }
 
-  return cachedOrigin || "https://distributors-civil-patent-contributing.trycloudflare.com";
+  return cachedOrigin || "https://eau-illustrated-reasonably-regular.trycloudflare.com";
 }
 
 export default {
@@ -56,7 +57,26 @@ export default {
       });
     }
 
-    // 2. Fetch Origin with Auto-Retry & Nuclear Failover
+    // 2. Direct Tunnel Registration from Phone (Instant Zero-Delay Registration)
+    if (url.pathname === "/register_tunnel" && request.method === "POST") {
+      try {
+        const body = await request.json();
+        if (body.endpoint && body.secret === SHARED_SECRET) {
+          cachedOrigin = body.endpoint.replace(/\/+$/, "");
+          lastFetchTime = Date.now();
+          return new Response(JSON.stringify({ status: "registered", active_origin: cachedOrigin }), {
+            headers: { ...CORS_HEADERS, "Content-Type": "application/json" }
+          });
+        }
+      } catch (err) {
+        return new Response(JSON.stringify({ error: err.message }), {
+          status: 400,
+          headers: { ...CORS_HEADERS, "Content-Type": "application/json" }
+        });
+      }
+    }
+
+    // 3. Proxy Request to Origin with Auto-Retry
     let origin = await getLiveOrigin(false);
     let targetUrl = `${origin}${url.pathname}${url.search}`;
 
@@ -75,15 +95,14 @@ export default {
 
         response = await fetch(proxyReq);
 
-        // If origin returned 502, 530, or 504, try fresh endpoint from GitHub
+        // If origin returned 502, 530, or 504, force-refresh endpoint from GitHub and retry
         if ([502, 503, 504, 530].includes(response.status) && attempt === 1) {
-          console.warn(`Origin returned ${response.status}. Fetching latest tunnel from GitHub...`);
+          console.warn(`Origin returned ${response.status}. Re-fetching fresh endpoint...`);
           origin = await getLiveOrigin(true);
           targetUrl = `${origin}${url.pathname}${url.search}`;
           continue;
         }
 
-        // Successfully received valid response from phone
         break;
       } catch (fetchErr) {
         console.error(`Fetch attempt ${attempt} failed:`, fetchErr);
@@ -95,7 +114,7 @@ export default {
       }
     }
 
-    // 3. If phone is genuinely unreachable, return structured JSON with CORS
+    // 4. Structured JSON Fallback if Phone is Temporarily Reconnecting
     if (!response || [502, 503, 504, 530].includes(response.status)) {
       const errorBody = JSON.stringify({
         status: "reconnecting",
@@ -115,7 +134,7 @@ export default {
       });
     }
 
-    // 4. Attach Full CORS Headers to Phone Response
+    // 5. Attach Full CORS Headers to Phone Response
     const responseHeaders = new Headers(response.headers);
     Object.entries(CORS_HEADERS).forEach(([k, v]) => responseHeaders.set(k, v));
 
