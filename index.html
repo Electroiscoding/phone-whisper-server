@@ -5288,15 +5288,11 @@ python3 mobile/nuclear_watchdog.py</code></pre>
         
         if (res.ok) {
           if (statusDiv) {
-            statusDiv.innerText = `✅ Task submitted! Job ID: ${data.job_id} (Queue pos: ${data.queue_position ?? 0})`;
+            statusDiv.innerText = `🚀 Agent launched! (Job ID: ${data.job_id})`;
             statusDiv.style.color = 'var(--success)';
           }
           if (taskInput) taskInput.value = '';
           
-          if (!swadesJobsInterval) {
-            swadesJobsInterval = setInterval(refreshSwadeJobs, 5000);
-          }
-          refreshSwadeJobs();
           connectSwadeStream(data.job_id);
         } else {
           throw new Error(data.error || 'Submission failed');
@@ -5406,14 +5402,10 @@ python3 mobile/nuclear_watchdog.py</code></pre>
           
           if (data.status) {
             if (statusBadge) {
-              if (data.status === 'RUNNING' || data.status === 'CLONING') {
-                statusBadge.innerText = `● ${data.status}`;
+              if (data.status === 'RUNNING' || data.status === 'CLONING' || data.status === 'LAUNCHING' || data.status === 'QUEUED') {
+                statusBadge.innerText = `● ${data.status === 'QUEUED' ? 'RUNNING' : data.status}`;
                 statusBadge.style.color = 'var(--success)';
                 statusBadge.style.borderColor = 'rgba(16,185,129,0.3)';
-              } else if (data.status === 'QUEUED') {
-                statusBadge.innerText = '🟡 QUEUED';
-                statusBadge.style.color = 'var(--warning)';
-                statusBadge.style.borderColor = 'rgba(245,158,11,0.3)';
               } else {
                 statusBadge.innerText = data.status;
                 statusBadge.style.color = data.status === 'COMPLETED' ? 'var(--success)' : (data.status === 'FAILED' ? 'var(--danger)' : 'var(--text-muted)');
