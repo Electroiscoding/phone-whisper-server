@@ -69,9 +69,6 @@ export async function callLLM(context, messages, tools) {
 
             if (delta.content) {
               content += delta.content;
-              if (context.onEvent) {
-                context.onEvent({ type: 'thinking', data: delta.content });
-              }
             }
 
             if (delta.tool_calls) {
@@ -97,20 +94,12 @@ export async function callLLM(context, messages, tools) {
       }
     }
 
-    const tool_calls = Array.from(toolCallsMap.values());
-    
-    if (context.onEvent && tool_calls.length > 0) {
-      for (const tc of tool_calls) {
-        let args = {};
-        try {
-          args = JSON.parse(tc.function.arguments);
-        } catch (e) {
-          args = { raw: tc.function.arguments };
-        }
-        context.onEvent({ type: 'tool_call', data: { name: tc.function.name, args } });
-      }
+    // Emit complete thinking block once per reasoning step (prevents chopped micro-cards)
+    if (content.trim() && context.onEvent) {
+      context.onEvent({ type: 'thinking', data: content.trim() });
     }
 
+    const tool_calls = Array.from(toolCallsMap.values());
     const resultMessage = { role: 'assistant', content: content || null };
     if (tool_calls.length > 0) {
       resultMessage.tool_calls = tool_calls;

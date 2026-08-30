@@ -48,7 +48,7 @@ export async function runAgent(context, task) {
       }
       
       if (context.onEvent) {
-        context.onEvent({ type: 'tool_result', data: { name: tc.function.name, output: result.slice(0, 500) }, timestamp });
+        context.onEvent({ type: 'tool_result', data: { name: tc.function.name, output: result.slice(0, 4000) }, timestamp });
       }
       
       messages.push({ role: 'tool', tool_call_id: tc.id, content: result });
