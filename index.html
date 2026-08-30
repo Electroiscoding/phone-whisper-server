@@ -1903,26 +1903,68 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
         <p class="section-desc">Submit a coding task against any GitHub repository. The agent works autonomously in the background — clone, analyze, edit, test, and open a Pull Request. You can close this page.</p>
       </div>
 
+      <!-- 🐙 GitHub 1-Click OAuth Integration Banner -->
+      <div id="swadesGhAuthBanner" class="chat-container-card" style="margin-bottom: 1.5rem; border: 1px solid rgba(56, 189, 248, 0.3); background: linear-gradient(135deg, rgba(16, 22, 38, 0.9), rgba(15, 23, 42, 0.9));">
+        <div id="swadesGhLoggedOut" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem;">
+          <div>
+            <div style="font-weight: 700; color: #fff; font-size: 1.05rem; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+              <span>🐙</span>
+              <span>1-Click GitHub Integration</span>
+            </div>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0; max-width: 600px;">
+              Connect your GitHub account to let Swades Agent clone, branch, commit, and open Pull Requests directly without manually generating or pasting any Personal Access Tokens.
+            </p>
+          </div>
+          <button class="btn-send-chat" onclick="loginWithGitHub()" style="padding: 0.6rem 1.25rem; font-size: 0.88rem; background: linear-gradient(135deg, #24292e, #0d1117); border: 1px solid rgba(255,255,255,0.2);">
+            <span>🐙 Login with GitHub</span>
+          </button>
+        </div>
+
+        <div id="swadesGhLoggedIn" style="display: none; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+          <div style="display: flex; align-items: center; gap: 0.85rem;">
+            <img id="swadesUserAvatar" src="" alt="Avatar" style="width: 42px; height: 42px; border-radius: 50%; border: 2px solid var(--primary); object-fit: cover;">
+            <div>
+              <div style="font-weight: 700; color: #fff; font-size: 0.98rem; display: flex; align-items: center; gap: 0.5rem;">
+                <span id="swadesUserName">User</span>
+                <span style="font-size: 0.72rem; padding: 0.15rem 0.5rem; border-radius: 9999px; background: rgba(16, 185, 129, 0.15); border: 1px solid var(--success); color: var(--success); font-weight: 700;">Connected via OAuth</span>
+              </div>
+              <div style="font-size: 0.8rem; color: var(--text-muted);">Ready for automated repo cloning & 1-click Pull Requests</div>
+            </div>
+          </div>
+          <button class="btn-action" onclick="logoutGitHub()" style="color: var(--danger); border-color: rgba(239, 68, 68, 0.3); padding: 0.4rem 0.85rem;">
+            <span>Disconnect</span>
+          </button>
+        </div>
+      </div>
+
       <div class="chat-container-card" style="margin-bottom: 2rem;">
         <h3 style="margin-bottom: 1rem; font-size: 1.1rem;">🚀 Submit Task</h3>
         <div style="display: flex; flex-direction: column; gap: 1rem;">
-          <input type="text" id="swadesRepoUrl" class="chat-input" placeholder="https://github.com/username/repository" style="width: 100%;">
-          <textarea id="swadesTaskDesc" class="chat-input" placeholder="Describe what you want the agent to do..." style="width: 100%; min-height: 100px; resize: vertical;"></textarea>
+          <div>
+            <label style="font-size: 0.82rem; color: var(--text-muted); font-weight: 600; margin-bottom: 0.35rem; display: block;">Target GitHub Repository</label>
+            <input type="text" id="swadesRepoUrl" list="swadesRepoDatalist" class="chat-input" placeholder="https://github.com/username/repository" style="width: 100%;">
+            <datalist id="swadesRepoDatalist"></datalist>
+          </div>
+          
+          <div>
+            <label style="font-size: 0.82rem; color: var(--text-muted); font-weight: 600; margin-bottom: 0.35rem; display: block;">Task Instructions</label>
+            <textarea id="swadesTaskDesc" class="chat-input" placeholder="Describe what you want the agent to do (e.g. Add unit tests for auth module, refactor endpoints, fix bugs)..." style="width: 100%; min-height: 100px; resize: vertical;"></textarea>
+          </div>
           
           <div style="border: 1px solid var(--card-border); border-radius: 12px; background: rgba(0,0,0,0.2); overflow: hidden;">
             <div style="padding: 0.85rem 1.1rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center;" onclick="document.getElementById('swadesAdvanced').style.display = document.getElementById('swadesAdvanced').style.display === 'none' ? 'flex' : 'none'">
-              <span style="font-weight: 600; font-size: 0.95rem;">⚙️ Advanced Options</span>
+              <span style="font-weight: 600; font-size: 0.95rem;">⚙️ Advanced Options & Manual Keys</span>
               <span style="font-size: 0.8rem; color: var(--text-muted);">Toggle</span>
             </div>
             <div id="swadesAdvanced" style="display: none; flex-direction: column; gap: 1rem; padding: 0 1.1rem 1.1rem 1.1rem;">
-              <input type="password" id="swadesGhPat" class="chat-input" placeholder="ghp_xxxxxxxxxxxx (required for private repos & PR creation)" style="width: 100%;">
-              <input type="password" id="swadesLlmKey" class="chat-input" placeholder="Optional: OpenRouter/OpenAI key for stronger models" style="width: 100%;">
+              <input type="password" id="swadesGhPat" class="chat-input" placeholder="Manual GitHub PAT (override OAuth token)" style="width: 100%;">
+              <input type="password" id="swadesLlmKey" class="chat-input" placeholder="Optional: OpenRouter / OpenAI / Groq API Key (for larger LLMs)" style="width: 100%;">
               <select id="swadesLlmProvider" class="chat-input" style="width: 100%; cursor: pointer;">
-                <option value="phone" selected>📱 Phone Qwen 2.5 (Free, Local)</option>
-                <option value="openrouter">OpenRouter</option>
-                <option value="openai">OpenAI</option>
-                <option value="groq">Groq</option>
-                <option value="custom">Custom</option>
+                <option value="phone" selected>📱 Phone Qwen 2.5 (Free, Local on-device CPU)</option>
+                <option value="openrouter">OpenRouter (BYOK)</option>
+                <option value="openai">OpenAI (BYOK)</option>
+                <option value="groq">Groq (BYOK)</option>
+                <option value="custom">Custom Endpoint</option>
               </select>
             </div>
           </div>
@@ -4903,6 +4945,87 @@ python3 mobile/nuclear_watchdog.py</code></pre>
     let swadesJobsInterval = null;
     let swadesActiveStream = null;
     let swadesCurrentJobId = null;
+    let swadesAuthData = null;
+
+    // =========================================================================
+    // 🐙 GITHUB OAUTH HANDLERS (SWADES AGENT)
+    // =========================================================================
+    function initSwadesGitHubAuth() {
+      try {
+        const saved = localStorage.getItem("swades_gh_auth");
+        if (saved) {
+          swadesAuthData = JSON.parse(saved);
+          renderGitHubAuthUI();
+          fetchUserRepositories();
+        }
+      } catch (e) {}
+
+      window.addEventListener("message", (event) => {
+        if (event.data && event.data.type === "SWADES_GITHUB_AUTH" && event.data.auth) {
+          swadesAuthData = event.data.auth;
+          try { localStorage.setItem("swades_gh_auth", JSON.stringify(swadesAuthData)); } catch (e) {}
+          renderGitHubAuthUI();
+          fetchUserRepositories();
+        }
+      });
+    }
+
+    function renderGitHubAuthUI() {
+      const loggedOutDiv = document.getElementById("swadesGhLoggedOut");
+      const loggedInDiv = document.getElementById("swadesGhLoggedIn");
+      const nameEl = document.getElementById("swadesUserName");
+      const avatarEl = document.getElementById("swadesUserAvatar");
+
+      if (swadesAuthData && swadesAuthData.token) {
+        if (loggedOutDiv) loggedOutDiv.style.display = "none";
+        if (loggedInDiv) loggedInDiv.style.display = "flex";
+        if (nameEl) nameEl.innerText = `@${swadesAuthData.username || "github_user"}`;
+        if (avatarEl) avatarEl.src = swadesAuthData.avatar || "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png";
+      } else {
+        if (loggedOutDiv) loggedOutDiv.style.display = "flex";
+        if (loggedInDiv) loggedInDiv.style.display = "none";
+      }
+    }
+
+    function loginWithGitHub() {
+      const authUrl = `${BASE_ENDPOINT}/auth/github/login`;
+      const width = 600, height = 700;
+      const left = (window.innerWidth - width) / 2;
+      const top = (window.innerHeight - height) / 2;
+      window.open(authUrl, "github_oauth", `width=${width},height=${height},top=${top},left=${left}`);
+    }
+    window.loginWithGitHub = loginWithGitHub;
+
+    function logoutGitHub() {
+      swadesAuthData = null;
+      try { localStorage.removeItem("swades_gh_auth"); } catch (e) {}
+      renderGitHubAuthUI();
+      const datalist = document.getElementById("swadesRepoDatalist");
+      if (datalist) datalist.innerHTML = "";
+    }
+    window.logoutGitHub = logoutGitHub;
+
+    async function fetchUserRepositories() {
+      if (!swadesAuthData || !swadesAuthData.token) return;
+      try {
+        const res = await fetch(`${BASE_ENDPOINT}/auth/github/user-repos`, {
+          headers: { "Authorization": `Bearer ${swadesAuthData.token}` }
+        });
+        if (res.ok) {
+          const repos = await res.json();
+          const datalist = document.getElementById("swadesRepoDatalist");
+          if (datalist && Array.isArray(repos)) {
+            datalist.innerHTML = "";
+            repos.forEach(r => {
+              const opt = document.createElement("option");
+              opt.value = r.html_url || `https://github.com/${r.full_name}`;
+              opt.label = `${r.full_name} (${r.private ? "Private" : "Public"})`;
+              datalist.appendChild(opt);
+            });
+          }
+        }
+      } catch (e) {}
+    }
 
     async function submitSwadeTask() {
       const repoUrl = document.getElementById('swadesRepoUrl').value.trim();
@@ -4921,7 +5044,10 @@ python3 mobile/nuclear_watchdog.py</code></pre>
         return;
       }
 
-      const ghPat = document.getElementById('swadesGhPat').value.trim();
+      let ghPat = document.getElementById('swadesGhPat').value.trim();
+      if (!ghPat && swadesAuthData && swadesAuthData.token) {
+        ghPat = swadesAuthData.token;
+      }
       const llmKey = document.getElementById('swadesLlmKey').value.trim();
       const llmProvider = document.getElementById('swadesLlmProvider').value;
 
@@ -5145,6 +5271,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
     }
     
     window.addEventListener('DOMContentLoaded', () => {
+      initSwadesGitHubAuth();
       swadesJobsInterval = setInterval(refreshSwadeJobs, 5000);
       refreshSwadeJobs();
     });

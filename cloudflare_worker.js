@@ -1,10 +1,14 @@
 /**
  * ☢️ NUCLEAR CLOUDFLARE EDGE WORKER
- * Self-Healing Dynamic Failover & Universal Reverse Proxy for Phone AI Datacenter
+ * Self-Healing Dynamic Failover & Universal Reverse Proxy with GitHub OAuth for Swades Agent
  */
 
 const GITHUB_ENDPOINT_URL = "https://raw.githubusercontent.com/Electroiscoding/phone-whisper-server/main/endpoint.json";
 const SHARED_SECRET = "mobile_ai_nuclear_key";
+
+// GitHub OAuth App Credentials
+const GITHUB_CLIENT_ID = "Ov23lirb9l4pdAZ5DEeq";
+const GITHUB_CLIENT_SECRET = "0ac12d9986579d6baa2b5396b33cb42430712275";
 
 // In-Memory Edge Cache for Active Tunnel Target
 let cachedOrigin = "https://eau-illustrated-reasonably-regular.trycloudflare.com";
@@ -55,6 +59,138 @@ export default {
         status: 204,
         headers: CORS_HEADERS
       });
+    }
+
+    // =========================================================================
+    // 🐙 GITHUB OAUTH AUTHENTICATION HANDLERS (SWADES AGENT)
+    // =========================================================================
+    
+    // (A) Redirect to GitHub OAuth Authorization Page
+    if (url.pathname === "/auth/github/login") {
+      const authUrl = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&scope=repo,read:user`;
+      return Response.redirect(authUrl, 302);
+    }
+
+    // (B) OAuth Callback from GitHub
+    if (url.pathname === "/auth/github/callback") {
+      const code = url.searchParams.get("code");
+      if (!code) {
+        return new Response("Missing OAuth code from GitHub.", { status: 400 });
+      }
+
+      try {
+        // 1. Exchange code for access token
+        const tokenRes = await fetch("https://github.com/login/oauth/access_token", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "User-Agent": "SwadesAgent/1.0"
+          },
+          body: JSON.stringify({
+            client_id: GITHUB_CLIENT_ID,
+            client_secret: GITHUB_CLIENT_SECRET,
+            code: code
+          })
+        });
+
+        const tokenData = await tokenRes.json();
+        if (!tokenData.access_token) {
+          return new Response(`OAuth Error: ${tokenData.error_description || JSON.stringify(tokenData)}`, { status: 400 });
+        }
+
+        const accessToken = tokenData.access_token;
+
+        // 2. Fetch authenticated user profile
+        let userProfile = { login: "github_user", avatar_url: "" };
+        try {
+          const userRes = await fetch("https://api.github.com/user", {
+            headers: {
+              "Authorization": `Bearer ${accessToken}`,
+              "User-Agent": "SwadesAgent/1.0"
+            }
+          });
+          if (userRes.ok) {
+            userProfile = await userRes.json();
+          }
+        } catch (e) {}
+
+        // 3. Return clean HTML popup bridge or redirect
+        const authPayload = JSON.stringify({
+          token: accessToken,
+          username: userProfile.login,
+          avatar: userProfile.avatar_url,
+          name: userProfile.name || userProfile.login
+        });
+
+        const htmlResponse = `<!DOCTYPE html>
+<html>
+<head>
+  <title>Connecting GitHub to Swades Agent...</title>
+  <style>
+    body { background: #07090e; color: #38bdf8; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; text-align: center; }
+    .box { background: rgba(16, 22, 38, 0.9); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 16px; padding: 2rem; max-width: 400px; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h2>🐙 GitHub Connected!</h2>
+    <p>Logged in as <strong>@${userProfile.login}</strong></p>
+    <p style="font-size: 0.85rem; color: #94a3b8;">Redirecting back to Swades Agent...</p>
+  </div>
+  <script>
+    const auth = ${authPayload};
+    try {
+      localStorage.setItem("swades_gh_auth", JSON.stringify(auth));
+      if (window.opener && !window.opener.closed) {
+        window.opener.postMessage({ type: "SWADES_GITHUB_AUTH", auth: auth }, "*");
+        setTimeout(() => window.close(), 800);
+      } else {
+        window.location.href = "https://phone-whisper-server.pages.dev/#swades-studio";
+      }
+    } catch (e) {
+      window.location.href = "https://phone-whisper-server.pages.dev/#swades-studio";
+    }
+  </script>
+</body>
+</html>`;
+
+        return new Response(htmlResponse, {
+          headers: { "Content-Type": "text/html; charset=utf-8" }
+        });
+      } catch (err) {
+        return new Response(`Authentication failed: ${err.message}`, { status: 500 });
+      }
+    }
+
+    // (C) Proxy User Repositories for Auto-complete
+    if (url.pathname === "/auth/github/user-repos") {
+      const authHeader = request.headers.get("Authorization");
+      if (!authHeader) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...CORS_HEADERS, "Content-Type": "application/json" }
+        });
+      }
+
+      try {
+        const repoRes = await fetch("https://api.github.com/user/repos?sort=updated&per_page=30", {
+          headers: {
+            "Authorization": authHeader,
+            "User-Agent": "SwadesAgent/1.0",
+            "Accept": "application/vnd.github.v3+json"
+          }
+        });
+        const repos = await repoRes.json();
+        return new Response(JSON.stringify(repos), {
+          headers: { ...CORS_HEADERS, "Content-Type": "application/json" }
+        });
+      } catch (err) {
+        return new Response(JSON.stringify({ error: err.message }), {
+          status: 500,
+          headers: { ...CORS_HEADERS, "Content-Type": "application/json" }
+        });
+      }
     }
 
     // 2. Direct Tunnel Registration from Phone (Instant Zero-Delay Registration)
