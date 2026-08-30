@@ -2050,37 +2050,48 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
       </div>
 
 
-      <!-- 🖥️ Live Agent Terminal & Condition Monitor -->
-      <div class="chat-container-card">
-        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem;">
+      <!-- 🚀 ANTIGRAVITY AGENT WORKSPACE (MODERN BIG-TECH IDE SURFACE) -->
+      <div class="chat-container-card" style="padding: 0; overflow: hidden; border: 1px solid var(--card-border); box-shadow: var(--shadow-lg);">
+        
+        <!-- IDE Top Toolbar / Workspace Header -->
+        <div style="background: #0d0d0d; border-bottom: 1px solid var(--card-border); padding: 0.85rem 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
           <div style="display: flex; align-items: center; gap: 0.75rem;">
-            <h3 style="font-size: 1.1rem; margin: 0;">🖥️ Live Agent Terminal</h3>
-            <span id="swadesStreamStatus" style="font-size: 0.75rem; padding: 0.2rem 0.6rem; border-radius: 9999px; background: rgba(100,116,139,0.1); border: 1px solid rgba(100,116,139,0.3); color: var(--text-muted);">Ready</span>
+            <div style="display: flex; align-items: center; gap: 0.5rem; font-weight: 700; font-size: 0.95rem; color: #fff;">
+              <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #6366f1; box-shadow: 0 0 8px #6366f1;"></span>
+              <span>Antigravity Agent Workspace</span>
+            </div>
+            <span id="swadesStreamStatus" style="font-size: 0.75rem; padding: 0.2rem 0.65rem; border-radius: 6px; background: rgba(255,255,255,0.05); border: 1px solid var(--card-border); color: var(--text-muted); font-weight: 600;">Idle</span>
           </div>
-          
-          <!-- Interactive Task Controls -->
+
+          <!-- IDE Action Controls -->
           <div id="swadesControlsRow" style="display: flex; gap: 0.5rem; align-items: center;">
-            <button id="btnSwadesPause" class="btn-action" style="display: none; color: #f59e0b; border-color: rgba(245,158,11,0.3);" onclick="pauseCurrentTask()">⏸️ Pause</button>
-            <button id="btnSwadesResume" class="btn-action" style="display: none; color: #10b981; border-color: rgba(16,185,129,0.3);" onclick="resumeCurrentTask()">▶️ Resume</button>
-            <button id="btnSwadesCancel" class="btn-action" style="display: none; color: #ef4444; border-color: rgba(239,68,68,0.3);" onclick="cancelCurrentTask()">⏹️ Cancel</button>
-            <a id="btnSwadesPrLink" href="#" target="_blank" class="btn-action" style="display: none; color: var(--primary); border-color: var(--primary);">🔗 View PR ↗</a>
+            <button id="btnSwadesPause" class="btn-action" style="display: none; color: #f59e0b; border-color: rgba(245,158,11,0.25);" onclick="pauseCurrentTask()">⏸️ Pause</button>
+            <button id="btnSwadesResume" class="btn-action" style="display: none; color: #10b981; border-color: rgba(16,185,129,0.25);" onclick="resumeCurrentTask()">▶️ Resume</button>
+            <button id="btnSwadesCancel" class="btn-action" style="display: none; color: #ef4444; border-color: rgba(239,68,68,0.25);" onclick="cancelCurrentTask()">⏹️ Stop Agent</button>
+            <a id="btnSwadesPrLink" href="#" target="_blank" class="btn-send-chat" style="display: none; padding: 0.4rem 0.85rem; font-size: 0.8rem; text-decoration: none;">🚀 View Pull Request ↗</a>
           </div>
         </div>
 
-        <!-- Active Task Condition Banner -->
-        <div id="swadesTaskBanner" style="display: none; margin-bottom: 0.85rem; padding: 0.75rem 1rem; background: rgba(255,255,255,0.03); border: 1px solid var(--card-border); border-radius: 8px; font-size: 0.85rem; justify-content: space-between; align-items: center;">
-          <div style="display: flex; gap: 0.5rem; align-items: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-            <span style="font-weight: 700; color: #fff;">📌 Task:</span>
-            <span id="swadesBannerRepo" style="color: var(--primary); font-family: monospace;">repo</span>
-            <span style="color: var(--text-muted);">—</span>
+        <!-- Active Context Breadcrumb Bar -->
+        <div id="swadesTaskBanner" style="display: none; background: #080808; border-bottom: 1px solid var(--card-border); padding: 0.6rem 1.25rem; font-size: 0.82rem; justify-content: space-between; align-items: center; color: var(--text-muted);">
+          <div style="display: flex; gap: 0.6rem; align-items: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+            <span style="background: rgba(99,102,241,0.12); color: #818cf8; border: 1px solid rgba(99,102,241,0.25); padding: 0.1rem 0.45rem; border-radius: 4px; font-weight: 600;">WORKSPACE</span>
+            <span id="swadesBannerRepo" style="color: #fff; font-weight: 600;">repo</span>
+            <span>/</span>
             <span id="swadesBannerTask" style="color: var(--text-muted); overflow: hidden; text-overflow: ellipsis;">task description</span>
           </div>
           <span id="swadesBannerId" style="font-family: monospace; font-size: 0.75rem; color: var(--text-subtle);"></span>
         </div>
 
-        <div id="swadesTerminal" style="background: var(--terminal-bg); border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); padding: 1.25rem; height: 380px; overflow-y: auto; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; line-height: 1.6; display: flex; flex-direction: column; gap: 0.4rem;">
-          <div style="color: var(--text-muted); font-style: italic;">Ready. Submit a task above to watch the autonomous agent execute in real time.</div>
+        <!-- Agent Activity Timeline Feed -->
+        <div id="swadesTerminal" style="background: #000000; min-height: 380px; max-height: 520px; overflow-y: auto; padding: 1.25rem; display: flex; flex-direction: column; gap: 0.85rem; scroll-behavior: smooth;">
+          <div style="text-align: center; padding: 3.5rem 1rem; color: var(--text-subtle); display: flex; flex-direction: column; align-items: center; gap: 0.75rem;">
+            <div style="font-size: 1.75rem; opacity: 0.6;">🤖</div>
+            <div style="font-size: 0.95rem; font-weight: 600; color: var(--text-muted);">Autonomous Agent Ready</div>
+            <div style="font-size: 0.82rem; max-width: 420px; line-height: 1.5;">Submit a repository and task above. The agent will autonomously clone, analyze code, execute surgical edits, run tests, and open a Pull Request.</div>
+          </div>
         </div>
+
       </div>
     </section>
 
@@ -5570,50 +5581,120 @@ python3 mobile/nuclear_watchdog.py</code></pre>
 
     function appendSwadeLog(log, terminal) {
       if (!log) return;
-      const entry = document.createElement('div');
-      entry.style.display = 'flex';
-      entry.style.gap = '0.5rem';
-      
-      const ts = new Date(log.timestamp || Date.now()).toLocaleTimeString([], {hour12: false});
-      let content = '';
-      let color = 'var(--text)';
       const type = (log.type || '').toLowerCase();
+      const ts = new Date(log.timestamp || Date.now()).toLocaleTimeString([], {hour12: false});
       
       let rawData = log.data;
       if (typeof rawData === 'string') {
         try { rawData = JSON.parse(rawData); } catch(e) {}
       }
 
-      if (type === 'thinking') {
-        color = 'var(--primary)'; // cyan
-        content = `💭 ${typeof rawData === 'string' ? rawData : (rawData?.data || JSON.stringify(rawData))}`;
+      const card = document.createElement('div');
+      card.style.cssText = 'animation: fadeIn 150ms ease-in-out; display: flex; flex-direction: column; gap: 0.35rem;';
+
+      if (type === 'status') {
+        // Milestone / Phase Progress Chip
+        const statusText = typeof rawData === 'string' ? rawData : (rawData?.data || JSON.stringify(rawData));
+        card.innerHTML = `
+          <div style="display: flex; align-items: center; gap: 0.6rem; padding: 0.45rem 0.85rem; background: #0a0a0a; border: 1px solid var(--card-border); border-radius: 8px; font-size: 0.82rem; color: var(--text-muted);">
+            <span style="width: 6px; height: 6px; border-radius: 50%; background: #6366f1; box-shadow: 0 0 6px #6366f1;"></span>
+            <span style="color: #fff; font-weight: 500;">${statusText}</span>
+            <span style="margin-left: auto; font-size: 0.72rem; color: var(--text-subtle);">${ts}</span>
+          </div>
+        `;
+      } else if (type === 'thinking') {
+        // Antigravity Reasoning Accordion Card
+        const thoughtText = typeof rawData === 'string' ? rawData : (rawData?.data || JSON.stringify(rawData));
+        card.innerHTML = `
+          <div style="background: rgba(99,102,241,0.04); border: 1px solid rgba(99,102,241,0.18); border-radius: 8px; padding: 0.75rem 1rem; font-size: 0.85rem; color: #d4d4d8; line-height: 1.55;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.35rem;">
+              <div style="display: flex; align-items: center; gap: 0.4rem; color: #818cf8; font-weight: 600; font-size: 0.78rem;">
+                <span>💭</span>
+                <span>Agent Reasoning</span>
+              </div>
+              <span style="font-size: 0.72rem; color: var(--text-subtle);">${ts}</span>
+            </div>
+            <div style="white-space: pre-wrap; font-family: 'Inter', sans-serif;">${thoughtText}</div>
+          </div>
+        `;
       } else if (type === 'tool_call') {
-        color = '#f59e0b'; // yellow
+        // Tool Action Card (IDE Style)
         const toolName = rawData?.name || log.tool || 'tool';
-        const toolArgs = rawData?.args ? JSON.stringify(rawData.args) : '';
-        content = `🔧 ${toolName} ${toolArgs}`;
+        const toolArgs = rawData?.args || {};
+        let argSummary = '';
+        
+        if (toolName === 'read_file') {
+          argSummary = `<span style="color: #60a5fa; font-family: 'JetBrains Mono', monospace;">${toolArgs.path || ''}</span> ${toolArgs.start_line ? `<span style="color: var(--text-subtle);">(L${toolArgs.start_line}-${toolArgs.end_line || ''})</span>` : ''}`;
+        } else if (toolName === 'patch_file' || toolName === 'write_file') {
+          argSummary = `<span style="color: #34d399; font-family: 'JetBrains Mono', monospace;">${toolArgs.path || ''}</span>`;
+        } else if (toolName === 'run_command') {
+          argSummary = `<span style="color: #fbbf24; font-family: 'JetBrains Mono', monospace;">❯ ${toolArgs.command || ''}</span>`;
+        } else if (toolName === 'grep_search') {
+          argSummary = `<span style="color: #a78bfa;">pattern: "${toolArgs.pattern || ''}"</span>`;
+        } else {
+          argSummary = `<span style="color: var(--text-muted);">${JSON.stringify(toolArgs)}</span>`;
+        }
+
+        card.innerHTML = `
+          <div style="background: #0d0d0d; border: 1px solid var(--card-border); border-radius: 8px; padding: 0.65rem 0.95rem; font-size: 0.82rem;">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <div style="display: flex; align-items: center; gap: 0.5rem; overflow: hidden;">
+                <span style="background: rgba(255,255,255,0.06); border: 1px solid var(--card-border); padding: 0.15rem 0.45rem; border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: #fff; font-weight: 600;">${toolName}</span>
+                <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${argSummary}</span>
+              </div>
+              <span style="font-size: 0.72rem; color: var(--text-subtle); flex-shrink: 0;">${ts}</span>
+            </div>
+          </div>
+        `;
       } else if (type === 'tool_result') {
-        color = 'var(--success)'; // green
+        // Output / Result Preview Card
         const toolName = rawData?.name || '';
         let resText = rawData?.output || log.result || (typeof rawData === 'string' ? rawData : JSON.stringify(rawData));
-        if (typeof resText === 'string' && resText.length > 250) resText = resText.substring(0, 250) + '...';
-        content = `✅ [${toolName}] ${resText}`;
-      } else if (type === 'error') {
-        color = 'var(--danger)'; // red
-        const errMsg = rawData?.message || log.error || (typeof rawData === 'string' ? rawData : JSON.stringify(rawData));
-        content = `❌ ${errMsg}`;
-      } else if (type === 'status') {
-        color = '#38bdf8'; // sky blue
-        content = `ℹ️ ${typeof rawData === 'string' ? rawData : (rawData?.data || JSON.stringify(rawData))}`;
+        if (typeof resText === 'string' && resText.length > 300) resText = resText.substring(0, 300) + '...';
+
+        card.innerHTML = `
+          <div style="margin-left: 1.25rem; background: #050505; border-left: 2px solid #10b981; border-top: 1px solid var(--card-border); border-right: 1px solid var(--card-border); border-bottom: 1px solid var(--card-border); border-radius: 0 6px 6px 0; padding: 0.5rem 0.85rem; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; color: #a1a1aa; max-height: 140px; overflow-y: auto; white-space: pre-wrap;">
+            ${resText || '✓ Done'}
+          </div>
+        `;
       } else if (type === 'complete') {
-        color = '#10b981'; // bright emerald
-        content = `🎉 Task Completed! ${typeof rawData === 'string' ? rawData : (rawData?.summary || '')}`;
-      } else {
-        content = typeof rawData === 'string' ? rawData : JSON.stringify(rawData || log);
+        // Big-Tech Artifact PR Summary Card
+        const summary = typeof rawData === 'string' ? rawData : (rawData?.summary || '');
+        const prUrl = rawData?.pr_url || null;
+
+        card.innerHTML = `
+          <div style="background: linear-gradient(180deg, rgba(16,185,129,0.08) 0%, rgba(10,10,10,0.95) 100%); border: 1px solid rgba(16,185,129,0.3); border-radius: 12px; padding: 1.25rem; margin-top: 0.5rem; box-shadow: 0 4px 20px -2px rgba(16,185,129,0.15);">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span style="font-size: 1.1rem;">✨</span>
+                <span style="font-weight: 700; color: #fff; font-size: 0.95rem;">Task Completed Successfully</span>
+              </div>
+              <span style="font-size: 0.72rem; color: #10b981; font-weight: 600; background: rgba(16,185,129,0.15); padding: 0.15rem 0.5rem; border-radius: 4px;">VERIFIED</span>
+            </div>
+            
+            ${summary ? `<div style="font-size: 0.85rem; color: #d4d4d8; line-height: 1.6; margin-bottom: 1rem; padding: 0.75rem; background: #000; border-radius: 8px; border: 1px solid var(--card-border);">${marked.parse ? marked.parse(summary) : summary}</div>` : ''}
+
+            ${prUrl ? `
+              <div style="display: flex; justify-content: flex-end;">
+                <a href="${prUrl}" target="_blank" class="btn-send-chat" style="padding: 0.6rem 1.25rem; font-size: 0.88rem; text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem;">
+                  <span>🚀 Review Pull Request on GitHub</span>
+                  <span>↗</span>
+                </a>
+              </div>
+            ` : ''}
+          </div>
+        `;
+      } else if (type === 'error') {
+        const errMsg = rawData?.message || log.error || (typeof rawData === 'string' ? rawData : JSON.stringify(rawData));
+        card.innerHTML = `
+          <div style="background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.3); border-radius: 8px; padding: 0.75rem 1rem; font-size: 0.85rem; color: #fca5a5; display: flex; align-items: flex-start; gap: 0.5rem;">
+            <span>❌</span>
+            <div style="flex: 1; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem;">${errMsg}</div>
+          </div>
+        `;
       }
 
-      entry.innerHTML = `<span style="color: var(--text-muted); flex-shrink: 0;">[${ts}]</span> <span style="color: ${color}; word-break: break-all;">${content}</span>`;
-      terminal.appendChild(entry);
+      terminal.appendChild(card);
       
       while (terminal.children.length > 250) {
         terminal.removeChild(terminal.firstChild);
