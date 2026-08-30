@@ -4012,7 +4012,7 @@ bash mobile/start_ai.sh</code></pre>
       const W = canvas.width;
       const H = canvas.height;
 
-      // If processed background blur / segmentation image returned, render it!
+      // 1. If background blur / segmentation image returned, render processed composite
       if (data.processed_image_base64) {
         const pImg = new Image();
         pImg.onload = () => ctx.drawImage(pImg, 0, 0, W, H);
@@ -4020,8 +4020,17 @@ bash mobile/start_ai.sh</code></pre>
         return;
       }
 
-      // Default clean background if no uploaded image
-      if (!visionImageBase64) {
+      // 2. Always clean canvas and re-draw the fresh uploaded background image
+      if (visionImageBase64) {
+        const bgImg = new Image();
+        bgImg.onload = () => {
+          ctx.clearRect(0, 0, W, H);
+          ctx.drawImage(bgImg, 0, 0, W, H);
+          drawOverlayGraphics(canvas, ctx, data, W, H);
+        };
+        bgImg.src = visionImageBase64;
+      } else {
+        ctx.clearRect(0, 0, W, H);
         ctx.fillStyle = "#0a0e1a";
         ctx.fillRect(0, 0, W, H);
         // Draw subtle grid
@@ -4029,10 +4038,15 @@ bash mobile/start_ai.sh</code></pre>
         ctx.lineWidth = 1;
         for (let x = 0; x < W; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
         for (let y = 0; y < H; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+        drawOverlayGraphics(canvas, ctx, data, W, H);
       }
+    }
 
-      // 1. Face Detection Boxes & 6-Keypoints
-      if (data.faces) {
+    function drawOverlayGraphics(canvas, ctx, data, W, H) {
+      const task = currentVisionTask;
+
+      // 1. Face Detection Box & 6-Keypoints (ONLY for face_detection or holistic)
+      if ((task === "face_detection" || task === "holistic") && data.faces) {
         data.faces.forEach(face => {
           const [bx, by, bw, bh] = face.box;
           ctx.strokeStyle = "#38bdf8";
@@ -4041,23 +4055,22 @@ bash mobile/start_ai.sh</code></pre>
           ctx.fillStyle = "rgba(56, 189, 248, 0.15)";
           ctx.fillRect(bx * W, by * H, bw * W, bh * H);
 
-          // Keypoints
           if (face.keypoints) {
             ctx.fillStyle = "#f43f5e";
             Object.values(face.keypoints).forEach(([kx, ky]) => {
               ctx.beginPath();
-              ctx.arc(kx * W, ky * H, 5, 0, Math.PI * 2);
+              ctx.arc(kx * W, ky * H, 4, 0, Math.PI * 2);
               ctx.fill();
             });
           }
         });
       }
 
-      // 2. Hand Landmarks (21 Joints)
-      if (data.hands) {
+      // 2. Hand Landmarks (21 Joints) (ONLY for hand_landmarks or holistic)
+      if ((task === "hand_landmarks" || task === "holistic") && data.hands) {
         data.hands.forEach(hand => {
           ctx.fillStyle = "#10b981";
-          ctx.strokeStyle = "rgba(16, 185, 129, 0.6)";
+          ctx.strokeStyle = "rgba(16, 185, 129, 0.7)";
           ctx.lineWidth = 2;
           const pts = hand.landmarks;
           pts.forEach(p => {
@@ -4065,7 +4078,6 @@ bash mobile/start_ai.sh</code></pre>
             ctx.arc(p.x * W, p.y * H, 4, 0, Math.PI * 2);
             ctx.fill();
           });
-          // Connect skeleton lines
           for (let i = 1; i < pts.length; i++) {
             ctx.beginPath();
             ctx.moveTo(pts[0].x * W, pts[0].y * H);
@@ -4075,17 +4087,16 @@ bash mobile/start_ai.sh</code></pre>
         });
       }
 
-      // 3. Pose Skeleton (33 Joints)
-      if (data.pose) {
+      // 3. Pose Skeleton (33 Joints) (ONLY for pose_landmarks or holistic)
+      if ((task === "pose_landmarks" || task === "holistic") && data.pose) {
         ctx.fillStyle = "#a855f7";
-        ctx.strokeStyle = "rgba(168, 85, 247, 0.7)";
+        ctx.strokeStyle = "rgba(168, 85, 247, 0.8)";
         ctx.lineWidth = 3;
         data.pose.forEach(p => {
           ctx.beginPath();
-          ctx.arc(p.x * W, p.y * H, 5, 0, Math.PI * 2);
+          ctx.arc(p.x * W, p.y * H, 4.5, 0, Math.PI * 2);
           ctx.fill();
         });
-        // Spine & limb connections
         if (data.pose.length >= 25) {
           const pairs = [[11, 12], [11, 13], [13, 15], [12, 14], [14, 16], [11, 23], [12, 24], [23, 24], [23, 25], [24, 26]];
           pairs.forEach(([i1, i2]) => {
@@ -4099,19 +4110,19 @@ bash mobile/start_ai.sh</code></pre>
         }
       }
 
-      // 4. Face Mesh (468 Dense Points)
-      if (data.mesh || data.face_mesh) {
+      // 4. Face Mesh (468 Dense Points) (ONLY for face_mesh)
+      if (task === "face_mesh" && (data.mesh || data.face_mesh)) {
         const meshPts = data.mesh || data.face_mesh;
         ctx.fillStyle = "#06b6d4";
         meshPts.forEach(p => {
           ctx.beginPath();
-          ctx.arc(p.x * W, p.y * H, 2, 0, Math.PI * 2);
+          ctx.arc(p.x * W, p.y * H, 1.8, 0, Math.PI * 2);
           ctx.fill();
         });
       }
 
-      // 5. Object Detection Boxes
-      if (data.objects) {
+      // 5. Object Detection Boxes (ONLY for object_detection)
+      if (task === "object_detection" && data.objects) {
         data.objects.forEach(obj => {
           const [ox, oy, ow, oh] = obj.box;
           ctx.strokeStyle = "#f59e0b";
