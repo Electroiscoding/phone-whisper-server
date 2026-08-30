@@ -825,7 +825,21 @@
       }
     }
 
+    // Hyper-Temporary In-Memory Multi-Turn Chat & Voice Context
+    let chatSessionHistory = [
+      { role: "system", content: "You are Qwen 2.5, an intelligent, helpful on-device AI assistant." }
+    ];
+    let voiceSessionHistory = [
+      { role: "system", content: "You are an intelligent, hyper-concise voice assistant. Respond with brief 1-2 sentence spoken answers only." }
+    ];
+
     function clearChatHistory() {
+      chatSessionHistory = [
+        { role: "system", content: "You are Qwen 2.5, an intelligent, helpful on-device AI assistant." }
+      ];
+      voiceSessionHistory = [
+        { role: "system", content: "You are an intelligent, hyper-concise voice assistant. Respond with brief 1-2 sentence spoken answers only." }
+      ];
       const thread = document.getElementById("messagesThread");
       if (thread) thread.innerHTML = "";
       applyRandomTitle();
@@ -852,6 +866,10 @@
       userRow.innerHTML = `<div class="user-bubble">${text.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</div>`;
       thread.appendChild(userRow);
 
+      // Append user prompt to in-memory temporary session history
+      chatSessionHistory.push({ role: "user", content: text });
+      const activeContext = chatSessionHistory.slice(-10);
+
       // 2. Render AI Message Row with live streaming cursor
       const aiRow = document.createElement("div");
       aiRow.className = "message-row ai";
@@ -867,6 +885,7 @@
 
       isGenerating = true;
       let fullText = "";
+      let tokenCount = 0;
       const t0 = performance.now();
 
       try {
@@ -877,7 +896,7 @@
             "Accept": "text/event-stream"
           },
           body: JSON.stringify({
-            messages: [{ role: "user", content: text }],
+            messages: activeContext,
             temperature: 0.7,
             max_tokens: 350,
             stream: true
@@ -912,6 +931,7 @@
                 const delta = parsed.choices?.[0]?.delta?.content;
                 if (delta) {
                   fullText += delta;
+                  tokenCount++;
                   contentEl.innerHTML = renderMarkdown(fullText);
                   window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
                 }
@@ -920,6 +940,16 @@
           }
         }
         try { reader.cancel(); } catch (e) {}
+
+        // Append assistant response to in-memory session history
+        if (fullText) {
+          chatSessionHistory.push({ role: "assistant", content: fullText });
+        }
+
+        const elapsed = ((performance.now() - t0) / 1000).toFixed(2);
+        const estimatedTokens = Math.max(tokenCount, Math.round(fullText.length / 3.8));
+        const tokPerSec = (estimatedTokens / Math.max(0.1, parseFloat(elapsed))).toFixed(1);
+        const turnCount = Math.floor((chatSessionHistory.length - 1) / 2);
 
         // Remove cursor immediately when generation completes
         cursorEl.remove();
@@ -940,6 +970,9 @@
             <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2" fill="none"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
             <span>Read Aloud</span>
           </button>
+          <span style="font-size: 0.75rem; color: var(--text-subtle); margin-left: auto; font-family: monospace; padding: 0.2rem 0.5rem; background: rgba(255,255,255,0.04); border-radius: 4px;">
+            ⚡ ${estimatedTokens} tokens in ${elapsed}s (~${tokPerSec} tok/sec) • Context: ${turnCount} turns
+          </span>
         `;
         aiRow.appendChild(actionBar);
 

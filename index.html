@@ -2402,10 +2402,32 @@ bash mobile/start_ai.sh</code></pre>
     }
     window.setPrompt = setPrompt;
 
+    // Hyper-Temporary In-Memory Multi-Turn Chat History
+    let qwenSessionMemory = [
+      { role: "system", content: "You are an intelligent, ultra-fast on-device AI assistant hosted locally on a smartphone." }
+    ];
+
+    function clearQwenChatMemory() {
+      qwenSessionMemory = [
+        { role: "system", content: "You are an intelligent, ultra-fast on-device AI assistant hosted locally on a smartphone." }
+      ];
+      const chatBox = document.getElementById("chatBoxArea");
+      if (chatBox) {
+        chatBox.innerHTML = `
+          <div class="chat-bubble ai">
+            🧹 Memory cleared! Fresh session started. Ask me anything or test on-device reasoning!
+          </div>
+        `;
+      }
+      const memBadge = document.getElementById("qwenMemoryBadge");
+      if (memBadge) memBadge.innerText = "🧠 Hyper-Temporary Memory: Fresh (0 turns)";
+    }
+    window.clearQwenChatMemory = clearQwenChatMemory;
+
     async function sendChatPrompt() {
       const inputEl = document.getElementById("chatInput");
       const text = inputEl ? inputEl.value.trim() : "";
-      if (!text) return;
+      if (!text || isInferencing) return;
 
       const chatBox = document.getElementById("chatBoxArea");
       
@@ -2415,6 +2437,10 @@ bash mobile/start_ai.sh</code></pre>
       userBubble.innerText = text;
       chatBox.appendChild(userBubble);
       inputEl.value = "";
+
+      // Append user prompt to in-memory temporary history
+      qwenSessionMemory.push({ role: "user", content: text });
+      const activeContext = qwenSessionMemory.slice(-10);
 
       // AI bubble with live text content span and sleek cyan cursor
       const aiBubble = document.createElement("div");
@@ -2431,6 +2457,7 @@ bash mobile/start_ai.sh</code></pre>
       if (btn) btn.disabled = true;
 
       let fullText = "";
+      let tokenCount = 0;
       const t0 = performance.now();
 
       try {
@@ -2443,9 +2470,9 @@ bash mobile/start_ai.sh</code></pre>
             "Accept": "text/event-stream"
           },
           body: JSON.stringify({
-            messages: [{ role: "user", content: text }],
+            messages: activeContext,
             temperature: 0.7,
-            max_tokens: 300,
+            max_tokens: 350,
             stream: true
           })
         });
@@ -2479,6 +2506,7 @@ bash mobile/start_ai.sh</code></pre>
                 const delta = parsed.choices?.[0]?.delta?.content;
                 if (delta) {
                   fullText += delta;
+                  tokenCount++;
                   contentSpan.innerHTML = renderMarkdown(fullText);
                   chatBox.scrollTop = chatBox.scrollHeight;
                 }
@@ -2490,16 +2518,26 @@ bash mobile/start_ai.sh</code></pre>
         }
         try { reader.cancel(); } catch (e) {}
 
+        if (fullText) {
+          qwenSessionMemory.push({ role: "assistant", content: fullText });
+        }
+
         const elapsed = ((performance.now() - t0) / 1000).toFixed(2);
         cursorSpan.remove();
-        const words = fullText.trim().split(/\s+/).length;
-        const wps = (words / Math.max(0.1, elapsed)).toFixed(1);
+
+        const estimatedTokens = Math.max(tokenCount, Math.round(fullText.length / 3.8));
+        const tokPerSec = (estimatedTokens / Math.max(0.1, parseFloat(elapsed))).toFixed(1);
+        const turnCount = Math.floor((qwenSessionMemory.length - 1) / 2);
+
+        const memBadge = document.getElementById("qwenMemoryBadge");
+        if (memBadge) memBadge.innerText = `🧠 Memory: ${turnCount} turn(s) active`;
+
         const metaDiv = document.createElement("div");
         metaDiv.style.fontSize = "0.75rem";
         metaDiv.style.color = "var(--text-subtle)";
         metaDiv.style.marginTop = "0.5rem";
         metaDiv.style.fontFamily = "'JetBrains Mono', monospace";
-        metaDiv.innerText = `⚡ Streamed in ${elapsed}s (~${wps} words/sec on Qwen 2.5)`;
+        metaDiv.innerText = `⚡ Streamed ${estimatedTokens} tokens in ${elapsed}s (~${tokPerSec} tokens/sec on Qwen 2.5) • Context: ${turnCount} turns`;
         aiBubble.appendChild(metaDiv);
 
       } catch (err) {
