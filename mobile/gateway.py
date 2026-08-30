@@ -124,7 +124,17 @@ class ModelGovernor:
         self.watchdog_thread = threading.Thread(target=self._watchdog_loop, daemon=True)
         self.watchdog_thread.start()
 
-    def _is_service_ready(self, port):
+    def _is_port_open(self, port):
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.settimeout(0.15)
+                return s.connect_ex(('127.0.0.1', port)) == 0
+        except Exception:
+            return False
+
+    def _is_service_ready(self, model_key, port):
+        if model_key == "whisper":
+            return self._is_port_open(port)
         try:
             req = urllib.request.Request(f"http://127.0.0.1:{port}/health")
             with urllib.request.urlopen(req, timeout=0.25) as resp:
@@ -132,7 +142,7 @@ class ModelGovernor:
         except urllib.error.HTTPError:
             return False
         except Exception:
-            return self._is_port_open(port)
+            return False
 
     def acquire(self, model_key):
         """Acquires a model, booting it if evicted/idle, and marks it busy."""
@@ -143,11 +153,11 @@ class ModelGovernor:
             cfg = self.registry[model_key]
             port = cfg["port"]
 
-            # If not running or died or port closed, spawn JIT
+            # If not running or died or service not ready, spawn JIT
             is_running = False
             if model_key in self.processes:
                 proc = self.processes[model_key]["proc"]
-                if proc.poll() is None and self._is_service_ready(port):
+                if proc.poll() is None and self._is_service_ready(model_key, port):
                     is_running = True
 
             if not is_running:
@@ -173,10 +183,10 @@ class ModelGovernor:
                     "busy_count": 0
                 }
 
-                # Wait for service to become fully initialized (poll up to 8s)
+                # Wait for service to become fully initialized (poll up to 10s)
                 start_w = time.time()
-                while time.time() - start_w < 8.0:
-                    if self._is_service_ready(port):
+                while time.time() - start_w < 10.0:
+                    if self._is_service_ready(model_key, port):
                         break
                     time.sleep(0.08)
 

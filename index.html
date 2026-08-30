@@ -2014,6 +2014,25 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
           </div>
         </div>
 
+        
+        <!-- JIT Memory Governor & Dynamic Model Lifecycle Card -->
+        <div class="telemetry-card col-4">
+          <div class="telemetry-card-header">
+            <span class="telemetry-title">⚡ Elastic Memory Governor</span>
+            <span class="telemetry-badge success" id="govPolicyBadge">Dynamic JIT</span>
+          </div>
+          <div class="telemetry-big-val" style="font-size: 1.35rem; line-height: 1.3;" id="govActiveSummary">
+            <span style="color: var(--success);">0 Active</span> <span style="font-size: 0.9rem; color: var(--text-muted); font-weight: normal;">• 4 Sleeping</span>
+          </div>
+          <div style="background: rgba(255, 255, 255, 0.04); border-radius: 8px; padding: 0.6rem 0.8rem; margin-top: 0.5rem; font-size: 0.8rem; color: var(--text-subtle); line-height: 1.4;" id="govModelList">
+            💤 All models evicted from RAM (2.0+ GB Free)
+          </div>
+          <div class="telemetry-footer-stats" style="margin-top: 0.6rem;">
+            <span>Auto-Eviction: <strong>75s TTL</strong></span>
+            <span id="govReclaimStatus">0 MB AI RAM</span>
+          </div>
+        </div>
+
         <!-- Memory / RAM Usage Card (REAL DATA) -->
         <div class="telemetry-card col-4">
           <div class="telemetry-card-header">
@@ -3132,7 +3151,7 @@ bash mobile/start_ai.sh</code></pre>
       isInferencing = true;
       latencyBadge.innerText = "Processing on phone MediaTek CPU...";
       outputContentArea.classList.remove("placeholder-mode");
-      outputContentArea.innerText = "⏳ Phone AI model is executing SenseVoice neural decode...";
+      outputContentArea.innerText = "⏳ Phone AI model is executing Whisper neural decode...";
 
       addTerminalLog("INFO", `[HTTP POST] Dispatching ${(selectedWavBlob.size / 1024).toFixed(1)}KB payload to Cloudflare QUIC edge...`);
 
@@ -3338,6 +3357,26 @@ bash mobile/start_ai.sh</code></pre>
             ramTotalVal.innerText = totalGb;
             ramAvailVal.innerText = `${availGb} GB`;
             ramProgressFill.style.width = `${((data.memory.used_mb / data.memory.total_mb) * 100).toFixed(1)}%`;
+          }
+
+          // 2b. Elastic Memory Governor Live State
+          if (data.governor) {
+            const activeMods = data.governor.active_models || [];
+            const evictedMods = data.governor.idle_evicted_models || [];
+            const summaryEl = document.getElementById("govActiveSummary");
+            const listEl = document.getElementById("govModelList");
+            const reclaimEl = document.getElementById("govReclaimStatus");
+
+            if (activeMods.length === 0) {
+              if (summaryEl) summaryEl.innerHTML = `<span style="color: var(--text-muted);">0 Active</span> <span style="font-size: 0.85rem; color: var(--text-subtle); font-weight: normal;">• 4 Sleeping</span>`;
+              if (listEl) listEl.innerHTML = `💤 All models evicted from RAM (Max Memory Reclaimed)`;
+              if (reclaimEl) reclaimEl.innerText = "0 MB AI RAM";
+            } else {
+              const names = activeMods.map(m => `⚡ <b>${m.name.split(' ')[0]}</b> (${m.idle_seconds}s ago)`).join("<br>");
+              if (summaryEl) summaryEl.innerHTML = `<span style="color: var(--primary); font-weight: 800;">${activeMods.length} Active</span> <span style="font-size: 0.85rem; color: var(--text-subtle); font-weight: normal;">• ${evictedMods.length} Sleeping</span>`;
+              if (listEl) listEl.innerHTML = names;
+              if (reclaimEl) reclaimEl.innerText = `${activeMods.length * 150}MB AI Active`;
+            }
           }
 
           // 3. True Server-Wide CPU & Process Activity (Synced Worldwide)
