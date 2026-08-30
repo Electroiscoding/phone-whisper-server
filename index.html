@@ -5483,6 +5483,20 @@ python3 mobile/nuclear_watchdog.py</code></pre>
     let swadesEventSource = null;
     let currentLogsCache = [];
 
+    function getStoredGitHubToken() {
+      if (swadesAuthData && swadesAuthData.token) return swadesAuthData.token;
+      try {
+        const saved = localStorage.getItem("swades_gh_auth");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed && parsed.token) return parsed.token;
+        }
+      } catch (e) {}
+      const ghPatInput = document.getElementById('swadesGhPat');
+      return (ghPatInput && ghPatInput.value.trim()) ? ghPatInput.value.trim() : '';
+    }
+    window.getStoredGitHubToken = getStoredGitHubToken;
+
     async function sendSwadesFollowUp() {
       const inputEl = document.getElementById('swadesChatInput');
       const msg = inputEl ? inputEl.value.trim() : '';
