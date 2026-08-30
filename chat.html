@@ -1346,20 +1346,23 @@
 
             transcriptEl.innerText = `"${userSaid}"`;
 
-            // SLM Chat Stream / Response
+            // SLM Chat Stream / Response with Multi-Turn In-Memory Voice History
+            voiceSessionHistory.push({ role: "user", content: userSaid });
+            const activeVoiceCtx = voiceSessionHistory.slice(-6);
+
             const chatRes = await fetch(`${BASE_ENDPOINT}/v1/chat/completions`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                messages: [
-                  { role: "system", content: "You are an intelligent, hyper-concise voice assistant. Respond with brief 1-2 sentence spoken answers only." },
-                  { role: "user", content: userSaid }
-                ],
+                messages: activeVoiceCtx,
                 max_tokens: 80
               })
             });
             const chatData = await chatRes.json();
             const reply = (chatData.choices && chatData.choices[0].message ? chatData.choices[0].message.content : "").trim();
+            if (reply) {
+              voiceSessionHistory.push({ role: "assistant", content: reply });
+            }
             
             transcriptEl.innerText = reply;
             statusEl.innerText = "Speaking";

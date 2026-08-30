@@ -1644,6 +1644,10 @@
       </div>
 
       <div class="chat-container-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 1rem; border-bottom: 1px solid var(--card-border); font-size: 0.8rem;">
+          <span id="qwenMemoryBadge" style="color: var(--primary); font-weight: 600;">🧠 Hyper-Temporary In-Memory Context: Active</span>
+          <button class="btn-action" style="padding: 0.25rem 0.65rem; font-size: 0.75rem;" onclick="clearQwenChatMemory()">🧹 Clear Memory</button>
+        </div>
         <div class="chat-box-area" id="chatBoxArea">
           <div class="chat-bubble ai">
             👋 Hello! I am Qwen 2.5 running directly inside Termux on your phone. Ask me anything, generate code, or test my reasoning!
