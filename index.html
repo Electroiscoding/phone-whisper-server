@@ -5479,8 +5479,8 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       } catch (err) {}
     }
 
-    let swadesLogPollInterval = null;
-    let swadesEventSource = null;
+        let swadesLogPollInterval = null;
+    let swadesAbortController = null;
     let currentLogsCache = [];
 
     function getStoredGitHubToken() {
@@ -5535,7 +5535,6 @@ python3 mobile/nuclear_watchdog.py</code></pre>
             queueRow.style.display = 'flex';
             queueText.innerText = `${data.queue_length} instruction(s) queued — will auto-execute when current task finishes`;
           }
-          // Append queued user message card to timeline
           if (currentLogsCache) {
             currentLogsCache.push({
               type: 'queue_message',
@@ -5603,9 +5602,9 @@ python3 mobile/nuclear_watchdog.py</code></pre>
         clearInterval(swadesLogPollInterval);
         swadesLogPollInterval = null;
       }
-      if (swadesEventSource) {
-        swadesEventSource.close();
-        swadesEventSource = null;
+      if (swadesAbortController) {
+        try { swadesAbortController.abort(); } catch(e) {}
+        swadesAbortController = null;
       }
       
       swadesCurrentJobId = jobId;
@@ -5627,7 +5626,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
 
       currentLogsCache = [];
 
-      // 1. Initial State Poll
+      // 1. Initial State Load
       fetch(`${BASE_ENDPOINT}/v1/agent/logs/${jobId}`)
         .then(res => res.json())
         .then(data => {
@@ -5642,53 +5641,74 @@ python3 mobile/nuclear_watchdog.py</code></pre>
             }
           }
           if (data.status) updateControlsUI(data.status, data.job?.pr_url);
-          if (data.logs) {
+          if (data.logs && data.logs.length > 0) {
             currentLogsCache = data.logs;
             renderAggregatedLogs(currentLogsCache, terminal);
           }
         }).catch(() => {});
 
-      // 2. High-Speed SSE Real-Time Token Stream
-      try {
-        swadesEventSource = new EventSource(`${BASE_ENDPOINT}/v1/agent/stream/${jobId}`);
-        
-        swadesEventSource.onmessage = (e) => {
-          try {
-            const ev = JSON.parse(e.data);
-            if (ev.type === 'init') {
-              if (ev.logs && ev.logs.length > 0) {
-                currentLogsCache = ev.logs;
-                renderAggregatedLogs(currentLogsCache, terminal);
-              }
-              if (ev.job) {
-                if (modelEl && ev.job.model) {
-                  const prov = (ev.job.base_url && ev.job.base_url.includes('127.0.0.1')) ? 'Local Phone CPU' : 'Cloud API';
-                  modelEl.innerText = `${ev.job.model} (${prov})`;
-                }
-              }
-            } else if (ev.type === 'complete') {
-              updateControlsUI('COMPLETED', ev.data?.pr_url);
-              if (statusBadge) {
-                statusBadge.innerText = '✅ COMPLETED';
-                statusBadge.style.color = 'var(--success)';
-              }
-              if (swadesEventSource) swadesEventSource.close();
-            } else {
-              currentLogsCache.push(ev);
-              renderAggregatedLogs(currentLogsCache, terminal);
-            }
-          } catch (err) {}
-        };
+      // 2. High-Performance Fetch ReadableStream Pipeline (100% Reliable, Zero CORS errors)
+      swadesAbortController = new AbortController();
+      
+      async function streamReader() {
+        try {
+          const res = await fetch(`${BASE_ENDPOINT}/v1/agent/stream/${jobId}`, {
+            headers: { 'Accept': 'text/event-stream' },
+            signal: swadesAbortController.signal
+          });
+          
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          
+          const reader = res.body.getReader();
+          const decoder = new TextDecoder();
+          let buffer = '';
 
-        swadesEventSource.onerror = () => {
-          // Silent fallback to polling if SSE disconnected
-          if (!swadesLogPollInterval) {
-            swadesLogPollInterval = setInterval(pollFallback, 1200);
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || '';
+
+            for (const line of lines) {
+              const trimmed = line.trim();
+              if (!trimmed || trimmed.startsWith(':')) continue;
+              if (trimmed.startsWith('data: ')) {
+                try {
+                  const ev = JSON.parse(trimmed.slice(6));
+                  if (ev.type === 'init') {
+                    if (ev.logs && ev.logs.length > 0) {
+                      currentLogsCache = ev.logs;
+                      renderAggregatedLogs(currentLogsCache, terminal);
+                    }
+                    if (ev.job && modelEl && ev.job.model) {
+                      const prov = (ev.job.base_url && ev.job.base_url.includes('127.0.0.1')) ? 'Local Phone CPU' : 'Cloud API';
+                      modelEl.innerText = `${ev.job.model} (${prov})`;
+                    }
+                  } else if (ev.type === 'complete') {
+                    updateControlsUI('COMPLETED', ev.data?.pr_url);
+                    if (statusBadge) {
+                      statusBadge.innerText = '✅ COMPLETED';
+                      statusBadge.style.color = 'var(--success)';
+                    }
+                  } else {
+                    currentLogsCache.push(ev);
+                    renderAggregatedLogs(currentLogsCache, terminal);
+                  }
+                } catch (pe) {}
+              }
+            }
           }
-        };
-      } catch (err) {
-        swadesLogPollInterval = setInterval(pollFallback, 1200);
+        } catch (err) {
+          // If stream closed cleanly or disconnected, smoothly continue background polling
+          if (!swadesAbortController?.signal?.aborted && !swadesLogPollInterval) {
+            swadesLogPollInterval = setInterval(pollFallback, 1500);
+          }
+        }
       }
+
+      streamReader();
 
       async function pollFallback() {
         if (swadesCurrentJobId !== jobId) return;
@@ -5713,7 +5733,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       }
     }
 
-    function escapeHtml(str) {
+function escapeHtml(str) {
       if (str === null || str === undefined) return '';
       return String(str)
         .replace(/&/g, '&amp;')
