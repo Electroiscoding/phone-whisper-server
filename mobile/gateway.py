@@ -120,10 +120,22 @@ def get_real_hardware_cpu():
 
 
 
+def _get_swades_storage_dir():
+    home = os.environ.get("HOME") or ("/tmp" if os.path.exists("/tmp") else "/data/data/com.termux/files/home")
+    target = os.path.join(home, ".swades_jobs")
+    try:
+        os.makedirs(target, exist_ok=True)
+        return target
+    except Exception:
+        fallback = "/tmp/swades_jobs"
+        os.makedirs(fallback, exist_ok=True)
+        return fallback
+
 class SwadeJobManager:
     def __init__(self):
-        os.makedirs('/tmp/swades_jobs', exist_ok=True)
-        self.db_path = '/tmp/swades_jobs/swades.db'
+        self.base_dir = _get_swades_storage_dir()
+        os.makedirs(self.base_dir, exist_ok=True)
+        self.db_path = os.path.join(self.base_dir, "swades.db")
         self._init_db()
         self.active_worker_pid = None
         self.lock = threading.Lock()
@@ -216,11 +228,27 @@ def _agent_job_worker_loop():
                     continue
                 
                 job_id = job['id']
-                worker_cmd = ['node', os.path.join(os.path.dirname(__file__), '..', 'swades-server', 'worker.js'), '--job', job_id]
-                proc = sp.Popen(worker_cmd, stdout=sp.DEVNULL, stderr=sp.DEVNULL, start_new_session=True)
+                home_dir = os.environ.get("HOME", "/data/data/com.termux/files/home")
+                candidates = [
+                    os.path.join(home_dir, "swades-server", "worker.js"),
+                    os.path.join(os.path.dirname(__file__), "swades-server", "worker.js"),
+                    os.path.join(os.path.dirname(__file__), "..", "swades-server", "worker.js")
+                ]
+                worker_js = next((p for p in candidates if os.path.exists(p)), candidates[0])
+                
+                job_log_dir = os.path.join(_job_manager.base_dir, job_id)
+                os.makedirs(job_log_dir, exist_ok=True)
+                worker_stdout_file = open(os.path.join(job_log_dir, "worker_stdout.log"), "a")
+                
+                env = os.environ.copy()
+                env["PATH"] = f"/data/data/com.termux/files/usr/bin:{env.get('PATH', '')}"
+                env["HOME"] = home_dir
+                
+                worker_cmd = ['node', worker_js, '--job', job_id]
+                proc = sp.Popen(worker_cmd, stdout=worker_stdout_file, stderr=worker_stdout_file, env=env, start_new_session=True)
                 _job_manager.active_worker_pid = proc.pid
                 _job_manager.update_job(job_id, worker_pid=proc.pid)
-                print(f"[SWADES] Spawned worker PID {proc.pid} for job {job_id}")
+                print(f"[SWADES] Spawned worker PID {proc.pid} for job {job_id} using {worker_js}")
         except Exception as e:
             print(f"[SWADES] Worker loop error: {e}")
         time.sleep(3)
@@ -897,6 +925,12 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_mediapipe_vision(task)
         elif path == '/v1/agent/submit':
             self.handle_agent_submit()
+        elif path == "/register_tunnel":
+            self.send_response(200)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(b'{"status":"ok"}')
         elif path.startswith('/v1/agent/cancel/'):
             job_id = path.split('/')[-1]
             self.handle_agent_cancel(job_id)
@@ -906,48 +940,57 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
 
 
     def handle_agent_submit(self):
-        content_length = int(self.headers.get("Content-Length", 0))
-        body = self.rfile.read(content_length)
-        payload = json.loads(body.decode("utf-8"))
-        repo_url = payload.get("repo_url")
-        task = payload.get("task")
-        
-        if not repo_url or not str(repo_url).startswith("https://github.com/") or not task:
-            self.send_error(400, "Invalid payload")
-            return
+        try:
+            content_length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(content_length) if content_length > 0 else b""
+            payload = json.loads(body.decode("utf-8")) if body else {}
+            repo_url = payload.get("repo_url")
+            task = payload.get("task")
             
-        gh_pat = payload.get("github_pat") or payload.get("github_token") or None
-        api_key = payload.get("api_key") or payload.get("llm_api_key") or None
-        base_url = payload.get("base_url")
-        model = payload.get("model")
-        
-        provider = payload.get("llm_provider", "phone")
-        if provider == "openrouter" and not base_url:
-            base_url = "https://openrouter.ai/api/v1"
-            if not model: model = "openrouter/free"
-        elif provider == "openai" and not base_url:
-            base_url = "https://api.openai.com/v1"
-            if not model: model = "gpt-4o-mini"
-        elif provider == "groq" and not base_url:
-            base_url = "https://api.groq.com/openai/v1"
-            if not model: model = "llama-3.3-70b-versatile"
-        elif provider == "phone" or not base_url:
-            base_url = "http://127.0.0.1:8001/v1"
-            api_key = "local"
-            model = "qwen2.5"
+            if not repo_url or not str(repo_url).startswith("https://github.com/") or not task:
+                self.send_error(400, "Invalid payload")
+                return
+                
+            gh_pat = payload.get("github_pat") or payload.get("github_token") or None
+            api_key = payload.get("api_key") or payload.get("llm_api_key") or None
+            base_url = payload.get("base_url")
+            model = payload.get("model")
+            
+            provider = payload.get("llm_provider", "phone")
+            if provider == "openrouter" and not base_url:
+                base_url = "https://openrouter.ai/api/v1"
+                if not model: model = "openrouter/free"
+            elif provider == "openai" and not base_url:
+                base_url = "https://api.openai.com/v1"
+                if not model: model = "gpt-4o-mini"
+            elif provider == "groq" and not base_url:
+                base_url = "https://api.groq.com/openai/v1"
+                if not model: model = "llama-3.3-70b-versatile"
+            elif provider == "phone" or not base_url:
+                base_url = "http://127.0.0.1:8080/v1"
+                api_key = "local"
+                model = "qwen2.5"
 
-        job_id = _job_manager.create_job(
-            repo_url, task,
-            gh_pat, api_key,
-            base_url, model
-        )
-        pos = _job_manager.get_queue_position(job_id)
-        
-        self.send_response(200)
-        self._send_cors_headers()
-        self.send_header("Content-Type", "application/json")
-        self.end_headers()
-        self.wfile.write(json.dumps({"job_id": job_id, "status": "queued", "queue_position": pos}).encode())
+            job_id = _job_manager.create_job(
+                repo_url, task,
+                gh_pat, api_key,
+                base_url, model
+            )
+            pos = _job_manager.get_queue_position(job_id)
+            
+            self.send_response(200)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({"job_id": job_id, "status": "queued", "queue_position": pos}).encode())
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            self.send_response(500)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({"error": str(e)}).encode())
 
     def handle_agent_status(self, job_id):
         job = _job_manager.get_job(job_id)
@@ -985,7 +1028,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         self.send_header("X-Accel-Buffering", "no")
         self.end_headers()
         
-        log_file = f"/tmp/swades_jobs/{job_id}/agent.log"
+        log_file = os.path.join(_job_manager.base_dir, job_id, "agent.log")
         pos = 0
         try:
             while True:

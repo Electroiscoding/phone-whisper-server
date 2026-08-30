@@ -1,9 +1,35 @@
-import Database from 'better-sqlite3';
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 
-const DB_DIR = '/tmp/swades_jobs';
+let DatabaseClass = null;
+
+try {
+  const sqliteModule = await import('node:sqlite');
+  DatabaseClass = sqliteModule.DatabaseSync;
+} catch (e) {
+  try {
+    const betterSqlite = await import('better-sqlite3');
+    DatabaseClass = betterSqlite.default || betterSqlite;
+  } catch (err) {
+    console.error('Neither node:sqlite nor better-sqlite3 is available:', err);
+  }
+}
+
+function getStorageDir() {
+  const home = process.env.HOME || (fs.existsSync('/tmp') ? '/tmp' : '/data/data/com.termux/files/home');
+  const target = path.join(home, '.swades_jobs');
+  try {
+    fs.mkdirSync(target, { recursive: true });
+    return target;
+  } catch (e) {
+    const fallback = '/tmp/swades_jobs';
+    fs.mkdirSync(fallback, { recursive: true });
+    return fallback;
+  }
+}
+
+const DB_DIR = getStorageDir();
 const DB_PATH = path.join(DB_DIR, 'swades.db');
 
 let dbInstance = null;
@@ -15,7 +41,11 @@ export function initDatabase() {
     fs.mkdirSync(DB_DIR, { recursive: true });
   }
   
-  const db = new Database(DB_PATH);
+  if (!DatabaseClass) {
+    throw new Error('No SQLite database driver found (node:sqlite or better-sqlite3)');
+  }
+  
+  const db = new DatabaseClass(DB_PATH);
   
   db.exec(`
     CREATE TABLE IF NOT EXISTS jobs (
@@ -34,6 +64,7 @@ export function initDatabase() {
       total_steps INTEGER,
       worker_pid INTEGER,
       github_pat TEXT,
+      api_key TEXT,
       api_key_hash TEXT,
       base_url TEXT,
       model TEXT
@@ -61,7 +92,7 @@ function getDb() {
 
 export function createJob({ repoUrl, task, githubPat, apiKey, baseUrl, model }) {
   const db = getDb();
-  const id = crypto.randomUUID();
+  const id = crypto.randomUUID().slice(0, 8);
   const now = new Date().toISOString();
   
   const apiKeyHash = apiKey ? crypto.createHash('sha256').update(apiKey).digest('hex') : null;

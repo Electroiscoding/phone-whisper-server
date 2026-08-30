@@ -1,3 +1,15 @@
+function getStorageDir() {
+  const home = process.env.HOME || (fs.existsSync('/tmp') ? '/tmp' : '/data/data/com.termux/files/home');
+  const target = path.join(home, '.swades_jobs');
+  try {
+    fs.mkdirSync(target, { recursive: true });
+    return target;
+  } catch (e) {
+    const fallback = '/tmp/swades_jobs';
+    fs.mkdirSync(fallback, { recursive: true });
+    return fallback;
+  }
+}
 import fs from 'fs';
 import path from 'path';
 import { initDatabase, getJob, updateJob, appendLog } from './job.js';
@@ -29,6 +41,7 @@ async function main() {
   }
   
   const jobId = args[jobIdx + 1];
+  const tempBase = getStorageDir();
   initDatabase();
   
   const job = getJob(jobId);
@@ -38,8 +51,9 @@ async function main() {
   }
   
   process.env.TASK_ORIG = job.task;
-  const workspaceDir = `/tmp/swades_jobs/${jobId}/workspace`;
-  const logFile = `/tmp/swades_jobs/${jobId}/agent.log`;
+  const workspaceDir = path.join(tempBase, jobId, 'workspace');
+  const logFile = path.join(tempBase, jobId, 'agent.log');
+  fs.mkdirSync(path.dirname(logFile), { recursive: true });
   
   const onEvent = (event) => {
     appendLog(jobId, event.type, event.data, event.step_number || null);
@@ -71,9 +85,9 @@ async function main() {
     
     const context = {
       workdir: workspaceDir,
-      baseUrl: job.base_url,
-      apiKey: job.api_key_hash, // Pass hash or logic to retrieve real key if needed
-      model: job.model,
+      baseUrl: job.base_url || 'http://127.0.0.1:8080/v1',
+      apiKey: job.api_key || 'local',
+      model: job.model || 'qwen2.5',
       jobId,
       onEvent
     };

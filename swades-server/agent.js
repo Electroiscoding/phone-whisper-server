@@ -5,7 +5,7 @@ import { executeTool, indexCodebase } from './tools.js';
 export async function runAgent(context, task) {
   const indexStr = indexCodebase(context);
   let messages = [
-    { role: 'system', content: SYSTEM_PROMPT + '\\n\\nWorkspace: ' + context.workdir + '\\n\\nCodebase Index:\\n' + indexStr },
+    { role: 'system', content: SYSTEM_PROMPT + '\n\nWorkspace: ' + context.workdir + '\n\nCodebase Index:\n' + indexStr },
     { role: 'user', content: task }
   ];
   

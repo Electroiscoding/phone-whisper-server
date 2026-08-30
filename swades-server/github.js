@@ -32,8 +32,10 @@ export function createBranch(workdir, branchName) {
 }
 
 export function configureGit(workdir) {
-  execSync(`git config user.name 'Swades Agent'`, { cwd: workdir, timeout: 60000 });
-  execSync(`git config user.email 'swades@phonewhisper.ai'`, { cwd: workdir, timeout: 60000 });
+  try {
+    execSync(`git config user.name 'Swades Agent'`, { cwd: workdir, timeout: 60000 });
+    execSync(`git config user.email 'swades@phonewhisper.ai'`, { cwd: workdir, timeout: 60000 });
+  } catch (e) {}
 }
 
 export function commitAll(workdir, message) {
@@ -45,6 +47,11 @@ export function commitAll(workdir, message) {
 }
 
 export function pushBranch(workdir, branchName, pat, repoUrl) {
+  if (!pat) {
+    console.log("No GitHub PAT provided. Skipping push.");
+    return;
+  }
+  
   let pushUrl = repoUrl;
   if (pat && repoUrl.startsWith('https://')) {
     pushUrl = repoUrl.replace('https://', `https://${pat}@`);
@@ -53,11 +60,20 @@ export function pushBranch(workdir, branchName, pat, repoUrl) {
     pushUrl = `https://${pat}@github.com/${owner}/${repo}.git`;
   }
   
-  execSync(`git push -u origin ${branchName}`, { cwd: workdir, timeout: 60000 });
+  try {
+    execSync(`git push -u origin ${branchName}`, { cwd: workdir, timeout: 60000 });
+  } catch (err) {
+    console.warn("Git push failed:", err.message);
+  }
 }
 
 export function openPullRequest({ owner, repo, head, base, title, body, pat }) {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
+    if (!pat) {
+      resolve({ pr_url: null, pr_number: null });
+      return;
+    }
+
     const payload = JSON.stringify({ title, body, head, base });
     const options = {
       hostname: 'api.github.com',
@@ -66,7 +82,7 @@ export function openPullRequest({ owner, repo, head, base, title, body, pat }) {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${pat}`,
-        'User-Agent': 'SwadeAgent/1.0',
+        'User-Agent': 'SwadesAgent/1.0',
         'Accept': 'application/vnd.github.v3+json',
         'Content-Type': 'application/json',
         'Content-Length': payload.length
@@ -77,49 +93,63 @@ export function openPullRequest({ owner, repo, head, base, title, body, pat }) {
       let data = '';
       res.on('data', chunk => data += chunk);
       res.on('end', () => {
-        if (res.statusCode >= 200 && res.statusCode < 300) {
-          const json = JSON.parse(data);
-          resolve({ pr_url: json.html_url, pr_number: json.number });
-        } else {
-          reject(new Error(`GitHub API error: ${res.statusCode} - ${data}`));
+        try {
+          if (res.statusCode >= 200 && res.statusCode < 300) {
+            const json = JSON.parse(data);
+            resolve({ pr_url: json.html_url, pr_number: json.number });
+          } else {
+            resolve({ pr_url: null, pr_number: null, error: `GitHub API error: ${res.statusCode}` });
+          }
+        } catch (e) {
+          resolve({ pr_url: null, pr_number: null });
         }
       });
     });
     
-    req.on('error', reject);
+    req.on('error', () => resolve({ pr_url: null, pr_number: null }));
+    req.setTimeout(10000, () => {
+      req.destroy();
+      resolve({ pr_url: null, pr_number: null });
+    });
     req.write(payload);
     req.end();
   });
 }
 
 export function getDefaultBranch({ owner, repo, pat }) {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
+    const headers = {
+      'User-Agent': 'SwadesAgent/1.0',
+      'Accept': 'application/vnd.github.v3+json'
+    };
+    if (pat) headers['Authorization'] = `Bearer ${pat}`;
+    
     const options = {
       hostname: 'api.github.com',
       port: 443,
       path: `/repos/${owner}/${repo}`,
       method: 'GET',
-      headers: {
-        'Authorization': pat ? `Bearer ${pat}` : '',
-        'User-Agent': 'SwadeAgent/1.0',
-        'Accept': 'application/vnd.github.v3+json'
-      }
+      headers: headers
     };
     
     const req = https.request(options, (res) => {
       let data = '';
       res.on('data', chunk => data += chunk);
       res.on('end', () => {
-        if (res.statusCode >= 200 && res.statusCode < 300) {
+        try {
           const json = JSON.parse(data);
           resolve(json.default_branch || 'main');
-        } else {
-          reject(new Error(`GitHub API error: ${res.statusCode} - ${data}`));
+        } catch (e) {
+          resolve('main');
         }
       });
     });
     
-    req.on('error', reject);
+    req.on('error', () => resolve('main'));
+    req.setTimeout(5000, () => {
+      req.destroy();
+      resolve('main');
+    });
     req.end();
   });
 }
