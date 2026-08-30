@@ -1887,189 +1887,467 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
       </div>
     </section>
 
-    <!-- PUBLIC API CHEATSHEET & ENDPOINT EXPLORER -->
-    <section id="cheatsheet">
+    <!-- PUBLIC API CHEATSHEET & ENDPOINT EXPLORER (ULTRA-NEWBIE TO PRO) -->
+    <section id="cheatsheet" style="margin-top: 3rem;">
       <div class="section-head">
         <span class="section-tag">
           <span>⚡</span>
-          <span>Public API Reference</span>
+          <span>Zero-Config Public API Reference</span>
         </span>
-        <h2 class="section-title">API Endpoints Cheatsheet</h2>
-        <p class="section-desc">Every endpoint is 100% publicly reachable worldwide with zero API keys, TLS 1.3 encryption, and full CORS support.</p>
+        <h2 class="section-title">Universal API Endpoints Cheatsheet</h2>
+        <p class="section-desc">Every AI modality is 100% publicly available worldwide with zero API keys, no sign-ups, sub-50ms latency, and full CORS headers.</p>
       </div>
 
-      <div class="cheatsheet-banner">
-        <div class="base-url-box">
-          <span class="base-url-pill">BASE URL</span>
-          <span id="cheatsheetBaseUrl">https://black-term-8c36.botmaker583-55e.workers.dev</span>
+      <!-- Base URL Box -->
+      <div class="cheatsheet-banner" style="background: rgba(10, 15, 30, 0.85); border: 1px solid var(--card-border); border-radius: 12px; padding: 1rem 1.25rem; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
+        <div class="base-url-box" style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+          <span class="base-url-pill" style="background: var(--primary); color: #000; font-weight: 800; font-size: 0.75rem; padding: 0.25rem 0.6rem; border-radius: 6px; letter-spacing: 0.05em;">UNIVERSAL BASE URL</span>
+          <span id="cheatsheetBaseUrl" style="font-family: monospace; font-size: 0.95rem; color: #38bdf8; word-break: break-all;">https://black-term-8c36.botmaker583-55e.workers.dev</span>
         </div>
         <div style="display: flex; gap: 0.5rem;">
           <button class="btn-action" onclick="copyText('https://black-term-8c36.botmaker583-55e.workers.dev')">📋 Copy Base URL</button>
         </div>
       </div>
 
-      <!-- Endpoint 1: /inference -->
-      <div class="endpoint-card">
-        <div class="endpoint-card-header">
-          <div class="endpoint-path">
-            <span class="method-badge method-post">POST</span>
-            <span>/inference</span>
-          </div>
-          <div class="feature-tags-row" style="margin: 0;">
-            <span class="feature-tag">🌍 Public Worldwide</span>
-            <span class="feature-tag">🔓 No Auth</span>
-            <span class="feature-tag">⚡ CORS Allowed</span>
-          </div>
-        </div>
-        <div class="endpoint-body">
-          <p style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 1rem;">
-            Transcribe raw audio files (WAV, MP3, OGG, M4A, AAC, WEBM) into text or formatted subtitle files using the on-device OpenAI Whisper Base.en Q5_1 model.
-          </p>
-
-          <h4 style="font-size: 0.85rem; text-transform: uppercase; color: var(--text-subtle); letter-spacing: 0.05em; margin-bottom: 0.5rem;">Request Headers</h4>
-          <pre><code>Content-Type: multipart/form-data</code></pre>
-
-          <h4 style="font-size: 0.85rem; text-transform: uppercase; color: var(--text-subtle); letter-spacing: 0.05em; margin: 1.25rem 0 0.5rem;">Form-Data Payload Parameters</h4>
-          <div style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
-            <table style="min-width: 500px;">
-              <thead>
-                <tr>
-                  <th>Field</th>
-                  <th>Type</th>
-                  <th>Required</th>
-                  <th>Default</th>
-                  <th>Description</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td><code>file</code></td>
-                  <td>Binary File</td>
-                  <td><strong style="color: var(--danger)">Yes</strong></td>
-                  <td>-</td>
-                  <td>Audio file stream (16kHz PCM WAV recommended, MP3/OGG supported)</td>
-                </tr>
-                <tr>
-                  <td><code>response_format</code></td>
-                  <td>String</td>
-                  <td>No</td>
-                  <td><code>json</code></td>
-                  <td>Options: <code>json</code>, <code>text</code>, <code>srt</code>, <code>vtt</code>, <code>verbose_json</code></td>
-                </tr>
-                <tr>
-                  <td><code>temperature</code></td>
-                  <td>Float</td>
-                  <td>No</td>
-                  <td><code>0.0</code></td>
-                  <td>Sampling temperature (0.0 for deterministic greedy decoding)</td>
-                </tr>
-                <tr>
-                  <td><code>temperature_inc</code></td>
-                  <td>Float</td>
-                  <td>No</td>
-                  <td><code>0.2</code></td>
-                  <td>Fallback temperature increment when decoding confidence drops</td>
-                </tr>
-                <tr>
-                  <td><code>no_speech_thold</code></td>
-                  <td>Float</td>
-                  <td>No</td>
-                  <td><code>0.6</code></td>
-                  <td>Silence probability threshold for speech presence</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
+      <!-- Interactive Category Filter Chips -->
+      <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.75rem;">
+        <button class="prompt-chip active-chip" id="cheatFilter_all" onclick="filterCheatsheet('all')">🌟 All Endpoints (8)</button>
+        <button class="prompt-chip" id="cheatFilter_chat" onclick="filterCheatsheet('chat')">💬 Qwen 2.5 SLM Chat</button>
+        <button class="prompt-chip" id="cheatFilter_whisper" onclick="filterCheatsheet('whisper')">🎙️ Whisper STT</button>
+        <button class="prompt-chip" id="cheatFilter_tts" onclick="filterCheatsheet('tts')">🗣️ Neural TTS Voice</button>
+        <button class="prompt-chip" id="cheatFilter_embed" onclick="filterCheatsheet('embed')">🔍 Vector Embeddings</button>
+        <button class="prompt-chip" id="cheatFilter_rerank" onclick="filterCheatsheet('rerank')">🎯 Semantic Reranker</button>
+        <button class="prompt-chip" id="cheatFilter_vision" onclick="filterCheatsheet('vision')">👁️ MediaPipe Vision Suite</button>
+        <button class="prompt-chip" id="cheatFilter_telemetry" onclick="filterCheatsheet('telemetry')">📊 Kernel Telemetry</button>
       </div>
 
-      <!-- Endpoint 2: /telemetry -->
-      <div class="endpoint-card">
-        <div class="endpoint-card-header">
-          <div class="endpoint-path">
-            <span class="method-badge method-get">GET</span>
-            <span>/telemetry</span>
+      <!-- ENDPOINTS CONTAINER -->
+      <div id="cheatsheetCardsContainer" style="display: flex; flex-direction: column; gap: 1.5rem;">
+
+        <!-- 1. QWEN 2.5 SLM CHAT -->
+        <div class="endpoint-card" data-category="chat">
+          <div class="endpoint-card-header">
+            <div class="endpoint-path">
+              <span class="method-badge method-post">POST</span>
+              <span>/v1/chat/completions</span>
+            </div>
+            <div class="feature-tags-row" style="margin: 0;">
+              <span class="feature-tag">💬 OpenAI-Compatible</span>
+              <span class="feature-tag">⚡ Real-Time SSE Stream</span>
+              <span class="feature-tag">🧠 Qwen 2.5 0.5B</span>
+            </div>
           </div>
-          <div class="feature-tags-row" style="margin: 0;">
-            <span class="feature-tag">📊 Live Hardware Data</span>
-            <span class="feature-tag">🔋 Real Battery Kernel State</span>
-          </div>
-        </div>
-        <div class="endpoint-body">
-          <p style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 0.75rem;">
-            Returns real-time dynamic hardware metrics queried directly from the Android phone subsystem:
-          </p>
-          <pre><code>{
-  "battery": {
-    "level": 60,
-    "status": "Discharging",
-    "temperature": 34.0,
-    "voltage_mv": 3850,
-    "ac_powered": false,
-    "usb_powered": false
-  },
-  "memory": {
-    "total_mb": 3790,
-    "available_mb": 2038,
-    "used_mb": 1752
-  },
-  "timestamp": 1787986672
+          <div class="endpoint-body">
+            <div style="background: rgba(56, 189, 248, 0.08); border-left: 3px solid var(--primary); padding: 0.75rem 1rem; border-radius: 0 8px 8px 0; margin-bottom: 1rem;">
+              <strong style="color: #38bdf8;">💡 Newbie 101: What is this?</strong>
+              <p style="margin: 0.25rem 0 0; font-size: 0.88rem; color: var(--text-muted); line-height: 1.4;">
+                This endpoint allows you to chat with the on-device AI just like ChatGPT! Send a list of messages, and the phone streams back tokens word-by-word at ~20 tokens/sec. Drop-in replacement for OpenAI SDK.
+              </p>
+            </div>
+
+            <h4 style="font-size: 0.82rem; text-transform: uppercase; color: var(--text-subtle); letter-spacing: 0.05em; margin-bottom: 0.4rem;">Parameters</h4>
+            <div style="overflow-x: auto;">
+              <table style="width: 100%; font-size: 0.85rem;">
+                <thead><tr><th>Field</th><th>Type</th><th>Required</th><th>Default</th><th>Description</th></tr></thead>
+                <tbody>
+                  <tr><td><code>messages</code></td><td>Array of Objects</td><td><strong style="color: var(--danger)">Yes</strong></td><td>-</td><td>Conversation history: <code>[{"role":"user","content":"Hi"}]</code></td></tr>
+                  <tr><td><code>stream</code></td><td>Boolean</td><td>No</td><td><code>false</code></td><td>Set to <code>true</code> for token-by-token Server-Sent Events (SSE) streaming</td></tr>
+                  <tr><td><code>temperature</code></td><td>Float</td><td>No</td><td><code>0.7</code></td><td>Creativity (0.0 = deterministic/coding, 1.0 = creative)</td></tr>
+                  <tr><td><code>max_tokens</code></td><td>Integer</td><td>No</td><td><code>256</code></td><td>Maximum number of words/tokens to generate</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- 1-Click Code Snippets -->
+            <div style="margin-top: 1rem;">
+              <h4 style="font-size: 0.82rem; text-transform: uppercase; color: var(--text-subtle); letter-spacing: 0.05em; margin-bottom: 0.4rem;">1-Click Drop-In Snippets</h4>
+              <div class="docs-tabs" style="font-size: 0.8rem; margin-bottom: 0.5rem;">
+                <button class="docs-tab active" onclick="switchSnippetTab(this, 'snip-chat-curl')">cURL</button>
+                <button class="docs-tab" onclick="switchSnippetTab(this, 'snip-chat-py')">Python</button>
+                <button class="docs-tab" onclick="switchSnippetTab(this, 'snip-chat-js')">JavaScript / React</button>
+              </div>
+              <div id="snip-chat-curl" class="snippet-pane active">
+                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>curl -N -X POST "https://black-term-8c36.botmaker583-55e.workers.dev/v1/chat/completions" \
+  -H "Content-Type: application/json" \
+  -d '{"messages": [{"role": "user", "content": "Explain relativity in 10 words"}], "stream": true}'</code></pre>
+              </div>
+              <div id="snip-chat-py" class="snippet-pane" style="display: none;">
+                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>import requests, json
+
+url = "https://black-term-8c36.botmaker583-55e.workers.dev/v1/chat/completions"
+payload = {"messages": [{"role": "user", "content": "Hello Qwen!"}], "stream": True}
+res = requests.post(url, json=payload, stream=True)
+
+for line in res.iter_lines(decode_unicode=True):
+    if line.startswith("data: ") and "[DONE]" not in line:
+        chunk = json.loads(line[6:])
+        print(chunk["choices"][0]["delta"].get("content", ""), end="", flush=True)</code></pre>
+              </div>
+              <div id="snip-chat-js" class="snippet-pane" style="display: none;">
+                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>const res = await fetch("https://black-term-8c36.botmaker583-55e.workers.dev/v1/chat/completions", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ messages: [{ role: "user", content: "Hello!" }], stream: true })
+});
+
+const reader = res.body.getReader();
+const decoder = new TextDecoder();
+while (true) {
+  const { done, value } = await reader.read();
+  if (done) break;
+  const chunk = decoder.decode(value);
+  for (const line of chunk.split("\n")) {
+    if (line.startsWith("data: ") && !line.includes("[DONE]")) {
+      const delta = JSON.parse(line.slice(6))?.choices?.[0]?.delta?.content;
+      if (delta) process.stdout.write(delta);
+    }
+  }
 }</code></pre>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
 
-      
-      <!-- Endpoint: /v1/rerank -->
-      <div class="endpoint-card">
-        <div class="endpoint-card-header">
-          <div class="endpoint-path">
-            <span class="method-badge method-post">POST</span>
-            <span>/v1/rerank</span>
+        <!-- 2. OPENAI WHISPER AUDIO STT -->
+        <div class="endpoint-card" data-category="whisper">
+          <div class="endpoint-card-header">
+            <div class="endpoint-path">
+              <span class="method-badge method-post">POST</span>
+              <span>/inference</span>
+            </div>
+            <div class="feature-tags-row" style="margin: 0;">
+              <span class="feature-tag">🎙️ Speech-to-Text</span>
+              <span class="feature-tag">⚡ OpenAI Whisper Base.en</span>
+              <span class="feature-tag">📁 Form-Data Audio</span>
+            </div>
           </div>
-          <div class="feature-tags-row" style="margin: 0;">
-            <span class="feature-tag">🎯 Deep Cross-Attention</span>
-            <span class="feature-tag">🧠 NLI Reranker</span>
+          <div class="endpoint-body">
+            <div style="background: rgba(16, 185, 129, 0.08); border-left: 3px solid var(--success); padding: 0.75rem 1rem; border-radius: 0 8px 8px 0; margin-bottom: 1rem;">
+              <strong style="color: #10b981;">💡 Newbie 101: What is this?</strong>
+              <p style="margin: 0.25rem 0 0; font-size: 0.88rem; color: var(--text-muted); line-height: 1.4;">
+                Send any recorded voice file (WAV, MP3, OGG, M4A) and the phone transcribes it into crystal-clear text or subtitle formats (SRT / VTT).
+              </p>
+            </div>
+
+            <h4 style="font-size: 0.82rem; text-transform: uppercase; color: var(--text-subtle); letter-spacing: 0.05em; margin-bottom: 0.4rem;">Parameters (Multipart Form-Data)</h4>
+            <div style="overflow-x: auto;">
+              <table style="width: 100%; font-size: 0.85rem;">
+                <thead><tr><th>Field</th><th>Type</th><th>Required</th><th>Default</th><th>Description</th></tr></thead>
+                <tbody>
+                  <tr><td><code>file</code></td><td>Binary Audio</td><td><strong style="color: var(--danger)">Yes</strong></td><td>-</td><td>Audio recording file stream (16kHz WAV, MP3, M4A, OGG)</td></tr>
+                  <tr><td><code>response_format</code></td><td>String</td><td>No</td><td><code>json</code></td><td>Options: <code>json</code>, <code>text</code>, <code>srt</code>, <code>vtt</code>, <code>verbose_json</code></td></tr>
+                  <tr><td><code>temperature</code></td><td>Float</td><td>No</td><td><code>0.0</code></td><td>Greedy search sampling (0.0 for highest accuracy)</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- 1-Click Code Snippets -->
+            <div style="margin-top: 1rem;">
+              <h4 style="font-size: 0.82rem; text-transform: uppercase; color: var(--text-subtle); letter-spacing: 0.05em; margin-bottom: 0.4rem;">1-Click Drop-In Snippets</h4>
+              <div class="docs-tabs" style="font-size: 0.8rem; margin-bottom: 0.5rem;">
+                <button class="docs-tab active" onclick="switchSnippetTab(this, 'snip-stt-curl')">cURL</button>
+                <button class="docs-tab" onclick="switchSnippetTab(this, 'snip-stt-py')">Python</button>
+                <button class="docs-tab" onclick="switchSnippetTab(this, 'snip-stt-js')">JavaScript / Browser</button>
+              </div>
+              <div id="snip-stt-curl" class="snippet-pane active">
+                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>curl -X POST "https://black-term-8c36.botmaker583-55e.workers.dev/inference" \
+  -F "file=@recording.wav" \
+  -F "temperature=0.0"</code></pre>
+              </div>
+              <div id="snip-stt-py" class="snippet-pane" style="display: none;">
+                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>import requests
+
+url = "https://black-term-8c36.botmaker583-55e.workers.dev/inference"
+with open("speech.wav", "rb") as f:
+    res = requests.post(url, files={"file": f}, data={"response_format": "json"})
+print("Transcription:", res.json()["text"])</code></pre>
+              </div>
+              <div id="snip-stt-js" class="snippet-pane" style="display: none;">
+                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>const formData = new FormData();
+formData.append("file", audioBlob, "audio.wav");
+
+const res = await fetch("https://black-term-8c36.botmaker583-55e.workers.dev/inference", {
+  method: "POST",
+  body: formData
+});
+const data = await res.json();
+console.log("Transcribed Text:", data.text);</code></pre>
+              </div>
+            </div>
           </div>
         </div>
-        <div class="endpoint-body">
-          <p style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 0.75rem;">
-            Deep semantic cross-encoder reranking that accurately discriminates negations, antonyms, and subject-object role swaps:
-          </p>
-          <pre><code>curl -X POST "https://black-term-8c36.botmaker583-55e.workers.dev/v1/rerank" \
+
+        <!-- 3. NEURAL TEXT-TO-SPEECH (TTS) -->
+        <div class="endpoint-card" data-category="tts">
+          <div class="endpoint-card-header">
+            <div class="endpoint-path">
+              <span class="method-badge method-post">POST</span>
+              <span>/v1/audio/speech</span>
+            </div>
+            <div class="feature-tags-row" style="margin: 0;">
+              <span class="feature-tag">🗣️ Neural Voice</span>
+              <span class="feature-tag">🔊 WAV Audio Stream</span>
+              <span class="feature-tag">⚡ Fast ARM Synthesis</span>
+            </div>
+          </div>
+          <div class="endpoint-body">
+            <div style="background: rgba(244, 63, 94, 0.08); border-left: 3px solid #f43f5e; padding: 0.75rem 1rem; border-radius: 0 8px 8px 0; margin-bottom: 1rem;">
+              <strong style="color: #f43f5e;">💡 Newbie 101: What is this?</strong>
+              <p style="margin: 0.25rem 0 0; font-size: 0.88rem; color: var(--text-muted); line-height: 1.4;">
+                Send plain text and receive back real human voice audio (WAV) directly generated on the phone CPU. Great for giving your bots a voice!
+              </p>
+            </div>
+
+            <h4 style="font-size: 0.82rem; text-transform: uppercase; color: var(--text-subtle); letter-spacing: 0.05em; margin-bottom: 0.4rem;">Parameters (JSON Body)</h4>
+            <div style="overflow-x: auto;">
+              <table style="width: 100%; font-size: 0.85rem;">
+                <thead><tr><th>Field</th><th>Type</th><th>Required</th><th>Default</th><th>Description</th></tr></thead>
+                <tbody>
+                  <tr><td><code>input</code></td><td>String</td><td><strong style="color: var(--danger)">Yes</strong></td><td>-</td><td>Text to synthesize into spoken audio</td></tr>
+                  <tr><td><code>voice</code></td><td>String</td><td>No</td><td><code>default</code></td><td>Voice personality profile</td></tr>
+                  <tr><td><code>speed</code></td><td>Float</td><td>No</td><td><code>1.0</code></td><td>Speech rate speed multiplier (0.5 to 2.0)</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- 1-Click Code Snippets -->
+            <div style="margin-top: 1rem;">
+              <h4 style="font-size: 0.82rem; text-transform: uppercase; color: var(--text-subtle); letter-spacing: 0.05em; margin-bottom: 0.4rem;">1-Click Drop-In Snippets</h4>
+              <div class="docs-tabs" style="font-size: 0.8rem; margin-bottom: 0.5rem;">
+                <button class="docs-tab active" onclick="switchSnippetTab(this, 'snip-tts-curl')">cURL</button>
+                <button class="docs-tab" onclick="switchSnippetTab(this, 'snip-tts-py')">Python</button>
+                <button class="docs-tab" onclick="switchSnippetTab(this, 'snip-tts-js')">JavaScript</button>
+              </div>
+              <div id="snip-tts-curl" class="snippet-pane active">
+                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>curl -X POST "https://black-term-8c36.botmaker583-55e.workers.dev/v1/audio/speech" \
+  -H "Content-Type: application/json" \
+  -d '{"input": "Hello world from mobile AI datacenter"}' \
+  --output speech.wav</code></pre>
+              </div>
+              <div id="snip-tts-py" class="snippet-pane" style="display: none;">
+                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>import requests
+
+url = "https://black-term-8c36.botmaker583-55e.workers.dev/v1/audio/speech"
+res = requests.post(url, json={"input": "Welcome to on-device AI!"})
+with open("output.wav", "wb") as f:
+    f.write(res.content)</code></pre>
+              </div>
+              <div id="snip-tts-js" class="snippet-pane" style="display: none;">
+                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>const res = await fetch("https://black-term-8c36.botmaker583-55e.workers.dev/v1/audio/speech", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ input: "Hello from JavaScript!" })
+});
+const audioBlob = await res.blob();
+const audioUrl = URL.createObjectURL(audioBlob);
+new Audio(audioUrl).play();</code></pre>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. DENSE VECTOR EMBEDDINGS -->
+        <div class="endpoint-card" data-category="embed">
+          <div class="endpoint-card-header">
+            <div class="endpoint-path">
+              <span class="method-badge method-post">POST</span>
+              <span>/v1/embeddings</span>
+            </div>
+            <div class="feature-tags-row" style="margin: 0;">
+              <span class="feature-tag">🔍 Dense Vectors</span>
+              <span class="feature-tag">📐 896 Dimensions</span>
+              <span class="feature-tag">🧠 BAAI BGE-Small</span>
+            </div>
+          </div>
+          <div class="endpoint-body">
+            <div style="background: rgba(168, 85, 247, 0.08); border-left: 3px solid var(--secondary); padding: 0.75rem 1rem; border-radius: 0 8px 8px 0; margin-bottom: 1rem;">
+              <strong style="color: #a855f7;">💡 Newbie 101: What is this?</strong>
+              <p style="margin: 0.25rem 0 0; font-size: 0.88rem; color: var(--text-muted); line-height: 1.4;">
+                Converts any sentence into a numerical array (896 floats). Compare two sentence vectors using cosine similarity to search documents by <em>meaning</em> rather than exact keyword matches!
+              </p>
+            </div>
+
+            <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>curl -X POST "https://black-term-8c36.botmaker583-55e.workers.dev/v1/embeddings" \
+  -H "Content-Type: application/json" \
+  -d '{"input": "Semantic vector search with mobile AI"}'</code></pre>
+          </div>
+        </div>
+
+        <!-- 5. DEEP CROSS-ATTENTION RERANKER -->
+        <div class="endpoint-card" data-category="rerank">
+          <div class="endpoint-card-header">
+            <div class="endpoint-path">
+              <span class="method-badge method-post">POST</span>
+              <span>/v1/rerank</span>
+            </div>
+            <div class="feature-tags-row" style="margin: 0;">
+              <span class="feature-tag">🎯 NLI Cross-Attention</span>
+              <span class="feature-tag">🧠 BGE Reranker-Base</span>
+              <span class="feature-tag">🏆 Document Scoring</span>
+            </div>
+          </div>
+          <div class="endpoint-body">
+            <div style="background: rgba(245, 158, 11, 0.08); border-left: 3px solid var(--warning); padding: 0.75rem 1rem; border-radius: 0 8px 8px 0; margin-bottom: 1rem;">
+              <strong style="color: #f59e0b;">💡 Newbie 101: What is this?</strong>
+              <p style="margin: 0.25rem 0 0; font-size: 0.88rem; color: var(--text-muted); line-height: 1.4;">
+                Takes a question and candidate search results, compares them cross-attentively, and scores them from 0.0 to 1.0. Eliminates hallucinated search results and catches contradictions!
+              </p>
+            </div>
+
+            <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>curl -X POST "https://black-term-8c36.botmaker583-55e.workers.dev/v1/rerank" \
   -H "Content-Type: application/json" \
   -d '{
-    "query": "The company decided to approve the investment proposal.",
+    "query": "The company approved the investment proposal.",
     "documents": [
-      "The company decided to reject the investment proposal.",
-      "The board voted in favor of funding the venture."
+      "The board voted in favor of funding the venture.",
+      "The company rejected the investment proposal."
     ]
   }'</code></pre>
-        </div>
-      </div>
-
-      <!-- Endpoint 3: /load -->
-      <div class="endpoint-card">
-        <div class="endpoint-card-header">
-          <div class="endpoint-path">
-            <span class="method-badge method-post">POST</span>
-            <span>/load</span>
-          </div>
-          <div class="feature-tags-row" style="margin: 0;">
-            <span class="feature-tag">🧠 Model Switcher</span>
-            <span class="feature-tag">📦 In-Memory</span>
           </div>
         </div>
-        <div class="endpoint-body">
-          <p style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 0.75rem;">
-            Hot-swaps model weights dynamically in phone RAM without restarting the background server daemon.
-          </p>
-          <pre><code>curl -X POST "https://black-term-8c36.botmaker583-55e.workers.dev/load" \
-  -F "model=models/ggml-tiny.en.bin"</code></pre>
+
+        <!-- 6. GOOGLE MEDIAPIPE VISION & SPATIAL AI SUITE -->
+        <div class="endpoint-card" data-category="vision">
+          <div class="endpoint-card-header">
+            <div class="endpoint-path">
+              <span class="method-badge method-post">POST</span>
+              <span>/v1/vision/{task}</span>
+            </div>
+            <div class="feature-tags-row" style="margin: 0;">
+              <span class="feature-tag">📸 Static Image</span>
+              <span class="feature-tag">🎥 Video Keyframe Sequence</span>
+              <span class="feature-tag">🔴 Live WebCam Stream</span>
+              <span class="feature-tag">⚡ Sub-10ms ARM</span>
+            </div>
+          </div>
+          <div class="endpoint-body">
+            <div style="background: rgba(6, 182, 212, 0.08); border-left: 3px solid #06b6d4; padding: 0.75rem 1rem; border-radius: 0 8px 8px 0; margin-bottom: 1rem;">
+              <strong style="color: #06b6d4;">💡 Newbie 101: What is this?</strong>
+              <p style="margin: 0.25rem 0 0; font-size: 0.88rem; color: var(--text-muted); line-height: 1.4;">
+                On-device Computer Vision suite supporting <strong>Static Images</strong>, <strong>Video Files</strong>, and <strong>Real-Time Live WebCam Streams</strong>. Tracks 33-point body skeletons, 21-point hand landmarks, 468-point 3D face meshes, and portrait bokeh background blur in under 10ms!
+              </p>
+            </div>
+
+            <p style="font-size: 0.85rem; color: var(--text-subtle); margin-bottom: 0.5rem;">
+              Replace <code>{task}</code> in the URL with any of: <code>face-detection</code>, <code>hand-landmarks</code>, <code>pose-landmarks</code>, <code>face-mesh</code>, <code>selfie-segmentation</code>, <code>background-blur</code>, <code>object-detection</code>, <code>holistic</code>.
+            </p>
+
+            <!-- 1-Click Code Snippets -->
+            <div style="margin-top: 1rem;">
+              <h4 style="font-size: 0.82rem; text-transform: uppercase; color: var(--text-subtle); letter-spacing: 0.05em; margin-bottom: 0.4rem;">3 Input Modality Examples</h4>
+              <div class="docs-tabs" style="font-size: 0.8rem; margin-bottom: 0.5rem;">
+                <button class="docs-tab active" onclick="switchSnippetTab(this, 'snip-vis-img')">📸 Static Image</button>
+                <button class="docs-tab" onclick="switchSnippetTab(this, 'snip-vis-vid')">🎥 Video Sequence</button>
+                <button class="docs-tab" onclick="switchSnippetTab(this, 'snip-vis-cam')">🔴 Live WebCam Frame</button>
+              </div>
+              <div id="snip-vis-img" class="snippet-pane active">
+                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>curl -X POST "https://black-term-8c36.botmaker583-55e.workers.dev/v1/vision/face-detection" \
+  -H "Content-Type: application/json" \
+  -d '{"task": "face_detection", "image_base64": "data:image/jpeg;base64,..."}'</code></pre>
+              </div>
+              <div id="snip-vis-vid" class="snippet-pane" style="display: none;">
+                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code># Video Keyframe Sequence Analysis (33-Point Pose Tracking)
+curl -X POST "https://black-term-8c36.botmaker583-55e.workers.dev/v1/vision/pose-landmarks" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "task": "pose_landmarks",
+    "frames_base64": ["data:image/jpeg;base64,...", "data:image/jpeg;base64,..."],
+    "params": {"fps": 15}
+  }'</code></pre>
+              </div>
+              <div id="snip-vis-cam" class="snippet-pane" style="display: none;">
+                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>// Real-Time Live WebCam Frame Stream (JavaScript)
+const frameB64 = canvasElement.toDataURL("image/jpeg", 0.65);
+const res = await fetch("https://black-term-8c36.botmaker583-55e.workers.dev/v1/vision/face-mesh", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ task: "face_mesh", image_base64: frameB64, is_live_stream: true })
+});
+const data = await res.json();
+console.log(`Live 468-pt Mesh computed in ${data.inference_time_ms}ms`);</code></pre>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 7. HARDWARE TELEMETRY -->
+        <div class="endpoint-card" data-category="telemetry">
+          <div class="endpoint-card-header">
+            <div class="endpoint-path">
+              <span class="method-badge method-get">GET</span>
+              <span>/telemetry</span>
+            </div>
+            <div class="feature-tags-row" style="margin: 0;">
+              <span class="feature-tag">🔋 Real Hardware State</span>
+              <span class="feature-tag">🧠 Linux Kernel /proc</span>
+              <span class="feature-tag">🌡️ Zero-Hardcoding</span>
+            </div>
+          </div>
+          <div class="endpoint-body">
+            <div style="background: rgba(16, 185, 129, 0.08); border-left: 3px solid #10b981; padding: 0.75rem 1rem; border-radius: 0 8px 8px 0; margin-bottom: 1rem;">
+              <strong style="color: #10b981;">💡 Newbie 101: What is this?</strong>
+              <p style="margin: 0.25rem 0 0; font-size: 0.88rem; color: var(--text-muted); line-height: 1.4;">
+                Returns 100% genuine real-time hardware telemetry directly from the Android Linux kernel: exact battery percentage, temperature, voltage, free RAM, CPU load, and active processes.
+              </p>
+            </div>
+
+            <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>curl -s "https://black-term-8c36.botmaker583-55e.workers.dev/telemetry"</code></pre>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- 🛠️ BEGINNER STARTER RECIPES -->
+      <div style="margin-top: 3rem; background: rgba(10, 15, 30, 0.7); border: 1px solid var(--card-border); border-radius: 16px; padding: 1.5rem;">
+        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+          <span style="font-size: 1.25rem;">🛠️</span>
+          <h3 style="font-size: 1.15rem; color: #fff; margin: 0;">Pre-Built 100% On-Device Recipes for Newbies</h3>
+        </div>
+        <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 1.25rem;">
+          Combine multiple models into complete end-to-end applications in under 20 lines of code:
+        </p>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem;">
+          <!-- Recipe 1 -->
+          <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--card-border); border-radius: 10px; padding: 1rem;">
+            <div style="font-weight: 700; color: #38bdf8; font-size: 0.95rem; margin-bottom: 0.4rem;">🎙️ Full Voice AI Assistant</div>
+            <p style="font-size: 0.82rem; color: var(--text-muted); line-height: 1.4; margin-bottom: 0.75rem;">
+              Capture audio $	o$ Transcribe with Whisper $	o$ Reason with Qwen SLM $	o$ Speak reply with Neural TTS.
+            </p>
+            <pre style="font-size: 0.75rem; max-height: 140px;"><code># Python Voice Pipeline
+txt = transcribe("user.wav")["text"]
+reply = "".join(list(chat(txt, stream=True)))
+text_to_speech(reply, "reply.wav")</code></pre>
+          </div>
+
+          <!-- Recipe 2 -->
+          <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--card-border); border-radius: 10px; padding: 1rem;">
+            <div style="font-weight: 700; color: #a855f7; font-size: 0.95rem; margin-bottom: 0.4rem;">📚 Smart Semantic Document RAG</div>
+            <p style="font-size: 0.82rem; color: var(--text-muted); line-height: 1.4; margin-bottom: 0.75rem;">
+              Vector Embeddings $	o$ Cosine Similarity Search $	o$ Cross-Attention Reranking $	o$ Accurate Grounded Answers.
+            </p>
+            <pre style="font-size: 0.75rem; max-height: 140px;"><code># RAG Pipeline
+q_vec = embed_text("What is quantum computing?")
+ranked = rerank(query, candidate_docs)
+ans = chat(f"Context: {ranked[0]}\nQuestion: {query}")</code></pre>
+          </div>
+
+          <!-- Recipe 3 -->
+          <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--card-border); border-radius: 10px; padding: 1rem;">
+            <div style="font-weight: 700; color: #10b981; font-size: 0.95rem; margin-bottom: 0.4rem;">👁️ Real-Time Gesture Controller</div>
+            <p style="font-size: 0.82rem; color: var(--text-muted); line-height: 1.4; margin-bottom: 0.75rem;">
+              Stream webcam frames $	o$ Detect 21 hand joints $	o$ Trigger custom UI gestures or drone controls in $<8	ext{ms}$.
+            </p>
+            <pre style="font-size: 0.75rem; max-height: 140px;"><code># Hand Tracking
+const res = await detectVision(frameB64, "hand_landmarks", true);
+if (res.hands && res.hands[0]) {
+  const indexTip = res.hands[0].landmarks[8];
+  moveVirtualCursor(indexTip.x, indexTip.y);
+}</code></pre>
+          </div>
         </div>
       </div>
-    </section>
-
-    <!-- LIVE TELEMETRY & HARDWARE OPERATIONS DASHBOARD (100% REAL & DYNAMIC) -->
+    </section><!-- LIVE TELEMETRY & HARDWARE OPERATIONS DASHBOARD (100% REAL & DYNAMIC) -->
     <section id="telemetry">
       <div class="section-head">
         <span class="section-tag">
@@ -4144,6 +4422,57 @@ bash mobile/start_ai.sh</code></pre>
         ctx.fillRect(0, 0, c.width, c.height);
       }
     }, 500);
+
+
+    // =========================================================================
+    // ⚡ INTERACTIVE API CHEATSHEET FILTER & CODE TAB SWITCHER
+    // =========================================================================
+    function filterCheatsheet(category) {
+      const chips = [
+        'all', 'chat', 'whisper', 'tts', 'embed', 'rerank', 'vision', 'telemetry'
+      ];
+      chips.forEach(c => {
+        const btn = document.getElementById(`cheatFilter_${c}`);
+        if (btn) {
+          if (c === category) {
+            btn.classList.add('active-chip');
+            btn.style.background = 'rgba(56, 189, 248, 0.2)';
+            btn.style.borderColor = 'var(--primary)';
+            btn.style.color = '#fff';
+          } else {
+            btn.classList.remove('active-chip');
+            btn.style.background = 'rgba(255, 255, 255, 0.05)';
+            btn.style.borderColor = 'var(--card-border)';
+            btn.style.color = 'var(--text-muted)';
+          }
+        }
+      });
+
+      const cards = document.querySelectorAll('#cheatsheetCardsContainer .endpoint-card');
+      cards.forEach(card => {
+        const cat = card.getAttribute('data-category');
+        if (category === 'all' || cat === category) {
+          card.style.display = 'block';
+        } else {
+          card.style.display = 'none';
+        }
+      });
+    }
+    window.filterCheatsheet = filterCheatsheet;
+
+    function switchSnippetTab(btn, paneId) {
+      const parent = btn.closest('.endpoint-body');
+      if (!parent) return;
+      const tabs = parent.querySelectorAll('.docs-tab');
+      tabs.forEach(t => t.classList.remove('active'));
+      btn.classList.add('active');
+
+      const panes = parent.querySelectorAll('.snippet-pane');
+      panes.forEach(p => p.style.display = 'none');
+      const targetPane = document.getElementById(paneId);
+      if (targetPane) targetPane.style.display = 'block';
+    }
+    window.switchSnippetTab = switchSnippetTab;
 
   </script>
 </body>
