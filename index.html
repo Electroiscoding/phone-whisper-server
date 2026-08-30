@@ -5357,52 +5357,66 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       } catch (err) {}
     }
 
+    let swadesStreamRetryCount = 0;
+
     function connectSwadeStream(jobId) {
       if (swadesActiveStream) {
         swadesActiveStream.close();
+        swadesActiveStream = null;
       }
       swadesCurrentJobId = jobId;
+      swadesStreamRetryCount = 0;
       
       const terminal = document.getElementById('swadesTerminal');
       const statusBadge = document.getElementById('swadesStreamStatus');
       
-      terminal.innerHTML = `<div style="color: var(--text-muted); font-style: italic;">Connecting to logs for job ${jobId.substring(0,8)}...</div>`;
-      
-      statusBadge.innerText = 'Connecting...';
-      statusBadge.style.color = 'var(--warning)';
-      statusBadge.style.borderColor = 'rgba(245,158,11,0.3)';
+      statusBadge.innerText = 'Streaming...';
+      statusBadge.style.color = 'var(--primary)';
+      statusBadge.style.borderColor = 'rgba(56,189,248,0.3)';
 
-      swadesActiveStream = new EventSource(`${BASE_ENDPOINT}/v1/agent/stream/${jobId}`);
+      try {
+        swadesActiveStream = new EventSource(`${BASE_ENDPOINT}/v1/agent/stream/${jobId}`);
 
-      swadesActiveStream.onopen = () => {
-        statusBadge.innerText = 'Connected';
-        statusBadge.style.color = 'var(--success)';
-        statusBadge.style.borderColor = 'rgba(16,185,129,0.3)';
-        terminal.innerHTML = '';
-      };
+        swadesActiveStream.onopen = () => {
+          statusBadge.innerText = 'Live Streaming';
+          statusBadge.style.color = 'var(--success)';
+          statusBadge.style.borderColor = 'rgba(16,185,129,0.3)';
+        };
 
-      swadesActiveStream.onmessage = (e) => {
-        try {
-          const log = JSON.parse(e.data);
-          appendSwadeLog(log, terminal);
-        } catch (err) {}
-      };
+        swadesActiveStream.onmessage = (e) => {
+          try {
+            const parsed = JSON.parse(e.data);
+            if (parsed.status === 'FINAL') {
+              statusBadge.innerText = 'Completed';
+              statusBadge.style.color = 'var(--success)';
+              if (swadesActiveStream) {
+                swadesActiveStream.close();
+                swadesActiveStream = null;
+              }
+              refreshSwadeJobs();
+              return;
+            }
+            appendSwadeLog(parsed, terminal);
+          } catch (err) {}
+        };
 
-      swadesActiveStream.onerror = () => {
-        statusBadge.innerText = 'Disconnected';
-        statusBadge.style.color = 'var(--danger)';
-        statusBadge.style.borderColor = 'rgba(239,68,68,0.3)';
-        swadesActiveStream.close();
-        
-        setTimeout(() => {
-          if (swadesCurrentJobId === jobId) {
-            connectSwadeStream(jobId);
+        swadesActiveStream.onerror = () => {
+          if (swadesActiveStream) {
+            swadesActiveStream.close();
+            swadesActiveStream = null;
           }
-        }, 3000);
-      };
+          statusBadge.innerText = 'Done';
+          statusBadge.style.color = 'var(--text-muted)';
+          statusBadge.style.borderColor = 'rgba(255,255,255,0.1)';
+        };
+      } catch (err) {
+        statusBadge.innerText = 'Offline';
+        statusBadge.style.color = 'var(--text-muted)';
+      }
     }
 
     function appendSwadeLog(log, terminal) {
+      if (!log) return;
       const entry = document.createElement('div');
       entry.style.display = 'flex';
       entry.style.gap = '0.5rem';
@@ -5410,32 +5424,45 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       const ts = new Date(log.timestamp || Date.now()).toLocaleTimeString([], {hour12: false});
       let content = '';
       let color = 'var(--text)';
+      const type = (log.type || '').toLowerCase();
       
-      if (log.type === 'THINKING') {
+      let rawData = log.data;
+      if (typeof rawData === 'string') {
+        try { rawData = JSON.parse(rawData); } catch(e) {}
+      }
+
+      if (type === 'thinking') {
         color = 'var(--primary)'; // cyan
-        content = `💭 ${log.content}`;
-      } else if (log.type === 'TOOL_CALL') {
-        color = 'var(--warning)'; // yellow
-        content = `🔧 ${log.tool} (${JSON.stringify(log.args)})`;
-      } else if (log.type === 'TOOL_RESULT') {
+        content = `💭 ${typeof rawData === 'string' ? rawData : (rawData?.data || JSON.stringify(rawData))}`;
+      } else if (type === 'tool_call') {
+        color = '#f59e0b'; // yellow
+        const toolName = rawData?.name || log.tool || 'tool';
+        const toolArgs = rawData?.args ? JSON.stringify(rawData.args) : '';
+        content = `🔧 ${toolName} ${toolArgs}`;
+      } else if (type === 'tool_result') {
         color = 'var(--success)'; // green
-        let resText = log.result || '';
-        if (resText.length > 200) resText = resText.substring(0, 200) + '...';
-        content = `✅ ${resText}`;
-      } else if (log.type === 'ERROR') {
+        const toolName = rawData?.name || '';
+        let resText = rawData?.output || log.result || (typeof rawData === 'string' ? rawData : JSON.stringify(rawData));
+        if (typeof resText === 'string' && resText.length > 250) resText = resText.substring(0, 250) + '...';
+        content = `✅ [${toolName}] ${resText}`;
+      } else if (type === 'error') {
         color = 'var(--danger)'; // red
-        content = `❌ ${log.error}`;
-      } else if (log.type === 'COMPLETE') {
-        color = '#10b981'; // bright green
-        content = `🎉 ${log.content}`;
+        const errMsg = rawData?.message || log.error || (typeof rawData === 'string' ? rawData : JSON.stringify(rawData));
+        content = `❌ ${errMsg}`;
+      } else if (type === 'status') {
+        color = '#38bdf8'; // sky blue
+        content = `ℹ️ ${typeof rawData === 'string' ? rawData : (rawData?.data || JSON.stringify(rawData))}`;
+      } else if (type === 'complete') {
+        color = '#10b981'; // bright emerald
+        content = `🎉 Task Completed! ${typeof rawData === 'string' ? rawData : (rawData?.summary || '')}`;
       } else {
-        content = log.content || JSON.stringify(log);
+        content = typeof rawData === 'string' ? rawData : JSON.stringify(rawData || log);
       }
 
       entry.innerHTML = `<span style="color: var(--text-muted); flex-shrink: 0;">[${ts}]</span> <span style="color: ${color}; word-break: break-all;">${content}</span>`;
       terminal.appendChild(entry);
       
-      while (terminal.children.length > 200) {
+      while (terminal.children.length > 250) {
         terminal.removeChild(terminal.firstChild);
       }
       
@@ -5451,9 +5478,24 @@ python3 mobile/nuclear_watchdog.py</code></pre>
 
     async function viewSwadeLogs(jobId) {
       const terminal = document.getElementById('swadesTerminal');
-      terminal.innerHTML = '<div style="color: var(--text-muted); font-style: italic;">Fetching historical logs...</div>';
+      const statusBadge = document.getElementById('swadesStreamStatus');
       
+      terminal.innerHTML = `<div style="color: var(--text-muted); font-style: italic;">Loading logs for job ${jobId.substring(0,8)}...</div>`;
+      if (statusBadge) {
+        statusBadge.innerText = 'Loading...';
+        statusBadge.style.color = 'var(--primary)';
+      }
+      
+      let jobStatus = null;
       try {
+        // 1. Fetch job status to check if it is active or completed
+        const statRes = await fetch(`${BASE_ENDPOINT}/v1/agent/status/${jobId}`);
+        if (statRes.ok) {
+          const jobData = await statRes.json();
+          jobStatus = jobData.status;
+        }
+
+        // 2. Fetch all historical log entries
         const res = await fetch(`${BASE_ENDPOINT}/v1/agent/logs/${jobId}`);
         if (res.ok) {
           const data = await res.json();
@@ -5461,14 +5503,22 @@ python3 mobile/nuclear_watchdog.py</code></pre>
           if (data.logs && data.logs.length) {
             data.logs.forEach(log => appendSwadeLog(log, terminal));
           } else {
-            terminal.innerHTML = '<div style="color: var(--text-muted); font-style: italic;">No logs found.</div>';
+            terminal.innerHTML = `<div style="color: var(--text-muted); font-style: italic;">No logs recorded yet for job ${jobId.substring(0,8)}.</div>`;
           }
         }
       } catch (e) {
-        terminal.innerHTML = '<div style="color: var(--danger);">Failed to fetch logs.</div>';
+        terminal.innerHTML = `<div style="color: var(--danger);">Failed to fetch logs: ${e.message}</div>`;
       }
 
-      connectSwadeStream(jobId);
+      // 3. Only connect live stream if job is currently running or queued
+      if (jobStatus === 'RUNNING' || jobStatus === 'CLONING' || jobStatus === 'QUEUED') {
+        connectSwadeStream(jobId);
+      } else {
+        if (statusBadge) {
+          statusBadge.innerText = jobStatus ? `Status: ${jobStatus}` : 'Done';
+          statusBadge.style.color = jobStatus === 'COMPLETED' ? 'var(--success)' : (jobStatus === 'FAILED' ? 'var(--danger)' : 'var(--text-muted)');
+        }
+      }
     }
     
     window.addEventListener('DOMContentLoaded', () => {
