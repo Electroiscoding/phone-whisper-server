@@ -34,6 +34,11 @@ import urllib.parse
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from socketserver import ThreadingMixIn
 
+
+GITHUB_CLIENT_ID = "Ov23lirb9l4pdAZ5DEeq"
+GITHUB_CLIENT_SECRET = "0ac12d9986579d6baa2b5396b33cb42430712275"
+
+
 TELEMETRY_PATHS = [
     "/data/local/tmp/battery_telemetry.json",
     "/sdcard/battery_telemetry.json",
@@ -901,6 +906,12 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_agent_stream(job_id)
         elif path == '/v1/agent/jobs':
             self.handle_agent_list_jobs()
+        elif path == '/auth/github/login':
+            self.handle_github_login()
+        elif path.startswith('/auth/github/callback'):
+            self.handle_github_callback()
+        elif path == '/auth/github/user-repos':
+            self.handle_github_user_repos()
         else:
             self.send_error(404, f"Unknown endpoint: {path}")
 
@@ -938,6 +949,141 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.send_error(404, f"Unknown endpoint: {path}")
 
 
+
+
+    # =========================================================================
+    # 🐙 GITHUB OAUTH HANDLERS
+    # =========================================================================
+    def handle_github_login(self):
+        auth_url = f"https://github.com/login/oauth/authorize?client_id={GITHUB_CLIENT_ID}&scope=repo,read:user"
+        self.send_response(302)
+        self._send_cors_headers()
+        self.send_header("Location", auth_url)
+        self.end_headers()
+
+    def handle_github_callback(self):
+        parsed = urllib.parse.urlparse(self.path)
+        qs = urllib.parse.parse_qs(parsed.query)
+        code = qs.get("code", [None])[0]
+
+        if not code:
+            self.send_error(400, "Missing OAuth code from GitHub")
+            return
+
+        try:
+            # 1. Exchange code for access token
+            token_payload = json.dumps({
+                "client_id": GITHUB_CLIENT_ID,
+                "client_secret": GITHUB_CLIENT_SECRET,
+                "code": code
+            }).encode()
+
+            req = urllib.request.Request(
+                "https://github.com/login/oauth/access_token",
+                data=token_payload,
+                headers={
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                    "User-Agent": "SwadesAgent/1.0"
+                }
+            )
+
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                token_data = json.loads(resp.read().decode())
+
+            access_token = token_data.get("access_token")
+            if not access_token:
+                self.send_error(400, f"OAuth token exchange failed: {token_data.get('error_description', 'unknown error')}")
+                return
+
+            # 2. Fetch authenticated user profile
+            user_profile = {"login": "github_user", "avatar_url": ""}
+            try:
+                user_req = urllib.request.Request(
+                    "https://api.github.com/user",
+                    headers={
+                        "Authorization": f"Bearer {access_token}",
+                        "User-Agent": "SwadesAgent/1.0",
+                        "Accept": "application/vnd.github.v3+json"
+                    }
+                )
+                with urllib.request.urlopen(user_req, timeout=10) as user_resp:
+                    user_profile = json.loads(user_resp.read().decode())
+            except Exception:
+                pass
+
+            auth_payload = json.dumps({
+                "token": access_token,
+                "username": user_profile.get("login", "github_user"),
+                "avatar": user_profile.get("avatar_url", ""),
+                "name": user_profile.get("name") or user_profile.get("login", "github_user")
+            })
+
+            html_page = f"""<!DOCTYPE html>
+<html>
+<head>
+  <title>GitHub Connected to Swades Agent</title>
+  <style>
+    body {{ background: #07090e; color: #38bdf8; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; text-align: center; }}
+    .box {{ background: rgba(16, 22, 38, 0.9); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 16px; padding: 2rem; max-width: 400px; }}
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h2>🐙 GitHub Connected!</h2>
+    <p>Logged in as <strong>@{user_profile.get('login', 'github_user')}</strong></p>
+    <p style="font-size: 0.85rem; color: #94a3b8;">Redirecting back to Swades Agent...</p>
+  </div>
+  <script>
+    const auth = {auth_payload};
+    try {{
+      localStorage.setItem("swades_gh_auth", JSON.stringify(auth));
+      if (window.opener && !window.opener.closed) {{
+        window.opener.postMessage({{ type: "SWADES_GITHUB_AUTH", auth: auth }}, "*");
+        setTimeout(() => window.close(), 600);
+      }} else {{
+        window.location.href = "https://phone-whisper-server.pages.dev/#swades-studio";
+      }}
+    }} catch (e) {{
+      window.location.href = "https://phone-whisper-server.pages.dev/#swades-studio";
+    }}
+  </script>
+</body>
+</html>"""
+
+            self.send_response(200)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(html_page.encode())
+        except Exception as err:
+            self.send_error(500, f"GitHub authentication failed: {err}")
+
+    def handle_github_user_repos(self):
+        auth_header = self.headers.get("Authorization")
+        if not auth_header:
+            self.send_error(401, "Missing Authorization header")
+            return
+
+        try:
+            req = urllib.request.Request(
+                "https://api.github.com/user/repos?sort=updated&per_page=30",
+                headers={
+                    "Authorization": auth_header,
+                    "User-Agent": "SwadesAgent/1.0",
+                    "Accept": "application/vnd.github.v3+json"
+                }
+            )
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                data = resp.read()
+
+            self.send_response(200)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(data)
+        except Exception as err:
+            self.send_error(500, f"Failed to fetch repositories: {err}")
 
     def handle_agent_submit(self):
         try:
