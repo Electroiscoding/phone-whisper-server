@@ -3,20 +3,21 @@ import path from 'path';
 import { parseGitHubUrl, cloneRepo, createBranch, configureGit, commitAll, pushBranch, openPullRequest, getDefaultBranch } from './github.js';
 import { runAgent } from './agent.js';
 
-function buildPRBody(result) {
-  return `## 🤖 Swades Agent — Automated Changes
+function buildPRBody(result, task) {
+  return `## 🤖 Swades Agent — Automated PR
 
-**Task:** ${process.env.TASK_ORIG || 'Automated code change'}
+**Task:** ${task || 'Automated code changes'}
 
-**Summary:** ${result.summary}
+### 📋 Summary:
+${result.summary || 'Completed autonomous task execution.'}
 
-**Files Changed:**
-${result.filesChanged.map(f => `- ${f}`).join('\n') || '- No files modified'}
+### 📁 Files Changed:
+${(result.filesChanged && result.filesChanged.length > 0) ? result.filesChanged.map(f => `- \`${f}\``).join('\n') : '- `SWADES_REPORT.md` (Analysis Report)'}
 
-**Steps Taken:** ${result.totalSteps}
+**Total Reasoning Steps:** ${result.totalSteps || 1}
 
 ---
-*This PR was generated automatically by [Swades Agent](https://phone-whisper-server.pages.dev/#swades-studio) running in-memory on a self-hosted Android phone.*`;
+*Generated automatically by [Swades Agent](https://phone-whisper-server.pages.dev/#swades-studio) running on a self-hosted phone server.*`;
 }
 
 async function sendInternalEvent(jobId, eventType, data, stepNumber = null) {
@@ -57,7 +58,6 @@ async function main() {
   
   const jobId = args[jobIdx + 1];
   
-  // Ephemeral scratch directory in Termux home (auto-purged immediately on complete/fail)
   const homeDir = process.env.HOME || '/data/data/com.termux/files/home';
   const tempBase = path.join(homeDir, '.swades_scratch');
   const workspaceDir = path.join(tempBase, jobId, 'workspace');
@@ -83,6 +83,7 @@ async function main() {
     process.exit(1);
   }
   
+  const githubPat = job.github_pat || job.github_token || null;
   process.env.TASK_ORIG = job.task;
   
   const onEvent = async (event) => {
@@ -96,21 +97,21 @@ async function main() {
     
     fs.mkdirSync(workspaceDir, { recursive: true });
     
-    const cloneRes = cloneRepo(job.repo_url, workspaceDir, job.github_pat);
+    const cloneRes = cloneRepo(job.repo_url, workspaceDir, githubPat);
     if (!cloneRes.success) {
       throw new Error(`Clone failed: ${cloneRes.error}`);
     }
     
     configureGit(workspaceDir);
     const { owner, repo } = parseGitHubUrl(job.repo_url);
-    const defaultBranch = await getDefaultBranch({ owner, repo, pat: job.github_pat });
+    const defaultBranch = await getDefaultBranch({ owner, repo, pat: githubPat });
     
     const branchName = `swades/${jobId.slice(0, 8)}`;
     createBranch(workspaceDir, branchName);
     
     // 2. AGENT PHASE
-    await updateJobStatus(jobId, { status: 'RUNNING', started_at: new Date().toISOString() });
-    await onEvent({ type: 'status', data: 'Agent running in-memory' });
+    await updateJobStatus(jobId, { status: 'RUNNING', started_at: new Date().toISOString(), branch_name: branchName });
+    await onEvent({ type: 'status', data: `Agent running in-memory (${job.model || 'qwen2.5'})` });
     
     const context = {
       workdir: workspaceDir,
@@ -124,31 +125,63 @@ async function main() {
     const result = await runAgent(context, job.task);
     
     // 3. PR PHASE
-    await onEvent({ type: 'status', data: 'Creating PR' });
-    commitAll(workspaceDir, 'feat: ' + job.task.slice(0, 72));
-    pushBranch(workspaceDir, branchName, job.github_pat, job.repo_url);
-    
-    const pr = await openPullRequest({
-      owner,
-      repo,
-      head: branchName,
-      base: defaultBranch,
-      title: 'Swades Agent: ' + job.task.slice(0, 100),
-      body: buildPRBody(result),
-      pat: job.github_pat
-    });
-    
-    await updateJobStatus(jobId, {
-      status: 'COMPLETED',
-      completed_at: new Date().toISOString(),
-      pr_url: pr.pr_url,
-      pr_number: pr.pr_number,
-      files_changed: JSON.stringify(result.filesChanged),
-      total_steps: result.totalSteps
-    });
-    
-    await onEvent({ type: 'complete', data: { pr_url: pr.pr_url, summary: result.summary } });
-    console.log(`Job ${jobId} completed successfully. PR: ${pr.pr_url}`);
+    if (githubPat) {
+      await onEvent({ type: 'status', data: 'Pushing changes to GitHub branch' });
+      
+      // If no files modified, create a report file
+      if (!result.filesChanged || result.filesChanged.length === 0) {
+        const reportPath = path.join(workspaceDir, 'SWADES_REPORT.md');
+        fs.writeFileSync(reportPath, `# 🤖 Swades Agent Report\n\n**Task:** ${job.task}\n\n## Findings & Summary\n\n${result.summary || 'Task completed successfully.'}\n`, 'utf8');
+        result.filesChanged = ['SWADES_REPORT.md'];
+      }
+      
+      commitAll(workspaceDir, `feat(swades): ${job.task.slice(0, 70)}`);
+      
+      const pushRes = pushBranch(workspaceDir, branchName, githubPat, job.repo_url);
+      if (!pushRes.success) {
+        await onEvent({ type: 'status', data: `⚠️ Git push note: ${pushRes.error}` });
+      }
+      
+      await onEvent({ type: 'status', data: 'Opening GitHub Pull Request' });
+      const pr = await openPullRequest({
+        owner,
+        repo,
+        head: branchName,
+        base: defaultBranch,
+        title: `Swades Agent: ${job.task.slice(0, 80)}`,
+        body: buildPRBody(result, job.task),
+        pat: githubPat
+      });
+      
+      if (pr.pr_url) {
+        await updateJobStatus(jobId, {
+          status: 'COMPLETED',
+          completed_at: new Date().toISOString(),
+          pr_url: pr.pr_url,
+          pr_number: pr.pr_number,
+          files_changed: JSON.stringify(result.filesChanged),
+          total_steps: result.totalSteps
+        });
+        await onEvent({ type: 'complete', data: { pr_url: pr.pr_url, summary: result.summary } });
+        console.log(`Job ${jobId} completed successfully. PR: ${pr.pr_url}`);
+      } else {
+        await updateJobStatus(jobId, {
+          status: 'COMPLETED',
+          completed_at: new Date().toISOString(),
+          files_changed: JSON.stringify(result.filesChanged),
+          total_steps: result.totalSteps
+        });
+        await onEvent({ type: 'complete', data: { summary: result.summary, note: pr.error || 'No PR created (check permissions)' } });
+      }
+    } else {
+      await updateJobStatus(jobId, {
+        status: 'COMPLETED',
+        completed_at: new Date().toISOString(),
+        files_changed: JSON.stringify(result.filesChanged),
+        total_steps: result.totalSteps
+      });
+      await onEvent({ type: 'complete', data: { summary: result.summary, note: 'Login with GitHub to enable automatic Pull Requests.' } });
+    }
     
   } catch (err) {
     await updateJobStatus(jobId, { status: 'FAILED', error_message: err.message });
