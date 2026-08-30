@@ -378,10 +378,10 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
 
         # 1. Real Battery Data from System Poller
         battery_data = {
-            "level": 46,
-            "status": "Discharging",
-            "temperature": 33.4,
-            "voltage_mv": 3758,
+            "level": None,
+            "status": "Unknown",
+            "temperature": 0.0,
+            "voltage_mv": 0,
             "ac_powered": False,
             "usb_powered": False
         }
@@ -391,12 +391,12 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                     with open(p, "r") as f:
                         raw = json.load(f)
                         b = raw.get("battery", raw)
-                        if "level" in b:
+                        if "level" in b and b["level"] is not None:
                             battery_data = {
                                 "level": int(b["level"]),
                                 "status": str(b.get("status", "Discharging")),
-                                "temperature": float(b.get("temperature", 33.0)),
-                                "voltage_mv": int(str(b.get("voltage_mv", 3800)).split()[-1]),
+                                "temperature": float(b.get("temperature", 0.0)),
+                                "voltage_mv": int(str(b.get("voltage_mv", 0)).split()[-1]),
                                 "ac_powered": bool(b.get("ac_powered", False)),
                                 "usb_powered": bool(b.get("usb_powered", False))
                             }
