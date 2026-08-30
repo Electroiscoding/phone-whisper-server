@@ -12,99 +12,20 @@ killall -9 whisper-server llama-server cloudflared python3 2>/dev/null || true
 pkill -f start_ai.sh 2>/dev/null || true
 sleep 1
 
-# 3. Start Whisper-Server on Port 8000 (OpenAI Whisper Base.en Q5_1 - High Accuracy STT)
-(
-  while true; do
-    if ! pgrep -f "8000" > /dev/null; then
-      echo "$(date): Starting Whisper-Server (Base.en Q5_1 on :8000)..." >> $HOME/whisper_server.log
-      $HOME/whisper.cpp/build/bin/whisper-server \
-        -m $HOME/whisper.cpp/models/ggml-base.en-q5_1.bin \
-        --port 8000 \
-        --host 127.0.0.1 \
-        -t 4 \
-        --no-timestamps >> $HOME/whisper_server.log 2>&1
-    fi
-    sleep 5
-  done
-) &
-
-sleep 1
-
-# 4. Start Llama.cpp Qwen 2.5 SLM on Port 8001 (Chat Completions)
-(
-  while true; do
-    if ! pgrep -f "8001" > /dev/null; then
-      echo "$(date): Starting Llama-Server (Qwen 2.5 Chat on :8001)..." >> $HOME/llama_chat.log
-      $HOME/llama.cpp/build/bin/llama-server \
-        -m $HOME/models/qwen2.5-0.5b-instruct-q4_k_m.gguf \
-        --port 8001 \
-        --host 127.0.0.1 \
-        -t 4 \
-        -c 2048 \
-        -ngl 0 >> $HOME/llama_chat.log 2>&1
-    fi
-    sleep 5
-  done
-) &
-
-sleep 1
-
-# 5. Start BAAI BGE-Small-en-v1.5 on Port 8002 (Dedicated Isotropic Embeddings)
-(
-  while true; do
-    if ! pgrep -f "8002" > /dev/null; then
-      echo "$(date): Starting BGE-Small-en-v1.5 (Embeddings on :8002)..." >> $HOME/llama_embed.log
-      $HOME/llama.cpp/build/bin/llama-server \
-        -m $HOME/models/bge-small-en-v1.5-q8_0.gguf \
-        --port 8002 \
-        --host 127.0.0.1 \
-        -t 4 \
-        -c 512 \
-        --embedding \
-        --pooling cls \
-        -ngl 0 >> $HOME/llama_embed.log 2>&1
-    fi
-    sleep 5
-  done
-) &
-
-sleep 1
-
-# 6. Start BAAI BGE-Reranker-Base on Port 8003 (Deep Cross-Attention NLI Reranker)
-(
-  while true; do
-    if ! pgrep -f "8003" > /dev/null; then
-      echo "$(date): Starting BGE-Reranker-Base (Cross-Encoder on :8003)..." >> $HOME/llama_rerank.log
-      $HOME/llama.cpp/build/bin/llama-server \
-        -m $HOME/models/bge-reranker-base-q4_k_m.gguf \
-        --port 8003 \
-        --host 127.0.0.1 \
-        -t 4 \
-        -c 512 \
-        --reranking \
-        --pooling rank \
-        -ngl 0 >> $HOME/llama_rerank.log 2>&1
-    fi
-    sleep 5
-  done
-) &
-
-sleep 1
-
-# 7. Start Multi-Modal Gateway with Whisper STT + Qwen + BGE Embeddings + Reranker + TTS on Port 8080
+# 3. Start Multi-Modal Gateway with Elastic Memory Governor on Port 8080
 (
   while true; do
     if ! pgrep -f "gateway.py" > /dev/null; then
-      echo "$(date): Starting Multi-Modal gateway.py..." >> $HOME/gateway.log
+      echo "$(date): Starting Multi-Modal Gateway & Elastic Memory Governor..." >> $HOME/gateway.log
       python3 $HOME/gateway.py >> $HOME/gateway.log 2>&1
     fi
-    sleep 5
+    sleep 4
   done
 ) &
 
 sleep 1
 
-# 8. Persistent Cloudflare Tunnel (Starts ONCE and NEVER killed by watchdog)
+# 4. Persistent Cloudflare Tunnel (Starts ONCE and NEVER killed by watchdog)
 (
   while true; do
     if ! pgrep -f "cloudflared tunnel" > /dev/null; then
@@ -115,7 +36,7 @@ sleep 1
   done
 ) &
 
-# 9. Broadcaster (Pushes URL to GitHub ONLY ONCE when URL changes)
+# 5. Broadcaster (Pushes URL to GitHub ONLY ONCE when URL changes)
 (
   LAST_URL=""
   while true; do
@@ -144,5 +65,5 @@ JSON_EOF
 ) &
 
 echo "=================================================="
-echo "🚀 6-in-1 Mobile AI Datacenter Active (OpenAI Whisper Base.en STT + Qwen Chat + BGE Embeddings + Cross-Encoder Reranker + TTS + Telemetry)"
+echo "🚀 Elastic AI Datacenter Active (Dynamic Memory Governor • JIT Spawning • 75s Idle Eviction)"
 echo "=================================================="
