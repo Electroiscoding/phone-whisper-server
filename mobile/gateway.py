@@ -1182,15 +1182,23 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             model = payload.get("model")
             
             provider = payload.get("llm_provider", "phone")
-            if provider == "openrouter" and not base_url:
-                base_url = "https://openrouter.ai/api/v1"
-                if not model: model = "openrouter/free"
-            elif provider == "openai" and not base_url:
-                base_url = "https://api.openai.com/v1"
-                if not model: model = "gpt-4o-mini"
-            elif provider == "groq" and not base_url:
-                base_url = "https://api.groq.com/openai/v1"
-                if not model: model = "llama-3.3-70b-versatile"
+            user_model = payload.get("model") or payload.get("llm_model")
+
+            if provider == "openrouter":
+                if not base_url: base_url = "https://openrouter.ai/api/v1"
+                model = user_model or "openrouter/free"
+            elif provider == "openai":
+                if not base_url: base_url = "https://api.openai.com/v1"
+                model = user_model or "gpt-4o-mini"
+            elif provider == "groq":
+                if not base_url: base_url = "https://api.groq.com/openai/v1"
+                model = user_model or "llama-3.3-70b-versatile"
+            elif provider == "deepseek":
+                if not base_url: base_url = "https://api.deepseek.com/v1"
+                model = user_model or "deepseek-chat"
+            elif provider == "custom":
+                if not base_url: base_url = "http://127.0.0.1:8080/v1"
+                model = user_model or "custom-model"
             elif provider == "phone" or not base_url:
                 base_url = "http://127.0.0.1:8080/v1"
                 api_key = "local"

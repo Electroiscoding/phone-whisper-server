@@ -1951,21 +1951,47 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
             <textarea id="swadesTaskDesc" class="chat-input" placeholder="Describe what you want the agent to do (e.g. Add unit tests for auth module, refactor endpoints, fix bugs)..." style="width: 100%; min-height: 100px; resize: vertical;"></textarea>
           </div>
           
-          <div style="border: 1px solid var(--card-border); border-radius: 12px; background: rgba(0,0,0,0.2); overflow: hidden;">
-            <div style="padding: 0.85rem 1.1rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center;" onclick="document.getElementById('swadesAdvanced').style.display = document.getElementById('swadesAdvanced').style.display === 'none' ? 'flex' : 'none'">
-              <span style="font-weight: 600; font-size: 0.95rem;">⚙️ Advanced Options & Manual Keys</span>
-              <span style="font-size: 0.8rem; color: var(--text-muted);">Toggle</span>
+          <!-- 🧠 LLM Engine & Model Selection (Provider-Aware) -->
+          <div style="border: 1px solid var(--card-border); border-radius: 12px; background: rgba(16, 22, 38, 0.6); padding: 1.1rem; display: flex; flex-direction: column; gap: 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-weight: 700; font-size: 0.95rem; color: #fff; display: flex; align-items: center; gap: 0.5rem;">
+                <span>🧠</span>
+                <span>AI Reasoning Engine & Model</span>
+              </span>
+              <span id="swadesModelBadge" style="font-size: 0.72rem; padding: 0.15rem 0.55rem; border-radius: 9999px; background: rgba(16,185,129,0.15); border: 1px solid var(--success); color: var(--success); font-weight: 700;">Zero Cost • On-Device</span>
             </div>
-            <div id="swadesAdvanced" style="display: none; flex-direction: column; gap: 1rem; padding: 0 1.1rem 1.1rem 1.1rem;">
-              <input type="password" id="swadesGhPat" class="chat-input" placeholder="Manual GitHub PAT (override OAuth token)" style="width: 100%;">
-              <input type="password" id="swadesLlmKey" class="chat-input" placeholder="Optional: OpenRouter / OpenAI / Groq API Key (for larger LLMs)" style="width: 100%;">
-              <select id="swadesLlmProvider" class="chat-input" style="width: 100%; cursor: pointer;">
-                <option value="phone" selected>📱 Phone Qwen 2.5 (Free, Local on-device CPU)</option>
-                <option value="openrouter">OpenRouter (BYOK)</option>
-                <option value="openai">OpenAI (BYOK)</option>
-                <option value="groq">Groq (BYOK)</option>
-                <option value="custom">Custom Endpoint</option>
-              </select>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem;">
+              <div>
+                <label style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600; margin-bottom: 0.35rem; display: block;">LLM Provider</label>
+                <select id="swadesLlmProvider" class="chat-input" style="width: 100%; cursor: pointer;" onchange="onSwadesProviderChange()">
+                  <option value="phone" selected>📱 Phone Qwen 2.5 (Free Local SLM)</option>
+                  <option value="openrouter">🌐 OpenRouter (Claude, R1, GPT-4o, Llama)</option>
+                  <option value="groq">⚡ Groq (Ultra-Fast Llama 3.3 70B)</option>
+                  <option value="openai">🧠 OpenAI (GPT-4o, GPT-4o-mini)</option>
+                  <option value="deepseek">🔮 DeepSeek (V3 & DeepSeek-R1)</option>
+                  <option value="custom">🛠️ Custom OpenAI-Compatible Base URL</option>
+                </select>
+              </div>
+
+              <div>
+                <label style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600; margin-bottom: 0.35rem; display: block;">Selected Model</label>
+                <input type="text" id="swadesLlmModel" list="swadesModelDatalist" class="chat-input" value="qwen2.5" placeholder="e.g. anthropic/claude-3.5-sonnet" style="width: 100%;">
+                <datalist id="swadesModelDatalist">
+                  <option value="qwen2.5">Qwen 2.5 0.5B Instruct (On-device CPU)</option>
+                </datalist>
+              </div>
+            </div>
+
+            <div id="swadesApiKeyContainer" style="display: none; flex-direction: column; gap: 0.4rem;">
+              <label style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600; display: block;">Provider API Key</label>
+              <input type="password" id="swadesLlmKey" class="chat-input" placeholder="sk-or-v1-xxxxxxxx..." style="width: 100%;">
+              <div style="font-size: 0.75rem; color: var(--text-muted);">🔒 Never stored on disk — used strictly in-memory during agent execution.</div>
+            </div>
+
+            <div id="swadesCustomUrlContainer" style="display: none; flex-direction: column; gap: 0.4rem;">
+              <label style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600; display: block;">Custom Base URL</label>
+              <input type="text" id="swadesCustomBaseUrl" class="chat-input" placeholder="https://api.together.xyz/v1" style="width: 100%;">
             </div>
           </div>
 
@@ -5048,6 +5074,128 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       }
     }
     window.loginWithGitHub = loginWithGitHub;
+
+    const PROVIDER_MODEL_PRESETS = {
+      phone: {
+        defaultModel: 'qwen2.5',
+        badge: 'Zero Cost • On-Device',
+        badgeColor: 'var(--success)',
+        keyPlaceholder: '',
+        showKey: false,
+        showBaseUrl: false,
+        models: [
+          { id: 'qwen2.5', label: 'Qwen 2.5 0.5B Instruct (Free Local CPU)' }
+        ]
+      },
+      openrouter: {
+        defaultModel: 'openrouter/free',
+        badge: 'BYOK Cloud Models',
+        badgeColor: 'var(--primary)',
+        keyPlaceholder: 'sk-or-v1-xxxxxxxxxxxxxxxxxxxxxxxx',
+        showKey: true,
+        showBaseUrl: false,
+        models: [
+          { id: 'openrouter/free', label: 'OpenRouter Free Model Router' },
+          { id: 'anthropic/claude-3.5-sonnet', label: 'Claude 3.5 Sonnet (State of the Art Coding)' },
+          { id: 'deepseek/deepseek-r1', label: 'DeepSeek R1 (Full Reasoning)' },
+          { id: 'openai/gpt-4o', label: 'GPT-4o (Omni High Accuracy)' },
+          { id: 'meta-llama/llama-3.3-70b-instruct', label: 'Llama 3.3 70B Instruct' },
+          { id: 'google/gemini-2.0-flash-001', label: 'Gemini 2.0 Flash' },
+          { id: 'qwen/qwen-2.5-coder-32b-instruct', label: 'Qwen 2.5 Coder 32B' }
+        ]
+      },
+      groq: {
+        defaultModel: 'llama-3.3-70b-versatile',
+        badge: 'Ultra-Fast Inference (500 tok/s)',
+        badgeColor: '#f97316',
+        keyPlaceholder: 'gsk_xxxxxxxxxxxxxxxxxxxxxxxx',
+        showKey: true,
+        showBaseUrl: false,
+        models: [
+          { id: 'llama-3.3-70b-versatile', label: 'Llama 3.3 70B Versatile (Recommended)' },
+          { id: 'deepseek-r1-distill-llama-70b', label: 'DeepSeek R1 Distill Llama 70B' },
+          { id: 'llama-3.1-8b-instant', label: 'Llama 3.1 8B Instant' },
+          { id: 'mixtral-8x7b-32768', label: 'Mixtral 8x7B (32k context)' }
+        ]
+      },
+      openai: {
+        defaultModel: 'gpt-4o-mini',
+        badge: 'Official OpenAI API',
+        badgeColor: '#10b981',
+        keyPlaceholder: 'sk-proj-xxxxxxxxxxxxxxxxxxxx',
+        showKey: true,
+        showBaseUrl: false,
+        models: [
+          { id: 'gpt-4o-mini', label: 'GPT-4o Mini (Fast & Cheap)' },
+          { id: 'gpt-4o', label: 'GPT-4o (Flagship Multi-Modal)' },
+          { id: 'o3-mini', label: 'o3 Mini (Deep STEM & Logic Reasoning)' },
+          { id: 'o1-mini', label: 'o1 Mini (Reasoning)' }
+        ]
+      },
+      deepseek: {
+        defaultModel: 'deepseek-chat',
+        badge: 'Official DeepSeek API',
+        badgeColor: '#3b82f6',
+        keyPlaceholder: 'sk-xxxxxxxxxxxxxxxxxxxxxxxx',
+        showKey: true,
+        showBaseUrl: false,
+        models: [
+          { id: 'deepseek-chat', label: 'DeepSeek V3 (High Coding Accuracy)' },
+          { id: 'deepseek-reasoner', label: 'DeepSeek R1 (Thinking & Chain-of-Thought)' }
+        ]
+      },
+      custom: {
+        defaultModel: 'custom-model',
+        badge: 'Self-Hosted / Custom Gateway',
+        badgeColor: '#a855f7',
+        keyPlaceholder: 'Bearer API Key (if required)',
+        showKey: true,
+        showBaseUrl: true,
+        models: [
+          { id: 'custom-model', label: 'Custom Model ID' }
+        ]
+      }
+    };
+
+    function onSwadesProviderChange() {
+      const provider = document.getElementById('swadesLlmProvider').value;
+      const config = PROVIDER_MODEL_PRESETS[provider] || PROVIDER_MODEL_PRESETS.phone;
+      
+      const modelInput = document.getElementById('swadesLlmModel');
+      const datalist = document.getElementById('swadesModelDatalist');
+      const badge = document.getElementById('swadesModelBadge');
+      const keyContainer = document.getElementById('swadesApiKeyContainer');
+      const keyInput = document.getElementById('swadesLlmKey');
+      const customUrlContainer = document.getElementById('swadesCustomUrlContainer');
+
+      if (modelInput) modelInput.value = config.defaultModel;
+      if (badge) {
+        badge.innerText = config.badge;
+        badge.style.color = config.badgeColor;
+        badge.style.borderColor = config.badgeColor;
+      }
+
+      if (datalist) {
+        datalist.innerHTML = '';
+        config.models.forEach(m => {
+          const opt = document.createElement('option');
+          opt.value = m.id;
+          opt.innerText = m.label;
+          datalist.appendChild(opt);
+        });
+      }
+
+      if (keyContainer) {
+        keyContainer.style.display = config.showKey ? 'flex' : 'none';
+      }
+      if (keyInput) {
+        keyInput.placeholder = config.keyPlaceholder || 'API Key...';
+      }
+      if (customUrlContainer) {
+        customUrlContainer.style.display = config.showBaseUrl ? 'flex' : 'none';
+      }
+    }
+    window.onSwadesProviderChange = onSwadesProviderChange;
 
     function logoutGitHub() {
       swadesAuthData = null;
