@@ -982,7 +982,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
     def _send_cors_headers(self):
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Accept, Origin, Cache-Control, X-Accel-Buffering")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Accept, Origin, Cache-Control, X-Accel-Buffering, *")
         self.send_header("Access-Control-Expose-Headers", "*")
         self.send_header("Access-Control-Max-Age", "86400")
 
@@ -1510,8 +1510,12 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 cur_job = _job_manager.get_job(job_id)
                 if cur_job and cur_job.get("status") in ["COMPLETED", "FAILED", "CANCELLED"]:
                     if q.empty():
-                        self.wfile.write(f"data: {json.dumps({'type': 'complete', 'data': cur_job})}\n\n".encode())
-                        self.wfile.flush()
+                        try:
+                            self.wfile.write(f"data: {json.dumps({'type': 'complete', 'data': cur_job})}\n\n".encode())
+                            self.wfile.flush()
+                            time.sleep(1.5)
+                        except Exception:
+                            pass
                         break
         except (BrokenPipeError, ConnectionResetError):
             pass
