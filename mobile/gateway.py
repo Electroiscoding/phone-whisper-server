@@ -879,7 +879,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
     def _send_cors_headers(self):
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE")
-        self.send_header("Access-Control-Allow-Headers", "*")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Accept, Origin, Cache-Control, X-Accel-Buffering")
+        self.send_header("Access-Control-Expose-Headers", "*")
         self.send_header("Access-Control-Max-Age", "86400")
 
     def do_OPTIONS(self):
@@ -1246,11 +1247,13 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         since = qs.get("since", [None])[0]
         
         logs = _job_manager.get_logs(job_id, since)
+        job = _job_manager.get_job(job_id)
+        status = job.get("status") if job else "UNKNOWN"
         self.send_response(200)
         self._send_cors_headers()
         self.send_header("Content-Type", "application/json")
         self.end_headers()
-        self.wfile.write(json.dumps({"logs": logs, "count": len(logs)}).encode())
+        self.wfile.write(json.dumps({"logs": logs, "count": len(logs), "status": status, "job": job}).encode())
 
     def handle_agent_stream(self, job_id):
         self.send_response(200)
@@ -1260,6 +1263,13 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         self.send_header("Connection", "keep-alive")
         self.send_header("X-Accel-Buffering", "no")
         self.end_headers()
+        
+        # Flush initial keep-alive ping immediately so Cloudflare doesn't close the connection
+        try:
+            self.wfile.write(b": ping\n\n")
+            self.wfile.flush()
+        except Exception:
+            return
         
         log_file = os.path.join(_job_manager.base_dir, job_id, "agent.log")
         pos = 0

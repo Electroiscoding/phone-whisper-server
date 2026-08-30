@@ -5385,62 +5385,67 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       } catch (err) {}
     }
 
-    let swadesStreamRetryCount = 0;
+    let swadesLogPollInterval = null;
 
     function connectSwadeStream(jobId) {
-      if (swadesActiveStream) {
-        swadesActiveStream.close();
-        swadesActiveStream = null;
+      if (swadesLogPollInterval) {
+        clearInterval(swadesLogPollInterval);
+        swadesLogPollInterval = null;
       }
       swadesCurrentJobId = jobId;
-      swadesStreamRetryCount = 0;
       
       const terminal = document.getElementById('swadesTerminal');
       const statusBadge = document.getElementById('swadesStreamStatus');
       
-      statusBadge.innerText = 'Streaming...';
-      statusBadge.style.color = 'var(--primary)';
-      statusBadge.style.borderColor = 'rgba(56,189,248,0.3)';
-
-      try {
-        swadesActiveStream = new EventSource(`${BASE_ENDPOINT}/v1/agent/stream/${jobId}`);
-
-        swadesActiveStream.onopen = () => {
-          statusBadge.innerText = 'Live Streaming';
-          statusBadge.style.color = 'var(--success)';
-          statusBadge.style.borderColor = 'rgba(16,185,129,0.3)';
-        };
-
-        swadesActiveStream.onmessage = (e) => {
-          try {
-            const parsed = JSON.parse(e.data);
-            if (parsed.status === 'FINAL') {
-              statusBadge.innerText = 'Completed';
-              statusBadge.style.color = 'var(--success)';
-              if (swadesActiveStream) {
-                swadesActiveStream.close();
-                swadesActiveStream = null;
-              }
-              refreshSwadeJobs();
-              return;
-            }
-            appendSwadeLog(parsed, terminal);
-          } catch (err) {}
-        };
-
-        swadesActiveStream.onerror = () => {
-          if (swadesActiveStream) {
-            swadesActiveStream.close();
-            swadesActiveStream = null;
-          }
-          statusBadge.innerText = 'Done';
-          statusBadge.style.color = 'var(--text-muted)';
-          statusBadge.style.borderColor = 'rgba(255,255,255,0.1)';
-        };
-      } catch (err) {
-        statusBadge.innerText = 'Offline';
-        statusBadge.style.color = 'var(--text-muted)';
+      if (statusBadge) {
+        statusBadge.innerText = 'Syncing...';
+        statusBadge.style.color = 'var(--primary)';
+        statusBadge.style.borderColor = 'rgba(56,189,248,0.3)';
       }
+
+      let lastCount = 0;
+
+      async function pollLogs() {
+        if (swadesCurrentJobId !== jobId) return;
+        try {
+          const res = await fetch(`${BASE_ENDPOINT}/v1/agent/logs/${jobId}`);
+          if (!res.ok) return;
+          const data = await res.json();
+          
+          if (data.status) {
+            if (statusBadge) {
+              if (data.status === 'RUNNING' || data.status === 'CLONING') {
+                statusBadge.innerText = `● ${data.status}`;
+                statusBadge.style.color = 'var(--success)';
+                statusBadge.style.borderColor = 'rgba(16,185,129,0.3)';
+              } else if (data.status === 'QUEUED') {
+                statusBadge.innerText = '🟡 QUEUED';
+                statusBadge.style.color = 'var(--warning)';
+                statusBadge.style.borderColor = 'rgba(245,158,11,0.3)';
+              } else {
+                statusBadge.innerText = data.status;
+                statusBadge.style.color = data.status === 'COMPLETED' ? 'var(--success)' : (data.status === 'FAILED' ? 'var(--danger)' : 'var(--text-muted)');
+                if (swadesLogPollInterval) {
+                  clearInterval(swadesLogPollInterval);
+                  swadesLogPollInterval = null;
+                }
+              }
+            }
+          }
+
+          if (data.logs && data.logs.length !== lastCount) {
+            terminal.innerHTML = '';
+            data.logs.forEach(log => appendSwadeLog(log, terminal));
+            lastCount = data.logs.length;
+          } else if ((!data.logs || data.logs.length === 0) && terminal.innerHTML.trim() === '') {
+            terminal.innerHTML = `<div style="color: var(--text-muted); font-style: italic;">[${jobId.substring(0,8)}] Waiting for worker to start...</div>`;
+          }
+        } catch (e) {}
+      }
+
+      // Initial immediate fetch + 1.2s polling interval
+      pollLogs();
+      swadesLogPollInterval = setInterval(pollLogs, 1200);
     }
 
     function appendSwadeLog(log, terminal) {
@@ -5505,48 +5510,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
     }
 
     async function viewSwadeLogs(jobId) {
-      const terminal = document.getElementById('swadesTerminal');
-      const statusBadge = document.getElementById('swadesStreamStatus');
-      
-      terminal.innerHTML = `<div style="color: var(--text-muted); font-style: italic;">Loading logs for job ${jobId.substring(0,8)}...</div>`;
-      if (statusBadge) {
-        statusBadge.innerText = 'Loading...';
-        statusBadge.style.color = 'var(--primary)';
-      }
-      
-      let jobStatus = null;
-      try {
-        // 1. Fetch job status to check if it is active or completed
-        const statRes = await fetch(`${BASE_ENDPOINT}/v1/agent/status/${jobId}`);
-        if (statRes.ok) {
-          const jobData = await statRes.json();
-          jobStatus = jobData.status;
-        }
-
-        // 2. Fetch all historical log entries
-        const res = await fetch(`${BASE_ENDPOINT}/v1/agent/logs/${jobId}`);
-        if (res.ok) {
-          const data = await res.json();
-          terminal.innerHTML = '';
-          if (data.logs && data.logs.length) {
-            data.logs.forEach(log => appendSwadeLog(log, terminal));
-          } else {
-            terminal.innerHTML = `<div style="color: var(--text-muted); font-style: italic;">No logs recorded yet for job ${jobId.substring(0,8)}.</div>`;
-          }
-        }
-      } catch (e) {
-        terminal.innerHTML = `<div style="color: var(--danger);">Failed to fetch logs: ${e.message}</div>`;
-      }
-
-      // 3. Only connect live stream if job is currently running or queued
-      if (jobStatus === 'RUNNING' || jobStatus === 'CLONING' || jobStatus === 'QUEUED') {
-        connectSwadeStream(jobId);
-      } else {
-        if (statusBadge) {
-          statusBadge.innerText = jobStatus ? `Status: ${jobStatus}` : 'Done';
-          statusBadge.style.color = jobStatus === 'COMPLETED' ? 'var(--success)' : (jobStatus === 'FAILED' ? 'var(--danger)' : 'var(--text-muted)');
-        }
-      }
+      connectSwadeStream(jobId);
     }
     
     window.addEventListener('DOMContentLoaded', () => {
