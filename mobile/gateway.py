@@ -125,141 +125,116 @@ def get_real_hardware_cpu():
 
 
 
-def _get_swades_storage_dir():
-    home = os.environ.get("HOME") or ("/tmp" if os.path.exists("/tmp") else "/data/data/com.termux/files/home")
-    target = os.path.join(home, ".swades_jobs")
-    try:
-        os.makedirs(target, exist_ok=True)
-        return target
-    except Exception:
-        fallback = "/tmp/swades_jobs"
-        os.makedirs(fallback, exist_ok=True)
-        return fallback
-
 class SwadeJobManager:
+    """100% In-Memory RAM Job Manager — Zero disk writes, zero persistent storage"""
     def __init__(self):
-        self.base_dir = _get_swades_storage_dir()
-        os.makedirs(self.base_dir, exist_ok=True)
-        self.db_path = os.path.join(self.base_dir, "swades.db")
-        self._init_db()
+        self.jobs = {}       # In-Memory RAM Dict: { job_id: {...} }
+        self.logs = {}       # In-Memory RAM Dict: { job_id: [ {...} ] }
         self.active_worker_pid = None
         self.lock = threading.Lock()
-    
-    def _init_db(self):
-        conn = sqlite3.connect(self.db_path)
-        conn.execute('CREATE TABLE IF NOT EXISTS jobs (id TEXT PRIMARY KEY, repo_url TEXT, task TEXT, status TEXT DEFAULT "QUEUED", branch_name TEXT, pr_url TEXT, pr_number INTEGER, created_at TEXT, started_at TEXT, completed_at TEXT, files_changed TEXT, error_message TEXT, total_steps INTEGER DEFAULT 0, worker_pid INTEGER, github_pat TEXT, api_key TEXT, base_url TEXT, model TEXT)')
-        conn.execute('CREATE TABLE IF NOT EXISTS job_logs (id INTEGER PRIMARY KEY AUTOINCREMENT, job_id TEXT, timestamp TEXT, type TEXT, data TEXT, step_number INTEGER)')
-        conn.commit()
-        conn.close()
-    
+
     def create_job(self, repo_url, task, github_pat=None, api_key=None, base_url=None, model=None):
-        job_id = str(uuid.uuid4())[:8]  # Short IDs for readability
+        job_id = str(uuid.uuid4())[:8]
         now = datetime.now(timezone.utc).isoformat()
-        conn = sqlite3.connect(self.db_path)
-        conn.execute('INSERT INTO jobs (id, repo_url, task, status, created_at, github_pat, api_key, base_url, model) VALUES (?, ?, ?, "QUEUED", ?, ?, ?, ?, ?)',
-                     (job_id, repo_url, task, now, github_pat, api_key, base_url, model))
-        conn.commit()
-        conn.close()
+        with self.lock:
+            self.jobs[job_id] = {
+                "id": job_id,
+                "repo_url": repo_url,
+                "task": task,
+                "status": "QUEUED",
+                "branch_name": None,
+                "pr_url": None,
+                "pr_number": None,
+                "created_at": now,
+                "started_at": None,
+                "completed_at": None,
+                "files_changed": None,
+                "error_message": None,
+                "total_steps": 0,
+                "worker_pid": None,
+                "github_pat": github_pat,
+                "api_key": api_key,
+                "base_url": base_url,
+                "model": model
+            }
+            self.logs[job_id] = []
         return job_id
-    
+
     def get_job(self, job_id):
-        conn = sqlite3.connect(self.db_path)
-        conn.row_factory = sqlite3.Row
-        row = conn.execute('SELECT * FROM jobs WHERE id = ?', (job_id,)).fetchone()
-        conn.close()
-        return dict(row) if row else None
-    
+        with self.lock:
+            job = self.jobs.get(job_id)
+            return dict(job) if job else None
+
     def update_job(self, job_id, **fields):
-        conn = sqlite3.connect(self.db_path)
-        for k, v in fields.items():
-            conn.execute(f'UPDATE jobs SET {k} = ? WHERE id = ?', (v, job_id))
-        conn.commit()
-        conn.close()
-    
+        with self.lock:
+            if job_id in self.jobs:
+                self.jobs[job_id].update(fields)
+
+    def append_log(self, job_id, log_type, data, step_number=None):
+        now = datetime.now(timezone.utc).isoformat()
+        with self.lock:
+            if job_id not in self.logs:
+                self.logs[job_id] = []
+            self.logs[job_id].append({
+                "id": len(self.logs[job_id]) + 1,
+                "job_id": job_id,
+                "timestamp": now,
+                "type": log_type,
+                "data": data,
+                "step_number": step_number
+            })
+
     def get_logs(self, job_id, since=None):
-        conn = sqlite3.connect(self.db_path)
-        conn.row_factory = sqlite3.Row
-        if since:
-            rows = conn.execute('SELECT * FROM job_logs WHERE job_id = ? AND timestamp > ? ORDER BY id ASC', (job_id, since)).fetchall()
-        else:
-            rows = conn.execute('SELECT * FROM job_logs WHERE job_id = ? ORDER BY id ASC', (job_id,)).fetchall()
-        conn.close()
-        return [dict(r) for r in rows]
-    
+        with self.lock:
+            entries = self.logs.get(job_id, [])
+            if since:
+                return [e for e in entries if e.get("timestamp", "") > since]
+            return list(entries)
+
     def list_jobs(self, limit=20, offset=0):
-        conn = sqlite3.connect(self.db_path)
-        conn.row_factory = sqlite3.Row
-        rows = conn.execute('SELECT * FROM jobs ORDER BY created_at DESC LIMIT ? OFFSET ?', (limit, offset)).fetchall()
-        total = conn.execute('SELECT COUNT(*) FROM jobs').fetchone()[0]
-        conn.close()
-        return [dict(r) for r in rows], total
-    
-    def get_queue_position(self, job_id):
-        conn = sqlite3.connect(self.db_path)
-        job = conn.execute('SELECT created_at FROM jobs WHERE id = ?', (job_id,)).fetchone()
-        if not job:
-            conn.close()
-            return -1
-        pos = conn.execute('SELECT COUNT(*) FROM jobs WHERE status = "QUEUED" AND created_at < ?', (job[0],)).fetchone()[0]
-        conn.close()
-        return pos
-    
-    def get_next_queued(self):
-        conn = sqlite3.connect(self.db_path)
-        conn.row_factory = sqlite3.Row
-        row = conn.execute('SELECT * FROM jobs WHERE status = "QUEUED" ORDER BY created_at ASC LIMIT 1').fetchone()
-        conn.close()
-        return dict(row) if row else None
+        with self.lock:
+            sorted_jobs = sorted(self.jobs.values(), key=lambda x: x.get("created_at", ""), reverse=True)
+            total = len(sorted_jobs)
+            paginated = sorted_jobs[offset:offset+limit]
+            return [dict(j) for j in paginated], total
+
+    def clear_all(self):
+        with self.lock:
+            self.jobs.clear()
+            self.logs.clear()
 
 _job_manager = SwadeJobManager()
 
-def _agent_job_worker_loop():
-    while True:
-        try:
-            with _job_manager.lock:
-                if _job_manager.active_worker_pid:
-                    try:
-                        os.kill(_job_manager.active_worker_pid, 0)
-                    except OSError:
-                        _job_manager.active_worker_pid = None
-                
-                if _job_manager.active_worker_pid:
-                    time.sleep(3)
-                    continue
-                
-                job = _job_manager.get_next_queued()
-                if not job:
-                    time.sleep(3)
-                    continue
-                
-                job_id = job['id']
-                home_dir = os.environ.get("HOME", "/data/data/com.termux/files/home")
-                candidates = [
-                    os.path.join(home_dir, "swades-server", "worker.js"),
-                    os.path.join(os.path.dirname(__file__), "swades-server", "worker.js"),
-                    os.path.join(os.path.dirname(__file__), "..", "swades-server", "worker.js")
-                ]
-                worker_js = next((p for p in candidates if os.path.exists(p)), candidates[0])
-                
-                job_log_dir = os.path.join(_job_manager.base_dir, job_id)
-                os.makedirs(job_log_dir, exist_ok=True)
-                worker_stdout_file = open(os.path.join(job_log_dir, "worker_stdout.log"), "a")
-                
-                env = os.environ.copy()
-                env["PATH"] = f"/data/data/com.termux/files/usr/bin:{env.get('PATH', '')}"
-                env["HOME"] = home_dir
-                
-                worker_cmd = ['node', worker_js, '--job', job_id]
-                proc = sp.Popen(worker_cmd, stdout=worker_stdout_file, stderr=worker_stdout_file, env=env, start_new_session=True)
-                _job_manager.active_worker_pid = proc.pid
-                _job_manager.update_job(job_id, worker_pid=proc.pid)
-                print(f"[SWADES] Spawned worker PID {proc.pid} for job {job_id} using {worker_js}")
-        except Exception as e:
-            print(f"[SWADES] Worker loop error: {e}")
-        time.sleep(3)
-
-_agent_worker_thread = threading.Thread(target=_agent_job_worker_loop, daemon=True)
-_agent_worker_thread.start()
+def _spawn_swades_worker(job_id):
+    """Spawns the Node.js autonomous worker immediately upon submission"""
+    try:
+        job = _job_manager.get_job(job_id)
+        if not job:
+            return
+            
+        home_dir = os.environ.get("HOME", "/data/data/com.termux/files/home")
+        candidates = [
+            os.path.join(home_dir, "swades-server", "worker.js"),
+            os.path.join(os.path.dirname(__file__), "swades-server", "worker.js"),
+            os.path.join(os.path.dirname(__file__), "..", "swades-server", "worker.js")
+        ]
+        worker_js = next((p for p in candidates if os.path.exists(p)), candidates[0])
+        
+        env = os.environ.copy()
+        env["PATH"] = f"/data/data/com.termux/files/usr/bin:{env.get('PATH', '')}"
+        env["HOME"] = home_dir
+        env["JOB_PAYLOAD"] = json.dumps(job)
+        
+        worker_cmd = ['node', worker_js, '--job', job_id]
+        proc = sp.Popen(worker_cmd, stdout=sp.DEVNULL, stderr=sp.DEVNULL, env=env, start_new_session=True)
+        _job_manager.active_worker_pid = proc.pid
+        _job_manager.update_job(job_id, worker_pid=proc.pid, status="RUNNING", started_at=datetime.now(timezone.utc).isoformat())
+        _job_manager.append_log(job_id, "status", "Worker process spawned")
+        print(f"[SWADES] Launched worker PID {proc.pid} for job {job_id}")
+    except Exception as e:
+        print(f"[SWADES] Failed to spawn worker for {job_id}: {e}")
+        _job_manager.update_job(job_id, status="FAILED", error_message=str(e))
+        _job_manager.append_log(job_id, "error", str(e))
 
 class ModelGovernor:
     """
@@ -1214,13 +1189,15 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 gh_pat, api_key,
                 base_url, model
             )
-            pos = _job_manager.get_queue_position(job_id)
+            
+            # Spawn worker immediately with 0 delay
+            threading.Thread(target=_spawn_swades_worker, args=(job_id,), daemon=True).start()
             
             self.send_response(200)
             self._send_cors_headers()
             self.send_header("Content-Type", "application/json")
             self.end_headers()
-            self.wfile.write(json.dumps({"job_id": job_id, "status": "queued", "queue_position": pos}).encode())
+            self.wfile.write(json.dumps({"job_id": job_id, "status": "running"}).encode())
         except Exception as e:
             import traceback
             traceback.print_exc()

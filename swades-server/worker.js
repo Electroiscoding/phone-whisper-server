@@ -57,8 +57,9 @@ async function main() {
   
   const jobId = args[jobIdx + 1];
   
-  // Ephemeral scratch directory in /tmp (auto-cleaned)
-  const tempBase = '/tmp/swades_scratch';
+  // Ephemeral scratch directory in Termux home (auto-purged immediately on complete/fail)
+  const homeDir = process.env.HOME || '/data/data/com.termux/files/home';
+  const tempBase = path.join(homeDir, '.swades_scratch');
   const workspaceDir = path.join(tempBase, jobId, 'workspace');
   
   let job = null;
