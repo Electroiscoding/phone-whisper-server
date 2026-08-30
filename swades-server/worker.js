@@ -20,19 +20,33 @@ ${(result.filesChanged && result.filesChanged.length > 0) ? result.filesChanged.
 *Generated automatically by [Swades Agent](https://phone-whisper-server.pages.dev/#swades-studio) running on a self-hosted phone server.*`;
 }
 
-async function sendInternalEvent(jobId, eventType, data, stepNumber = null) {
-  try {
-    await fetch('http://127.0.0.1:8080/v1/agent/internal_event', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        job_id: jobId,
-        type: eventType,
-        data: data,
-        step: stepNumber
-      })
-    });
-  } catch (e) {}
+let eventQueue = [];
+let isFlushing = false;
+
+async function flushEvents() {
+  if (isFlushing || eventQueue.length === 0) return;
+  isFlushing = true;
+  while (eventQueue.length > 0) {
+    const item = eventQueue.shift();
+    try {
+      await fetch('http://127.0.0.1:8080/v1/agent/internal_event', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(item)
+      });
+    } catch (e) {}
+  }
+  isFlushing = false;
+}
+
+function sendInternalEvent(jobId, eventType, data, stepNumber = null) {
+  eventQueue.push({
+    job_id: jobId,
+    type: eventType,
+    data: data,
+    step: stepNumber
+  });
+  flushEvents();
 }
 
 async function updateJobStatus(jobId, updates) {
@@ -86,14 +100,14 @@ async function main() {
   const githubPat = job.github_pat || job.github_token || null;
   process.env.TASK_ORIG = job.task;
   
-  const onEvent = async (event) => {
-    await sendInternalEvent(jobId, event.type, event.data, event.step_number || null);
+  const onEvent = (event) => {
+    sendInternalEvent(jobId, event.type, event.data, event.step_number || null);
   };
   
   try {
     // 1. CLONE PHASE
     await updateJobStatus(jobId, { status: 'CLONING' });
-    await onEvent({ type: 'status', data: 'Cloning repository' });
+    onEvent({ type: 'status', data: 'Cloning repository' });
     
     fs.mkdirSync(workspaceDir, { recursive: true });
     
@@ -111,7 +125,7 @@ async function main() {
     
     // 2. AGENT PHASE
     await updateJobStatus(jobId, { status: 'RUNNING', started_at: new Date().toISOString(), branch_name: branchName });
-    await onEvent({ type: 'status', data: `Agent running in-memory (${job.model || 'qwen2.5'})` });
+    onEvent({ type: 'status', data: `Agent running (${job.model || 'qwen2.5'})` });
     
     const context = {
       workdir: workspaceDir,
@@ -126,7 +140,7 @@ async function main() {
     
     // 3. PR PHASE
     if (githubPat) {
-      await onEvent({ type: 'status', data: 'Pushing changes to GitHub branch' });
+      onEvent({ type: 'status', data: 'Pushing changes to GitHub branch' });
       
       // If no files modified, create a report file
       if (!result.filesChanged || result.filesChanged.length === 0) {
@@ -139,10 +153,10 @@ async function main() {
       
       const pushRes = pushBranch(workspaceDir, branchName, githubPat, job.repo_url);
       if (!pushRes.success) {
-        await onEvent({ type: 'status', data: `⚠️ Git push note: ${pushRes.error}` });
+        onEvent({ type: 'status', data: `⚠️ Git push note: ${pushRes.error}` });
       }
       
-      await onEvent({ type: 'status', data: 'Opening GitHub Pull Request' });
+      onEvent({ type: 'status', data: 'Opening GitHub Pull Request' });
       const pr = await openPullRequest({
         owner,
         repo,
@@ -162,7 +176,7 @@ async function main() {
           files_changed: JSON.stringify(result.filesChanged),
           total_steps: result.totalSteps
         });
-        await onEvent({ type: 'complete', data: { pr_url: pr.pr_url, summary: result.summary } });
+        onEvent({ type: 'complete', data: { pr_url: pr.pr_url, summary: result.summary } });
         console.log(`Job ${jobId} completed successfully. PR: ${pr.pr_url}`);
       } else {
         await updateJobStatus(jobId, {
@@ -171,7 +185,7 @@ async function main() {
           files_changed: JSON.stringify(result.filesChanged),
           total_steps: result.totalSteps
         });
-        await onEvent({ type: 'complete', data: { summary: result.summary, note: pr.error || 'No PR created (check permissions)' } });
+        onEvent({ type: 'complete', data: { summary: result.summary, note: pr.error || 'No PR created' } });
       }
     } else {
       await updateJobStatus(jobId, {
@@ -180,12 +194,12 @@ async function main() {
         files_changed: JSON.stringify(result.filesChanged),
         total_steps: result.totalSteps
       });
-      await onEvent({ type: 'complete', data: { summary: result.summary, note: 'Login with GitHub to enable automatic Pull Requests.' } });
+      onEvent({ type: 'complete', data: { summary: result.summary, note: 'Login with GitHub to enable automatic Pull Requests.' } });
     }
     
   } catch (err) {
     await updateJobStatus(jobId, { status: 'FAILED', error_message: err.message });
-    await onEvent({ type: 'error', data: { message: err.message } });
+    onEvent({ type: 'error', data: { message: err.message } });
     console.error(`Job ${jobId} failed: ${err.message}`);
   } finally {
     // 🧹 EPHEMERAL PURGE: Erase all temporary clone files from disk immediately

@@ -126,82 +126,191 @@ def get_real_hardware_cpu():
 
 
 class SwadeJobManager:
-    """100% In-Memory RAM Job Manager — Zero disk writes, zero persistent storage"""
+    """Persistent SQLite + In-Memory Cached Job Manager (Safe across restarts & reloads)"""
     def __init__(self):
-        self.jobs = {}       # In-Memory RAM Dict: { job_id: {...} }
-        self.logs = {}       # In-Memory RAM Dict: { job_id: [ {...} ] }
+        self.home = os.environ.get("HOME", "/data/data/com.termux/files/home")
+        self.db_dir = os.path.join(self.home, ".swades_jobs")
+        try:
+            os.makedirs(self.db_dir, exist_ok=True)
+        except Exception:
+            self.db_dir = "/tmp/swades_jobs"
+            os.makedirs(self.db_dir, exist_ok=True)
+            
+        self.db_path = os.path.join(self.db_dir, "swades.db")
         self.active_worker_pid = None
         self.lock = threading.Lock()
+        self.subscribers = {}  # { job_id: set(queue.Queue) }
+        self._init_db()
+
+    def subscribe(self, job_id):
+        q = queue.Queue(maxsize=500)
+        with self.lock:
+            if job_id not in self.subscribers:
+                self.subscribers[job_id] = set()
+            self.subscribers[job_id].add(q)
+        return q
+
+    def unsubscribe(self, job_id, q):
+        with self.lock:
+            if job_id in self.subscribers:
+                self.subscribers[job_id].discard(q)
+                if not self.subscribers[job_id]:
+                    del self.subscribers[job_id]
+
+    def _init_db(self):
+        try:
+            conn = sqlite3.connect(self.db_path)
+            conn.execute('''CREATE TABLE IF NOT EXISTS jobs (
+                id TEXT PRIMARY KEY,
+                repo_url TEXT,
+                task TEXT,
+                status TEXT DEFAULT "RUNNING",
+                branch_name TEXT,
+                pr_url TEXT,
+                pr_number INTEGER,
+                created_at TEXT,
+                started_at TEXT,
+                completed_at TEXT,
+                files_changed TEXT,
+                error_message TEXT,
+                total_steps INTEGER DEFAULT 0,
+                worker_pid INTEGER,
+                github_pat TEXT,
+                api_key TEXT,
+                base_url TEXT,
+                model TEXT
+            )''')
+            conn.execute('''CREATE TABLE IF NOT EXISTS job_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                job_id TEXT,
+                timestamp TEXT,
+                type TEXT,
+                data TEXT,
+                step_number INTEGER
+            )''')
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            print(f"[SWADES] DB init error: {e}")
 
     def create_job(self, repo_url, task, github_pat=None, api_key=None, base_url=None, model=None):
         job_id = str(uuid.uuid4())[:8]
         now = datetime.now(timezone.utc).isoformat()
         with self.lock:
-            self.jobs[job_id] = {
-                "id": job_id,
-                "repo_url": repo_url,
-                "task": task,
-                "status": "QUEUED",
-                "branch_name": None,
-                "pr_url": None,
-                "pr_number": None,
-                "created_at": now,
-                "started_at": None,
-                "completed_at": None,
-                "files_changed": None,
-                "error_message": None,
-                "total_steps": 0,
-                "worker_pid": None,
-                "github_pat": github_pat,
-                "api_key": api_key,
-                "base_url": base_url,
-                "model": model
-            }
-            self.logs[job_id] = []
+            try:
+                conn = sqlite3.connect(self.db_path)
+                conn.execute('''INSERT INTO jobs (id, repo_url, task, status, created_at, started_at, github_pat, api_key, base_url, model)
+                                VALUES (?, ?, ?, "RUNNING", ?, ?, ?, ?, ?, ?)''',
+                             (job_id, repo_url, task, now, now, github_pat, api_key, base_url, model))
+                conn.commit()
+                conn.close()
+            except Exception as e:
+                print(f"[SWADES] create_job error: {e}")
         return job_id
 
     def get_job(self, job_id):
         with self.lock:
-            job = self.jobs.get(job_id)
-            return dict(job) if job else None
+            try:
+                conn = sqlite3.connect(self.db_path)
+                conn.row_factory = sqlite3.Row
+                row = conn.execute('SELECT * FROM jobs WHERE id = ?', (job_id,)).fetchone()
+                conn.close()
+                return dict(row) if row else None
+            except Exception:
+                return None
+
+    def get_active_or_latest_job(self):
+        with self.lock:
+            try:
+                conn = sqlite3.connect(self.db_path)
+                conn.row_factory = sqlite3.Row
+                # Prioritize active running/paused/cloning jobs
+                row = conn.execute('SELECT * FROM jobs WHERE status IN ("RUNNING", "CLONING", "PAUSED") ORDER BY created_at DESC LIMIT 1').fetchone()
+                if not row:
+                    # Fallback to the latest completed/failed job within the last 12 hours
+                    row = conn.execute('SELECT * FROM jobs ORDER BY created_at DESC LIMIT 1').fetchone()
+                conn.close()
+                return dict(row) if row else None
+            except Exception:
+                return None
 
     def update_job(self, job_id, **fields):
         with self.lock:
-            if job_id in self.jobs:
-                self.jobs[job_id].update(fields)
+            try:
+                conn = sqlite3.connect(self.db_path)
+                for k, v in fields.items():
+                    conn.execute(f'UPDATE jobs SET {k} = ? WHERE id = ?', (v, job_id))
+                conn.commit()
+                conn.close()
+            except Exception as e:
+                print(f"[SWADES] update_job error: {e}")
 
     def append_log(self, job_id, log_type, data, step_number=None):
         now = datetime.now(timezone.utc).isoformat()
+        data_str = json.dumps(data) if isinstance(data, (dict, list)) else str(data)
+        
+        # 1. Non-blocking SQLite persistence
         with self.lock:
-            if job_id not in self.logs:
-                self.logs[job_id] = []
-            self.logs[job_id].append({
-                "id": len(self.logs[job_id]) + 1,
-                "job_id": job_id,
-                "timestamp": now,
-                "type": log_type,
-                "data": data,
-                "step_number": step_number
-            })
+            try:
+                conn = sqlite3.connect(self.db_path)
+                conn.execute('INSERT INTO job_logs (job_id, timestamp, type, data, step_number) VALUES (?, ?, ?, ?, ?)',
+                             (job_id, now, log_type, data_str, step_number))
+                conn.commit()
+                conn.close()
+            except Exception as e:
+                print(f"[SWADES] append_log error: {e}")
+                
+            # 2. Real-time 0ms SSE broadcast to browser
+            if job_id in self.subscribers:
+                event_payload = {
+                    "job_id": job_id,
+                    "timestamp": now,
+                    "type": log_type,
+                    "data": data,
+                    "step_number": step_number
+                }
+                for q in list(self.subscribers[job_id]):
+                    try:
+                        q.put_nowait(event_payload)
+                    except queue.Full:
+                        pass
 
     def get_logs(self, job_id, since=None):
         with self.lock:
-            entries = self.logs.get(job_id, [])
-            if since:
-                return [e for e in entries if e.get("timestamp", "") > since]
-            return list(entries)
+            try:
+                conn = sqlite3.connect(self.db_path)
+                conn.row_factory = sqlite3.Row
+                if since:
+                    rows = conn.execute('SELECT * FROM job_logs WHERE job_id = ? AND timestamp > ? ORDER BY id ASC', (job_id, since)).fetchall()
+                else:
+                    rows = conn.execute('SELECT * FROM job_logs WHERE job_id = ? ORDER BY id ASC', (job_id,)).fetchall()
+                conn.close()
+                return [dict(r) for r in rows]
+            except Exception:
+                return []
 
     def list_jobs(self, limit=20, offset=0):
         with self.lock:
-            sorted_jobs = sorted(self.jobs.values(), key=lambda x: x.get("created_at", ""), reverse=True)
-            total = len(sorted_jobs)
-            paginated = sorted_jobs[offset:offset+limit]
-            return [dict(j) for j in paginated], total
+            try:
+                conn = sqlite3.connect(self.db_path)
+                conn.row_factory = sqlite3.Row
+                rows = conn.execute('SELECT * FROM jobs ORDER BY created_at DESC LIMIT ? OFFSET ?', (limit, offset)).fetchall()
+                total = conn.execute('SELECT COUNT(*) FROM jobs').fetchone()[0]
+                conn.close()
+                return [dict(r) for r in rows], total
+            except Exception:
+                return [], 0
 
     def clear_all(self):
         with self.lock:
-            self.jobs.clear()
-            self.logs.clear()
+            try:
+                conn = sqlite3.connect(self.db_path)
+                conn.execute('DELETE FROM jobs')
+                conn.execute('DELETE FROM job_logs')
+                conn.commit()
+                conn.close()
+            except Exception:
+                pass
 
 _job_manager = SwadeJobManager()
 
@@ -880,6 +989,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         elif path.startswith('/v1/agent/stream/'):
             job_id = path.split('/')[-1]
             self.handle_agent_stream(job_id)
+        elif path == '/v1/agent/active':
+            self.handle_agent_active()
         elif path == '/v1/agent/jobs':
             self.handle_agent_list_jobs()
         elif path in ['/auth/github/login', '/login']:
@@ -1150,6 +1261,32 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         except Exception as err:
             self.send_error(500, f"Failed to fetch repositories: {err}")
 
+    def handle_agent_active(self):
+        job = _job_manager.get_active_or_latest_job()
+        if not job:
+            self.send_response(200)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(b'{"active": false, "job": null}')
+            return
+            
+        logs = _job_manager.get_logs(job["id"])
+        safe_job = dict(job)
+        if "github_pat" in safe_job: del safe_job["github_pat"]
+        if "api_key" in safe_job: del safe_job["api_key"]
+        
+        self.send_response(200)
+        self._send_cors_headers()
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(json.dumps({
+            "active": True,
+            "job": safe_job,
+            "logs": logs,
+            "status": safe_job.get("status", "RUNNING")
+        }).encode())
+
     def handle_agent_submit(self):
         try:
             content_length = int(self.headers.get("Content-Length", 0))
@@ -1251,40 +1388,47 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         self.send_header("X-Accel-Buffering", "no")
         self.end_headers()
         
-        # Flush initial keep-alive ping immediately so Cloudflare doesn't close the connection
         try:
             self.wfile.write(b": ping\n\n")
             self.wfile.flush()
         except Exception:
             return
+
+        # 1. Send all existing history logs
+        initial_logs = _job_manager.get_logs(job_id)
+        job = _job_manager.get_job(job_id)
         
-        log_file = os.path.join(_job_manager.base_dir, job_id, "agent.log")
-        pos = 0
+        try:
+            self.wfile.write(f"data: {json.dumps({'type': 'init', 'job': job, 'logs': initial_logs})}\n\n".encode())
+            self.wfile.flush()
+        except Exception:
+            return
+
+        # 2. Subscribe to real-time live events
+        q = _job_manager.subscribe(job_id)
         try:
             while True:
-                job = _job_manager.get_job(job_id)
-                if not job:
-                    break
-                    
-                if os.path.exists(log_file):
-                    with open(log_file, "r") as f:
-                        f.seek(pos)
-                        lines = f.readlines()
-                        pos = f.tell()
-                        for line in lines:
-                            self.wfile.write(f"data: {line.strip()}\n\n".encode())
-                            self.wfile.flush()
-                            
-                if job.get("status") in ["COMPLETED", "FAILED", "CANCELLED"]:
-                    self.wfile.write(b"data: {\"status\": \"FINAL\"}\n\n")
+                try:
+                    event = q.get(timeout=2.0)
+                    self.wfile.write(f"data: {json.dumps(event)}\n\n".encode())
                     self.wfile.flush()
-                    break
+                except queue.Empty:
+                    # Keep-alive heartbeat
+                    self.wfile.write(b": ping\n\n")
+                    self.wfile.flush()
                     
-                time.sleep(0.5)
-        except BrokenPipeError:
+                cur_job = _job_manager.get_job(job_id)
+                if cur_job and cur_job.get("status") in ["COMPLETED", "FAILED", "CANCELLED"]:
+                    if q.empty():
+                        self.wfile.write(f"data: {json.dumps({'type': 'complete', 'data': cur_job})}\n\n".encode())
+                        self.wfile.flush()
+                        break
+        except (BrokenPipeError, ConnectionResetError):
             pass
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[SWADES] SSE stream error: {e}")
+        finally:
+            _job_manager.unsubscribe(job_id, q)
 
     def handle_agent_list_jobs(self):
         parsed = urllib.parse.urlparse(self.path)
