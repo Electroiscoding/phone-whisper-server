@@ -140,7 +140,26 @@ class SwadeJobManager:
         self.active_worker_pid = None
         self.lock = threading.Lock()
         self.subscribers = {}  # { job_id: set(queue.Queue) }
+        self.message_queues = {}  # { job_id: [ {"message": str, "timestamp": str} ] }
         self._init_db()
+
+    def enqueue_message(self, job_id, message):
+        now = datetime.now(timezone.utc).isoformat()
+        with self.lock:
+            if job_id not in self.message_queues:
+                self.message_queues[job_id] = []
+            self.message_queues[job_id].append({"message": message, "timestamp": now})
+            q_len = len(self.message_queues[job_id])
+            
+        self.append_log(job_id, "queue_message", {"message": message, "queue_length": q_len})
+        return q_len
+
+    def pop_message(self, job_id):
+        with self.lock:
+            if job_id in self.message_queues and self.message_queues[job_id]:
+                item = self.message_queues[job_id].pop(0)
+                return item.get("message")
+        return None
 
     def subscribe(self, job_id):
         q = queue.Queue(maxsize=500)
@@ -980,6 +999,9 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_telemetry()
         elif path in ["", "/health"]:
             self.handle_health()
+        elif path.startswith('/v1/agent/pop_message/'):
+            job_id = path.split('/')[-1]
+            self.handle_agent_pop_message(job_id)
         elif path.startswith('/v1/agent/status/'):
             job_id = path.split('/')[-1]
             self.handle_agent_status(job_id)
@@ -1025,6 +1047,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_github_exchange_post()
         elif path == '/v1/agent/internal_event':
             self.handle_agent_internal_event()
+        elif path == '/v1/agent/message':
+            self.handle_agent_message()
         elif path == '/v1/agent/submit':
             self.handle_agent_submit()
         elif path == "/register_tunnel":
@@ -1260,6 +1284,72 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.wfile.write(data)
         except Exception as err:
             self.send_error(500, f"Failed to fetch repositories: {err}")
+
+    def handle_agent_message(self):
+        try:
+            content_length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(content_length) if content_length > 0 else b""
+            payload = json.loads(body.decode("utf-8")) if body else {}
+            job_id = payload.get("job_id")
+            message = payload.get("message")
+            
+            if not message or not str(message).trim():
+                self.send_error(400, "Message is required")
+                return
+                
+            job = _job_manager.get_job(job_id) if job_id else None
+            
+            if job and job.get("status") in ["RUNNING", "CLONING", "PAUSED"]:
+                # Agent is currently working: Queue message for automatic execution
+                q_len = _job_manager.enqueue_message(job_id, message)
+                self.send_response(200)
+                self._send_cors_headers()
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({
+                    "status": "queued",
+                    "job_id": job_id,
+                    "queue_length": q_len,
+                    "message": message
+                }).encode())
+                return
+                
+            # If no active job or previous job completed: launch new turn in workspace
+            repo_url = payload.get("repo_url") or (job.get("repo_url") if job else None)
+            if not repo_url:
+                self.send_error(400, "repo_url required for new task")
+                return
+                
+            gh_pat = payload.get("github_pat") or payload.get("github_token") or (job.get("github_pat") if job else None)
+            api_key = payload.get("api_key") or payload.get("llm_api_key") or (job.get("api_key") if job else None)
+            base_url = payload.get("base_url") or (job.get("base_url") if job else None)
+            model = payload.get("model") or (job.get("model") if job else None)
+            
+            new_job_id = _job_manager.create_job(repo_url, message, gh_pat, api_key, base_url, model)
+            threading.Thread(target=_spawn_swades_worker, args=(new_job_id,), daemon=True).start()
+            
+            self.send_response(200)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({
+                "status": "running",
+                "job_id": new_job_id,
+                "message": message
+            }).encode())
+        except Exception as e:
+            self.send_error(500, str(e))
+
+    def handle_agent_pop_message(self, job_id):
+        next_msg = _job_manager.pop_message(job_id)
+        self.send_response(200)
+        self._send_cors_headers()
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        if next_msg:
+            self.wfile.write(json.dumps({"has_message": True, "next_message": next_msg}).encode())
+        else:
+            self.wfile.write(b'{"has_message": false, "next_message": null}')
 
     def handle_agent_active(self):
         job = _job_manager.get_active_or_latest_job()

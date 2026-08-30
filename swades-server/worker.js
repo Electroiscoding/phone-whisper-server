@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { execSync } from 'child_process';
 import { parseGitHubUrl, cloneRepo, createBranch, configureGit, commitAll, pushBranch, openPullRequest, getDefaultBranch } from './github.js';
 import { runAgent } from './agent.js';
 
@@ -12,7 +13,7 @@ function buildPRBody(result, task) {
 ${result.summary || 'Completed autonomous task execution.'}
 
 ### 📁 Files Changed:
-${(result.filesChanged && result.filesChanged.length > 0) ? result.filesChanged.map(f => `- \`${f}\``).join('\n') : '- `SWADES_REPORT.md` (Analysis Report)'}
+${(result.filesChanged && result.filesChanged.length > 0) ? result.filesChanged.map(f => `- \`${f}\``).join('\n') : '- No files modified'}
 
 **Total Reasoning Steps:** ${result.totalSteps || 1}
 
@@ -62,6 +63,19 @@ async function updateJobStatus(jobId, updates) {
   } catch (e) {}
 }
 
+async function checkForQueuedMessage(jobId) {
+  try {
+    const res = await fetch(`http://127.0.0.1:8080/v1/agent/pop_message/${jobId}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data.has_message && data.next_message) {
+        return data.next_message;
+      }
+    }
+  } catch (e) {}
+  return null;
+}
+
 async function main() {
   const args = process.argv.slice(2);
   const jobIdx = args.indexOf('--job');
@@ -98,16 +112,17 @@ async function main() {
   }
   
   const githubPat = job.github_pat || job.github_token || null;
-  process.env.TASK_ORIG = job.task;
+  const { owner, repo } = parseGitHubUrl(job.repo_url);
+  const branchName = `swades/${jobId.slice(0, 8)}`;
   
   const onEvent = (event) => {
     sendInternalEvent(jobId, event.type, event.data, event.step_number || null);
   };
   
   try {
-    // 1. CLONE PHASE
+    // 1. CLONE & SETUP PHASE
     await updateJobStatus(jobId, { status: 'CLONING' });
-    onEvent({ type: 'status', data: 'Cloning repository' });
+    onEvent({ type: 'status', data: `Cloning ${owner}/${repo}...` });
     
     fs.mkdirSync(workspaceDir, { recursive: true });
     
@@ -117,85 +132,93 @@ async function main() {
     }
     
     configureGit(workspaceDir);
-    const { owner, repo } = parseGitHubUrl(job.repo_url);
     const defaultBranch = await getDefaultBranch({ owner, repo, pat: githubPat });
-    
-    const branchName = `swades/${jobId.slice(0, 8)}`;
     createBranch(workspaceDir, branchName);
     
-    // 2. AGENT PHASE
-    await updateJobStatus(jobId, { status: 'RUNNING', started_at: new Date().toISOString(), branch_name: branchName });
-    onEvent({ type: 'status', data: `Agent running (${job.model || 'qwen2.5'})` });
+    // 2. INTERACTIVE MULTI-TURN REASONING LOOP
+    let currentTask = job.task;
+    let allAccumulatedChanges = new Set();
     
-    const context = {
-      workdir: workspaceDir,
-      baseUrl: job.base_url || 'http://127.0.0.1:8080/v1',
-      apiKey: job.api_key || 'local',
-      model: job.model || 'qwen2.5',
-      jobId,
-      onEvent
-    };
-    
-    const result = await runAgent(context, job.task);
-    
-    // 3. PR PHASE
-    if (githubPat) {
-      onEvent({ type: 'status', data: 'Pushing changes to GitHub branch' });
+    while (currentTask) {
+      await updateJobStatus(jobId, { status: 'RUNNING', started_at: new Date().toISOString(), branch_name: branchName });
+      onEvent({ type: 'status', data: `🚀 Agent active: "${currentTask}" (${job.model || 'qwen2.5'})` });
       
-      // If no files modified, create a report file
-      if (!result.filesChanged || result.filesChanged.length === 0) {
-        const reportPath = path.join(workspaceDir, 'SWADES_REPORT.md');
-        fs.writeFileSync(reportPath, `# 🤖 Swades Agent Report\n\n**Task:** ${job.task}\n\n## Findings & Summary\n\n${result.summary || 'Task completed successfully.'}\n`, 'utf8');
-        result.filesChanged = ['SWADES_REPORT.md'];
+      const context = {
+        workdir: workspaceDir,
+        baseUrl: job.base_url || 'http://127.0.0.1:8080/v1',
+        apiKey: job.api_key || 'local',
+        model: job.model || 'qwen2.5',
+        jobId,
+        onEvent
+      };
+      
+      const result = await runAgent(context, currentTask);
+      
+      if (result.filesChanged && result.filesChanged.length > 0) {
+        result.filesChanged.forEach(f => allAccumulatedChanges.add(f));
       }
       
-      commitAll(workspaceDir, `feat(swades): ${job.task.slice(0, 70)}`);
-      
-      const pushRes = pushBranch(workspaceDir, branchName, githubPat, job.repo_url);
-      if (!pushRes.success) {
-        onEvent({ type: 'status', data: `⚠️ Git push note: ${pushRes.error}` });
-      }
-      
-      onEvent({ type: 'status', data: 'Opening GitHub Pull Request' });
-      const pr = await openPullRequest({
-        owner,
-        repo,
-        head: branchName,
-        base: defaultBranch,
-        title: `Swades Agent: ${job.task.slice(0, 80)}`,
-        body: buildPRBody(result, job.task),
-        pat: githubPat
-      });
-      
-      if (pr.pr_url) {
-        await updateJobStatus(jobId, {
-          status: 'COMPLETED',
-          completed_at: new Date().toISOString(),
-          pr_url: pr.pr_url,
-          pr_number: pr.pr_number,
-          files_changed: JSON.stringify(result.filesChanged),
-          total_steps: result.totalSteps
+      // Check for Real Code Changes (Deterministic Heuristic)
+      let hasRealCodeChanges = false;
+      let actualModifiedFiles = [];
+      try {
+        const gitStatusOut = execSync('git status --porcelain', { cwd: workspaceDir, timeout: 30000 }).toString().trim();
+        if (gitStatusOut) {
+          actualModifiedFiles = gitStatusOut.split('\n').map(l => l.trim().split(/\s+/).slice(1).join(' ')).filter(Boolean);
+          hasRealCodeChanges = actualModifiedFiles.length > 0;
+        }
+      } catch (e) {}
+
+      // 3. DETERMINISTIC PR DECISION
+      // PR is created IF AND ONLY IF:
+      // a) The user is authenticated with GitHub (githubPat)
+      // b) The AI model performed code modifications (hasRealCodeChanges && allAccumulatedChanges.size > 0)
+      if (githubPat && hasRealCodeChanges && allAccumulatedChanges.size > 0) {
+        onEvent({ type: 'status', data: `✨ ${actualModifiedFiles.length} modified files detected — creating Pull Request...` });
+        commitAll(workspaceDir, `feat: ${currentTask.slice(0, 70)}`);
+        pushBranch(workspaceDir, branchName, githubPat, job.repo_url);
+        
+        const pr = await openPullRequest({
+          owner,
+          repo,
+          head: branchName,
+          base: defaultBranch,
+          title: `Swades Agent: ${currentTask.slice(0, 80)}`,
+          body: buildPRBody(result, currentTask),
+          pat: githubPat
         });
-        onEvent({ type: 'complete', data: { pr_url: pr.pr_url, summary: result.summary } });
-        console.log(`Job ${jobId} completed successfully. PR: ${pr.pr_url}`);
+        
+        if (pr.pr_url) {
+          await updateJobStatus(jobId, {
+            pr_url: pr.pr_url,
+            pr_number: pr.pr_number,
+            files_changed: JSON.stringify(Array.from(allAccumulatedChanges)),
+            total_steps: result.totalSteps
+          });
+          onEvent({ type: 'complete', data: { pr_url: pr.pr_url, summary: result.summary, files_changed: Array.from(allAccumulatedChanges) } });
+        } else {
+          onEvent({ type: 'complete', data: { summary: result.summary, note: pr.error || 'Changes pushed to branch.' } });
+        }
       } else {
-        await updateJobStatus(jobId, {
-          status: 'COMPLETED',
-          completed_at: new Date().toISOString(),
-          files_changed: JSON.stringify(result.filesChanged),
-          total_steps: result.totalSteps
-        });
-        onEvent({ type: 'complete', data: { summary: result.summary, note: pr.error || 'No PR created' } });
+        // Pure informational / analytical task (No PR created)
+        onEvent({ type: 'status', data: 'ℹ️ No code files modified — completed analysis without Pull Request.' });
+        onEvent({ type: 'complete', data: { summary: result.summary, note: 'Informational task completed (no PR required).' } });
       }
-    } else {
-      await updateJobStatus(jobId, {
-        status: 'COMPLETED',
-        completed_at: new Date().toISOString(),
-        files_changed: JSON.stringify(result.filesChanged),
-        total_steps: result.totalSteps
-      });
-      onEvent({ type: 'complete', data: { summary: result.summary, note: 'Login with GitHub to enable automatic Pull Requests.' } });
+
+      // Check if user queued any follow-up messages while agent was working!
+      const queuedMessage = await checkForQueuedMessage(jobId);
+      if (queuedMessage) {
+        onEvent({ type: 'status', data: `📥 Processing queued follow-up: "${queuedMessage}"` });
+        currentTask = queuedMessage;
+      } else {
+        currentTask = null; // No more queued tasks, finish session
+      }
     }
+    
+    await updateJobStatus(jobId, {
+      status: 'COMPLETED',
+      completed_at: new Date().toISOString()
+    });
     
   } catch (err) {
     await updateJobStatus(jobId, { status: 'FAILED', error_message: err.message });

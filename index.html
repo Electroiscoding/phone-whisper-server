@@ -2091,11 +2091,27 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
         </div>
 
         <!-- Agent Activity Timeline Feed -->
-        <div id="swadesTerminal" style="background: #000000; min-height: 380px; max-height: 520px; overflow-y: auto; padding: 1.25rem; display: flex; flex-direction: column; gap: 0.85rem; scroll-behavior: smooth;">
+        <div id="swadesTerminal" style="background: #000000; min-height: 380px; max-height: 480px; overflow-y: auto; padding: 1.25rem; display: flex; flex-direction: column; gap: 0.85rem; scroll-behavior: smooth;">
           <div style="text-align: center; padding: 3.5rem 1rem; color: var(--text-subtle); display: flex; flex-direction: column; align-items: center; gap: 0.75rem;">
             <div style="font-size: 1.75rem; opacity: 0.6;">🤖</div>
             <div style="font-size: 0.95rem; font-weight: 600; color: var(--text-muted);">Autonomous Agent Ready</div>
             <div style="font-size: 0.82rem; max-width: 420px; line-height: 1.5;">Submit a repository and task above. The agent will autonomously clone, analyze code, execute surgical edits, run tests, and open a Pull Request.</div>
+          </div>
+        </div>
+
+        <!-- Interactive Agent Chat & Queue Bar (Antigravity Multi-Turn Workspace) -->
+        <div style="background: #0c0c0c; border-top: 1px solid var(--card-border); padding: 0.85rem 1.25rem; display: flex; flex-direction: column; gap: 0.5rem;">
+          <div id="swadesQueueBadgeRow" style="display: none; align-items: center; gap: 0.5rem; font-size: 0.78rem; color: #f59e0b; background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2); padding: 0.25rem 0.65rem; border-radius: 6px;">
+            <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #f59e0b; box-shadow: 0 0 6px #f59e0b;"></span>
+            <span id="swadesQueueCountText" style="font-weight: 600;">1 instruction queued — will auto-execute when current task finishes</span>
+          </div>
+
+          <div style="display: flex; gap: 0.6rem; align-items: center;">
+            <input type="text" id="swadesChatInput" class="chat-input" placeholder="Send follow-up instruction (e.g. 'Now add unit tests', 'Fix syntax errors'). Auto-queues if busy..." style="width: 100%; border-radius: 8px; font-size: 0.88rem;" onkeydown="if(event.key==='Enter') sendSwadesFollowUp()">
+            <button id="btnSendSwadesChat" class="btn-send-chat" style="padding: 0.65rem 1.25rem; border-radius: 8px; font-size: 0.88rem; flex-shrink: 0;" onclick="sendSwadesFollowUp()">
+              <span>➤</span>
+              <span>Send</span>
+            </button>
           </div>
         </div>
 
@@ -5467,6 +5483,60 @@ python3 mobile/nuclear_watchdog.py</code></pre>
     let swadesEventSource = null;
     let currentLogsCache = [];
 
+    async function sendSwadesFollowUp() {
+      const inputEl = document.getElementById('swadesChatInput');
+      const msg = inputEl ? inputEl.value.trim() : '';
+      if (!msg) return;
+
+      const repoUrl = document.getElementById('swadesRepoUrl')?.value?.trim() || '';
+      const ghPat = getStoredGitHubToken();
+      const llmProvider = document.getElementById('swadesLlmProvider')?.value || 'phone';
+      const llmModel = document.getElementById('swadesLlmModel')?.value?.trim() || 'qwen2.5';
+      const llmKey = document.getElementById('swadesLlmKey')?.value?.trim() || '';
+      const customBaseUrl = document.getElementById('swadesCustomBaseUrl')?.value?.trim() || '';
+
+      inputEl.value = '';
+
+      try {
+        const res = await fetch(`${BASE_ENDPOINT}/v1/agent/message`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            job_id: swadesCurrentJobId,
+            message: msg,
+            repo_url: repoUrl,
+            github_token: ghPat,
+            llm_provider: llmProvider,
+            model: llmModel,
+            llm_api_key: llmKey,
+            base_url: customBaseUrl
+          })
+        });
+
+        const data = await res.json();
+        if (data.status === 'queued') {
+          const queueRow = document.getElementById('swadesQueueBadgeRow');
+          const queueText = document.getElementById('swadesQueueCountText');
+          if (queueRow && queueText) {
+            queueRow.style.display = 'flex';
+            queueText.innerText = `${data.queue_length} instruction(s) queued — will auto-execute when current task finishes`;
+          }
+          // Append queued user message card to timeline
+          if (currentLogsCache) {
+            currentLogsCache.push({
+              type: 'queue_message',
+              data: { message: msg, queue_length: data.queue_length },
+              timestamp: new Date().toISOString()
+            });
+            renderAggregatedLogs(currentLogsCache, document.getElementById('swadesTerminal'));
+          }
+        } else if (data.status === 'running') {
+          connectSwadeStream(data.job_id);
+        }
+      } catch (e) {}
+    }
+    window.sendSwadesFollowUp = sendSwadesFollowUp;
+
     async function pauseCurrentTask() {
       if (!swadesCurrentJobId) return;
       try {
@@ -5681,7 +5751,18 @@ python3 mobile/nuclear_watchdog.py</code></pre>
         const card = document.createElement('div');
         card.style.cssText = 'display: flex; flex-direction: column; gap: 0.35rem;';
 
-        if (event.type === 'status') {
+        if (event.type === 'queue_message') {
+          const qMsg = event.rawData?.message || (typeof event.rawData === 'string' ? event.rawData : JSON.stringify(event.rawData));
+          card.innerHTML = `
+            <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.65rem 1rem; background: rgba(245,158,11,0.06); border: 1px dashed rgba(245,158,11,0.3); border-radius: 8px; font-size: 0.84rem; color: #fde68a;">
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span style="background: rgba(245,158,11,0.2); color: #f59e0b; padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.72rem; font-weight: 700;">QUEUED</span>
+                <span>👤 "${escapeHtml(qMsg)}"</span>
+              </div>
+              <span style="font-size: 0.72rem; color: var(--text-subtle);">${ts}</span>
+            </div>
+          `;
+        } else if (event.type === 'status') {
           const statusText = typeof event.rawData === 'string' ? event.rawData : (event.rawData?.data || JSON.stringify(event.rawData));
           card.innerHTML = `
             <div style="display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0.85rem; background: #0a0a0a; border: 1px solid var(--card-border); border-radius: 8px; font-size: 0.82rem; color: var(--text-muted);">
