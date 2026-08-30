@@ -906,11 +906,11 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_agent_stream(job_id)
         elif path == '/v1/agent/jobs':
             self.handle_agent_list_jobs()
-        elif path == '/auth/github/login':
+        elif path in ['/auth/github/login', '/login']:
             self.handle_github_login()
-        elif path.startswith('/auth/github/callback'):
+        elif path.startswith('/auth/github/callback') or path.startswith('/session') or path.startswith('/callback') or path.startswith('/auth/callback'):
             self.handle_github_callback()
-        elif path == '/auth/github/user-repos':
+        elif path in ['/auth/github/user-repos', '/user/repos', '/repos']:
             self.handle_github_user_repos()
         else:
             self.send_error(404, f"Unknown endpoint: {path}")

@@ -66,13 +66,13 @@ export default {
     // =========================================================================
     
     // (A) Redirect to GitHub OAuth Authorization Page
-    if (url.pathname === "/auth/github/login") {
+    if (["/auth/github/login", "/login"].includes(url.pathname)) {
       const authUrl = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&scope=repo,read:user`;
       return Response.redirect(authUrl, 302);
     }
 
     // (B) OAuth Callback from GitHub
-    if (url.pathname === "/auth/github/callback") {
+    if (["/auth/github/callback", "/session", "/callback", "/auth/callback"].includes(url.pathname)) {
       const code = url.searchParams.get("code");
       if (!code) {
         return new Response("Missing OAuth code from GitHub.", { status: 400 });
