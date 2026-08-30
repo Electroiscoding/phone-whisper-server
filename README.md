@@ -173,34 +173,31 @@ curl -X POST "https://black-term-8c36.botmaker583-55e.workers.dev/v1/audio/speec
   --output speech.wav
 ```
 
-### 6. MediaPipe Vision Suite (`POST /v1/vision/{task}`)
-Supported tasks: `face-detection`, `hand-landmarks`, `pose-landmarks`, `face-mesh`, `selfie-segmentation`, `background-blur`, `object-detection`, `holistic`.
+### 6. Google MediaPipe Vision & Spatial AI Suite (`POST /v1/vision/{task}`)
+Supports **3 Input Modalities**: (1) Static Images, (2) Video Keyframe Sequences, and (3) Real-Time Live WebCam Streams.
+
+* **Supported Tasks:** `face-detection` (6-Pt), `hand-landmarks` (21-Pt 3D), `pose-landmarks` (33-Pt Skeleton), `face-mesh` (468-Pt Dense), `selfie-segmentation` (Alpha Matte), `background-blur` (Bokeh Composite), `object-detection` (Multi-Class Boxes), `holistic` (543-Pt Combined).
 
 ```bash
-# Face Detection (Bounding Box + 6 Keypoints)
+# 1. Static Image Input (Face Detection)
 curl -X POST "https://black-term-8c36.botmaker583-55e.workers.dev/v1/vision/face-detection" \
   -H "Content-Type: application/json" \
-  -d '{"task": "face_detection"}'
+  -d '{"task": "face_detection", "image_base64": "data:image/jpeg;base64,..."}'
 
-# Hand Landmark Detection (21 3D Joint Coordinates)
-curl -X POST "https://black-term-8c36.botmaker583-55e.workers.dev/v1/vision/hand-landmarks" \
-  -H "Content-Type: application/json" \
-  -d '{"task": "hand_landmarks"}'
-
-# Full-Body Pose Skeleton (33 Skeletal Landmarks)
+# 2. Multi-Frame Video Sequence Input (Pose Landmark Estimation)
 curl -X POST "https://black-term-8c36.botmaker583-55e.workers.dev/v1/vision/pose-landmarks" \
   -H "Content-Type: application/json" \
-  -d '{"task": "pose_landmarks"}'
+  -d '{"task": "pose_landmarks", "frames_base64": ["data:image/jpeg;base64,...", "data:image/jpeg;base64,..."], "params": {"fps": 15}}'
 
-# Dense Face Mesh (468 3D Topology Coordinates)
+# 3. Real-Time Live WebCam Stream Frame (Face Mesh Topology)
 curl -X POST "https://black-term-8c36.botmaker583-55e.workers.dev/v1/vision/face-mesh" \
   -H "Content-Type: application/json" \
-  -d '{"task": "face_mesh"}'
+  -d '{"task": "face_mesh", "image_base64": "data:image/jpeg;base64,...", "is_live_stream": true}'
 
-# Holistic Tracking (Combined Face + Hands + Pose = 543 Landmarks)
-curl -X POST "https://black-term-8c36.botmaker583-55e.workers.dev/v1/vision/holistic" \
+# 4. Background Bokeh Blur Composite (Returns Processed Base64 JPEG)
+curl -X POST "https://black-term-8c36.botmaker583-55e.workers.dev/v1/vision/background-blur" \
   -H "Content-Type: application/json" \
-  -d '{"task": "holistic"}'
+  -d '{"task": "background_blur", "image_base64": "data:image/jpeg;base64,...", "params": {"blur_radius": 20}}'
 ```
 
 ---

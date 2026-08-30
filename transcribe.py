@@ -184,6 +184,65 @@ def get_telemetry(timeout: int = 10) -> Dict[str, Any]:
 # ==============================================================================
 # CLI Entry Point
 # ==============================================================================
+
+def detect_vision(
+    image_source: Union[str, Path, bytes],
+    task: str = "face_detection",
+    params: Optional[Dict[str, Any]] = None,
+    timeout: int = 30
+) -> Dict[str, Any]:
+    """
+    Executes Google MediaPipe Vision tasks on phone hardware.
+    :param image_source: Path to image file or raw image bytes.
+    :param task: 'face_detection', 'hand_landmarks', 'pose_landmarks', 'face_mesh', 'selfie_segmentation', 'background_blur', 'object_detection', 'holistic'.
+    :param params: Optional parameters (e.g. {'blur_radius': 20}).
+    :return: Dict containing detected landmarks, bounding boxes, or base64 processed image.
+    """
+    import base64
+    url = f"{BASE_ENDPOINT.rstrip('/')}/v1/vision/{task.replace('_', '-')}"
+    
+    if isinstance(image_source, (str, Path)):
+        with open(image_source, "rb") as f:
+            b64_str = base64.b64encode(f.read()).decode()
+    elif isinstance(image_source, bytes):
+        b64_str = base64.b64encode(image_source).decode()
+    else:
+        raise ValueError("image_source must be a file path (str/Path) or bytes")
+
+    payload = {
+        "task": task,
+        "image_base64": b64_str,
+        "params": params or {}
+    }
+    res = requests.post(url, json=payload, timeout=timeout)
+    res.raise_for_status()
+    return res.json()
+
+
+def analyze_video_frames(
+    frames_b64_list: List[str],
+    task: str = "pose_landmarks",
+    fps: int = 15,
+    timeout: int = 60
+) -> Dict[str, Any]:
+    """
+    Processes a sequence of video keyframes for temporal motion and landmark tracking.
+    :param frames_b64_list: List of base64-encoded JPEG/PNG frame strings.
+    :param task: Vision task name.
+    :param fps: Video sampling frame rate.
+    :return: Dict containing frame-by-frame landmarks and trajectory metrics.
+    """
+    url = f"{BASE_ENDPOINT.rstrip('/')}/v1/vision/{task.replace('_', '-')}"
+    payload = {
+        "task": task,
+        "frames_base64": frames_b64_list,
+        "params": {"fps": fps}
+    }
+    res = requests.post(url, json=payload, timeout=timeout)
+    res.raise_for_status()
+    return res.json()
+
+
 def main():
     import argparse
     parser = argparse.ArgumentParser(description="Autonomous Mobile AI Datacenter SDK")
@@ -209,6 +268,14 @@ def main():
     # Embeddings Subcommand
     emb_p = subparsers.add_parser("embed", help="Generate vector embeddings")
     emb_p.add_argument("text", help="Text to embed")
+
+    # Vision Subcommand
+    vis_p = subparsers.add_parser("vision", help="Execute Google MediaPipe Vision tasks")
+    vis_p.add_argument("file", help="Path to image file")
+    vis_p.add_argument("--task", default="face_detection", choices=[
+        "face_detection", "hand_landmarks", "pose_landmarks", "face_mesh",
+        "selfie_segmentation", "background_blur", "object_detection", "holistic"
+    ], help="Vision task to execute")
 
     # Telemetry Subcommand
     subparsers.add_parser("telemetry", help="Get real-time hardware telemetry")
@@ -255,6 +322,14 @@ def main():
         vec = embed(args.text)
         print(f"✅ Generated {len(vec)}-dimensional float vector in {time.time()-t0:.2f}s.")
         print(f"Preview: {vec[:5]} ...")
+
+    elif args.command == "vision":
+        print(f"👁️ Running MediaPipe Vision [{args.task}] on: {args.file}...")
+        t0 = time.time()
+        res = detect_vision(args.file, task=args.task)
+        elapsed = time.time() - t0
+        print(f"✅ Processed in {elapsed:.2f}s (Inference: {res.get('inference_time_ms', 0)}ms):")
+        print(json.dumps(res, indent=2))
 
     elif args.command == "telemetry":
         print("📊 Querying live phone hardware metrics...")

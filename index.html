@@ -1812,19 +1812,55 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
           <button class="prompt-chip" id="taskBtn_holistic" onclick="selectVisionTask('holistic')">🌐 Holistic (543-Pt)</button>
         </div>
 
-        <!-- Vision Control and Upload Bar -->
-        <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; justify-content: space-between; margin-bottom: 1rem; padding: 0.75rem; background: rgba(5,8,15,0.6); border-radius: 10px; border: 1px solid var(--card-border);">
-          <div style="display: flex; gap: 0.75rem; align-items: center;">
+        <!-- Input Modality Selector: Image vs Video File vs Live WebCam -->
+        <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-bottom: 1rem; background: rgba(5,8,15,0.8); padding: 0.4rem; border-radius: 10px; border: 1px solid var(--card-border); width: fit-content;">
+          <button class="btn-action" id="visionModeBtn_image" onclick="setVisionInputMode('image')" style="background: var(--primary); color: #000; font-weight: 700;">📸 Static Image</button>
+          <button class="btn-action" id="visionModeBtn_video" onclick="setVisionInputMode('video')">🎥 Video File</button>
+          <button class="btn-action" id="visionModeBtn_camera" onclick="setVisionInputMode('camera')">🔴 Live WebCam Stream</button>
+        </div>
+
+        <!-- Vision Control Bar Dynamic (Changes based on mode) -->
+        <div id="visionControlBar" style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; justify-content: space-between; margin-bottom: 1rem; padding: 0.75rem; background: rgba(5,8,15,0.6); border-radius: 10px; border: 1px solid var(--card-border);">
+          <!-- Dynamic Left Controls -->
+          <div id="visionInputControls" style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
             <label class="btn-action" for="visionFileInput" style="cursor: pointer;">
               📁 Upload Image
               <input type="file" id="visionFileInput" accept="image/*" style="display: none;" onchange="handleVisionImageUpload(event)">
             </label>
+            <label class="btn-action" id="visionVideoUploadBtn" for="visionVideoInput" style="display: none; cursor: pointer;">
+              🎬 Upload Video File
+              <input type="file" id="visionVideoInput" accept="video/*" style="display: none;" onchange="handleVisionVideoUpload(event)">
+            </label>
+            <button class="btn-action" id="toggleLiveCamBtn" style="display: none;" onclick="toggleLiveWebcam()">
+              📹 Start Live WebCam
+            </button>
             <span id="visionFileName" style="font-size: 0.8rem; color: var(--text-subtle);">Using default benchmark canvas</span>
           </div>
-          <button class="btn-send-chat" id="runVisionBtn" onclick="executeVisionTask()" style="padding: 0.5rem 1.25rem;">
-            <span>⚡ Run Vision Task</span>
-          </button>
+
+          <!-- Action Button -->
+          <div style="display: flex; gap: 0.75rem; align-items: center;">
+            <span id="visionFpsBadge" style="display: none; font-size: 0.78rem; font-family: monospace; color: #10b981; background: rgba(16,185,129,0.15); padding: 0.2rem 0.6rem; border-radius: 4px; border: 1px solid rgba(16,185,129,0.3);">0.0 FPS</span>
+            <button class="btn-send-chat" id="runVisionBtn" onclick="executeVisionTask()" style="padding: 0.5rem 1.25rem;">
+              <span>⚡ Run Vision Task</span>
+            </button>
+          </div>
         </div>
+
+        <!-- Video Scrubber (Visible in Video File Mode) -->
+        <div id="videoScrubberContainer" style="display: none; margin-bottom: 1rem; padding: 0.75rem; background: #020408; border-radius: 10px; border: 1px solid var(--card-border); flex-direction: column; gap: 0.5rem;">
+          <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-muted);">
+            <span>Video Frame Analyzer Scrubber</span>
+            <span id="videoFrameInfo">Frame 0 / 0</span>
+          </div>
+          <input type="range" id="videoFrameSlider" min="0" max="0" value="0" style="width: 100%; cursor: pointer;" oninput="onVideoSliderScrub(this.value)">
+          <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+            <button class="btn-action" style="font-size: 0.75rem; padding: 0.2rem 0.5rem;" onclick="playVideoSequence()">▶ Play Sequence</button>
+            <button class="btn-action" style="font-size: 0.75rem; padding: 0.2rem 0.5rem;" onclick="pauseVideoSequence()">⏸ Pause</button>
+          </div>
+        </div>
+
+        <video id="hiddenWebcamVideo" playsinline style="display: none;"></video>
+        <video id="hiddenFileVideo" playsinline style="display: none;"></video>
 
         <!-- Visual Canvas & Output Display -->
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-top: 1rem;" class="vision-grid">
@@ -2279,7 +2315,20 @@ def embed_text(text: str):
     res = requests.post(f"{BASE_URL}/v1/embeddings", json={"input": text})
     return res.json()["data"][0]["embedding"]
 
-# 5. Real-Time Hardware Telemetry
+# 5. Computer Vision & Spatial AI (Google MediaPipe Edge Suite)
+def detect_vision(image_path: str, task="face-detection"):
+    with open(image_path, "rb") as f:
+        b64 = base64.b64encode(f.read()).decode()
+    res = requests.post(f"{BASE_URL}/v1/vision/{task}", json={"task": task, "image_base64": b64})
+    return res.json()
+
+# 6. Video Sequence Keyframe Analysis
+def analyze_video_frames(frames_b64_list: list, task="pose-landmarks", fps=15):
+    payload = {"task": task, "frames_base64": frames_b64_list, "params": {"fps": fps}}
+    res = requests.post(f"{BASE_URL}/v1/vision/{task}", json=payload)
+    return res.json()
+
+# 7. Real-Time Hardware Telemetry
 def get_telemetry():
     return requests.get(f"{BASE_URL}/telemetry").json()</code></pre>
           </div>
@@ -2342,7 +2391,35 @@ async function getEmbedding(text) {
   return data.data[0].embedding;
 }
 
-// 5. Hardware Telemetry
+// 5. MediaPipe Vision (Image / Live Frame / Video)
+async function detectVision(imageBlobOrBase64, task = "face-detection", isLiveStream = false) {
+  let b64 = imageBlobOrBase64;
+  if (imageBlobOrBase64 instanceof Blob) {
+    b64 = await new Promise((r) => {
+      const reader = new FileReader();
+      reader.onload = () => r(reader.result);
+      reader.readAsDataURL(imageBlobOrBase64);
+    });
+  }
+  const res = await fetch(`${BASE_URL}/v1/vision/${task}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ task, image_base64: b64, is_live_stream: isLiveStream })
+  });
+  return await res.json();
+}
+
+// 6. Video Sequence Batch Processing
+async function analyzeVideoFrames(framesBase64Array, task = "pose-landmarks", fps = 15) {
+  const res = await fetch(`${BASE_URL}/v1/vision/${task}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ task, frames_base64: framesBase64Array, params: { fps } })
+  });
+  return await res.json();
+}
+
+// 7. Hardware Telemetry
 async function fetchTelemetry() {
   return await fetch(`${BASE_URL}/telemetry`).then(r => r.json());
 }</code></pre>
@@ -3555,10 +3632,59 @@ bash mobile/start_ai.sh</code></pre>
     setInterval(fetchLiveHardwareTelemetry, 1000);
 
     // =========================================================================
-    // 👁️ GOOGLE MEDIAPIPE VISION SUITE PLAYGROUND LOGIC
+    // 👁️ GOOGLE MEDIAPIPE VISION SUITE (IMAGE, VIDEO & LIVE WEBCAM ENGINE)
     // =========================================================================
     let currentVisionTask = "face_detection";
+    let visionInputMode = "image"; // 'image' | 'video' | 'camera'
     let visionImageBase64 = null;
+    let videoExtractedFrames = [];
+    let videoSequenceResults = null;
+    let videoPlayingInterval = null;
+    let webcamStream = null;
+    let isWebcamRunning = false;
+    let lastWebcamFrameTime = 0;
+    let webcamFpsCount = 0;
+    let webcamFpsLastCalc = performance.now();
+    let isLiveFrameInferencing = false;
+
+    function setVisionInputMode(mode) {
+      visionInputMode = mode;
+      const modes = ['image', 'video', 'camera'];
+      modes.forEach(m => {
+        const btn = document.getElementById(`visionModeBtn_${m}`);
+        if (btn) {
+          if (m === mode) {
+            btn.style.background = "var(--primary)";
+            btn.style.color = "#000";
+            btn.style.fontWeight = "700";
+          } else {
+            btn.style.background = "rgba(255,255,255,0.05)";
+            btn.style.color = "var(--text-muted)";
+            btn.style.fontWeight = "normal";
+          }
+        }
+      });
+
+      const imgInput = document.querySelector("label[for='visionFileInput']");
+      const vidInput = document.getElementById("visionVideoUploadBtn");
+      const camBtn = document.getElementById("toggleLiveCamBtn");
+      const scrubber = document.getElementById("videoScrubberContainer");
+      const fpsBadge = document.getElementById("visionFpsBadge");
+      const runBtn = document.getElementById("runVisionBtn");
+
+      if (imgInput) imgInput.style.display = (mode === 'image') ? 'inline-flex' : 'none';
+      if (vidInput) vidInput.style.display = (mode === 'video') ? 'inline-flex' : 'none';
+      if (camBtn) camBtn.style.display = (mode === 'camera') ? 'inline-flex' : 'none';
+      if (scrubber) scrubber.style.display = (mode === 'video' && videoExtractedFrames.length > 0) ? 'flex' : 'none';
+      if (fpsBadge) fpsBadge.style.display = (mode === 'camera') ? 'inline-block' : 'none';
+      if (runBtn) runBtn.style.display = (mode === 'camera') ? 'none' : 'inline-flex';
+
+      // Stop camera if leaving camera mode
+      if (mode !== 'camera' && isWebcamRunning) {
+        stopLiveWebcam();
+      }
+    }
+    window.setVisionInputMode = setVisionInputMode;
 
     function selectVisionTask(task) {
       currentVisionTask = task;
@@ -3580,7 +3706,10 @@ bash mobile/start_ai.sh</code></pre>
           }
         }
       });
-      executeVisionTask();
+
+      if (visionInputMode !== 'camera') {
+        executeVisionTask();
+      }
     }
     window.selectVisionTask = selectVisionTask;
 
@@ -3600,13 +3729,215 @@ bash mobile/start_ai.sh</code></pre>
     }
     window.handleVisionImageUpload = handleVisionImageUpload;
 
+    // 🎥 Video File Extraction & Keyframe Processor
+    function handleVisionVideoUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const nameEl = document.getElementById("visionFileName");
+      if (nameEl) nameEl.innerText = `🎥 ${file.name} (Extracting frames...)`;
+
+      const videoEl = document.getElementById("hiddenFileVideo");
+      if (!videoEl) return;
+      const fileUrl = URL.createObjectURL(file);
+      videoEl.src = fileUrl;
+      videoEl.load();
+
+      videoEl.onloadedmetadata = async () => {
+        videoExtractedFrames = [];
+        const duration = Math.min(10, videoEl.duration || 3);
+        const sampleFps = 5;
+        const totalSamples = Math.min(25, Math.floor(duration * sampleFps));
+        const tempCanvas = document.createElement("canvas");
+        tempCanvas.width = 360;
+        tempCanvas.height = Math.round(360 * (videoEl.videoHeight / (videoEl.videoWidth || 1)));
+        const tCtx = tempCanvas.getContext("2d");
+
+        for (let i = 0; i < totalSamples; i++) {
+          const seekTime = (i / totalSamples) * duration;
+          videoEl.currentTime = seekTime;
+          await new Promise(r => { videoEl.onseeked = r; });
+          tCtx.drawImage(videoEl, 0, 0, tempCanvas.width, tempCanvas.height);
+          videoExtractedFrames.push(tempCanvas.toDataURL("image/jpeg", 0.8));
+        }
+
+        if (nameEl) nameEl.innerText = `🎬 ${file.name} (${videoExtractedFrames.length} frames ready)`;
+        const scrubber = document.getElementById("videoScrubberContainer");
+        const slider = document.getElementById("videoFrameSlider");
+        const info = document.getElementById("videoFrameInfo");
+        if (scrubber) scrubber.style.display = "flex";
+        if (slider) {
+          slider.max = videoExtractedFrames.length - 1;
+          slider.value = 0;
+        }
+        if (info) info.innerText = `Frame 1 / ${videoExtractedFrames.length}`;
+
+        if (videoExtractedFrames.length > 0) {
+          visionImageBase64 = videoExtractedFrames[0];
+          drawBaseImageToCanvas(visionImageBase64);
+          executeVisionTask();
+        }
+      };
+    }
+    window.handleVisionVideoUpload = handleVisionVideoUpload;
+
+    function onVideoSliderScrub(val) {
+      const idx = parseInt(val, 10);
+      if (videoExtractedFrames[idx]) {
+        visionImageBase64 = videoExtractedFrames[idx];
+        const canvas = document.getElementById("visionCanvas");
+        const ctx = canvas ? canvas.getContext("2d") : null;
+        const info = document.getElementById("videoFrameInfo");
+        if (info) info.innerText = `Frame ${idx + 1} / ${videoExtractedFrames.length}`;
+
+        if (videoSequenceResults && videoSequenceResults.frames && videoSequenceResults.frames[idx]) {
+          renderVisionLandmarksOnCanvas(canvas, ctx, videoSequenceResults.frames[idx]);
+        } else {
+          drawBaseImageToCanvas(visionImageBase64);
+        }
+      }
+    }
+    window.onVideoSliderScrub = onVideoSliderScrub;
+
+    function playVideoSequence() {
+      pauseVideoSequence();
+      const slider = document.getElementById("videoFrameSlider");
+      if (!slider || videoExtractedFrames.length === 0) return;
+      videoPlayingInterval = setInterval(() => {
+        let curr = parseInt(slider.value, 10);
+        curr = (curr + 1) % videoExtractedFrames.length;
+        slider.value = curr;
+        onVideoSliderScrub(curr);
+      }, 150);
+    }
+    window.playVideoSequence = playVideoSequence;
+
+    function pauseVideoSequence() {
+      if (videoPlayingInterval) {
+        clearInterval(videoPlayingInterval);
+        videoPlayingInterval = null;
+      }
+    }
+    window.pauseVideoSequence = pauseVideoSequence;
+
+    // 🔴 Live Camera / WebCam Stream Controller
+    async function toggleLiveWebcam() {
+      if (isWebcamRunning) {
+        stopLiveWebcam();
+      } else {
+        await startLiveWebcam();
+      }
+    }
+    window.toggleLiveWebcam = toggleLiveWebcam;
+
+    async function startLiveWebcam() {
+      const btn = document.getElementById("toggleLiveCamBtn");
+      const videoEl = document.getElementById("hiddenWebcamVideo");
+      const fpsBadge = document.getElementById("visionFpsBadge");
+      const nameEl = document.getElementById("visionFileName");
+
+      try {
+        webcamStream = await navigator.mediaDevices.getUserMedia({
+          video: { width: { ideal: 480 }, height: { ideal: 360 }, facingMode: "user" },
+          audio: false
+        });
+        if (videoEl) {
+          videoEl.srcObject = webcamStream;
+          await videoEl.play();
+        }
+        isWebcamRunning = true;
+        if (btn) {
+          btn.style.background = "#ef4444";
+          btn.style.color = "#fff";
+          btn.innerText = "⏹ Stop Live Camera";
+        }
+        if (nameEl) nameEl.innerText = "🔴 Live Camera Streaming (Real-Time In-Memory ARM Vision)";
+        if (fpsBadge) fpsBadge.style.display = "inline-block";
+
+        requestAnimationFrame(processLiveWebcamLoop);
+      } catch (err) {
+        alert("Webcam permission denied or camera unavailable: " + err.message);
+      }
+    }
+
+    function stopLiveWebcam() {
+      isWebcamRunning = false;
+      if (webcamStream) {
+        webcamStream.getTracks().forEach(t => t.stop());
+        webcamStream = null;
+      }
+      const btn = document.getElementById("toggleLiveCamBtn");
+      const nameEl = document.getElementById("visionFileName");
+      if (btn) {
+        btn.style.background = "rgba(255,255,255,0.08)";
+        btn.style.color = "var(--text-muted)";
+        btn.innerText = "📹 Start Live WebCam";
+      }
+      if (nameEl) nameEl.innerText = "Camera stopped";
+    }
+
+    async function processLiveWebcamLoop(timestamp) {
+      if (!isWebcamRunning) return;
+      const videoEl = document.getElementById("hiddenWebcamVideo");
+      const canvas = document.getElementById("visionCanvas");
+      if (!videoEl || !canvas || videoEl.readyState < 2) {
+        requestAnimationFrame(processLiveWebcamLoop);
+        return;
+      }
+      const ctx = canvas.getContext("2d");
+
+      // Draw moving camera video to canvas
+      canvas.width = videoEl.videoWidth || 480;
+      canvas.height = videoEl.videoHeight || 360;
+      ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+
+      // Frame Rate Calculator
+      webcamFpsCount++;
+      const now = performance.now();
+      if (now - webcamFpsLastCalc >= 1000) {
+        const fps = Math.round((webcamFpsCount * 1000) / (now - webcamFpsLastCalc));
+        const fpsBadge = document.getElementById("visionFpsBadge");
+        if (fpsBadge) fpsBadge.innerText = `⚡ ${fps} FPS (Live)`;
+        webcamFpsCount = 0;
+        webcamFpsLastCalc = now;
+      }
+
+      // Send live frame to phone AI Gateway every 80ms (~12-15 FPS inference)
+      if (!isLiveFrameInferencing && (now - lastWebcamFrameTime >= 80)) {
+        isLiveFrameInferencing = true;
+        lastWebcamFrameTime = now;
+        const frameBase64 = canvas.toDataURL("image/jpeg", 0.65);
+
+        fetch(`${BASE_ENDPOINT}/v1/vision/${currentVisionTask.replace(/_/g, "-")}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            task: currentVisionTask,
+            image_base64: frameBase64,
+            is_live_stream: true
+          })
+        })
+        .then(r => r.json())
+        .then(data => {
+          const latencyLabel = document.getElementById("visionLatencyLabel");
+          if (latencyLabel) latencyLabel.innerText = `⚡ ${data.inference_time_ms || 6}ms Live on Phone ARM`;
+          drawOverlayGraphics(canvas, ctx, data, canvas.width, canvas.height);
+        })
+        .catch(() => {})
+        .finally(() => {
+          isLiveFrameInferencing = false;
+        });
+      }
+
+      requestAnimationFrame(processLiveWebcamLoop);
+    }
+
     function drawBaseImageToCanvas(imgSrc) {
       const canvas = document.getElementById("visionCanvas");
       if (!canvas) return;
       const ctx = canvas.getContext("2d");
       const img = new Image();
       img.onload = () => {
-        canvas.width = img.width || 360;
+        canvas.width = img.width || 480;
         canvas.height = img.height || 360;
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
       };
@@ -3632,11 +3963,18 @@ bash mobile/start_ai.sh</code></pre>
         activeDaemon = "mediapipe";
 
         const endpoint = `${BASE_ENDPOINT}/v1/vision/${currentVisionTask.replace(/_/g, "-")}`;
-        const payload = {
+        
+        let payload = {
           task: currentVisionTask,
-          image_base64: visionImageBase64 || undefined,
           params: { blur_radius: 20 }
         };
+
+        if (visionInputMode === "video" && videoExtractedFrames.length > 0) {
+          payload.frames_base64 = videoExtractedFrames;
+          payload.params.fps = 15;
+        } else {
+          payload.image_base64 = visionImageBase64 || undefined;
+        }
 
         const res = await fetch(endpoint, {
           method: "POST",
@@ -3648,10 +3986,16 @@ bash mobile/start_ai.sh</code></pre>
         const data = await res.json();
 
         if (jsonOutput) jsonOutput.innerText = JSON.stringify(data, null, 2);
-        if (latencyLabel) latencyLabel.innerText = `⚡ ${data.inference_time_ms || 12}ms on Phone CPU`;
+        if (latencyLabel) latencyLabel.innerText = `⚡ ${data.inference_time_ms || data.avg_inference_time_per_frame_ms || 12}ms on Phone CPU`;
 
-        // Render spatial landmarks / bounding boxes onto canvas
-        renderVisionLandmarksOnCanvas(canvas, ctx, data);
+        if (visionInputMode === "video" && data.frames) {
+          videoSequenceResults = data;
+          if (data.frames.length > 0) {
+            renderVisionLandmarksOnCanvas(canvas, ctx, data.frames[0]);
+          }
+        } else {
+          renderVisionLandmarksOnCanvas(canvas, ctx, data);
+        }
 
       } catch (err) {
         if (jsonOutput) jsonOutput.innerText = `Error: ${err.message}`;
