@@ -5908,14 +5908,33 @@ python3 mobile/nuclear_watchdog.py</code></pre>
     }
     window.clearSwadesHistory = clearSwadesHistory;
 
-    async function viewSwadeLogs(jobId) {
-      connectSwadeStream(jobId);
+    async function checkActiveServerJob() {
+      try {
+        const savedId = localStorage.getItem("active_swades_job_id");
+        if (savedId) {
+          connectSwadeStream(savedId);
+        }
+        
+        const res = await fetch(`${BASE_ENDPOINT}/v1/agent/active`);
+        if (!res.ok) return;
+        const data = await res.json();
+        
+        if (data.active && data.job) {
+          if (!swadesCurrentJobId || swadesCurrentJobId !== data.job.id) {
+            connectSwadeStream(data.job.id);
+          }
+        }
+      } catch (e) {}
     }
-    
+    window.checkActiveServerJob = checkActiveServerJob;
+
     window.addEventListener('DOMContentLoaded', () => {
       initSwadesGitHubAuth();
-      swadesJobsInterval = setInterval(refreshSwadeJobs, 5000);
-      refreshSwadeJobs();
+      checkActiveServerJob();
+    });
+
+    window.addEventListener('focus', () => {
+      checkActiveServerJob();
     });
 
   </script>
