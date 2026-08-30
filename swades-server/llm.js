@@ -69,6 +69,9 @@ export async function callLLM(context, messages, tools) {
 
             if (delta.content) {
               content += delta.content;
+              if (context.onEvent) {
+                context.onEvent({ type: 'thinking_chunk', data: delta.content });
+              }
             }
 
             if (delta.tool_calls) {
@@ -92,11 +95,6 @@ export async function callLLM(context, messages, tools) {
           }
         }
       }
-    }
-
-    // Emit complete thinking block once per reasoning step (prevents chopped micro-cards)
-    if (content.trim() && context.onEvent) {
-      context.onEvent({ type: 'thinking', data: content.trim() });
     }
 
     const tool_calls = Array.from(toolCallsMap.values());

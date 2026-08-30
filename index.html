@@ -2055,11 +2055,18 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
         
         <!-- IDE Top Toolbar / Workspace Header -->
         <div style="background: #0d0d0d; border-bottom: 1px solid var(--card-border); padding: 0.85rem 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
-          <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
             <div style="display: flex; align-items: center; gap: 0.5rem; font-weight: 700; font-size: 0.95rem; color: #fff;">
-              <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #6366f1; box-shadow: 0 0 8px #6366f1;"></span>
+              <span id="swadesPulseBeacon" style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #6366f1; box-shadow: 0 0 8px #6366f1; animation: pulse 1.5s infinite;"></span>
               <span>Antigravity Agent Workspace</span>
             </div>
+            
+            <!-- Live Underlying Engine Badge -->
+            <div id="swadesEngineBadge" style="display: flex; align-items: center; gap: 0.35rem; background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.25); padding: 0.2rem 0.65rem; border-radius: 6px; font-size: 0.75rem; color: #a5b4fc; font-weight: 600;">
+              <span>🧠</span>
+              <span id="swadesModelNameText">Qwen 2.5 (Local CPU)</span>
+            </div>
+
             <span id="swadesStreamStatus" style="font-size: 0.75rem; padding: 0.2rem 0.65rem; border-radius: 6px; background: rgba(255,255,255,0.05); border: 1px solid var(--card-border); color: var(--text-muted); font-weight: 600;">Idle</span>
           </div>
 
@@ -5540,6 +5547,12 @@ python3 mobile/nuclear_watchdog.py</code></pre>
             if (bannerRepo) bannerRepo.innerText = (data.job.repo_url || '').split('/').slice(-2).join('/') || data.job.repo_url;
             if (bannerTask) bannerTask.innerText = data.job.task || '';
             if (bannerId) bannerId.innerText = `#${jobId.substring(0,8)}`;
+
+            const modelEl = document.getElementById('swadesModelNameText');
+            if (modelEl && data.job.model) {
+              const prov = (data.job.base_url && data.job.base_url.includes('127.0.0.1')) ? 'Local Phone CPU' : 'Cloud API';
+              modelEl.innerText = `${data.job.model} (${prov})`;
+            }
           }
 
           if (data.status) {
@@ -5593,11 +5606,11 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       return pathStr.replace(/^.*?[/\\]workspace[/\\]/, '');
     }
 
-    function renderAggregatedLogs(rawLogs, terminal) {
+    function renderAggregatedLogs(rawLogs, terminal, isRunning = true) {
       terminal.innerHTML = '';
       if (!rawLogs || rawLogs.length === 0) return;
 
-      // Group consecutive thinking events into single coherent reasoning blocks
+      // Group consecutive thinking and thinking_chunk events into single coherent reasoning blocks
       const mergedEvents = [];
       for (const log of rawLogs) {
         const type = (log.type || '').toLowerCase();
@@ -5605,12 +5618,16 @@ python3 mobile/nuclear_watchdog.py</code></pre>
         if (typeof rawData === 'string') {
           try { rawData = JSON.parse(rawData); } catch(e) {}
         }
-        const textContent = typeof rawData === 'string' ? rawData : (rawData?.data || JSON.stringify(rawData));
+        const textContent = typeof rawData === 'string' ? rawData : (rawData?.data || (typeof rawData === 'object' ? JSON.stringify(rawData) : String(rawData)));
 
-        if (type === 'thinking') {
+        if (type === 'thinking' || type === 'thinking_chunk') {
           const last = mergedEvents[mergedEvents.length - 1];
           if (last && last.type === 'thinking') {
-            last.content += '\n\n' + textContent;
+            if (type === 'thinking_chunk') {
+              last.content += textContent;
+            } else {
+              last.content += '\n\n' + textContent;
+            }
             last.timestamp = log.timestamp || last.timestamp;
           } else {
             mergedEvents.push({ type: 'thinking', content: textContent, timestamp: log.timestamp });

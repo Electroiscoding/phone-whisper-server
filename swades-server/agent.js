@@ -3,6 +3,10 @@ import { SYSTEM_PROMPT, TOOL_SCHEMAS } from './prompts.js';
 import { executeTool, indexCodebase } from './tools.js';
 
 export async function runAgent(context, task) {
+  if (context.onEvent) {
+    context.onEvent({ type: 'status', data: '📂 Scanning and indexing repository workspace...' });
+  }
+  
   const indexStr = indexCodebase(context);
   let messages = [
     { role: 'system', content: SYSTEM_PROMPT + '\n\nWorkspace: ' + context.workdir + '\n\nCodebase Index:\n' + indexStr },
@@ -16,11 +20,22 @@ export async function runAgent(context, task) {
     if (context.abortSignal && context.abortSignal.aborted) {
       throw new Error('Agent execution cancelled');
     }
+
+    const providerType = (context.baseUrl && context.baseUrl.includes('127.0.0.1')) ? 'Local Phone CPU' : 'Cloud Provider';
+    if (context.onEvent) {
+      context.onEvent({
+        type: 'status',
+        data: `🧠 [Step ${stepCount + 1}] Prompting ${context.model} (${providerType}) — evaluating context...`
+      });
+    }
     
     const response = await callLLM(context, messages, TOOL_SCHEMAS);
     messages.push(response);
     
     if (!response.tool_calls || response.tool_calls.length === 0) {
+      if (context.onEvent) {
+        context.onEvent({ type: 'status', data: `✨ Solution finalized by ${context.model}.` });
+      }
       break;
     }
     
@@ -29,7 +44,7 @@ export async function runAgent(context, task) {
       try {
         args = JSON.parse(tc.function.arguments);
       } catch (e) {
-        // Handled below
+        args = { raw: tc.function.arguments };
       }
       
       const timestamp = new Date().toISOString();
