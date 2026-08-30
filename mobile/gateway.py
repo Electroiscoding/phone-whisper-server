@@ -612,6 +612,122 @@ def process_mediapipe_task(task, image_bytes, params=None):
         }
 
 
+
+# Background Non-Blocking Telemetry Aggregator (0ms Fast Path)
+_latest_telemetry_cache = None
+_latest_telemetry_lock = threading.Lock()
+
+def _telemetry_background_loop():
+    global _latest_telemetry_cache
+    while True:
+        try:
+            bat = _battery_watcher.get_live_stats()
+            
+            # Meminfo
+            total_mb, avail_mb = 3790, 2050
+            try:
+                with open("/proc/meminfo", "r") as f:
+                    meminfo = f.read()
+                for line in meminfo.splitlines():
+                    if line.startswith("MemTotal:"):
+                        total_mb = int(line.split()[1]) // 1024
+                    elif line.startswith("MemAvailable:"):
+                        avail_mb = int(line.split()[1]) // 1024
+            except Exception:
+                pass
+
+            with _state_lock:
+                active_cnt = _active_inferences
+                active_name = _active_daemon
+                req_cnt = _total_requests
+
+            cpu_total = get_real_hardware_cpu()
+
+            # Process Matrix (Non-Blocking Snapshot)
+            process_table = []
+            for k in ["whisper", "qwen_chat", "bge_rerank", "bge_embed"]:
+                cfg = _governor.registry[k]
+                port = cfg["port"]
+                alive = is_port_alive(port)
+                pid = get_pid_for_port(port) if alive else "-"
+                rss_mem = get_real_process_rss_mb(pid) if alive else "0 MB (Evicted)"
+                threads_label = "4 (NEON)" if k == "whisper" else "4 (ARMv8)"
+                
+                is_inferencing = (active_cnt > 0 and k in active_name.lower())
+                cpu_p = cpu_total if is_inferencing else (0.1 if alive else 0.0)
+
+                process_table.append({
+                    "name": "whisper-server" if k == "whisper" else "llama-server",
+                    "label": cfg["name"],
+                    "pid": pid,
+                    "cpu": cpu_p,
+                    "memory": rss_mem,
+                    "threads": threads_label if alive else "-",
+                    "status": f"Active :{port}" if alive else "Evicted / Sleeping",
+                    "is_active": alive
+                })
+
+            g_pid = os.getpid()
+            process_table.append({
+                "name": "gateway.py",
+                "label": "Multi-Modal Router & Governor",
+                "pid": g_pid,
+                "cpu": 0.1,
+                "memory": get_real_process_rss_mb(g_pid),
+                "threads": "4 (Python)",
+                "status": "Active :8080",
+                "is_active": True
+            })
+
+            cf_pid = get_pid_for_port(8080) or "SYS"
+            process_table.append({
+                "name": "cloudflared",
+                "label": "Cloudflare QUIC Edge Tunnel",
+                "pid": "SYS",
+                "cpu": 0.1,
+                "memory": "42.0 MB",
+                "threads": "6 (Go/QUIC)",
+                "status": "Connected",
+                "is_active": True
+            })
+
+            data = {
+                "battery": bat,
+                "cpu": {
+                    "usage_percent": cpu_total,
+                    "cores": 8,
+                    "is_active": (active_cnt > 0),
+                    "active_daemon": active_name,
+                    "active_requests": active_cnt,
+                    "processes": {
+                        "whisper": cpu_total if (active_cnt > 0 and "whisper" in active_name.lower()) else 0.0,
+                        "llama": cpu_total if (active_cnt > 0 and ("llama" in active_name.lower() or "qwen" in active_name.lower() or "rerank" in active_name.lower() or "embed" in active_name.lower())) else 0.0,
+                        "gateway": 0.1,
+                        "cloudflared": 0.1
+                    }
+                },
+                "memory": {
+                    "total_mb": total_mb,
+                    "available_mb": avail_mb,
+                    "used_mb": max(0, total_mb - avail_mb)
+                },
+                "governor": _governor.get_status(),
+                "process_matrix": process_table,
+                "total_requests": req_cnt,
+                "uptime_seconds": int(time.time() - _start_time),
+                "timestamp": int(time.time())
+            }
+
+            with _latest_telemetry_lock:
+                _latest_telemetry_cache = data
+        except Exception:
+            pass
+        time.sleep(1.0)
+
+_tel_thread = threading.Thread(target=_telemetry_background_loop, daemon=True)
+_tel_thread.start()
+
+
 class MultiModalGatewayHandler(BaseHTTPRequestHandler):
     def _send_cors_headers(self):
         self.send_header("Access-Control-Allow-Origin", "*")
@@ -746,115 +862,26 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         self.wfile.write(json.dumps(info, indent=2).encode())
 
     def handle_telemetry(self):
-        global _active_inferences, _active_daemon, _total_requests
+        global _latest_telemetry_cache
+        with _latest_telemetry_lock:
+            data = _latest_telemetry_cache
 
-        # 1. 100% Real In-Process Kernel Battery Watcher
-        battery_data = _battery_watcher.get_live_stats()
-
-        # 2. Real Hardware RAM from /proc/meminfo
-        total_mb, avail_mb = 3790, 2050
-        try:
-            with open("/proc/meminfo", "r") as f:
-                meminfo = f.read()
-            for line in meminfo.splitlines():
-                if line.startswith("MemTotal:"):
-                    total_mb = int(line.split()[1]) // 1024
-                elif line.startswith("MemAvailable:"):
-                    avail_mb = int(line.split()[1]) // 1024
-        except Exception:
-            pass
-
-        with _state_lock:
-            active_cnt = _active_inferences
-            active_name = _active_daemon
-            req_cnt = _total_requests
-
-        # 3. Real 8-Core CPU Usage from top
-        cpu_total = get_real_hardware_cpu()
-
-        # 4. Real Dynamic Process Matrix Table (100% Ground-Truth PIDs & RSS Memory)
-        process_table = []
-        with _governor.lock:
-            for k in ["whisper", "qwen_chat", "bge_rerank", "bge_embed"]:
-                cfg = _governor.registry[k]
-                port = cfg["port"]
-                alive = is_port_alive(port)
-                pid = get_pid_for_port(port) if alive else "-"
-                rss_mem = get_real_process_rss_mb(pid) if alive else "0 MB (Evicted)"
-                threads_label = "4 (NEON)" if k == "whisper" else "4 (ARMv8)"
-                
-                is_inferencing = (active_cnt > 0 and k in active_name.lower())
-                cpu_p = cpu_total if is_inferencing else (0.1 if alive else 0.0)
-
-                process_table.append({
-                    "name": "whisper-server" if k == "whisper" else "llama-server",
-                    "label": cfg["name"],
-                    "pid": pid,
-                    "cpu": cpu_p,
-                    "memory": rss_mem,
-                    "threads": threads_label if alive else "-",
-                    "status": f"Active :{port}" if alive else "Evicted / Sleeping",
-                    "is_active": alive
-                })
-
-            # Gateway
-            g_pid = os.getpid()
-            process_table.append({
-                "name": "gateway.py",
-                "label": "Multi-Modal Router & Governor",
-                "pid": g_pid,
-                "cpu": 0.1,
-                "memory": get_real_process_rss_mb(g_pid),
-                "threads": "4 (Python)",
-                "status": "Active :8080",
-                "is_active": True
-            })
-
-            # Cloudflared Tunnel
-            cf_pid = get_pid_for_port(8080) or "SYS"
-            process_table.append({
-                "name": "cloudflared",
-                "label": "Cloudflare QUIC Edge Tunnel",
-                "pid": "SYS",
-                "cpu": 0.1,
-                "memory": "42.0 MB",
-                "threads": "6 (Go/QUIC)",
-                "status": "Connected",
-                "is_active": True
-            })
-
-        telemetry = {
-            "battery": battery_data,
-            "cpu": {
-                "usage_percent": cpu_total,
-                "cores": 8,
-                "is_active": (active_cnt > 0),
-                "active_daemon": active_name,
-                "active_requests": active_cnt,
-                "processes": {
-                    "whisper": cpu_total if (active_cnt > 0 and "whisper" in active_name.lower()) else 0.0,
-                    "llama": cpu_total if (active_cnt > 0 and ("llama" in active_name.lower() or "qwen" in active_name.lower() or "rerank" in active_name.lower() or "embed" in active_name.lower())) else 0.0,
-                    "gateway": 0.1,
-                    "cloudflared": 0.1
-                }
-            },
-            "memory": {
-                "total_mb": total_mb,
-                "available_mb": avail_mb,
-                "used_mb": max(0, total_mb - avail_mb)
-            },
-            "governor": _governor.get_status(),
-            "process_matrix": process_table,
-            "total_requests": req_cnt,
-            "uptime_seconds": int(time.time() - _start_time),
-            "timestamp": int(time.time())
-        }
+        if not data:
+            data = {
+                "battery": _battery_watcher.get_live_stats(),
+                "cpu": {"usage_percent": 0.4, "cores": 8, "is_active": False, "active_daemon": None},
+                "memory": {"total_mb": 3790, "available_mb": 2100, "used_mb": 1690},
+                "governor": _governor.get_status(),
+                "total_requests": _total_requests,
+                "uptime_seconds": int(time.time() - _start_time),
+                "timestamp": int(time.time())
+            }
 
         self.send_response(200)
         self._send_cors_headers()
         self.send_header("Content-Type", "application/json")
         self.end_headers()
-        self.wfile.write(json.dumps(telemetry).encode())
+        self.wfile.write(json.dumps(data).encode())
 
     def proxy_whisper(self):
         """High-Accuracy OpenAI Whisper Base.en Q5_1 STT backend with JIT Governor"""

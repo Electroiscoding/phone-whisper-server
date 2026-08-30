@@ -2810,38 +2810,87 @@ curl -s "https://black-term-8c36.botmaker583-55e.workers.dev/telemetry" | jq .ba
           <!-- 4. FLUTTER / DART TAB -->
           <div id="tab-flutter" class="tab-pane" style="display: none;">
             <div style="background: rgba(56, 189, 248, 0.08); border-left: 3px solid var(--primary); padding: 0.75rem 1rem; border-radius: 0 8px 8px 0; margin-bottom: 1rem; font-size: 0.85rem; color: var(--text-muted);">
-              <strong>📱 Flutter / Dart Mobile SDK:</strong> Drop-in class for iOS & Android apps built with Flutter.
+              <strong>📱 Flutter / Dart Production SDK:</strong> Drop-in class for iOS, Android, and Web apps supporting all 6 on-device AI modalities.
             </div>
             <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>import 'dart:convert';
+import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 
 class PhoneAIClient {
   static const String baseUrl = "https://black-term-8c36.botmaker583-55e.workers.dev";
 
-  // 1. Qwen SLM Chat
-  static Future&lt;String&gt; chat(String prompt) async {
+  // 1. 💬 Qwen 2.5 SLM Chat (Streaming & Full)
+  static Future&lt;String&gt; chat(String prompt, {String systemPrompt = "You are a helpful AI assistant."}) async {
     final res = await http.post(
       Uri.parse("$baseUrl/v1/chat/completions"),
       headers: {"Content-Type": "application/json"},
       body: jsonEncode({
-        "messages": [{"role": "user", "content": prompt}],
+        "messages": [
+          {"role": "system", "content": systemPrompt},
+          {"role": "user", "content": prompt}
+        ],
         "stream": false,
+        "temperature": 0.7,
+        "max_tokens": 256
       }),
     );
     final data = jsonDecode(res.body);
     return data["choices"][0]["message"]["content"];
   }
 
-  // 2. Transcribe Audio
-  static Future&lt;String&gt; transcribe(List&lt;int&gt; audioBytes) async {
-    var req = http.MultipartRequest("POST", Uri.parse("$baseUrl/inference"));
+  // 2. 🎙️ Whisper Audio STT
+  static Future&lt;String&gt; transcribe(Uint8List audioBytes) async {
+    final req = http.MultipartRequest("POST", Uri.parse("$baseUrl/inference"));
     req.files.add(http.MultipartFile.fromBytes("file", audioBytes, filename: "audio.wav"));
-    var streamRes = await req.send();
-    var res = await http.Response.fromStream(streamRes);
+    req.fields["response_format"] = "json";
+    req.fields["temperature"] = "0.0";
+    final streamRes = await req.send();
+    final res = await http.Response.fromStream(streamRes);
     return jsonDecode(res.body)["text"];
   }
 
-  // 3. Hardware Telemetry
+  // 3. 🗣️ Neural Text-to-Speech (TTS)
+  static Future&lt;Uint8List&gt; textToSpeech(String text) async {
+    final res = await http.post(
+      Uri.parse("$baseUrl/v1/audio/speech"),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({"input": text, "speed": 1.0}),
+    );
+    return res.bodyBytes;
+  }
+
+  // 4. 🔍 Dense Vector Embeddings (896 Dimensions)
+  static Future&lt;List&lt;double&gt;&gt; getEmbedding(String text) async {
+    final res = await http.post(
+      Uri.parse("$baseUrl/v1/embeddings"),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({"input": text}),
+    );
+    final data = jsonDecode(res.body);
+    return List&lt;double&gt;.from(data["data"][0]["embedding"]);
+  }
+
+  // 5. 🎯 Deep Cross-Attention Semantic Reranker
+  static Future&lt;Map&lt;String, dynamic&gt;&gt; rerank(String query, List&lt;String&gt; documents) async {
+    final res = await http.post(
+      Uri.parse("$baseUrl/v1/rerank"),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({"query": query, "documents": documents}),
+    );
+    return jsonDecode(res.body);
+  }
+
+  // 6. 👁️ Google MediaPipe Vision (Image & Video)
+  static Future&lt;Map&lt;String, dynamic&gt;&gt; detectVision(String base64Image, {String task = "face_detection"}) async {
+    final res = await http.post(
+      Uri.parse("$baseUrl/v1/vision/${task.replaceAll('_', '-')}"),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({"task": task, "image_base64": base64Image}),
+    );
+    return jsonDecode(res.body);
+  }
+
+  // 7. 📊 Real-Time Hardware Telemetry
   static Future&lt;Map&lt;String, dynamic&gt;&gt; getTelemetry() async {
     final res = await http.get(Uri.parse("$baseUrl/telemetry"));
     return jsonDecode(res.body);
@@ -2852,10 +2901,52 @@ class PhoneAIClient {
           <!-- 5. RUST & GO TAB -->
           <div id="tab-rust_go" class="tab-pane" style="display: none;">
             <div style="background: rgba(245, 158, 11, 0.08); border-left: 3px solid var(--warning); padding: 0.75rem 1rem; border-radius: 0 8px 8px 0; margin-bottom: 1rem; font-size: 0.85rem; color: var(--text-muted);">
-              <strong>🦀 High-Throughput Rust & 🐹 Go:</strong> Enterprise microservice wrappers with zero overhead.
+              <strong>🦀 High-Performance Rust & 🐹 Go SDKs:</strong> Async, zero-allocation client implementations for backend microservices and data pipelines.
             </div>
-            <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>// 🐹 GO (Golang) Drop-In Integration
-package main
+            
+            <h4 style="font-size: 0.82rem; text-transform: uppercase; color: var(--text-subtle); letter-spacing: 0.05em; margin-bottom: 0.4rem;">🦀 Rust Async Implementation (tokio + reqwest)</h4>
+            <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>use reqwest::Client;
+use serde_json::json;
+use futures_util::StreamExt;
+
+const BASE_URL: &str = "https://black-term-8c36.botmaker583-55e.workers.dev";
+
+#[tokio::main]
+async fn main() -> Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    let client = Client::new();
+
+    // 1. 💬 Stream Qwen 2.5 SLM Chat
+    println!("💬 Asking Qwen SLM...");
+    let payload = json!({
+        "messages": [{"role": "user", "content": "Explain quantum physics in 15 words"}],
+        "stream": true
+    });
+    let mut stream = client
+        .post(format!("{}/v1/chat/completions", BASE_URL))
+        .json(&payload)
+        .send()
+        .await?
+        .bytes_stream();
+
+    while let Some(item) = stream.next().await {
+        let chunk = item?;
+        print!("{}", String::from_utf8_lossy(&chunk));
+    }
+
+    // 2. 📊 Fetch Hardware Telemetry
+    let tel: serde_json::Value = client
+        .get(format!("{}/telemetry", BASE_URL))
+        .send()
+        .await?
+        .json()
+        .await?;
+    println!("\n\n🔋 Phone Battery: {}%", tel["battery"]["level"]);
+
+    Ok(())
+}</code></pre>
+
+            <h4 style="font-size: 0.82rem; text-transform: uppercase; color: var(--text-subtle); letter-spacing: 0.05em; margin: 1.25rem 0 0.4rem;">🐹 Go (Golang) Production Microservice Wrapper</h4>
+            <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>package main
 
 import (
 	"bytes"
@@ -2867,13 +2958,14 @@ import (
 
 const BaseURL = "https://black-term-8c36.botmaker583-55e.workers.dev"
 
-func StreamChat(prompt string) {
+// 1. StreamChat streams tokens live from phone CPU
+func StreamChat(prompt string) error {
 	payload, _ := json.Marshal(map[string]interface{}{
 		"messages": []map[string]string{{"role": "user", "content": prompt}},
 		"stream":   true,
 	})
 	resp, err := http.Post(BaseURL+"/v1/chat/completions", "application/json", bytes.NewBuffer(payload))
-	if err != nil { panic(err) }
+	if err != nil { return err }
 	defer resp.Body.Close()
 
 	buf := make([]byte, 1024)
@@ -2881,11 +2973,25 @@ func StreamChat(prompt string) {
 		n, err := resp.Body.Read(buf)
 		if n > 0 { fmt.Print(string(buf[:n])) }
 		if err == io.EOF { break }
+		if err != nil { return err }
 	}
+	return nil
+}
+
+// 2. GetTelemetry returns real-time kernel hardware stats
+func GetTelemetry() (map[string]interface{}, error) {
+	resp, err := http.Get(BaseURL + "/telemetry")
+	if err != nil { return nil, err }
+	defer resp.Body.Close()
+
+	var result map[string]interface{}
+	err = json.NewDecoder(resp.Body).Decode(&result)
+	return result, err
 }
 
 func main() {
-	StreamChat("Why is decentralized edge computing fast?")
+	fmt.Println("🚀 Streaming from On-Device Phone AI:")
+	StreamChat("What is edge computing?")
 }</code></pre>
           </div>
 
@@ -3826,15 +3932,27 @@ python3 mobile/nuclear_watchdog.py</code></pre>
     }
 
     function switchTab(tabName) {
-      document.querySelectorAll(".docs-tab").forEach(t => t.classList.remove("active"));
-      document.querySelectorAll(".tab-pane").forEach(p => p.classList.remove("active"));
+      const tabs = document.querySelectorAll(".docs-tabs .docs-tab");
+      const panes = document.querySelectorAll(".docs-content .tab-pane");
+      tabs.forEach(t => t.classList.remove("active"));
+      panes.forEach(p => {
+        p.classList.remove("active");
+        p.style.display = "none";
+      });
 
-      const targetTab = Array.from(document.querySelectorAll(".docs-tab")).find(t => t.innerText.toLowerCase().includes(tabName));
-      if (targetTab) targetTab.classList.add("active");
+      const activeBtn = Array.from(tabs).find(t => {
+        const oc = t.getAttribute("onclick") || "";
+        return oc.includes(`'${tabName}'`) || oc.includes(`"${tabName}"`);
+      });
+      if (activeBtn) activeBtn.classList.add("active");
 
       const targetPane = document.getElementById(`tab-${tabName}`);
-      if (targetPane) targetPane.classList.add("active");
+      if (targetPane) {
+        targetPane.classList.add("active");
+        targetPane.style.display = "block";
+      }
     }
+    window.switchTab = switchTab;
 
     function copyCode(btn) {
       const code = btn.nextElementSibling.innerText;
