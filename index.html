@@ -4950,7 +4950,48 @@ python3 mobile/nuclear_watchdog.py</code></pre>
     // =========================================================================
     // 🐙 GITHUB OAUTH HANDLERS (SWADES AGENT)
     // =========================================================================
-    function initSwadesGitHubAuth() {
+    async function initSwadesGitHubAuth() {
+      // 1. Check for incoming OAuth code in URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const incomingCode = urlParams.get("code");
+
+      if (incomingCode) {
+        try {
+          const statusDiv = document.getElementById("swadesSubmitStatus");
+          if (statusDiv) {
+            statusDiv.innerText = "⏳ Exchanging GitHub authorization code...";
+            statusDiv.style.color = "var(--primary)";
+          }
+
+          const res = await fetch(`${BASE_ENDPOINT}/auth/github/exchange`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ code: incomingCode })
+          });
+
+          if (res.ok) {
+            const auth = await res.json();
+            if (auth.token) {
+              swadesAuthData = auth;
+              localStorage.setItem("swades_gh_auth", JSON.stringify(auth));
+              renderGitHubAuthUI();
+              fetchUserRepositories();
+              if (statusDiv) {
+                statusDiv.innerText = `✅ Logged in as @${auth.username}!`;
+                statusDiv.style.color = "var(--success)";
+              }
+            }
+          }
+        } catch (err) {
+          console.error("OAuth code exchange error:", err);
+        } finally {
+          // Clean the URL bar without reloading
+          const cleanUrl = window.location.pathname + "#swades-studio";
+          window.history.replaceState({}, document.title, cleanUrl);
+        }
+      }
+
+      // 2. Check saved session in localStorage
       try {
         const saved = localStorage.getItem("swades_gh_auth");
         if (saved) {
@@ -4960,6 +5001,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
         }
       } catch (e) {}
 
+      // 3. Listen for message from popup (if opened as popup)
       window.addEventListener("message", (event) => {
         if (event.data && event.data.type === "SWADES_GITHUB_AUTH" && event.data.auth) {
           swadesAuthData = event.data.auth;
@@ -4988,11 +5030,17 @@ python3 mobile/nuclear_watchdog.py</code></pre>
     }
 
     function loginWithGitHub() {
-      const authUrl = `${BASE_ENDPOINT}/auth/github/login`;
+      // Direct GitHub Authorize URL for instant 1-click login
+      const clientId = "Ov23lirb9l4pdAZ5DEeq";
+      const authUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&scope=repo,read:user`;
       const width = 600, height = 700;
       const left = (window.innerWidth - width) / 2;
       const top = (window.innerHeight - height) / 2;
-      window.open(authUrl, "github_oauth", `width=${width},height=${height},top=${top},left=${left}`);
+      const popup = window.open(authUrl, "github_oauth", `width=${width},height=${height},top=${top},left=${left}`);
+      if (!popup || popup.closed || typeof popup.closed == 'undefined') {
+        // Fallback to full page redirect if popup was blocked by browser
+        window.location.href = authUrl;
+      }
     }
     window.loginWithGitHub = loginWithGitHub;
 

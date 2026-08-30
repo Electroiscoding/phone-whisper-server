@@ -908,7 +908,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_agent_list_jobs()
         elif path in ['/auth/github/login', '/login']:
             self.handle_github_login()
-        elif path.startswith('/auth/github/callback') or path.startswith('/session') or path.startswith('/callback') or path.startswith('/auth/callback'):
+        elif path.startswith('/auth/github/callback') or path.startswith('/session') or path.startswith('/callback') or path.startswith('/auth/callback') or path == '/session':
             self.handle_github_callback()
         elif path in ['/auth/github/user-repos', '/user/repos', '/repos']:
             self.handle_github_user_repos()
@@ -934,6 +934,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         elif path.startswith("/v1/vision") or path.startswith("/vision"):
             task = path.split("/")[-1]
             self.handle_mediapipe_vision(task)
+        elif path in ['/auth/github/exchange', '/session', '/auth/exchange']:
+            self.handle_github_exchange_post()
         elif path == '/v1/agent/submit':
             self.handle_agent_submit()
         elif path == "/register_tunnel":
@@ -961,13 +963,90 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         self.send_header("Location", auth_url)
         self.end_headers()
 
+    def handle_github_exchange_post(self):
+        try:
+            content_length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(content_length) if content_length > 0 else b""
+            payload = json.loads(body.decode("utf-8")) if body else {}
+            code = payload.get("code")
+
+            if not code:
+                self.send_error(400, "Missing code in payload")
+                return
+
+            token_payload = json.dumps({
+                "client_id": GITHUB_CLIENT_ID,
+                "client_secret": GITHUB_CLIENT_SECRET,
+                "code": code
+            }).encode()
+
+            req = urllib.request.Request(
+                "https://github.com/login/oauth/access_token",
+                data=token_payload,
+                headers={
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                    "User-Agent": "SwadesAgent/1.0"
+                }
+            )
+
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                token_data = json.loads(resp.read().decode())
+
+            access_token = token_data.get("access_token")
+            if not access_token:
+                self.send_response(400)
+                self._send_cors_headers()
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": token_data.get("error_description", "Token exchange failed")}).encode())
+                return
+
+            user_profile = {"login": "github_user", "avatar_url": ""}
+            try:
+                user_req = urllib.request.Request(
+                    "https://api.github.com/user",
+                    headers={
+                        "Authorization": f"Bearer {access_token}",
+                        "User-Agent": "SwadesAgent/1.0",
+                        "Accept": "application/vnd.github.v3+json"
+                    }
+                )
+                with urllib.request.urlopen(user_req, timeout=10) as user_resp:
+                    user_profile = json.loads(user_resp.read().decode())
+            except Exception:
+                pass
+
+            result = {
+                "token": access_token,
+                "username": user_profile.get("login", "github_user"),
+                "avatar": user_profile.get("avatar_url", ""),
+                "name": user_profile.get("name") or user_profile.get("login", "github_user")
+            }
+
+            self.send_response(200)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps(result).encode())
+        except Exception as e:
+            self.send_response(500)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({"error": str(e)}).encode())
+
     def handle_github_callback(self):
         parsed = urllib.parse.urlparse(self.path)
         qs = urllib.parse.parse_qs(parsed.query)
         code = qs.get("code", [None])[0]
 
         if not code:
-            self.send_error(400, "Missing OAuth code from GitHub")
+            self.send_response(200)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(b"<!DOCTYPE html><html><body style='background:#07090e;color:#38bdf8;font-family:sans-serif;text-align:center;padding:3rem;'><h2>Swades GitHub OAuth Active</h2><p style='color:#94a3b8;'>Ready for code authorization exchange.</p></body></html>")
             return
 
         try:
