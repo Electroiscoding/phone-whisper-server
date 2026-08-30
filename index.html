@@ -2050,12 +2050,35 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
       </div>
 
 
+      <!-- 🖥️ Live Agent Terminal & Condition Monitor -->
       <div class="chat-container-card">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-          <h3 style="font-size: 1.1rem;">🖥️ Live Agent Terminal</h3>
-          <span id="swadesStreamStatus" style="font-size: 0.75rem; padding: 0.2rem 0.6rem; border-radius: 9999px; background: rgba(100,116,139,0.1); border: 1px solid rgba(100,116,139,0.3); color: var(--text-muted);">Disconnected</span>
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem;">
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <h3 style="font-size: 1.1rem; margin: 0;">🖥️ Live Agent Terminal</h3>
+            <span id="swadesStreamStatus" style="font-size: 0.75rem; padding: 0.2rem 0.6rem; border-radius: 9999px; background: rgba(100,116,139,0.1); border: 1px solid rgba(100,116,139,0.3); color: var(--text-muted);">Ready</span>
+          </div>
+          
+          <!-- Interactive Task Controls -->
+          <div id="swadesControlsRow" style="display: flex; gap: 0.5rem; align-items: center;">
+            <button id="btnSwadesPause" class="btn-action" style="display: none; color: #f59e0b; border-color: rgba(245,158,11,0.3);" onclick="pauseCurrentTask()">⏸️ Pause</button>
+            <button id="btnSwadesResume" class="btn-action" style="display: none; color: #10b981; border-color: rgba(16,185,129,0.3);" onclick="resumeCurrentTask()">▶️ Resume</button>
+            <button id="btnSwadesCancel" class="btn-action" style="display: none; color: #ef4444; border-color: rgba(239,68,68,0.3);" onclick="cancelCurrentTask()">⏹️ Cancel</button>
+            <a id="btnSwadesPrLink" href="#" target="_blank" class="btn-action" style="display: none; color: var(--primary); border-color: var(--primary);">🔗 View PR ↗</a>
+          </div>
         </div>
-        <div id="swadesTerminal" style="background: var(--terminal-bg); border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); padding: 1rem; height: 350px; overflow-y: auto; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; line-height: 1.6; display: flex; flex-direction: column; gap: 0.4rem;">
+
+        <!-- Active Task Condition Banner -->
+        <div id="swadesTaskBanner" style="display: none; margin-bottom: 0.85rem; padding: 0.75rem 1rem; background: rgba(255,255,255,0.03); border: 1px solid var(--card-border); border-radius: 8px; font-size: 0.85rem; justify-content: space-between; align-items: center;">
+          <div style="display: flex; gap: 0.5rem; align-items: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+            <span style="font-weight: 700; color: #fff;">📌 Task:</span>
+            <span id="swadesBannerRepo" style="color: var(--primary); font-family: monospace;">repo</span>
+            <span style="color: var(--text-muted);">—</span>
+            <span id="swadesBannerTask" style="color: var(--text-muted); overflow: hidden; text-overflow: ellipsis;">task description</span>
+          </div>
+          <span id="swadesBannerId" style="font-family: monospace; font-size: 0.75rem; color: var(--text-subtle);"></span>
+        </div>
+
+        <div id="swadesTerminal" style="background: var(--terminal-bg); border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); padding: 1.25rem; height: 380px; overflow-y: auto; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; line-height: 1.6; display: flex; flex-direction: column; gap: 0.4rem;">
           <div style="color: var(--text-muted); font-style: italic;">Ready. Submit a task above to watch the autonomous agent execute in real time.</div>
         </div>
       </div>
@@ -5424,20 +5447,72 @@ python3 mobile/nuclear_watchdog.py</code></pre>
 
     let swadesLogPollInterval = null;
 
+    async function pauseCurrentTask() {
+      if (!swadesCurrentJobId) return;
+      try {
+        await fetch(`${BASE_ENDPOINT}/v1/agent/pause/${swadesCurrentJobId}`, { method: 'POST' });
+        updateControlsUI('PAUSED');
+      } catch (e) {}
+    }
+    window.pauseCurrentTask = pauseCurrentTask;
+
+    async function resumeCurrentTask() {
+      if (!swadesCurrentJobId) return;
+      try {
+        await fetch(`${BASE_ENDPOINT}/v1/agent/resume/${swadesCurrentJobId}`, { method: 'POST' });
+        updateControlsUI('RUNNING');
+      } catch (e) {}
+    }
+    window.resumeCurrentTask = resumeCurrentTask;
+
+    async function cancelCurrentTask() {
+      if (!swadesCurrentJobId) return;
+      try {
+        await fetch(`${BASE_ENDPOINT}/v1/agent/cancel/${swadesCurrentJobId}`, { method: 'POST' });
+        updateControlsUI('CANCELLED');
+      } catch (e) {}
+    }
+    window.cancelCurrentTask = cancelCurrentTask;
+
+    function updateControlsUI(status, prUrl = null) {
+      const btnPause = document.getElementById('btnSwadesPause');
+      const btnResume = document.getElementById('btnSwadesResume');
+      const btnCancel = document.getElementById('btnSwadesCancel');
+      const btnPr = document.getElementById('btnSwadesPrLink');
+
+      if (btnPause) btnPause.style.display = (status === 'RUNNING' || status === 'CLONING' || status === 'LAUNCHING') ? 'inline-flex' : 'none';
+      if (btnResume) btnResume.style.display = (status === 'PAUSED') ? 'inline-flex' : 'none';
+      if (btnCancel) btnCancel.style.display = (status === 'RUNNING' || status === 'PAUSED' || status === 'CLONING') ? 'inline-flex' : 'none';
+      
+      if (btnPr) {
+        if (prUrl) {
+          btnPr.href = prUrl;
+          btnPr.style.display = 'inline-flex';
+        } else {
+          btnPr.style.display = 'none';
+        }
+      }
+    }
+
     function connectSwadeStream(jobId) {
       if (swadesLogPollInterval) {
         clearInterval(swadesLogPollInterval);
         swadesLogPollInterval = null;
       }
       swadesCurrentJobId = jobId;
+      try { localStorage.setItem("active_swades_job_id", jobId); } catch (e) {}
       
       const terminal = document.getElementById('swadesTerminal');
       const statusBadge = document.getElementById('swadesStreamStatus');
+      const taskBanner = document.getElementById('swadesTaskBanner');
+      const bannerRepo = document.getElementById('swadesBannerRepo');
+      const bannerTask = document.getElementById('swadesBannerTask');
+      const bannerId = document.getElementById('swadesBannerId');
       
       if (statusBadge) {
         statusBadge.innerText = 'Syncing...';
         statusBadge.style.color = 'var(--primary)';
-        statusBadge.style.borderColor = 'rgba(56,189,248,0.3)';
+        statusBadge.style.borderColor = 'rgba(99,102,241,0.3)';
       }
 
       let lastCount = 0;
@@ -5449,14 +5524,26 @@ python3 mobile/nuclear_watchdog.py</code></pre>
           if (!res.ok) return;
           const data = await res.json();
           
+          if (data.job) {
+            if (taskBanner) taskBanner.style.display = 'flex';
+            if (bannerRepo) bannerRepo.innerText = (data.job.repo_url || '').split('/').slice(-2).join('/') || data.job.repo_url;
+            if (bannerTask) bannerTask.innerText = data.job.task || '';
+            if (bannerId) bannerId.innerText = `#${jobId.substring(0,8)}`;
+          }
+
           if (data.status) {
+            updateControlsUI(data.status, data.job?.pr_url);
             if (statusBadge) {
               if (data.status === 'RUNNING' || data.status === 'CLONING' || data.status === 'LAUNCHING' || data.status === 'QUEUED') {
                 statusBadge.innerText = `● ${data.status === 'QUEUED' ? 'RUNNING' : data.status}`;
                 statusBadge.style.color = 'var(--success)';
                 statusBadge.style.borderColor = 'rgba(16,185,129,0.3)';
+              } else if (data.status === 'PAUSED') {
+                statusBadge.innerText = '⏸️ PAUSED';
+                statusBadge.style.color = 'var(--warning)';
+                statusBadge.style.borderColor = 'rgba(245,158,11,0.3)';
               } else {
-                statusBadge.innerText = data.status;
+                statusBadge.innerText = data.status === 'COMPLETED' ? '✅ COMPLETED' : (data.status === 'FAILED' ? '❌ FAILED' : data.status);
                 statusBadge.style.color = data.status === 'COMPLETED' ? 'var(--success)' : (data.status === 'FAILED' ? 'var(--danger)' : 'var(--text-muted)');
                 if (swadesLogPollInterval) {
                   clearInterval(swadesLogPollInterval);
@@ -5471,7 +5558,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
             data.logs.forEach(log => appendSwadeLog(log, terminal));
             lastCount = data.logs.length;
           } else if ((!data.logs || data.logs.length === 0) && terminal.innerHTML.trim() === '') {
-            terminal.innerHTML = `<div style="color: var(--text-muted); font-style: italic;">[${jobId.substring(0,8)}] Waiting for worker to start...</div>`;
+            terminal.innerHTML = `<div style="color: var(--text-muted); font-style: italic;">[${jobId.substring(0,8)}] Initializing autonomous workspace...</div>`;
           }
         } catch (e) {}
       }

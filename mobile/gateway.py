@@ -924,6 +924,12 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.wfile.write(b'{"status":"ok"}')
         elif path == '/v1/agent/clear':
             self.handle_agent_clear()
+        elif path.startswith('/v1/agent/pause/'):
+            job_id = path.split('/')[-1]
+            self.handle_agent_pause(job_id)
+        elif path.startswith('/v1/agent/resume/'):
+            job_id = path.split('/')[-1]
+            self.handle_agent_resume(job_id)
         elif path.startswith('/v1/agent/cancel/'):
             job_id = path.split('/')[-1]
             self.handle_agent_cancel(job_id)
@@ -1328,6 +1334,50 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", "application/json")
         self.end_headers()
         self.wfile.write(b'{"status": "cleared"}')
+
+    def handle_agent_pause(self, job_id):
+        job = _job_manager.get_job(job_id)
+        if not job:
+            self.send_error(404, "Job not found")
+            return
+            
+        pid = job.get("worker_pid")
+        if pid:
+            try:
+                os.kill(pid, signal.SIGSTOP)
+                _job_manager.update_job(job_id, status="PAUSED")
+                _job_manager.append_log(job_id, "status", "⏸️ Agent execution paused by user")
+            except OSError as e:
+                self.send_error(500, f"Failed to pause worker: {e}")
+                return
+                
+        self.send_response(200)
+        self._send_cors_headers()
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(b'{"status": "paused"}')
+
+    def handle_agent_resume(self, job_id):
+        job = _job_manager.get_job(job_id)
+        if not job:
+            self.send_error(404, "Job not found")
+            return
+            
+        pid = job.get("worker_pid")
+        if pid:
+            try:
+                os.kill(pid, signal.SIGCONT)
+                _job_manager.update_job(job_id, status="RUNNING")
+                _job_manager.append_log(job_id, "status", "▶️ Agent execution resumed by user")
+            except OSError as e:
+                self.send_error(500, f"Failed to resume worker: {e}")
+                return
+                
+        self.send_response(200)
+        self._send_cors_headers()
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(b'{"status": "resumed"}')
 
     def handle_agent_cancel(self, job_id):
         job = _job_manager.get_job(job_id)
