@@ -5229,53 +5229,77 @@ python3 mobile/nuclear_watchdog.py</code></pre>
     }
 
     async function submitSwadeTask() {
-      const repoUrl = document.getElementById('swadesRepoUrl').value.trim();
-      const taskDesc = document.getElementById('swadesTaskDesc').value.trim();
+      const repoInput = document.getElementById('swadesRepoUrl');
+      const taskInput = document.getElementById('swadesTaskDesc');
       const statusDiv = document.getElementById('swadesSubmitStatus');
       const btn = document.getElementById('btnSubmitSwades');
 
-      if (!repoUrl.startsWith('https://github.com/')) {
-        statusDiv.innerText = 'Error: Repo URL must start with https://github.com/';
-        statusDiv.style.color = 'var(--danger)';
+      const repoUrl = repoInput ? repoInput.value.trim() : '';
+      const taskDesc = taskInput ? taskInput.value.trim() : '';
+
+      if (!repoUrl || !repoUrl.startsWith('https://github.com/')) {
+        if (statusDiv) {
+          statusDiv.innerText = 'Error: Target Repo URL must start with https://github.com/';
+          statusDiv.style.color = 'var(--danger)';
+        }
         return;
       }
       if (!taskDesc) {
-        statusDiv.innerText = 'Error: Task description cannot be empty.';
-        statusDiv.style.color = 'var(--danger)';
+        if (statusDiv) {
+          statusDiv.innerText = 'Error: Task description cannot be empty.';
+          statusDiv.style.color = 'var(--danger)';
+        }
         return;
       }
 
-      let ghPat = document.getElementById('swadesGhPat').value.trim();
-      if (!ghPat && swadesAuthData && swadesAuthData.token) {
-        ghPat = swadesAuthData.token;
+      // Auto-inject GitHub OAuth Token (zero manual PAT required)
+      let githubToken = (swadesAuthData && swadesAuthData.token) ? swadesAuthData.token : '';
+      const ghPatInput = document.getElementById('swadesGhPat');
+      if (ghPatInput && ghPatInput.value.trim()) {
+        githubToken = ghPatInput.value.trim();
       }
-      const llmKey = document.getElementById('swadesLlmKey').value.trim();
-      const llmProvider = document.getElementById('swadesLlmProvider').value;
+
+      const llmProviderEl = document.getElementById('swadesLlmProvider');
+      const llmModelEl = document.getElementById('swadesLlmModel');
+      const llmKeyEl = document.getElementById('swadesLlmKey');
+      const customBaseUrlEl = document.getElementById('swadesCustomBaseUrl');
+
+      const llmProvider = llmProviderEl ? llmProviderEl.value : 'phone';
+      const llmModel = llmModelEl ? llmModelEl.value.trim() : 'qwen2.5';
+      const llmKey = llmKeyEl ? llmKeyEl.value.trim() : '';
+      const customBaseUrl = customBaseUrlEl ? customBaseUrlEl.value.trim() : '';
 
       try {
-        btn.disabled = true;
-        btn.innerText = '⏳ Submitting...';
-        statusDiv.innerText = '';
+        if (btn) {
+          btn.disabled = true;
+          btn.innerText = '⏳ Submitting...';
+        }
+        if (statusDiv) statusDiv.innerText = '';
+
+        const payload = {
+          repo_url: repoUrl,
+          task: taskDesc,
+          github_token: githubToken || undefined,
+          llm_provider: llmProvider,
+          model: llmModel,
+          llm_api_key: llmKey || undefined,
+          base_url: customBaseUrl || undefined
+        };
 
         const res = await fetch(`${BASE_ENDPOINT}/v1/agent/submit`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            repo_url: repoUrl,
-            task: taskDesc,
-            github_token: ghPat,
-            llm_api_key: llmKey,
-            llm_provider: llmProvider
-          })
+          body: JSON.stringify(payload)
         });
 
         const data = await res.json();
         
         if (res.ok) {
-          statusDiv.innerText = `✅ Task submitted successfully! Job ID: ${data.job_id}`;
-          statusDiv.style.color = 'var(--success)';
-          document.getElementById('swadesRepoUrl').value = '';
-          document.getElementById('swadesTaskDesc').value = '';
+          if (statusDiv) {
+            statusDiv.innerText = `✅ Task submitted! Job ID: ${data.job_id} (Queue pos: ${data.queue_position ?? 0})`;
+            statusDiv.style.color = 'var(--success)';
+          }
+          if (taskInput) taskInput.value = '';
           
           if (!swadesJobsInterval) {
             swadesJobsInterval = setInterval(refreshSwadeJobs, 5000);
@@ -5286,11 +5310,15 @@ python3 mobile/nuclear_watchdog.py</code></pre>
           throw new Error(data.error || 'Submission failed');
         }
       } catch (err) {
-        statusDiv.innerText = `Error: ${err.message}`;
-        statusDiv.style.color = 'var(--danger)';
+        if (statusDiv) {
+          statusDiv.innerText = `Error: ${err.message}`;
+          statusDiv.style.color = 'var(--danger)';
+        }
       } finally {
-        btn.disabled = false;
-        btn.innerText = '🚀 Submit Task';
+        if (btn) {
+          btn.disabled = false;
+          btn.innerText = '🚀 Submit Task';
+        }
       }
     }
 
