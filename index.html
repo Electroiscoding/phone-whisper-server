@@ -3226,7 +3226,7 @@ bash mobile/start_ai.sh</code></pre>
     addTerminalLog("SUCCESS", "whisper-server listening on 127.0.0.1:8000 [4 NEON threads] [4 NEON threads].");
     addTerminalLog("SUCCESS", "Android PARTIAL_WAKE_LOCK active. Doze whitelisted.");
 
-    function drawGraph(canvas, ctx, data, maxVal, colorGradient, strokeColor) {
+    function drawGraph(canvas, ctx, data, defaultMax, colorGradient, strokeColor) {
       const dpr = window.devicePixelRatio || 1;
       const width = canvas.parentElement.clientWidth * dpr;
       const height = canvas.parentElement.clientHeight * dpr;
@@ -3238,21 +3238,30 @@ bash mobile/start_ai.sh</code></pre>
 
       ctx.clearRect(0, 0, width, height);
 
+      const maxData = Math.max(...data, 0.1);
+      const effectiveMax = Math.max(defaultMax, maxData * 1.2);
+
       const step = width / (data.length - 1);
       ctx.beginPath();
-      ctx.moveTo(0, height - (data[0] / maxVal) * (height - 10));
+
+      const getY = (val) => {
+        const normalized = Math.max(0.04, val / effectiveMax);
+        return height - normalized * (height - 12);
+      };
+
+      ctx.moveTo(0, getY(data[0]));
 
       for (let i = 1; i < data.length; i++) {
         const x = i * step;
-        const y = height - (data[i] / maxVal) * (height - 10);
+        const y = getY(data[i]);
         const prevX = (i - 1) * step;
-        const prevY = height - (data[i - 1] / maxVal) * (height - 10);
+        const prevY = getY(data[i - 1]);
         const midX = (prevX + x) / 2;
         ctx.bezierCurveTo(midX, prevY, midX, y, x, y);
       }
 
       ctx.strokeStyle = strokeColor;
-      ctx.lineWidth = 2.5 * dpr;
+      ctx.lineWidth = 2.2 * dpr;
       ctx.stroke();
 
       ctx.lineTo(width, height);

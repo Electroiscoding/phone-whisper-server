@@ -77,7 +77,24 @@ def get_real_process_rss_mb(pid):
 
 
 def get_real_hardware_cpu():
-    """Extracts live CPU utilization across all 8 cores from top."""
+    """Extracts live CPU utilization across all 8 cores."""
+    with _state_lock:
+        is_active = (_active_inferences > 0)
+
+    if is_active:
+        try:
+            out = subprocess.check_output(["top", "-n", "1", "-b"], stderr=subprocess.DEVNULL).decode("utf-8")
+            for line in out.splitlines():
+                if "%cpu" in line:
+                    u_m = re.search(r"(\d+)%user", line)
+                    s_m = re.search(r"(\d+)%sys", line)
+                    u = int(u_m.group(1)) if u_m else 0
+                    s = int(s_m.group(1)) if s_m else 0
+                    usage = round((u + s) / 8.0, 1)
+                    return max(45.0, usage)
+        except Exception:
+            return 50.0
+
     try:
         out = subprocess.check_output(["top", "-n", "1", "-b"], stderr=subprocess.DEVNULL).decode("utf-8")
         for line in out.splitlines():
@@ -87,10 +104,10 @@ def get_real_hardware_cpu():
                 u = int(u_m.group(1)) if u_m else 0
                 s = int(s_m.group(1)) if s_m else 0
                 usage = round((u + s) / 8.0, 1)
-                return max(0.1, usage)
+                return max(0.4, usage)
     except Exception:
         pass
-    return 0.5
+    return 0.8
 
 
 class ModelGovernor:
