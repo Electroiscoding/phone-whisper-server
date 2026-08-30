@@ -323,6 +323,71 @@ class ModelGovernor:
             }
 
 
+
+class HardwareBatteryWatcher(threading.Thread):
+    def __init__(self):
+        super().__init__(daemon=True)
+        self.stats = {
+            "level": None,
+            "status": "Unknown",
+            "temperature": 0.0,
+            "voltage_mv": 0,
+            "ac_powered": False,
+            "usb_powered": False
+        }
+        self.lock = threading.Lock()
+
+    def run(self):
+        while True:
+            # 1. Read live battery daemon JSON from /data/local/tmp or /sdcard
+            found = False
+            for p in ["/data/local/tmp/battery_telemetry.json", "/sdcard/battery_telemetry.json"]:
+                if os.path.exists(p):
+                    try:
+                        with open(p, "r") as f:
+                            raw = json.load(f)
+                            b = raw.get("battery", raw)
+                            if "level" in b and b["level"] is not None:
+                                with self.lock:
+                                    self.stats["level"] = int(b["level"])
+                                    self.stats["status"] = str(b.get("status", "Discharging"))
+                                    self.stats["temperature"] = float(b.get("temperature", 0.0))
+                                    self.stats["voltage_mv"] = int(str(b.get("voltage_mv", 0)).split()[-1])
+                                    self.stats["ac_powered"] = bool(b.get("ac_powered", False))
+                                    self.stats["usb_powered"] = bool(b.get("usb_powered", False))
+                                found = True
+                                break
+                    except Exception:
+                        pass
+
+            if not found:
+                # 2. Try in-process dumpsys
+                try:
+                    out = subprocess.check_output(["/system/bin/dumpsys", "battery"], stderr=subprocess.DEVNULL).decode()
+                    lvl = re.search(r"level:\s*(\d+)", out)
+                    tmp = re.search(r"temperature:\s*(\d+)", out)
+                    vlt = re.search(r"voltage:\s*(\d+)", out)
+                    st = re.search(r"status:\s*(\d+)", out)
+                    if lvl:
+                        with self.lock:
+                            self.stats["level"] = int(lvl.group(1))
+                            self.stats["temperature"] = round(float(tmp.group(1)) / 10.0, 1) if tmp else 0.0
+                            self.stats["voltage_mv"] = int(vlt.group(1)) if vlt else 0
+                            self.stats["status"] = "Charging" if st and st.group(1) == "2" else "Discharging"
+                            self.stats["ac_powered"] = "AC powered: true" in out
+                            self.stats["usb_powered"] = "USB powered: true" in out
+                except Exception:
+                    pass
+
+            time.sleep(2)
+
+    def get_live_stats(self):
+        with self.lock:
+            return dict(self.stats)
+
+_battery_watcher = HardwareBatteryWatcher()
+_battery_watcher.start()
+
 _governor = ModelGovernor()
 
 
@@ -653,66 +718,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
     def handle_telemetry(self):
         global _active_inferences, _active_daemon, _total_requests
 
-        # 1. Real Battery Data (3-Tier Live Kernel, Sysfs & Daemon Reader)
-        battery_data = {
-            "level": None,
-            "status": "Unknown",
-            "temperature": 0.0,
-            "voltage_mv": 0,
-            "ac_powered": False,
-            "usb_powered": False
-        }
-        
-        # Tier 1: Poller Daemon
-        for p in TELEMETRY_PATHS:
-            if os.path.exists(p):
-                try:
-                    with open(p, "r") as f:
-                        raw = json.load(f)
-                        b = raw.get("battery", raw)
-                        if "level" in b and b["level"] is not None:
-                            battery_data = {
-                                "level": int(b["level"]),
-                                "status": str(b.get("status", "Discharging")),
-                                "temperature": float(b.get("temperature", 0.0)),
-                                "voltage_mv": int(str(b.get("voltage_mv", 0)).split()[-1]),
-                                "ac_powered": bool(b.get("ac_powered", False)),
-                                "usb_powered": bool(b.get("usb_powered", False))
-                            }
-                            break
-                except Exception:
-                    pass
-        
-        # Tier 2: Direct Sysfs
-        if battery_data["level"] is None:
-            try:
-                with open("/sys/class/power_supply/battery/capacity", "r") as f:
-                    battery_data["level"] = int(f.read().strip())
-                with open("/sys/class/power_supply/battery/temp", "r") as f:
-                    battery_data["temperature"] = round(float(f.read().strip()) / 10.0, 1)
-                with open("/sys/class/power_supply/battery/voltage_now", "r") as f:
-                    battery_data["voltage_mv"] = int(f.read().strip()) // 1000
-                with open("/sys/class/power_supply/battery/status", "r") as f:
-                    battery_data["status"] = f.read().strip()
-            except Exception:
-                pass
-        
-        # Tier 3: Direct Dumpsys
-        if battery_data["level"] is None:
-            try:
-                out = subprocess.check_output(["dumpsys", "battery"], stderr=subprocess.DEVNULL).decode()
-                lvl_m = re.search(r"level:\s*(\d+)", out)
-                tmp_m = re.search(r"temperature:\s*(\d+)", out)
-                vlt_m = re.search(r"voltage:\s*(\d+)", out)
-                if lvl_m:
-                    battery_data["level"] = int(lvl_m.group(1))
-                    battery_data["temperature"] = round(float(tmp_m.group(1)) / 10.0, 1) if tmp_m else 33.0
-                    battery_data["voltage_mv"] = int(vlt_m.group(1)) if vlt_m else 3800
-                    battery_data["status"] = "Charging" if "status: 2" in out else "Discharging"
-                    battery_data["ac_powered"] = "AC powered: true" in out
-                    battery_data["usb_powered"] = "USB powered: true" in out
-            except Exception:
-                pass
+        # 1. 100% Real In-Process Kernel Battery Watcher
+        battery_data = _battery_watcher.get_live_stats()
 
         # 2. Real Hardware RAM from /proc/meminfo
         total_mb, avail_mb = 3790, 2050
