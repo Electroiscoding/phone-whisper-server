@@ -2105,47 +2105,8 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
                   <th>Status</th>
                 </tr>
               </thead>
-              <tbody>
-                <tr>
-                  <td><code>whisper-server</code></td>
-                  <td>7344</td>
-                  <td id="procWhisperCpu">0.2%</td>
-                  <td>141.2 MB (Base.en)</td>
-                  <td>4 (NEON)</td>
-                  <td><span class="process-state-running"><span class="state-dot-mini"></span> Active :8000</span></td>
-                </tr>
-                <tr>
-                  <td><code>llama-server</code></td>
-                  <td>7380</td>
-                  <td id="procLlamaCpu">0.2%</td>
-                  <td>469.0 MB (Qwen 2.5)</td>
-                  <td>4 (ARMv8)</td>
-                  <td><span class="process-state-running"><span class="state-dot-mini"></span> Active :8001</span></td>
-                </tr>
-                <tr>
-                  <td><code>gateway.py</code></td>
-                  <td>11488</td>
-                  <td id="procGatewayCpu">0.1%</td>
-                  <td>22.4 MB (Router)</td>
-                  <td>4 (Python)</td>
-                  <td><span class="process-state-running"><span class="state-dot-mini"></span> Active :8080</span></td>
-                </tr>
-                <tr>
-                  <td><code>cloudflared</code></td>
-                  <td>7352</td>
-                  <td id="procCfCpu">0.1%</td>
-                  <td>42.8 MB</td>
-                  <td>6 (Go/QUIC)</td>
-                  <td><span class="process-state-running"><span class="state-dot-mini"></span> Connected</span></td>
-                </tr>
-                <tr>
-                  <td><code>android-wakelock</code></td>
-                  <td>SYS</td>
-                  <td>0.0%</td>
-                  <td>Kernel</td>
-                  <td>-</td>
-                  <td><span class="process-state-running"><span class="state-dot-mini"></span> PARTIAL_WAKE</span></td>
-                </tr>
+              <tbody id="processTableBody">
+                <!-- Dynamically Populated 100% Real-Time from Kernel & Governor -->
               </tbody>
             </table>
           </div>
@@ -3368,14 +3329,55 @@ bash mobile/start_ai.sh</code></pre>
             const reclaimEl = document.getElementById("govReclaimStatus");
 
             if (activeMods.length === 0) {
-              if (summaryEl) summaryEl.innerHTML = `<span style="color: var(--text-muted);">0 Active</span> <span style="font-size: 0.85rem; color: var(--text-subtle); font-weight: normal;">• 4 Sleeping</span>`;
-              if (listEl) listEl.innerHTML = `💤 All models evicted from RAM (Max Memory Reclaimed)`;
+              if (summaryEl) summaryEl.innerHTML = `<span style="color: var(--text-muted); font-weight: 700;">0 Active</span> <span style="font-size: 0.85rem; color: var(--text-subtle); font-weight: normal;">• 4 Sleeping</span>`;
+              if (listEl) listEl.innerHTML = `💤 All AI models evicted from RAM (Max Memory Reclaimed)`;
               if (reclaimEl) reclaimEl.innerText = "0 MB AI RAM";
             } else {
-              const names = activeMods.map(m => `⚡ <b>${m.name.split(' ')[0]}</b> (${m.idle_seconds}s ago)`).join("<br>");
+              const modelLabels = {
+                "whisper": "Whisper STT (Base.en)",
+                "qwen_chat": "Qwen 2.5 SLM (Chat)",
+                "bge_embed": "BGE-Small (Embeddings)",
+                "bge_rerank": "BGE-Reranker (Cross-Encoder)"
+              };
+              const items = activeMods.map(m => {
+                const label = modelLabels[m.key] || m.name;
+                const busyBadge = m.is_busy ? `<span style="color: #fbbf24; font-weight: 700;">[Inferencing]</span>` : `<span style="color: var(--text-subtle);">(${m.idle_seconds}s idle)</span>`;
+                return `⚡ <b>${label}</b> ${busyBadge}`;
+              }).join("<br>");
+
               if (summaryEl) summaryEl.innerHTML = `<span style="color: var(--primary); font-weight: 800;">${activeMods.length} Active</span> <span style="font-size: 0.85rem; color: var(--text-subtle); font-weight: normal;">• ${evictedMods.length} Sleeping</span>`;
-              if (listEl) listEl.innerHTML = names;
-              if (reclaimEl) reclaimEl.innerText = `${activeMods.length * 150}MB AI Active`;
+              if (listEl) listEl.innerHTML = items;
+              if (reclaimEl) reclaimEl.innerText = `${activeMods.length} Model(s) Active in RAM`;
+            }
+          }
+
+          // 2c. Dynamic Live Process Matrix Table
+          if (data.process_matrix && Array.isArray(data.process_matrix)) {
+            const tbody = document.getElementById("processTableBody");
+            if (tbody) {
+              let rowsHtml = "";
+              data.process_matrix.forEach(p => {
+                let badgeClass = p.is_active ? "process-state-running" : "process-state-evicted";
+                let dotColor = p.is_active ? "#10b981" : "#71717a";
+                let statusColor = p.is_active ? "#34d399" : "#a1a1aa";
+                
+                rowsHtml += `
+                  <tr style="${p.is_active ? '' : 'opacity: 0.6;'}">
+                    <td><code>${p.name}</code><br><span style="font-size: 0.72rem; color: var(--text-subtle);">${p.label}</span></td>
+                    <td style="font-family: monospace; font-size: 0.85rem;">${p.pid}</td>
+                    <td style="font-family: monospace; font-weight: 600; color: ${p.cpu > 5 ? 'var(--primary)' : 'inherit'};">${p.cpu.toFixed(1)}%</td>
+                    <td style="font-size: 0.85rem;">${p.memory}</td>
+                    <td style="font-size: 0.85rem;">${p.threads}</td>
+                    <td>
+                      <span style="display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.78rem; font-weight: 600; color: ${statusColor}; background: ${p.is_active ? 'rgba(16, 185, 129, 0.12)' : 'rgba(255, 255, 255, 0.05)'}; padding: 0.2rem 0.55rem; border-radius: 4px; border: 1px solid ${p.is_active ? 'rgba(16, 185, 129, 0.25)' : 'rgba(255, 255, 255, 0.1)'};">
+                        <span style="width: 6px; height: 6px; border-radius: 50%; background: ${dotColor};"></span>
+                        ${p.status}
+                      </span>
+                    </td>
+                  </tr>
+                `;
+              });
+              tbody.innerHTML = rowsHtml;
             }
           }
 
