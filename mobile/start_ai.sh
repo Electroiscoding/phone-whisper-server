@@ -12,7 +12,17 @@ killall -9 whisper-server llama-server cloudflared python3 2>/dev/null || true
 pkill -f start_ai.sh 2>/dev/null || true
 sleep 1
 
-# 3. Start Multi-Modal Gateway with Elastic Memory Governor on Port 8080
+# 3. Start Live Battery Telemetry Poller (Queries dumpsys battery every 2s)
+(
+  while true; do
+    if ! pgrep -f "update_battery.sh" > /dev/null; then
+      /system/bin/sh /data/local/tmp/update_battery.sh > /dev/null 2>&1 &
+    fi
+    sleep 5
+  done
+) &
+
+# 4. Start Multi-Modal Gateway with Elastic Memory Governor on Port 8080
 (
   while true; do
     if ! pgrep -f "gateway.py" > /dev/null; then
@@ -25,7 +35,7 @@ sleep 1
 
 sleep 1
 
-# 4. Persistent Cloudflare Tunnel (Starts ONCE and NEVER killed by watchdog)
+# 5. Persistent Cloudflare Tunnel (Starts ONCE and NEVER killed by watchdog)
 (
   while true; do
     if ! pgrep -f "cloudflared tunnel" > /dev/null; then
@@ -36,7 +46,7 @@ sleep 1
   done
 ) &
 
-# 5. Broadcaster (Pushes URL to GitHub ONLY ONCE when URL changes)
+# 6. Broadcaster (Pushes URL to GitHub ONLY ONCE when URL changes)
 (
   LAST_URL=""
   while true; do
@@ -65,5 +75,5 @@ JSON_EOF
 ) &
 
 echo "=================================================="
-echo "🚀 Elastic AI Datacenter Active (Dynamic Memory Governor • JIT Spawning • 75s Idle Eviction)"
+echo "🚀 Elastic AI Datacenter Active (100% Real-Time Battery & Hardware Telemetry Poller)"
 echo "=================================================="
