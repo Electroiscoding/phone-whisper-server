@@ -393,6 +393,12 @@ _governor = ModelGovernor()
 
 class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
     daemon_threads = True
+    allow_reuse_address = True
+    allow_reuse_port = True
+
+    def handle_error(self, request, client_address):
+        # Gracefully suppress client resets and broken pipes without crashing
+        pass
 
 
 def process_mediapipe_task(task, image_bytes, params=None):
