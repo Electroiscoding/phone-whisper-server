@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>MobileAI Datacenter — 5-in-1 Autonomous Edge AI Hub & Studio</title>
+  <title>PhoneWhisper AI — Self-Hosted Multi-Modal AI on an Old Android Phone</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -1639,8 +1639,8 @@
           <span>💬</span>
           <span>Mode 2: Small Language Model (SLM)</span>
         </span>
-        <h2 class="section-title">Worldwide Mobile AI Chat (Qwen 2.5 SLM)</h2>
-        <p class="section-desc">Zero cloud fees. High-speed reasoning running in-memory on MediaTek 8-Core ARM CPU (~20 tokens/sec).</p>
+        <h2 class="section-title">On-Device SLM Chat (Qwen 2.5 0.5B)</h2>
+        <p class="section-desc">Runs quantized Qwen 2.5 0.5B Instruct locally in phone RAM via <code>llama.cpp</code>. Streams tokens on 4 ARM CPU threads (~10–20 tok/sec, ~8–12s total compute).</p>
       </div>
 
       <div class="chat-container-card">
@@ -1795,8 +1795,8 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
           <span>👁️</span>
           <span>Mode 6: Computer Vision & Spatial AI</span>
         </span>
-        <h2 class="section-title">Worldwide Mobile AI MediaPipe Vision Suite</h2>
-        <p class="section-desc">On-device real-time facial analysis, hand tracking, pose skeletal estimation, selfie segmentation, and holistic spatial topology.</p>
+        <h2 class="section-title">Computer Vision Suite (Google MediaPipe on ARM)</h2>
+        <p class="section-desc">On-device facial analysis, 33-point pose estimation, 21-point hand tracking, and 468-point 3D face mesh running in ~5–50ms on phone CPU.</p>
       </div>
 
       <div class="chat-container-card">
@@ -2354,8 +2354,8 @@ if (res.hands && res.hands[0]) {
           <span class="status-dot" style="width: 6px; height: 6px;"></span>
           <span>100% Real Live Hardware Subsystem</span>
         </span>
-        <h2 class="section-title">Our Server Hosted Specs</h2>
-        <p class="section-desc">Live telemetry streamed directly from the Android phone kernel and MediaTek hardware.</p>
+        <h2 class="section-title">Live Phone Hardware Telemetry (Redmi 9i / MediaTek)</h2>
+        <p class="section-desc">100% genuine data streamed directly from the Android Linux kernel (<code>/proc/meminfo</code>, <code>dumpsys battery</code>, <code>/proc/stat</code>).</p>
       </div>
 
       <div class="live-dashboard-grid">
@@ -2391,8 +2391,8 @@ if (res.hands && res.hands[0]) {
             <canvas id="pingGraphCanvas" class="graph-canvas"></canvas>
           </div>
           <div class="telemetry-footer-stats">
-            <span>Cloudflare Edge: Delhi (<code>del02</code>)</span>
-            <span>TLS 1.3 Dual-Stack</span>
+            <span>Cloudflare Edge RTT: ~35ms</span>
+            <span>Phone CPU Inference: ~2s–12s</span>
           </div>
         </div>
 
@@ -2400,8 +2400,8 @@ if (res.hands && res.hands[0]) {
         <!-- JIT Memory Governor & Dynamic Model Lifecycle Card -->
         <div class="telemetry-card col-4">
           <div class="telemetry-card-header">
-            <span class="telemetry-title">⚡ Elastic Memory Governor</span>
-            <span class="telemetry-badge success" id="govPolicyBadge">Dynamic JIT</span>
+            <span class="telemetry-title">🧠 Memory Supervisor (Process Auto-Killer)</span>
+            <span class="telemetry-badge success" id="govPolicyBadge">75s Inactivity Timeout</span>
           </div>
           <div class="telemetry-big-val" style="font-size: 1.35rem; line-height: 1.3;" id="govActiveSummary">
             <span style="color: var(--success);">0 Active</span> <span style="font-size: 0.9rem; color: var(--text-muted); font-weight: normal;">• 4 Sleeping</span>
@@ -2517,26 +2517,26 @@ if (res.hands && res.hands[0]) {
       <div class="pipeline-grid">
         <div class="step-card">
           <div class="step-number">1</div>
-          <div class="step-title">Audio Capture & 16kHz PCM</div>
-          <div class="step-desc">Microphone voice is captured and resampled directly into standard 16kHz 16-bit Mono WAV in the browser.</div>
+          <div class="step-title">Client Input & Audio/JSON Capture</div>
+          <div class="step-desc">Browser or API client captures microphone WAV, text prompt, or camera frames.</div>
         </div>
 
         <div class="step-card">
           <div class="step-number">2</div>
-          <div class="step-title">Anycast Edge</div>
-          <div class="step-desc">HTTPS POST request reaches Cloudflare's global edge network nearest to the client (sub-10ms).</div>
+          <div class="step-title">Cloudflare Edge Worker & QUIC Tunnel</div>
+          <div class="step-desc">Request passes through Cloudflare Worker and securely tunnels via <code>cloudflared</code> into Termux on the phone.</div>
         </div>
 
         <div class="step-card">
           <div class="step-number">3</div>
-          <div class="step-title">QUIC Tunnel</div>
-          <div class="step-desc">Cloudflare multiplexes the request through an encrypted QUIC tunnel directly into the phone's <code>cloudflared</code> daemon.</div>
+          <div class="step-title">Python Multi-Modal Gateway (gateway.py)</div>
+          <div class="step-desc">Lightweight supervisor spawns requested model (llama.cpp/whisper.cpp/MediaPipe) and kills idle ones after 75s to fit in 2GB RAM.</div>
         </div>
 
         <div class="step-card">
           <div class="step-number">4</div>
-          <div class="step-title">On-Device AI</div>
-          <div class="step-desc">OpenAI Whisper engine executes high-accuracy neural decode in phone RAM using 4 ARM CPU threads, returning structured text.</div>
+          <div class="step-title">ARM CPU Neural Compute (MediaTek Helio G25)</div>
+          <div class="step-desc">Phone's 8 Cortex-A53 CPU cores crunch quantized model weights in RAM, streaming back tokens and spatial telemetry.</div>
         </div>
       </div>
     </section>
