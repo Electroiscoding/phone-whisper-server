@@ -937,6 +937,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_mediapipe_vision(task)
         elif path in ['/auth/github/exchange', '/session', '/auth/exchange']:
             self.handle_github_exchange_post()
+        elif path == '/v1/agent/internal_event':
+            self.handle_agent_internal_event()
         elif path == '/v1/agent/submit':
             self.handle_agent_submit()
         elif path == "/register_tunnel":
@@ -945,6 +947,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.send_header("Content-Type", "application/json")
             self.end_headers()
             self.wfile.write(b'{"status":"ok"}')
+        elif path == '/v1/agent/clear':
+            self.handle_agent_clear()
         elif path.startswith('/v1/agent/cancel/'):
             job_id = path.split('/')[-1]
             self.handle_agent_cancel(job_id)
@@ -1315,6 +1319,38 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", "application/json")
         self.end_headers()
         self.wfile.write(json.dumps({"jobs": jobs, "total": total, "limit": limit, "offset": offset}).encode())
+
+    def handle_agent_internal_event(self):
+        try:
+            content_length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(content_length) if content_length > 0 else b""
+            data = json.loads(body.decode("utf-8")) if body else {}
+            job_id = data.get("job_id")
+            event_type = data.get("type")
+            event_data = data.get("data")
+            step = data.get("step")
+            job_updates = data.get("updates")
+            
+            if job_id and event_type:
+                _job_manager.append_log(job_id, event_type, event_data, step)
+            if job_id and job_updates:
+                _job_manager.update_job(job_id, **job_updates)
+                
+            self.send_response(200)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(b'{"status":"ok"}')
+        except Exception as e:
+            self.send_error(500, str(e))
+
+    def handle_agent_clear(self):
+        _job_manager.clear_all()
+        self.send_response(200)
+        self._send_cors_headers()
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(b'{"status": "cleared"}')
 
     def handle_agent_cancel(self, job_id):
         job = _job_manager.get_job(job_id)

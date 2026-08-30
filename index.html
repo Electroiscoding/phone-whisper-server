@@ -2001,10 +2001,13 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
       </div>
 
       <div class="chat-container-card" style="margin-bottom: 2rem;">
-        <h3 style="margin-bottom: 1rem; font-size: 1.1rem;">📋 Job Queue & History</h3>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <h3 style="font-size: 1.1rem; margin: 0;">📋 Active In-Memory Job Queue</h3>
+          <button class="btn-action" style="padding: 0.25rem 0.65rem; font-size: 0.75rem; color: var(--danger); border-color: rgba(239,68,68,0.3);" onclick="clearSwadesHistory()">🗑️ Clear History</button>
+        </div>
         <div id="swadesJobList" style="display: flex; flex-direction: column; gap: 0.75rem; min-height: 100px;">
           <div style="text-align: center; padding: 2rem; color: var(--text-muted); font-size: 0.95rem;">
-            No jobs yet. Submit your first task above! 🚀
+            No active jobs in memory. Submit a task above! 🚀
           </div>
         </div>
       </div>
@@ -5508,6 +5511,25 @@ python3 mobile/nuclear_watchdog.py</code></pre>
         refreshSwadeJobs();
       } catch (err) {}
     }
+
+    async function clearSwadesHistory() {
+      try {
+        await fetch(`${BASE_ENDPOINT}/v1/agent/clear`, { method: 'POST' });
+        if (swadesLogPollInterval) {
+          clearInterval(swadesLogPollInterval);
+          swadesLogPollInterval = null;
+        }
+        const terminal = document.getElementById('swadesTerminal');
+        if (terminal) terminal.innerHTML = '<div style="color: var(--text-muted); font-style: italic;">In-memory history cleared.</div>';
+        const statusBadge = document.getElementById('swadesStreamStatus');
+        if (statusBadge) {
+          statusBadge.innerText = 'Cleared';
+          statusBadge.style.color = 'var(--text-muted)';
+        }
+        refreshSwadeJobs();
+      } catch (err) {}
+    }
+    window.clearSwadesHistory = clearSwadesHistory;
 
     async function viewSwadeLogs(jobId) {
       connectSwadeStream(jobId);

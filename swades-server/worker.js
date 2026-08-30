@@ -1,18 +1,5 @@
-function getStorageDir() {
-  const home = process.env.HOME || (fs.existsSync('/tmp') ? '/tmp' : '/data/data/com.termux/files/home');
-  const target = path.join(home, '.swades_jobs');
-  try {
-    fs.mkdirSync(target, { recursive: true });
-    return target;
-  } catch (e) {
-    const fallback = '/tmp/swades_jobs';
-    fs.mkdirSync(fallback, { recursive: true });
-    return fallback;
-  }
-}
 import fs from 'fs';
 import path from 'path';
-import { initDatabase, getJob, updateJob, appendLog } from './job.js';
 import { parseGitHubUrl, cloneRepo, createBranch, configureGit, commitAll, pushBranch, openPullRequest, getDefaultBranch } from './github.js';
 import { runAgent } from './agent.js';
 
@@ -24,12 +11,40 @@ function buildPRBody(result) {
 **Summary:** ${result.summary}
 
 **Files Changed:**
-${result.filesChanged.map(f => `- ${f}`).join('\\n') || '- No files modified'}
+${result.filesChanged.map(f => `- ${f}`).join('\n') || '- No files modified'}
 
 **Steps Taken:** ${result.totalSteps}
 
 ---
-*This PR was generated automatically by [Swades Agent](https://phone-whisper-server.pages.dev/#swades-studio) running on a self-hosted Android phone.*`;
+*This PR was generated automatically by [Swades Agent](https://phone-whisper-server.pages.dev/#swades-studio) running in-memory on a self-hosted Android phone.*`;
+}
+
+async function sendInternalEvent(jobId, eventType, data, stepNumber = null) {
+  try {
+    await fetch('http://127.0.0.1:8080/v1/agent/internal_event', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        job_id: jobId,
+        type: eventType,
+        data: data,
+        step: stepNumber
+      })
+    });
+  } catch (e) {}
+}
+
+async function updateJobStatus(jobId, updates) {
+  try {
+    await fetch('http://127.0.0.1:8080/v1/agent/internal_event', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        job_id: jobId,
+        updates: updates
+      })
+    });
+  } catch (e) {}
 }
 
 async function main() {
@@ -41,29 +56,42 @@ async function main() {
   }
   
   const jobId = args[jobIdx + 1];
-  const tempBase = getStorageDir();
-  initDatabase();
   
-  const job = getJob(jobId);
-  if (!job || job.status !== 'QUEUED') {
-    console.error(`Error: Job ${jobId} not found or not QUEUED`);
+  // Ephemeral scratch directory in /tmp (auto-cleaned)
+  const tempBase = '/tmp/swades_scratch';
+  const workspaceDir = path.join(tempBase, jobId, 'workspace');
+  
+  let job = null;
+  if (process.env.JOB_PAYLOAD) {
+    try {
+      job = JSON.parse(process.env.JOB_PAYLOAD);
+    } catch (e) {}
+  }
+  
+  if (!job) {
+    try {
+      const res = await fetch(`http://127.0.0.1:8080/v1/agent/status/${jobId}`);
+      if (res.ok) {
+        job = await res.json();
+      }
+    } catch (e) {}
+  }
+
+  if (!job) {
+    console.error(`Error: Job ${jobId} not found in RAM`);
     process.exit(1);
   }
   
   process.env.TASK_ORIG = job.task;
-  const workspaceDir = path.join(tempBase, jobId, 'workspace');
-  const logFile = path.join(tempBase, jobId, 'agent.log');
-  fs.mkdirSync(path.dirname(logFile), { recursive: true });
   
-  const onEvent = (event) => {
-    appendLog(jobId, event.type, event.data, event.step_number || null);
-    fs.appendFileSync(logFile, JSON.stringify({ ...event, timestamp: event.timestamp || new Date().toISOString() }) + '\\n', 'utf8');
+  const onEvent = async (event) => {
+    await sendInternalEvent(jobId, event.type, event.data, event.step_number || null);
   };
   
   try {
-    // CLONE PHASE
-    updateJob(jobId, { status: 'CLONING' });
-    onEvent({ type: 'status', data: 'Cloning repository' });
+    // 1. CLONE PHASE
+    await updateJobStatus(jobId, { status: 'CLONING' });
+    await onEvent({ type: 'status', data: 'Cloning repository' });
     
     fs.mkdirSync(workspaceDir, { recursive: true });
     
@@ -79,9 +107,9 @@ async function main() {
     const branchName = `swades/${jobId.slice(0, 8)}`;
     createBranch(workspaceDir, branchName);
     
-    // AGENT PHASE
-    updateJob(jobId, { status: 'RUNNING', started_at: new Date().toISOString() });
-    onEvent({ type: 'status', data: 'Agent running' });
+    // 2. AGENT PHASE
+    await updateJobStatus(jobId, { status: 'RUNNING', started_at: new Date().toISOString() });
+    await onEvent({ type: 'status', data: 'Agent running in-memory' });
     
     const context = {
       workdir: workspaceDir,
@@ -94,8 +122,8 @@ async function main() {
     
     const result = await runAgent(context, job.task);
     
-    // PR PHASE
-    onEvent({ type: 'status', data: 'Creating PR' });
+    // 3. PR PHASE
+    await onEvent({ type: 'status', data: 'Creating PR' });
     commitAll(workspaceDir, 'feat: ' + job.task.slice(0, 72));
     pushBranch(workspaceDir, branchName, job.github_pat, job.repo_url);
     
@@ -109,7 +137,7 @@ async function main() {
       pat: job.github_pat
     });
     
-    updateJob(jobId, {
+    await updateJobStatus(jobId, {
       status: 'COMPLETED',
       completed_at: new Date().toISOString(),
       pr_url: pr.pr_url,
@@ -118,23 +146,27 @@ async function main() {
       total_steps: result.totalSteps
     });
     
-    onEvent({ type: 'complete', data: { pr_url: pr.pr_url } });
+    await onEvent({ type: 'complete', data: { pr_url: pr.pr_url, summary: result.summary } });
     console.log(`Job ${jobId} completed successfully. PR: ${pr.pr_url}`);
     
   } catch (err) {
-    updateJob(jobId, { status: 'FAILED', error_message: err.message });
-    onEvent({ type: 'error', data: { message: err.message } });
+    await updateJobStatus(jobId, { status: 'FAILED', error_message: err.message });
+    await onEvent({ type: 'error', data: { message: err.message } });
     console.error(`Job ${jobId} failed: ${err.message}`);
-    process.exit(1);
+  } finally {
+    // 🧹 EPHEMERAL PURGE: Erase all temporary clone files from disk immediately
+    try {
+      fs.rmSync(path.join(tempBase, jobId), { recursive: true, force: true });
+    } catch (e) {}
   }
 }
 
-process.on('uncaughtException', (err) => {
+process.on('uncaughtException', async (err) => {
   console.error('Uncaught exception:', err);
   const args = process.argv.slice(2);
   const jobIdx = args.indexOf('--job');
   if (jobIdx !== -1 && args[jobIdx + 1]) {
-    updateJob(args[jobIdx + 1], { status: 'FAILED', error_message: err.message });
+    await updateJobStatus(args[jobIdx + 1], { status: 'FAILED', error_message: err.message });
   }
   process.exit(1);
 });
