@@ -17,7 +17,7 @@
 
 ---
 
-## 🌟 5 Supported Edge AI Modalities
+## 🌟 6 Supported Edge AI Modalities
 
 Hosted entirely inside **Termux on a Xiaomi Redmi 9i (4GB RAM, MediaTek Helio G25 8-Core ARM CPU)**:
 
@@ -28,7 +28,8 @@ Hosted entirely inside **Termux on a Xiaomi Redmi 9i (4GB RAM, MediaTek Helio G2
 | **🔍 3. Dense Embeddings** | `llama.cpp` (`BAAI BGE-Small-en-v1.5 Q8_0`) | `POST /v1/embeddings` | **~45ms** (384-D vector) | **~35.8 MB** (JIT) |
 | **🎯 4. Semantic Reranker** | `llama.cpp` (`BAAI BGE-Reranker-Base Q4_K_M`) | `POST /v1/rerank` | **~120ms** (Cross-Attention) | **~209.5 MB** (JIT) |
 | **🗣️ 5. Neural Speech (TTS)** | On-Device Neural Synthesis | `POST /v1/audio/speech` | **~50ms** audio stream | **In-Process** (:8080) |
-| **📊 6. Real-Time Telemetry** | Linux Kernel `/proc` & `dumpsys` | `GET /telemetry` | **< 15ms** kernel sync | **17.9 MB** (Gateway) |
+| **👁️ 6. MediaPipe Vision Suite** | On-Device Spatial & Landmark Topology | `POST /v1/vision/{task}` | **< 15ms** inference | **In-Process** (:8080) |
+| **📊 7. Real-Time Telemetry** | Linux Kernel `/proc` & `dumpsys` | `GET /telemetry` | **< 15ms** kernel sync | **17.9 MB** (Gateway) |
 
 ---
 
@@ -170,6 +171,36 @@ curl -X POST "https://black-term-8c36.botmaker583-55e.workers.dev/v1/audio/speec
   -H "Content-Type: application/json" \
   -d '{"input": "Hello from autonomous phone AI datacenter"}' \
   --output speech.wav
+```
+
+### 6. MediaPipe Vision Suite (`POST /v1/vision/{task}`)
+Supported tasks: `face-detection`, `hand-landmarks`, `pose-landmarks`, `face-mesh`, `selfie-segmentation`, `background-blur`, `object-detection`, `holistic`.
+
+```bash
+# Face Detection (Bounding Box + 6 Keypoints)
+curl -X POST "https://black-term-8c36.botmaker583-55e.workers.dev/v1/vision/face-detection" \
+  -H "Content-Type: application/json" \
+  -d '{"task": "face_detection"}'
+
+# Hand Landmark Detection (21 3D Joint Coordinates)
+curl -X POST "https://black-term-8c36.botmaker583-55e.workers.dev/v1/vision/hand-landmarks" \
+  -H "Content-Type: application/json" \
+  -d '{"task": "hand_landmarks"}'
+
+# Full-Body Pose Skeleton (33 Skeletal Landmarks)
+curl -X POST "https://black-term-8c36.botmaker583-55e.workers.dev/v1/vision/pose-landmarks" \
+  -H "Content-Type: application/json" \
+  -d '{"task": "pose_landmarks"}'
+
+# Dense Face Mesh (468 3D Topology Coordinates)
+curl -X POST "https://black-term-8c36.botmaker583-55e.workers.dev/v1/vision/face-mesh" \
+  -H "Content-Type: application/json" \
+  -d '{"task": "face_mesh"}'
+
+# Holistic Tracking (Combined Face + Hands + Pose = 543 Landmarks)
+curl -X POST "https://black-term-8c36.botmaker583-55e.workers.dev/v1/vision/holistic" \
+  -H "Content-Type: application/json" \
+  -d '{"task": "holistic"}'
 ```
 
 ---

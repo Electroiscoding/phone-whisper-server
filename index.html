@@ -1787,6 +1787,70 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
       </div>
     </section>
 
+
+    <!-- SECTION 6: GOOGLE MEDIAPIPE COMPUTER VISION SUITE -->
+    <section id="mediapipe-studio" style="margin-top: 2rem;">
+      <div class="section-head">
+        <span class="section-tag">
+          <span>👁️</span>
+          <span>Mode 6: Computer Vision & Spatial AI</span>
+        </span>
+        <h2 class="section-title">Worldwide Mobile AI MediaPipe Vision Suite</h2>
+        <p class="section-desc">On-device real-time facial analysis, hand tracking, pose skeletal estimation, selfie segmentation, and holistic spatial topology.</p>
+      </div>
+
+      <div class="chat-container-card">
+        <!-- Task Selection Chips -->
+        <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.25rem;">
+          <button class="prompt-chip" id="taskBtn_face_detection" onclick="selectVisionTask('face_detection')" style="background: rgba(56, 189, 248, 0.2); border-color: var(--primary); color: #fff;">👤 Face Detection</button>
+          <button class="prompt-chip" id="taskBtn_hand_landmarks" onclick="selectVisionTask('hand_landmarks')">✋ Hand Landmarks (21-Pt)</button>
+          <button class="prompt-chip" id="taskBtn_pose_landmarks" onclick="selectVisionTask('pose_landmarks')">🏃 Pose Skeleton (33-Pt)</button>
+          <button class="prompt-chip" id="taskBtn_face_mesh" onclick="selectVisionTask('face_mesh')">🎭 Face Mesh (468-Pt)</button>
+          <button class="prompt-chip" id="taskBtn_selfie_segmentation" onclick="selectVisionTask('selfie_segmentation')">✂️ Selfie Segmentation</button>
+          <button class="prompt-chip" id="taskBtn_background_blur" onclick="selectVisionTask('background_blur')">📷 Background Blur</button>
+          <button class="prompt-chip" id="taskBtn_object_detection" onclick="selectVisionTask('object_detection')">📦 Object Detection</button>
+          <button class="prompt-chip" id="taskBtn_holistic" onclick="selectVisionTask('holistic')">🌐 Holistic (543-Pt)</button>
+        </div>
+
+        <!-- Vision Control and Upload Bar -->
+        <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; justify-content: space-between; margin-bottom: 1rem; padding: 0.75rem; background: rgba(5,8,15,0.6); border-radius: 10px; border: 1px solid var(--card-border);">
+          <div style="display: flex; gap: 0.75rem; align-items: center;">
+            <label class="btn-action" for="visionFileInput" style="cursor: pointer;">
+              📁 Upload Image
+              <input type="file" id="visionFileInput" accept="image/*" style="display: none;" onchange="handleVisionImageUpload(event)">
+            </label>
+            <span id="visionFileName" style="font-size: 0.8rem; color: var(--text-subtle);">Using default benchmark canvas</span>
+          </div>
+          <button class="btn-send-chat" id="runVisionBtn" onclick="executeVisionTask()" style="padding: 0.5rem 1.25rem;">
+            <span>⚡ Run Vision Task</span>
+          </button>
+        </div>
+
+        <!-- Visual Canvas & Output Display -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-top: 1rem;" class="vision-grid">
+          <!-- Canvas Overlay Preview -->
+          <div style="background: #020408; border-radius: 12px; border: 1px solid var(--card-border); padding: 0.75rem; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 320px; position: relative;">
+            <canvas id="visionCanvas" width="360" height="360" style="max-width: 100%; height: auto; border-radius: 8px; background: #0b0f19;"></canvas>
+            <div id="visionImageOverlay" style="position: absolute; top: 1rem; left: 1rem; font-size: 0.75rem; color: var(--primary); font-family: monospace; background: rgba(0,0,0,0.7); padding: 0.2rem 0.5rem; border-radius: 4px;">
+              Live Spatial Topology Overlay
+            </div>
+          </div>
+
+          <!-- JSON Response & Telemetry -->
+          <div style="background: #020408; border-radius: 12px; border: 1px solid var(--card-border); padding: 0.75rem; display: flex; flex-direction: column;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+              <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted);">Topology Matrix & Telemetry</span>
+              <span id="visionLatencyLabel" style="font-size: 0.75rem; color: var(--success); font-family: monospace;">Ready</span>
+            </div>
+            <pre id="visionJsonOutput" style="background: #0b0f19; padding: 0.75rem; border-radius: 8px; font-size: 0.75rem; color: #38bdf8; font-family: 'JetBrains Mono', monospace; height: 280px; overflow-y: auto; margin: 0; border: 1px solid rgba(255,255,255,0.05);">{
+  "status": "Ready",
+  "hint": "Select any MediaPipe task above and click 'Run Vision Task' to execute on phone hardware."
+}</pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- PUBLIC API CHEATSHEET & ENDPOINT EXPLORER -->
     <section id="cheatsheet">
       <div class="section-head">
@@ -3464,6 +3528,246 @@ bash mobile/start_ai.sh</code></pre>
 
     fetchLiveHardwareTelemetry();
     setInterval(fetchLiveHardwareTelemetry, 1000);
+
+    // =========================================================================
+    // 👁️ GOOGLE MEDIAPIPE VISION SUITE PLAYGROUND LOGIC
+    // =========================================================================
+    let currentVisionTask = "face_detection";
+    let visionImageBase64 = null;
+
+    function selectVisionTask(task) {
+      currentVisionTask = task;
+      const tasks = [
+        "face_detection", "hand_landmarks", "pose_landmarks", "face_mesh",
+        "selfie_segmentation", "background_blur", "object_detection", "holistic"
+      ];
+      tasks.forEach(t => {
+        const btn = document.getElementById(`taskBtn_${t}`);
+        if (btn) {
+          if (t === task) {
+            btn.style.background = "rgba(56, 189, 248, 0.2)";
+            btn.style.borderColor = "var(--primary)";
+            btn.style.color = "#fff";
+          } else {
+            btn.style.background = "rgba(255, 255, 255, 0.05)";
+            btn.style.borderColor = "var(--card-border)";
+            btn.style.color = "var(--text-muted)";
+          }
+        }
+      });
+      executeVisionTask();
+    }
+    window.selectVisionTask = selectVisionTask;
+
+    function handleVisionImageUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const nameEl = document.getElementById("visionFileName");
+      if (nameEl) nameEl.innerText = file.name;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        visionImageBase64 = e.target.result;
+        drawBaseImageToCanvas(visionImageBase64);
+        executeVisionTask();
+      };
+      reader.readAsDataURL(file);
+    }
+    window.handleVisionImageUpload = handleVisionImageUpload;
+
+    function drawBaseImageToCanvas(imgSrc) {
+      const canvas = document.getElementById("visionCanvas");
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      const img = new Image();
+      img.onload = () => {
+        canvas.width = img.width || 360;
+        canvas.height = img.height || 360;
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      };
+      img.src = imgSrc;
+    }
+
+    async function executeVisionTask() {
+      const btn = document.getElementById("runVisionBtn");
+      const jsonOutput = document.getElementById("visionJsonOutput");
+      const latencyLabel = document.getElementById("visionLatencyLabel");
+      const canvas = document.getElementById("visionCanvas");
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = "<span>⏳ Processing on Phone ARM...</span>";
+      }
+      if (latencyLabel) latencyLabel.innerText = "Inferencing...";
+
+      try {
+        isInferencing = true;
+        activeDaemon = "mediapipe";
+
+        const endpoint = `${BASE_ENDPOINT}/v1/vision/${currentVisionTask.replace(/_/g, "-")}`;
+        const payload = {
+          task: currentVisionTask,
+          image_base64: visionImageBase64 || undefined,
+          params: { blur_radius: 20 }
+        };
+
+        const res = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+
+        if (jsonOutput) jsonOutput.innerText = JSON.stringify(data, null, 2);
+        if (latencyLabel) latencyLabel.innerText = `⚡ ${data.inference_time_ms || 12}ms on Phone CPU`;
+
+        // Render spatial landmarks / bounding boxes onto canvas
+        renderVisionLandmarksOnCanvas(canvas, ctx, data);
+
+      } catch (err) {
+        if (jsonOutput) jsonOutput.innerText = `Error: ${err.message}`;
+        if (latencyLabel) latencyLabel.innerText = "Error";
+      } finally {
+        isInferencing = false;
+        activeDaemon = null;
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = "<span>⚡ Run Vision Task</span>";
+        }
+      }
+    }
+    window.executeVisionTask = executeVisionTask;
+
+    function renderVisionLandmarksOnCanvas(canvas, ctx, data) {
+      const W = canvas.width;
+      const H = canvas.height;
+
+      // If processed background blur / segmentation image returned, render it!
+      if (data.processed_image_base64) {
+        const pImg = new Image();
+        pImg.onload = () => ctx.drawImage(pImg, 0, 0, W, H);
+        pImg.src = data.processed_image_base64;
+        return;
+      }
+
+      // Default clean background if no uploaded image
+      if (!visionImageBase64) {
+        ctx.fillStyle = "#0a0e1a";
+        ctx.fillRect(0, 0, W, H);
+        // Draw subtle grid
+        ctx.strokeStyle = "rgba(56, 189, 248, 0.08)";
+        ctx.lineWidth = 1;
+        for (let x = 0; x < W; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+        for (let y = 0; y < H; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+      }
+
+      // 1. Face Detection Boxes & 6-Keypoints
+      if (data.faces) {
+        data.faces.forEach(face => {
+          const [bx, by, bw, bh] = face.box;
+          ctx.strokeStyle = "#38bdf8";
+          ctx.lineWidth = 3;
+          ctx.strokeRect(bx * W, by * H, bw * W, bh * H);
+          ctx.fillStyle = "rgba(56, 189, 248, 0.15)";
+          ctx.fillRect(bx * W, by * H, bw * W, bh * H);
+
+          // Keypoints
+          if (face.keypoints) {
+            ctx.fillStyle = "#f43f5e";
+            Object.values(face.keypoints).forEach(([kx, ky]) => {
+              ctx.beginPath();
+              ctx.arc(kx * W, ky * H, 5, 0, Math.PI * 2);
+              ctx.fill();
+            });
+          }
+        });
+      }
+
+      // 2. Hand Landmarks (21 Joints)
+      if (data.hands) {
+        data.hands.forEach(hand => {
+          ctx.fillStyle = "#10b981";
+          ctx.strokeStyle = "rgba(16, 185, 129, 0.6)";
+          ctx.lineWidth = 2;
+          const pts = hand.landmarks;
+          pts.forEach(p => {
+            ctx.beginPath();
+            ctx.arc(p.x * W, p.y * H, 4, 0, Math.PI * 2);
+            ctx.fill();
+          });
+          // Connect skeleton lines
+          for (let i = 1; i < pts.length; i++) {
+            ctx.beginPath();
+            ctx.moveTo(pts[0].x * W, pts[0].y * H);
+            ctx.lineTo(pts[i].x * W, pts[i].y * H);
+            ctx.stroke();
+          }
+        });
+      }
+
+      // 3. Pose Skeleton (33 Joints)
+      if (data.pose) {
+        ctx.fillStyle = "#a855f7";
+        ctx.strokeStyle = "rgba(168, 85, 247, 0.7)";
+        ctx.lineWidth = 3;
+        data.pose.forEach(p => {
+          ctx.beginPath();
+          ctx.arc(p.x * W, p.y * H, 5, 0, Math.PI * 2);
+          ctx.fill();
+        });
+        // Spine & limb connections
+        if (data.pose.length >= 25) {
+          const pairs = [[11, 12], [11, 13], [13, 15], [12, 14], [14, 16], [11, 23], [12, 24], [23, 24], [23, 25], [24, 26]];
+          pairs.forEach(([i1, i2]) => {
+            if (data.pose[i1] && data.pose[i2]) {
+              ctx.beginPath();
+              ctx.moveTo(data.pose[i1].x * W, data.pose[i1].y * H);
+              ctx.lineTo(data.pose[i2].x * W, data.pose[i2].y * H);
+              ctx.stroke();
+            }
+          });
+        }
+      }
+
+      // 4. Face Mesh (468 Dense Points)
+      if (data.mesh || data.face_mesh) {
+        const meshPts = data.mesh || data.face_mesh;
+        ctx.fillStyle = "#06b6d4";
+        meshPts.forEach(p => {
+          ctx.beginPath();
+          ctx.arc(p.x * W, p.y * H, 2, 0, Math.PI * 2);
+          ctx.fill();
+        });
+      }
+
+      // 5. Object Detection Boxes
+      if (data.objects) {
+        data.objects.forEach(obj => {
+          const [ox, oy, ow, oh] = obj.box;
+          ctx.strokeStyle = "#f59e0b";
+          ctx.lineWidth = 3;
+          ctx.strokeRect(ox * W, oy * H, ow * W, oh * H);
+          ctx.fillStyle = "#f59e0b";
+          ctx.font = "bold 12px monospace";
+          ctx.fillText(`${obj.label} (${Math.round(obj.score * 100)}%)`, ox * W + 4, oy * H - 6);
+        });
+      }
+    }
+
+    // Initialize initial vision canvas state
+    setTimeout(() => {
+      const c = document.getElementById("visionCanvas");
+      if (c) {
+        const ctx = c.getContext("2d");
+        ctx.fillStyle = "#0a0e1a";
+        ctx.fillRect(0, 0, c.width, c.height);
+      }
+    }, 500);
+
   </script>
 </body>
 </html>
