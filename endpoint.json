@@ -1,7 +1,8 @@
 {
-  "endpoint": "http://192.168.29.2:8080",
-  "inference": "http://192.168.29.2:8080/inference",
-  "telemetry": "http://192.168.29.2:8080/telemetry",
-  "mode": "100_percent_sovereign_self_hosted",
+  "endpoint": "https://3fae74acbc00ae.lhr.life",
+  "inference": "https://3fae74acbc00ae.lhr.life/inference",
+  "telemetry": "https://3fae74acbc00ae.lhr.life/telemetry",
+  "phone_lan_ip": "http://192.168.29.2:8080",
+  "mode": "ssh_native_cloudflare_free",
   "port": 8080
 }
