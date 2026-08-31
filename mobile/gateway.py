@@ -1010,10 +1010,11 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path.rstrip("/")
-
-        if path == "/telemetry":
+        if path in ["", "/"]:
+            self.handle_index_html()
+        elif path == "/telemetry":
             self.handle_telemetry()
-        elif path in ["", "/health"]:
+        elif path == "/health":
             self.handle_health()
         elif path.startswith('/v1/agent/pop_message/'):
             job_id = path.split('/')[-1]
@@ -1721,6 +1722,31 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         finally:
             _active_inferences = max(0, _active_inferences - 1)
             _active_daemon = None
+
+    def handle_index_html(self):
+        home_dir = os.environ.get("HOME", "/data/data/com.termux/files/home")
+        index_candidates = [
+            os.path.join(home_dir, "index.html"),
+            os.path.join(home_dir, "phone-whisper-server", "index.html"),
+            os.path.abspath("index.html")
+        ]
+        html_content = None
+        for candidate in index_candidates:
+            if os.path.exists(candidate):
+                try:
+                    with open(candidate, "rb") as f:
+                        html_content = f.read()
+                    break
+                except Exception:
+                    pass
+        if html_content:
+            self.send_response(200)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(html_content)
+        else:
+            self.handle_health()
 
     def handle_health(self):
         self.send_response(200)
