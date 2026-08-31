@@ -28,3 +28,12 @@ Thumbs.db
 *.ogg
 *.m4a
 *.log
+
+# Secrets & Configs
+.env
+.env.*
+.github_oauth.json
+*.secret
+*.key
+.swades_jobs/
+.swades_scratch/

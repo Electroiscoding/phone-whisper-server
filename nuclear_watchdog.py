@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-☢️ NUCLEAR AUTONOMOUS SUPERVISOR & SELF-HEALING TUNNEL BROADCASTER
+☢️ NUCLEAR AUTONOMOUS SUPERVISOR & SELF-HEALING TUNNEL BROADCASTER 2.1
 1. Active End-to-End Public Liveness Probing (Guarantees zero-530 downtime)
 2. Auto-Kills Invalidated/Expired Cloudflare Tunnels
 3. Zero-Git Direct HTTP Tunnel Registration to Cloudflare Worker (/register_tunnel)
-4. Persistent GitHub endpoint.json Synchronization
+4. Robust Daemon Management with start_new_session=True (Never dies on ADB disconnect)
 """
 
 import os
@@ -50,10 +50,10 @@ def register_tunnel_url(url):
             data=payload,
             headers={
                 "Content-Type": "application/json",
-                "User-Agent": "NuclearSupervisor/2.0"
+                "User-Agent": "NuclearSupervisor/2.1"
             }
         )
-        with urllib.request.urlopen(req, timeout=6) as resp:
+        with urllib.request.urlopen(req, timeout=5) as resp:
             data = json.loads(resp.read().decode())
             log(f"✅ Registered tunnel directly to Cloudflare Worker: {url} -> {data}")
             return True
@@ -94,9 +94,18 @@ def probe_public_tunnel(url):
     try:
         req = urllib.request.Request(
             f"{url}/health",
-            headers={"User-Agent": "NuclearProbe/2.0"}
+            headers={"User-Agent": "NuclearProbe/2.1"}
         )
-        with urllib.request.urlopen(req, timeout=4.0) as resp:
+        with urllib.request.urlopen(req, timeout=3.5) as resp:
+            return resp.status == 200
+    except Exception:
+        return False
+
+def probe_local_gateway():
+    """Actively probes the local gateway process at port 8080"""
+    try:
+        req = urllib.request.Request("http://127.0.0.1:8080/health")
+        with urllib.request.urlopen(req, timeout=2.0) as resp:
             return resp.status == 200
     except Exception:
         return False
@@ -105,18 +114,21 @@ def start_battery_daemon():
     if not is_process_running("battery_daemon.sh"):
         log("Starting persistent battery daemon...")
         try:
-            subprocess.Popen(["/system/bin/sh", "/data/local/tmp/battery_daemon.sh"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.Popen(["/system/bin/sh", "/data/local/tmp/battery_daemon.sh"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
         except Exception as e:
             log(f"Error starting battery daemon: {e}")
 
 def start_gateway():
-    if not is_process_running("gateway.py"):
+    if not is_process_running("gateway.py") or not probe_local_gateway():
         log("Starting gateway.py & Elastic Governor...")
         try:
+            subprocess.run(["pkill", "-f", "gateway.py"], stderr=subprocess.DEVNULL)
+            time.sleep(0.5)
             log_f = open(f"{HOME}/gateway.log", "a")
             env = os.environ.copy()
             env["PATH"] = f"/data/data/com.termux/files/usr/bin:{env.get('PATH', '')}"
-            subprocess.Popen(["python3", f"{HOME}/gateway.py"], stdout=log_f, stderr=log_f, env=env)
+            subprocess.Popen(["python3", f"{HOME}/gateway.py"], stdout=log_f, stderr=log_f, env=env, start_new_session=True)
+            log("gateway.py spawned with new session.")
         except Exception as e:
             log(f"Error starting gateway.py: {e}")
 
@@ -125,7 +137,6 @@ def kill_and_restart_cloudflared():
     try:
         subprocess.run(["pkill", "-9", "-f", "cloudflared"], stderr=subprocess.DEVNULL)
         time.sleep(1)
-        # Clear log so old URLs aren't read
         try:
             with open(f"{HOME}/cf_tunnel.log", "w") as f:
                 f.write("")
@@ -141,13 +152,13 @@ def kill_and_restart_cloudflared():
             "--protocol", "http2",
             "--edge-ip-version", "4",
             "--no-autoupdate"
-        ], stdout=log_f, stderr=log_f, env=env)
-        log("Cloudflared process spawned.")
+        ], stdout=log_f, stderr=log_f, env=env, start_new_session=True)
+        log("Cloudflared process spawned with new session.")
     except Exception as e:
         log(f"Error restarting cloudflared: {e}")
 
 def main():
-    log("☢️ Nuclear Self-Healing Supervisor 2.0 Initialized")
+    log("☢️ Nuclear Self-Healing Supervisor 2.1 Initialized")
     try:
         subprocess.run(["termux-wake-lock"], stderr=subprocess.DEVNULL)
     except Exception:
@@ -187,15 +198,15 @@ def main():
                         with open(f"{HOME}/current_url.txt", "w") as f:
                             f.write(current_url)
 
-                # Periodic Active Liveness Probe
+                # Periodic Active Public Liveness Probe
                 is_alive = probe_public_tunnel(current_url)
                 if is_alive:
                     failed_probes = 0
                 else:
                     failed_probes += 1
-                    log(f"⚠️ Public tunnel probe failed ({failed_probes}/2): {current_url}")
-                    if failed_probes >= 2:
-                        log(f"🚨 Public tunnel confirmed UNREACHABLE/DOWN (HTTP 530/timeout). Auto-recovering...")
+                    log(f"⚠️ Public tunnel probe failed ({failed_probes}/3): {current_url}")
+                    if failed_probes >= 3:
+                        log(f"🚨 Public tunnel confirmed UNREACHABLE/DOWN (HTTP 530/502). Auto-recovering...")
                         kill_and_restart_cloudflared()
                         failed_probes = 0
                         last_synced_url = None
@@ -205,7 +216,7 @@ def main():
         except Exception as e:
             log(f"Supervisor loop error: {e}")
 
-        time.sleep(4)
+        time.sleep(3)
 
 if __name__ == "__main__":
     main()

@@ -35,8 +35,21 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from socketserver import ThreadingMixIn
 
 
-GITHUB_CLIENT_ID = os.environ.get("GITHUB_CLIENT_ID", "")
-GITHUB_CLIENT_SECRET = os.environ.get("GITHUB_CLIENT_SECRET", "")
+def get_oauth_credentials():
+    cid = os.environ.get("GITHUB_CLIENT_ID", "")
+    sec = os.environ.get("GITHUB_CLIENT_SECRET", "")
+    cfg = os.path.expanduser("~/.github_oauth.json")
+    if os.path.exists(cfg):
+        try:
+            with open(cfg, "r") as f:
+                d = json.load(f)
+                if not cid and d.get("client_id"): cid = d["client_id"]
+                if not sec and d.get("client_secret"): sec = d["client_secret"]
+        except Exception:
+            pass
+    return cid, sec
+
+GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET = get_oauth_credentials()
 
 
 TELEMETRY_PATHS = [
@@ -1081,7 +1094,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
     # 🐙 GITHUB OAUTH HANDLERS
     # =========================================================================
     def handle_github_login(self):
-        auth_url = f"https://github.com/login/oauth/authorize?client_id={GITHUB_CLIENT_ID}&scope=repo,read:user"
+        cid, _ = get_oauth_credentials()
+        auth_url = f"https://github.com/login/oauth/authorize?client_id={cid}&scope=repo,read:user"
         self.send_response(302)
         self._send_cors_headers()
         self.send_header("Location", auth_url)
@@ -1089,6 +1103,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
 
     def handle_github_exchange_post(self):
         try:
+            cid, sec = get_oauth_credentials()
             content_length = int(self.headers.get("Content-Length", 0))
             body = self.rfile.read(content_length) if content_length > 0 else b""
             payload = json.loads(body.decode("utf-8")) if body else {}
@@ -1099,8 +1114,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 return
 
             token_payload = json.dumps({
-                "client_id": GITHUB_CLIENT_ID,
-                "client_secret": GITHUB_CLIENT_SECRET,
+                "client_id": cid,
+                "client_secret": sec,
                 "code": code
             }).encode()
 
@@ -1174,10 +1189,11 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             return
 
         try:
+            cid, sec = get_oauth_credentials()
             # 1. Exchange code for access token
             token_payload = json.dumps({
-                "client_id": GITHUB_CLIENT_ID,
-                "client_secret": GITHUB_CLIENT_SECRET,
+                "client_id": cid,
+                "client_secret": sec,
                 "code": code
             }).encode()
 
