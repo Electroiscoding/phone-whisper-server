@@ -314,6 +314,47 @@
       -moz-osx-font-smoothing: grayscale;
     }
 
+    
+    /* 🛡️ Connection Guardian Live Status HUD */
+    .connection-guardian-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.35rem 0.85rem;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      color: #10b981;
+      backdrop-filter: blur(8px);
+      transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      margin-left: 1rem;
+    }
+    .connection-guardian-pill.reconnecting {
+      background: rgba(245, 158, 11, 0.12);
+      border-color: rgba(245, 158, 11, 0.35);
+      color: #f59e0b;
+    }
+    .connection-guardian-pill.offline {
+      background: rgba(239, 68, 68, 0.12);
+      border-color: rgba(239, 68, 68, 0.35);
+      color: #ef4444;
+    }
+    .guardian-pulse {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: currentColor;
+      box-shadow: 0 0 8px currentColor;
+      animation: pulse-guardian 2s infinite ease-in-out;
+    }
+    @keyframes pulse-guardian {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.4); opacity: 0.5; }
+    }
+
     /* =========================================================================
        DESKTOP NAVBAR (UNTOUCHED & PRISTINE)
        ========================================================================= */
@@ -1542,10 +1583,16 @@
 
   <!-- DESKTOP & MOBILE NAVIGATION -->
   <nav>
-    <a href="#" class="brand">
-      <div class="brand-badge">🎙️</div>
-      <span>PhoneWhisper<span style="color: var(--primary)">AI</span></span>
-    </a>
+    <div style="display: flex; align-items: center;">
+      <a href="#" class="brand">
+        <div class="brand-badge">🎙️</div>
+        <span>PhoneWhisper<span style="color: var(--primary)">AI</span></span>
+      </a>
+      <div id="connectionGuardianHUD" class="connection-guardian-pill" title="Autonomous Connection Guardian Active">
+        <span class="guardian-pulse"></span>
+        <span id="connectionGuardianText">Direct LAN :8080</span>
+      </div>
+    </div>
 
     <!-- Desktop Navigation Links (Untouched) -->
     <div class="nav-links-desktop">
@@ -3300,57 +3347,162 @@ python3 mobile/nuclear_watchdog.py</code></pre>
     mobileCloseBtn.addEventListener("click", closeMobileDrawer);
     mobileDrawerOverlay.addEventListener("click", closeMobileDrawer);
 
-    // 🏠 SAME-ORIGIN DETECTOR: If loaded directly from phone on port 8080, use direct local origin!
+    // 🛡️ HYPER PROD-GRADE AUTONOMOUS NETWORK OUTAGE & AUTO-RECONNECT GUARDIAN
     const isDirectHosted = window.location.port === "8080" || window.location.hostname === "192.168.29.2" || window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
     let BASE_ENDPOINT = isDirectHosted ? window.location.origin : "http://192.168.29.2:8080";
-    let isResolvingTunnel = false;
+    
+    let isConnected = true;
+    let reconnectAttempts = 0;
+    let isReconnecting = false;
+    let lastHealthyTimestamp = Date.now();
 
-    async function autoResolveDirectTunnel(force = false) {
-      if (isDirectHosted) return; // Never overwrite local direct origin!
-      if (isResolvingTunnel && !force) return;
-      isResolvingTunnel = true;
+    const CANDIDATE_ORIGINS = [
+      window.location.origin,
+      "http://192.168.29.2:8080",
+      "http://localhost:8080",
+      "http://127.0.0.1:8080"
+    ];
+
+    function updateConnectionHUD(state, text) {
+      const hud = document.getElementById("connectionGuardianHUD");
+      const label = document.getElementById("connectionGuardianText");
+      if (!hud || !label) return;
+      
+      hud.className = `connection-guardian-pill ${state}`;
+      label.innerText = text;
+    }
+
+    // Initialize HUD on load
+    document.addEventListener("DOMContentLoaded", () => {
+      updateConnectionHUD("online", isDirectHosted ? "Direct LAN :8080" : "Gateway Connected");
+    });
+
+    async function probeOriginHealth(origin) {
+      if (!origin || !origin.startsWith("http")) return false;
       try {
-        const res = await fetch("https://raw.githubusercontent.com/Electroiscoding/phone-whisper-server/main/endpoint.json?_t=" + Date.now(), { cache: "no-store" });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.endpoint) {
-            const newOrigin = data.endpoint.replace(/\/+$/, "");
-            if (newOrigin !== BASE_ENDPOINT) {
-              console.log("🔄 [Auto-Switched to Active Origin]:", newOrigin);
-              BASE_ENDPOINT = newOrigin;
-            }
-          }
-        }
-      } catch (err) {
-      } finally {
-        isResolvingTunnel = false;
+        const ctrl = new AbortController();
+        const tid = setTimeout(() => ctrl.abort(), 2000);
+        const res = await fetch(`${origin.replace(/\/+$/, "")}/telemetry`, { signal: ctrl.signal, cache: "no-store" });
+        clearTimeout(tid);
+        return res.ok;
+      } catch (e) {
+        return false;
       }
     }
-    if (!isDirectHosted) {
-      autoResolveDirectTunnel();
-      setInterval(autoResolveDirectTunnel, 6000);
+
+    async function recoverFromNetworkOutage(force = false) {
+      if (isReconnecting && !force) return;
+      isReconnecting = true;
+      reconnectAttempts++;
+      
+      updateConnectionHUD("reconnecting", `Reconnecting (Attempt ${reconnectAttempts})...`);
+      console.warn(`⚠️ [Network Outage Detected]: Initiating candidate probe (Attempt #${reconnectAttempts})...`);
+
+      // 1. First probe current active BASE_ENDPOINT
+      if (await probeOriginHealth(BASE_ENDPOINT)) {
+        isConnected = true;
+        isReconnecting = false;
+        reconnectAttempts = 0;
+        lastHealthyTimestamp = Date.now();
+        updateConnectionHUD("online", isDirectHosted ? "Direct LAN :8080" : "Gateway Restored");
+        console.log("🟢 [Connection Guardian]: Active origin healthy:", BASE_ENDPOINT);
+        return true;
+      }
+
+      // 2. Probe all local fallback candidate origins
+      for (const cand of CANDIDATE_ORIGINS) {
+        if (await probeOriginHealth(cand)) {
+          BASE_ENDPOINT = cand.replace(/\/+$/, "");
+          isConnected = true;
+          isReconnecting = false;
+          reconnectAttempts = 0;
+          lastHealthyTimestamp = Date.now();
+          updateConnectionHUD("online", `Restored: ${cand.replace(/^https?:\/\//, "")}`);
+          console.log("🟢 [Connection Guardian]: Switched to healthy candidate:", BASE_ENDPOINT);
+          return true;
+        }
+      }
+
+      // 3. If accessed externally, check GitHub endpoint.json
+      if (!isDirectHosted) {
+        try {
+          const res = await fetch("https://raw.githubusercontent.com/Electroiscoding/phone-whisper-server/main/endpoint.json?_t=" + Date.now(), { cache: "no-store" });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.endpoint && await probeOriginHealth(data.endpoint)) {
+              BASE_ENDPOINT = data.endpoint.replace(/\/+$/, "");
+              isConnected = true;
+              isReconnecting = false;
+              reconnectAttempts = 0;
+              lastHealthyTimestamp = Date.now();
+              updateConnectionHUD("online", "Remote Gateway Active");
+              console.log("🟢 [Connection Guardian]: Synced from remote endpoint:", BASE_ENDPOINT);
+              return true;
+            }
+          }
+        } catch (e) {}
+      }
+
+      // 4. Exponential backoff scheduling
+      const backoffMs = Math.min(5000, 1000 * Math.pow(1.4, reconnectAttempts));
+      updateConnectionHUD("offline", `Offline · Retrying in ${(backoffMs/1000).toFixed(1)}s`);
+      setTimeout(() => {
+        isReconnecting = false;
+        recoverFromNetworkOutage(true);
+      }, backoffMs);
+      return false;
     }
 
-    // Universal Self-Healing Request Wrapper (Auto-retries on 502/522/530/Network drops)
-    async function nuclearFetch(pathOrUrl, options = {}) {
+    // Proactive background heartbeat (every 8s)
+    setInterval(async () => {
+      if (!isReconnecting) {
+        const ok = await probeOriginHealth(BASE_ENDPOINT);
+        if (!ok) {
+          recoverFromNetworkOutage();
+        } else {
+          if (!isConnected) {
+            isConnected = true;
+            reconnectAttempts = 0;
+            updateConnectionHUD("online", isDirectHosted ? "Direct LAN :8080" : "Gateway Active");
+          }
+        }
+      }
+    }, 8000);
+
+    // Universal Self-Healing Request Wrapper with Autonomous Auto-Retry
+    async function nuclearFetch(pathOrUrl, options = {}, maxRetries = 3) {
       let fullUrl = pathOrUrl.startsWith("http") ? pathOrUrl : `${BASE_ENDPOINT}${pathOrUrl}`;
-      try {
-        let res = await fetch(fullUrl, options);
-        if (res.status === 502 || res.status === 522 || res.status === 530) {
-          console.warn(`⚠️ Tunnel origin returned ${res.status} — auto-recovering live endpoint...`);
-          await autoResolveDirectTunnel(true);
-          const retryUrl = pathOrUrl.startsWith("http") ? pathOrUrl.replace(/^https:\/\/[^/]+/, BASE_ENDPOINT) : `${BASE_ENDPOINT}${pathOrUrl}`;
-          return await fetch(retryUrl, options);
+      let attempt = 0;
+
+      while (attempt <= maxRetries) {
+        try {
+          let res = await fetch(fullUrl, options);
+          if (res.status === 502 || res.status === 503 || res.status === 522 || res.status === 530) {
+            console.warn(`⚠️ Gateway returned ${res.status} — auto-recovering connection (attempt ${attempt + 1}/${maxRetries})...`);
+            await recoverFromNetworkOutage(true);
+            fullUrl = pathOrUrl.startsWith("http") ? pathOrUrl.replace(/^https?:\/\/[^/]+/, BASE_ENDPOINT) : `${BASE_ENDPOINT}${pathOrUrl}`;
+            attempt++;
+            if (attempt <= maxRetries) {
+              await new Promise(r => setTimeout(r, 600 * attempt));
+              continue;
+            }
+          }
+          isConnected = true;
+          return res;
+        } catch (err) {
+          if (err && (err.name === 'AbortError' || (err.message && err.message.includes('abort')))) {
+            throw err; // Intentional stream switch/abort — pass through silently
+          }
+          console.warn(`⚠️ Network drop during fetch — auto-recovering (attempt ${attempt + 1}/${maxRetries})...`, err);
+          await recoverFromNetworkOutage(true);
+          fullUrl = pathOrUrl.startsWith("http") ? pathOrUrl.replace(/^https?:\/\/[^/]+/, BASE_ENDPOINT) : `${BASE_ENDPOINT}${pathOrUrl}`;
+          attempt++;
+          if (attempt <= maxRetries) {
+            await new Promise(r => setTimeout(r, 800 * attempt));
+            continue;
+          }
+          throw err;
         }
-        return res;
-      } catch (err) {
-        if (err && (err.name === 'AbortError' || (err.message && err.message.includes('abort')))) {
-          throw err; // Intentional stream switch/abort — pass through silently
-        }
-        console.warn("⚠️ Network drop detected — recovering live origin...", err);
-        await autoResolveDirectTunnel(true);
-        const retryUrl = pathOrUrl.startsWith("http") ? pathOrUrl.replace(/^https:\/\/[^/]+/, BASE_ENDPOINT) : `${BASE_ENDPOINT}${pathOrUrl}`;
-        return await fetch(retryUrl, options);
       }
     }
 
