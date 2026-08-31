@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """
-☢️ NUCLEAR AUTONOMOUS SUPERVISOR & SELF-HEALING TUNNEL BROADCASTER 2.1
+☢️ NUCLEAR AUTONOMOUS SUPERVISOR & SELF-HEALING TUNNEL BROADCASTER 2.2
 1. Active End-to-End Public Liveness Probing (Guarantees zero-530 downtime)
 2. Auto-Kills Invalidated/Expired Cloudflare Tunnels
-3. Zero-Git Direct HTTP Tunnel Registration to Cloudflare Worker (/register_tunnel)
-4. Robust Daemon Management with start_new_session=True (Never dies on ADB disconnect)
+3. DIRECT GIT PUSH to GitHub main branch for endpoint.json from Phone
+4. Zero-Git Direct HTTP Tunnel Registration to Cloudflare Worker (/register_tunnel)
+5. Robust Daemon Management with start_new_session=True (Never dies on ADB disconnect)
 """
 
 import os
@@ -39,6 +40,29 @@ def is_process_running(pattern):
         pass
     return False
 
+def sync_endpoint_to_github(url):
+    repo_dir = f"{HOME}/phone-whisper-server"
+    if not os.path.exists(repo_dir):
+        return False
+    try:
+        data = {
+            "endpoint": url,
+            "inference": f"{url}/inference",
+            "telemetry": f"{url}/telemetry"
+        }
+        with open(f"{repo_dir}/endpoint.json", "w") as f:
+            json.dump(data, f, indent=2)
+            f.write("\n")
+        
+        # Git commit & push from Termux
+        cmd = f"cd {repo_dir} && git add endpoint.json && git commit -m 'chore(tunnel): 🌐 Auto-sync live endpoint [{url}]' && git push origin main"
+        subprocess.run(["bash", "-l", "-c", cmd], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=20)
+        log(f"✅ Committed & pushed live endpoint {url} directly to GitHub repository!")
+        return True
+    except Exception as e:
+        log(f"⚠️ Git push sync error: {e}")
+        return False
+
 def register_tunnel_url(url):
     try:
         payload = json.dumps({
@@ -50,7 +74,7 @@ def register_tunnel_url(url):
             data=payload,
             headers={
                 "Content-Type": "application/json",
-                "User-Agent": "NuclearSupervisor/2.1"
+                "User-Agent": "NuclearSupervisor/2.2"
             }
         )
         with urllib.request.urlopen(req, timeout=5) as resp:
@@ -94,7 +118,7 @@ def probe_public_tunnel(url):
     try:
         req = urllib.request.Request(
             f"{url}/health",
-            headers={"User-Agent": "NuclearProbe/2.1"}
+            headers={"User-Agent": "NuclearProbe/2.2"}
         )
         with urllib.request.urlopen(req, timeout=3.5) as resp:
             return resp.status == 200
@@ -158,7 +182,7 @@ def kill_and_restart_cloudflared():
         log(f"Error restarting cloudflared: {e}")
 
 def main():
-    log("☢️ Nuclear Self-Healing Supervisor 2.1 Initialized")
+    log("☢️ Nuclear Self-Healing Supervisor 2.2 Initialized")
     try:
         subprocess.run(["termux-wake-lock"], stderr=subprocess.DEVNULL)
     except Exception:
@@ -192,11 +216,12 @@ def main():
             if current_url:
                 if current_url != last_synced_url:
                     log(f"New tunnel URL detected: {current_url}")
-                    if register_tunnel_url(current_url):
-                        last_synced_url = current_url
-                        failed_probes = 0
-                        with open(f"{HOME}/current_url.txt", "w") as f:
-                            f.write(current_url)
+                    sync_endpoint_to_github(current_url)
+                    register_tunnel_url(current_url)
+                    last_synced_url = current_url
+                    failed_probes = 0
+                    with open(f"{HOME}/current_url.txt", "w") as f:
+                        f.write(current_url)
 
                 # Periodic Active Public Liveness Probe
                 is_alive = probe_public_tunnel(current_url)
