@@ -3300,20 +3300,23 @@ python3 mobile/nuclear_watchdog.py</code></pre>
     mobileCloseBtn.addEventListener("click", closeMobileDrawer);
     mobileDrawerOverlay.addEventListener("click", closeMobileDrawer);
 
-    // Universal CORS-Shielded Edge Worker with Live Tunnel Auto-Sync & Instant Failover
+    // ☢️ NUCLEAR RESILIENT HIGH-AVAILABILITY CLIENT ENGINE
     let BASE_ENDPOINT = "https://parents-customers-tariff-dave.trycloudflare.com";
     let isResolvingTunnel = false;
 
-    async function autoResolveDirectTunnel() {
-      if (isResolvingTunnel) return;
+    async function autoResolveDirectTunnel(force = false) {
+      if (isResolvingTunnel && !force) return;
       isResolvingTunnel = true;
       try {
         const res = await fetch("https://raw.githubusercontent.com/Electroiscoding/phone-whisper-server/main/endpoint.json?_t=" + Date.now(), { cache: "no-store" });
         if (res.ok) {
           const data = await res.json();
           if (data.endpoint && data.endpoint.startsWith("https://")) {
-            BASE_ENDPOINT = data.endpoint.replace(/\/+$/, "");
-            console.log("⚡ [Connected Active Phone Origin]:", BASE_ENDPOINT);
+            const newOrigin = data.endpoint.replace(/\/+$/, "");
+            if (newOrigin !== BASE_ENDPOINT) {
+              console.log("🔄 [Auto-Switched to Active Origin]:", newOrigin);
+              BASE_ENDPOINT = newOrigin;
+            }
           }
         }
       } catch (err) {
@@ -3322,7 +3325,27 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       }
     }
     autoResolveDirectTunnel();
-    setInterval(autoResolveDirectTunnel, 10000);
+    setInterval(autoResolveDirectTunnel, 6000);
+
+    // Universal Self-Healing Request Wrapper (Auto-retries on 502/530/Network drops)
+    async function nuclearFetch(pathOrUrl, options = {}) {
+      let fullUrl = pathOrUrl.startsWith("http") ? pathOrUrl : `${BASE_ENDPOINT}${pathOrUrl}`;
+      try {
+        let res = await fetch(fullUrl, options);
+        if (res.status === 502 || res.status === 530) {
+          console.warn("⚠️ Gateway returned " + res.status + " — querying latest live origin...");
+          await autoResolveDirectTunnel(true);
+          const retryUrl = pathOrUrl.startsWith("http") ? pathOrUrl.replace(/^https:\/\/[^/]+/, BASE_ENDPOINT) : `${BASE_ENDPOINT}${pathOrUrl}`;
+          return await fetch(retryUrl, options);
+        }
+        return res;
+      } catch (err) {
+        console.warn("⚠️ Network drop detected — recovering live origin...", err);
+        await autoResolveDirectTunnel(true);
+        const retryUrl = pathOrUrl.startsWith("http") ? pathOrUrl.replace(/^https:\/\/[^/]+/, BASE_ENDPOINT) : `${BASE_ENDPOINT}${pathOrUrl}`;
+        return await fetch(retryUrl, options);
+      }
+    }
 
     // =========================================================================
     // 💬 QWEN 2.5 SLM CHAT HANDLER
@@ -3397,7 +3420,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       try {
         isInferencing = true;
         activeDaemon = "llama";
-        const res = await fetch(`${BASE_ENDPOINT}/v1/chat/completions`, {
+        const res = await nuclearFetch(`${BASE_ENDPOINT}/v1/chat/completions`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -3505,7 +3528,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       try {
         isInferencing = true;
         activeDaemon = "gateway";
-        const res = await fetch(`${BASE_ENDPOINT}/v1/audio/speech`, {
+        const res = await nuclearFetch(`${BASE_ENDPOINT}/v1/audio/speech`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ input: text, speed })
@@ -3560,17 +3583,17 @@ python3 mobile/nuclear_watchdog.py</code></pre>
         
         // Execute Cross-Encoder Reranker + Bi-Encoder Embeddings in parallel
         const [rerankRes, embResA, embResB] = await Promise.all([
-          fetch(`${BASE_ENDPOINT}/v1/rerank`, {
+          nuclearFetch(`${BASE_ENDPOINT}/v1/rerank`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ query: textA, documents: [textB] })
           }).then(r => r.json()).catch(() => null),
-          fetch(`${BASE_ENDPOINT}/v1/embeddings`, {
+          nuclearFetch(`${BASE_ENDPOINT}/v1/embeddings`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ input: textA })
           }).then(r => r.json()),
-          fetch(`${BASE_ENDPOINT}/v1/embeddings`, {
+          nuclearFetch(`${BASE_ENDPOINT}/v1/embeddings`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ input: textB })
@@ -3650,7 +3673,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       resultsContainer.innerHTML = `<div style="color: var(--primary); font-size: 0.9rem; padding: 1rem; text-align: center;">⚡ Evaluating joint transformer self-attention across ${documents.length} candidates on phone CPU...</div>`;
 
       try {
-        const resp = await fetch(`${BASE_ENDPOINT}/v1/rerank`, {
+        const resp = await nuclearFetch(`${BASE_ENDPOINT}/v1/rerank`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ query: query, documents: documents })
@@ -4689,7 +4712,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
         lastWebcamFrameTime = now;
         const frameBase64 = canvas.toDataURL("image/jpeg", 0.65);
 
-        fetch(`${BASE_ENDPOINT}/v1/vision/${currentVisionTask.replace(/_/g, "-")}`, {
+        nuclearFetch(`${BASE_ENDPOINT}/v1/vision/${currentVisionTask.replace(/_/g, "-")}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -5000,14 +5023,14 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       try {
         // Test 1: Telemetry
         const t0 = performance.now();
-        const telRes = await fetch(`${BASE_ENDPOINT}/telemetry`);
+        const telRes = await nuclearFetch(`${BASE_ENDPOINT}/telemetry`);
         const telData = await telRes.json();
         const tTel = (performance.now() - t0).toFixed(1);
         out.innerText += `✅ [1/5] Hardware Telemetry: HTTP 200 (${tTel}ms) -> Battery: ${telData.battery.level}% (${telData.battery.status}, ${telData.battery.temperature}°C, ${telData.battery.voltage_mv}mV)\n`;
 
         // Test 2: Qwen Chat Completion
         const t1 = performance.now();
-        const chatRes = await fetch(`${BASE_ENDPOINT}/v1/chat/completions`, {
+        const chatRes = await nuclearFetch(`${BASE_ENDPOINT}/v1/chat/completions`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ messages: [{ role: "user", content: "Ping!" }], max_tokens: 10, stream: false })
@@ -5019,7 +5042,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
 
         // Test 3: Embeddings
         const t2 = performance.now();
-        const embRes = await fetch(`${BASE_ENDPOINT}/v1/embeddings`, {
+        const embRes = await nuclearFetch(`${BASE_ENDPOINT}/v1/embeddings`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ input: "Hello edge AI" })
@@ -5030,7 +5053,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
 
         // Test 4: Reranker
         const t3 = performance.now();
-        const rnkRes = await fetch(`${BASE_ENDPOINT}/v1/rerank`, {
+        const rnkRes = await nuclearFetch(`${BASE_ENDPOINT}/v1/rerank`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ query: "AI", documents: ["Edge AI compute", "Coffee maker"] })
@@ -5041,7 +5064,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
 
         // Test 5: MediaPipe Vision
         const t4 = performance.now();
-        const visRes = await fetch(`${BASE_ENDPOINT}/v1/vision/face-detection`, {
+        const visRes = await nuclearFetch(`${BASE_ENDPOINT}/v1/vision/face-detection`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ task: "face_detection" })
@@ -5088,7 +5111,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
             statusDiv.style.color = "var(--primary)";
           }
 
-          const res = await fetch(`${BASE_ENDPOINT}/auth/github/exchange`, {
+          const res = await nuclearFetch(`${BASE_ENDPOINT}/auth/github/exchange`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ code: incomingCode })
@@ -5307,7 +5330,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
     async function fetchUserRepositories() {
       if (!swadesAuthData || !swadesAuthData.token) return;
       try {
-        const res = await fetch(`${BASE_ENDPOINT}/auth/github/user-repos`, {
+        const res = await nuclearFetch(`${BASE_ENDPOINT}/auth/github/user-repos`, {
           headers: { "Authorization": `Bearer ${swadesAuthData.token}` }
         });
         if (res.ok) {
@@ -5384,7 +5407,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
           base_url: customBaseUrl || undefined
         };
 
-        const res = await fetch(`${BASE_ENDPOINT}/v1/agent/submit`, {
+        const res = await nuclearFetch(`${BASE_ENDPOINT}/v1/agent/submit`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
@@ -5418,7 +5441,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
 
     async function refreshSwadeJobs() {
       try {
-        const res = await fetch(`${BASE_ENDPOINT}/v1/agent/jobs`);
+        const res = await nuclearFetch(`${BASE_ENDPOINT}/v1/agent/jobs`);
         if (!res.ok) return;
         const data = await res.json();
         
@@ -5512,7 +5535,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       inputEl.value = '';
 
       try {
-        const res = await fetch(`${BASE_ENDPOINT}/v1/agent/message`, {
+        const res = await nuclearFetch(`${BASE_ENDPOINT}/v1/agent/message`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -5553,7 +5576,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
     async function pauseCurrentTask() {
       if (!swadesCurrentJobId) return;
       try {
-        await fetch(`${BASE_ENDPOINT}/v1/agent/pause/${swadesCurrentJobId}`, { method: 'POST' });
+        await nuclearFetch(`${BASE_ENDPOINT}/v1/agent/pause/${swadesCurrentJobId}`, { method: 'POST' });
         updateControlsUI('PAUSED');
       } catch (e) {}
     }
@@ -5562,7 +5585,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
     async function resumeCurrentTask() {
       if (!swadesCurrentJobId) return;
       try {
-        await fetch(`${BASE_ENDPOINT}/v1/agent/resume/${swadesCurrentJobId}`, { method: 'POST' });
+        await nuclearFetch(`${BASE_ENDPOINT}/v1/agent/resume/${swadesCurrentJobId}`, { method: 'POST' });
         updateControlsUI('RUNNING');
       } catch (e) {}
     }
@@ -5571,7 +5594,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
     async function cancelCurrentTask() {
       if (!swadesCurrentJobId) return;
       try {
-        await fetch(`${BASE_ENDPOINT}/v1/agent/cancel/${swadesCurrentJobId}`, { method: 'POST' });
+        await nuclearFetch(`${BASE_ENDPOINT}/v1/agent/cancel/${swadesCurrentJobId}`, { method: 'POST' });
         updateControlsUI('CANCELLED');
       } catch (e) {}
     }
@@ -5627,7 +5650,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       currentLogsCache = [];
 
       // 1. Initial State Load
-      fetch(`${BASE_ENDPOINT}/v1/agent/logs/${jobId}`)
+      nuclearFetch(`${BASE_ENDPOINT}/v1/agent/logs/${jobId}`)
         .then(res => res.json())
         .then(data => {
           if (data.job) {
@@ -5652,7 +5675,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       
       async function streamReader() {
         try {
-          const res = await fetch(`${BASE_ENDPOINT}/v1/agent/stream/${jobId}`, {
+          const res = await nuclearFetch(`${BASE_ENDPOINT}/v1/agent/stream/${jobId}`, {
             headers: { 'Accept': 'text/event-stream' },
             signal: swadesAbortController.signal
           });
@@ -5713,7 +5736,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       async function pollFallback() {
         if (swadesCurrentJobId !== jobId) return;
         try {
-          const res = await fetch(`${BASE_ENDPOINT}/v1/agent/logs/${jobId}`);
+          const res = await nuclearFetch(`${BASE_ENDPOINT}/v1/agent/logs/${jobId}`);
           if (!res.ok) return;
           const data = await res.json();
           if (data.logs && data.logs.length !== currentLogsCache.length) {
@@ -5904,14 +5927,14 @@ function escapeHtml(str) {
 
     async function cancelSwadeJob(jobId) {
       try {
-        await fetch(`${BASE_ENDPOINT}/v1/agent/cancel/${jobId}`, { method: 'POST' });
+        await nuclearFetch(`${BASE_ENDPOINT}/v1/agent/cancel/${jobId}`, { method: 'POST' });
         refreshSwadeJobs();
       } catch (err) {}
     }
 
     async function clearSwadesHistory() {
       try {
-        await fetch(`${BASE_ENDPOINT}/v1/agent/clear`, { method: 'POST' });
+        await nuclearFetch(`${BASE_ENDPOINT}/v1/agent/clear`, { method: 'POST' });
         if (swadesLogPollInterval) {
           clearInterval(swadesLogPollInterval);
           swadesLogPollInterval = null;
@@ -5935,7 +5958,7 @@ function escapeHtml(str) {
           connectSwadeStream(savedId);
         }
         
-        const res = await fetch(`${BASE_ENDPOINT}/v1/agent/active`);
+        const res = await nuclearFetch(`${BASE_ENDPOINT}/v1/agent/active`);
         if (!res.ok) return;
         const data = await res.json();
         
