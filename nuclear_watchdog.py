@@ -117,6 +117,14 @@ def start_battery_daemon():
         except Exception as e:
             log(f"Error starting battery daemon: {e}")
 
+def start_wifi_daemon():
+    if not is_process_running("wifi_daemon.sh"):
+        log("Starting persistent Wi-Fi auto-reconnect guardian...")
+        try:
+            subprocess.Popen(["/system/bin/sh", "/data/local/tmp/wifi_daemon.sh"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+        except Exception as e:
+            log(f"Error starting Wi-Fi daemon: {e}")
+
 def start_gateway():
     if not is_process_running("gateway.py") or not probe_local_gateway():
         log("Starting gateway.py on 0.0.0.0:8080...")
@@ -165,6 +173,7 @@ def main():
         pass
 
     start_battery_daemon()
+    start_wifi_daemon()
     start_gateway()
     
     if not is_process_running("localhost.run"):
@@ -176,6 +185,7 @@ def main():
     while True:
         try:
             start_battery_daemon()
+            start_wifi_daemon()
             start_gateway()
 
             if not is_process_running("localhost.run"):
