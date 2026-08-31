@@ -412,12 +412,15 @@ class ModelGovernor:
                 "label": "Qwen 2.5 SLM (Chat)",
                 "port": 8001,
                 "cmd": [
+                    "taskset", "-c", "4,5,6,7",
                     f"{self.home}/llama.cpp/build/bin/llama-server",
                     "-m", f"{self.home}/models/qwen2.5-0.5b-instruct-q4_k_m.gguf",
                     "--port", "8001",
                     "--host", "127.0.0.1",
                     "-t", "4",
-                    "-c", "2048",
+                    "-b", "256",
+                    "-ub", "128",
+                    "-c", "768",
                     "-ngl", "0"
                 ],
                 "log": f"{self.home}/llama_chat.log",
