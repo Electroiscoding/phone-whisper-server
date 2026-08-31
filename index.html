@@ -3300,21 +3300,23 @@ python3 mobile/nuclear_watchdog.py</code></pre>
     mobileCloseBtn.addEventListener("click", closeMobileDrawer);
     mobileDrawerOverlay.addEventListener("click", closeMobileDrawer);
 
-    // 🏠 100% CLOUDFLARE-FREE HIGH-AVAILABILITY CLIENT ENGINE
-    let BASE_ENDPOINT = "https://3fae74acbc00ae.lhr.life";
+    // 🏠 SAME-ORIGIN DETECTOR: If loaded directly from phone on port 8080, use direct local origin!
+    const isDirectHosted = window.location.port === "8080" || window.location.hostname === "192.168.29.2" || window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+    let BASE_ENDPOINT = isDirectHosted ? window.location.origin : "http://192.168.29.2:8080";
     let isResolvingTunnel = false;
 
     async function autoResolveDirectTunnel(force = false) {
+      if (isDirectHosted) return; // Never overwrite local direct origin!
       if (isResolvingTunnel && !force) return;
       isResolvingTunnel = true;
       try {
         const res = await fetch("https://raw.githubusercontent.com/Electroiscoding/phone-whisper-server/main/endpoint.json?_t=" + Date.now(), { cache: "no-store" });
         if (res.ok) {
           const data = await res.json();
-          if (data.endpoint && data.endpoint.startsWith("https://")) {
+          if (data.endpoint) {
             const newOrigin = data.endpoint.replace(/\/+$/, "");
             if (newOrigin !== BASE_ENDPOINT) {
-              console.log("🔄 [Auto-Switched to Active HTTPS Origin]:", newOrigin);
+              console.log("🔄 [Auto-Switched to Active Origin]:", newOrigin);
               BASE_ENDPOINT = newOrigin;
             }
           }
@@ -3324,8 +3326,10 @@ python3 mobile/nuclear_watchdog.py</code></pre>
         isResolvingTunnel = false;
       }
     }
-    autoResolveDirectTunnel();
-    setInterval(autoResolveDirectTunnel, 6000);
+    if (!isDirectHosted) {
+      autoResolveDirectTunnel();
+      setInterval(autoResolveDirectTunnel, 6000);
+    }
 
     // Universal Self-Healing Request Wrapper (Auto-retries on 502/522/530/Network drops)
     async function nuclearFetch(pathOrUrl, options = {}) {
