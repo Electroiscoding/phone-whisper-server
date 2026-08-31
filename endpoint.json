@@ -1,8 +1,8 @@
 {
-  "endpoint": "https://3fae74acbc00ae.lhr.life",
-  "inference": "https://3fae74acbc00ae.lhr.life/inference",
-  "telemetry": "https://3fae74acbc00ae.lhr.life/telemetry",
+  "endpoint": "https://developmental-soc-rec-theology.trycloudflare.com",
+  "inference": "https://developmental-soc-rec-theology.trycloudflare.com/inference",
+  "telemetry": "https://developmental-soc-rec-theology.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
-  "mode": "ssh_native_cloudflare_free",
+  "mode": "dual_worldwide_and_local",
   "port": 8080
 }

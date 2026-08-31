@@ -3358,7 +3358,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
 
     // 🛡️ HYPER PROD-GRADE AUTONOMOUS NETWORK OUTAGE & AUTO-RECONNECT GUARDIAN
     const isDirectHosted = window.location.port === "8080" || window.location.hostname === "192.168.29.2" || window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-    let BASE_ENDPOINT = isDirectHosted ? window.location.origin : "http://192.168.29.2:8080";
+    let BASE_ENDPOINT = isDirectHosted ? window.location.origin : "https://developmental-soc-rec-theology.trycloudflare.com";
     
     let isConnected = true;
     let reconnectAttempts = 0;
@@ -3388,18 +3388,30 @@ python3 mobile/nuclear_watchdog.py</code></pre>
 
     async function probeOriginHealth(origin) {
       if (!origin || !origin.startsWith("http")) return false;
+      // Never allow mixed content on HTTPS origins
+      if (window.location.protocol === "https:" && origin.startsWith("http://")) return false;
+      // Never probe the static site host as API backend
+      if (origin.includes("phone-whisper-server.pages.dev") || origin.includes("github.io")) return false;
+
       try {
         const ctrl = new AbortController();
-        const tid = setTimeout(() => ctrl.abort(), 2000);
+        const tid = setTimeout(() => ctrl.abort(), 2500);
         const res = await fetch(`${origin.replace(/\/+$/, "")}/telemetry`, { signal: ctrl.signal, cache: "no-store" });
         clearTimeout(tid);
-        return res.ok;
+        if (res.ok) {
+          const contentType = res.headers.get("content-type") || "";
+          if (contentType.includes("json")) {
+            const data = await res.json();
+            return !!(data && (data.battery || data.cpu || data.status));
+          }
+        }
+        return false;
       } catch (e) {
         return false;
       }
     }
 
-    async function recoverFromNetworkOutage(force = false) {
+        async function recoverFromNetworkOutage(force = false) {
       if (isReconnecting && !force) return;
       isReconnecting = true;
       reconnectAttempts++;
@@ -4594,7 +4606,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
           redrawDashboardCanvases();
         }
       } catch (err) {
-        autoResolveDirectTunnel();
+        recoverFromNetworkOutage();
         const pingMs = Math.round(35 + Math.random() * 8);
         pingVal.innerText = pingMs;
         pingHistory.shift();
