@@ -6,12 +6,12 @@
 const GITHUB_ENDPOINT_URL = "https://raw.githubusercontent.com/Electroiscoding/phone-whisper-server/main/endpoint.json";
 const SHARED_SECRET = "mobile_ai_nuclear_key";
 
-// GitHub OAuth App Credentials
-const GITHUB_CLIENT_ID = "Ov23lirb9l4pdAZ5DEeq";
-const GITHUB_CLIENT_SECRET = "0ac12d9986579d6baa2b5396b33cb42430712275";
+// GitHub OAuth App Credentials (configured via Cloudflare Worker Secrets / Environment Variables)
+const getClientId = (env) => (env && env.GITHUB_CLIENT_ID) || "";
+const getClientSecret = (env) => (env && env.GITHUB_CLIENT_SECRET) || "";
 
 // In-Memory Edge Cache for Active Tunnel Target
-let cachedOrigin = "https://eau-illustrated-reasonably-regular.trycloudflare.com";
+let cachedOrigin = "https://parents-customers-tariff-dave.trycloudflare.com";
 let lastFetchTime = Date.now();
 const CACHE_TTL_MS = 8000; // 8 seconds
 
@@ -67,7 +67,7 @@ export default {
     
     // (A) Redirect to GitHub OAuth Authorization Page
     if (["/auth/github/login", "/login"].includes(url.pathname)) {
-      const authUrl = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&scope=repo,read:user`;
+      const authUrl = `https://github.com/login/oauth/authorize?client_id=${getClientId(env)}&scope=repo,read:user`;
       return Response.redirect(authUrl, 302);
     }
 
@@ -88,8 +88,8 @@ export default {
             "User-Agent": "SwadesAgent/1.0"
           },
           body: JSON.stringify({
-            client_id: GITHUB_CLIENT_ID,
-            client_secret: GITHUB_CLIENT_SECRET,
+            client_id: getClientId(env),
+            client_secret: getClientSecret(env),
             code: code
           })
         });

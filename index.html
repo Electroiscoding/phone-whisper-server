@@ -5155,8 +5155,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
     }
 
     function loginWithGitHub() {
-      const clientId = "Ov23lirb9l4pdAZ5DEeq";
-      const authUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&scope=repo,read:user`;
+      const authUrl = `${BASE_ENDPOINT}/auth/github/login`;
       const width = 600, height = 700;
       const left = (window.innerWidth - width) / 2;
       const top = (window.innerHeight - height) / 2;

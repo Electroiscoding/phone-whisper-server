@@ -35,8 +35,8 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from socketserver import ThreadingMixIn
 
 
-GITHUB_CLIENT_ID = "Ov23lirb9l4pdAZ5DEeq"
-GITHUB_CLIENT_SECRET = "0ac12d9986579d6baa2b5396b33cb42430712275"
+GITHUB_CLIENT_ID = os.environ.get("GITHUB_CLIENT_ID", "")
+GITHUB_CLIENT_SECRET = os.environ.get("GITHUB_CLIENT_SECRET", "")
 
 
 TELEMETRY_PATHS = [
@@ -986,12 +986,9 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         self.send_header("Access-Control-Expose-Headers", "*")
         self.send_header("Access-Control-Max-Age", "86400")
 
-    def end_headers(self):
-        self._send_cors_headers()
-        super().end_headers()
-
     def do_OPTIONS(self):
         self.send_response(204)
+        self._send_cors_headers()
         self.end_headers()
 
     def do_HEAD(self):
