@@ -1,5 +1,8 @@
 {
-  "endpoint": "https://obtained-cookies-muscles-ocean.trycloudflare.com",
-  "inference": "https://obtained-cookies-muscles-ocean.trycloudflare.com/inference",
-  "telemetry": "https://obtained-cookies-muscles-ocean.trycloudflare.com/telemetry"
+  "endpoint": "http://192.168.29.2:8080",
+  "inference": "http://192.168.29.2:8080/inference",
+  "telemetry": "http://192.168.29.2:8080/telemetry",
+  "mode": "self_hosted_local_lan",
+  "phone_lan_ip": "192.168.29.2",
+  "port": 8080
 }

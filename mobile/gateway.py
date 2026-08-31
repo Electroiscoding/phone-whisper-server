@@ -2081,7 +2081,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
 
 def main():
     port = 8080
-    server_address = ('127.0.0.1', port)
+    server_address = ('0.0.0.0', port)
     httpd = ThreadedHTTPServer(server_address, MultiModalGatewayHandler)
     print(f"==================================================")
     print(f"🚀 Multi-Modal Gateway & Ground-Truth Governor Active on port {port}")

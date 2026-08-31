@@ -2133,10 +2133,10 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
       <div class="cheatsheet-banner" style="background: rgba(10, 15, 30, 0.85); border: 1px solid var(--card-border); border-radius: 12px; padding: 1rem 1.25rem; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
         <div class="base-url-box" style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
           <span class="base-url-pill" style="background: var(--primary); color: #000; font-weight: 800; font-size: 0.75rem; padding: 0.25rem 0.6rem; border-radius: 6px; letter-spacing: 0.05em;">UNIVERSAL BASE URL</span>
-          <span id="cheatsheetBaseUrl" style="font-family: monospace; font-size: 0.95rem; color: #38bdf8; word-break: break-all;">https://black-term-8c36.botmaker583-55e.workers.dev</span>
+          <span id="cheatsheetBaseUrl" style="font-family: monospace; font-size: 0.95rem; color: #38bdf8; word-break: break-all;">http://192.168.29.2:8080</span>
         </div>
         <div style="display: flex; gap: 0.5rem;">
-          <button class="btn-action" onclick="copyText('https://black-term-8c36.botmaker583-55e.workers.dev')">📋 Copy Base URL</button>
+          <button class="btn-action" onclick="copyText('http://192.168.29.2:8080')">📋 Copy Base URL</button>
         </div>
       </div>
 
@@ -2198,14 +2198,14 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
                 <button class="docs-tab" onclick="switchSnippetTab(this, 'snip-chat-js')">JavaScript / React</button>
               </div>
               <div id="snip-chat-curl" class="snippet-pane active">
-                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>curl -N -X POST "https://black-term-8c36.botmaker583-55e.workers.dev/v1/chat/completions" \
+                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>curl -N -X POST "http://192.168.29.2:8080/v1/chat/completions" \
   -H "Content-Type: application/json" \
   -d '{"messages": [{"role": "user", "content": "Explain relativity in 10 words"}], "stream": true}'</code></pre>
               </div>
               <div id="snip-chat-py" class="snippet-pane" style="display: none;">
                 <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>import requests, json
 
-url = "https://black-term-8c36.botmaker583-55e.workers.dev/v1/chat/completions"
+url = "http://192.168.29.2:8080/v1/chat/completions"
 payload = {"messages": [{"role": "user", "content": "Hello Qwen!"}], "stream": True}
 res = requests.post(url, json=payload, stream=True)
 
@@ -2215,7 +2215,7 @@ for line in res.iter_lines(decode_unicode=True):
         print(chunk["choices"][0]["delta"].get("content", ""), end="", flush=True)</code></pre>
               </div>
               <div id="snip-chat-js" class="snippet-pane" style="display: none;">
-                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>const res = await fetch("https://black-term-8c36.botmaker583-55e.workers.dev/v1/chat/completions", {
+                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>const res = await fetch("http://192.168.29.2:8080/v1/chat/completions", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({ messages: [{ role: "user", content: "Hello!" }], stream: true })
@@ -2281,14 +2281,14 @@ while (true) {
                 <button class="docs-tab" onclick="switchSnippetTab(this, 'snip-stt-js')">JavaScript / Browser</button>
               </div>
               <div id="snip-stt-curl" class="snippet-pane active">
-                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>curl -X POST "https://black-term-8c36.botmaker583-55e.workers.dev/inference" \
+                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>curl -X POST "http://192.168.29.2:8080/inference" \
   -F "file=@recording.wav" \
   -F "temperature=0.0"</code></pre>
               </div>
               <div id="snip-stt-py" class="snippet-pane" style="display: none;">
                 <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>import requests
 
-url = "https://black-term-8c36.botmaker583-55e.workers.dev/inference"
+url = "http://192.168.29.2:8080/inference"
 with open("speech.wav", "rb") as f:
     res = requests.post(url, files={"file": f}, data={"response_format": "json"})
 print("Transcription:", res.json()["text"])</code></pre>
@@ -2297,7 +2297,7 @@ print("Transcription:", res.json()["text"])</code></pre>
                 <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>const formData = new FormData();
 formData.append("file", audioBlob, "audio.wav");
 
-const res = await fetch("https://black-term-8c36.botmaker583-55e.workers.dev/inference", {
+const res = await fetch("http://192.168.29.2:8080/inference", {
   method: "POST",
   body: formData
 });
@@ -2350,7 +2350,7 @@ console.log("Transcribed Text:", data.text);</code></pre>
                 <button class="docs-tab" onclick="switchSnippetTab(this, 'snip-tts-js')">JavaScript</button>
               </div>
               <div id="snip-tts-curl" class="snippet-pane active">
-                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>curl -X POST "https://black-term-8c36.botmaker583-55e.workers.dev/v1/audio/speech" \
+                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>curl -X POST "http://192.168.29.2:8080/v1/audio/speech" \
   -H "Content-Type: application/json" \
   -d '{"input": "Hello world from mobile AI datacenter"}' \
   --output speech.wav</code></pre>
@@ -2358,13 +2358,13 @@ console.log("Transcribed Text:", data.text);</code></pre>
               <div id="snip-tts-py" class="snippet-pane" style="display: none;">
                 <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>import requests
 
-url = "https://black-term-8c36.botmaker583-55e.workers.dev/v1/audio/speech"
+url = "http://192.168.29.2:8080/v1/audio/speech"
 res = requests.post(url, json={"input": "Welcome to on-device AI!"})
 with open("output.wav", "wb") as f:
     f.write(res.content)</code></pre>
               </div>
               <div id="snip-tts-js" class="snippet-pane" style="display: none;">
-                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>const res = await fetch("https://black-term-8c36.botmaker583-55e.workers.dev/v1/audio/speech", {
+                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>const res = await fetch("http://192.168.29.2:8080/v1/audio/speech", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({ input: "Hello from JavaScript!" })
@@ -2398,7 +2398,7 @@ new Audio(audioUrl).play();</code></pre>
               </p>
             </div>
 
-            <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>curl -X POST "https://black-term-8c36.botmaker583-55e.workers.dev/v1/embeddings" \
+            <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>curl -X POST "http://192.168.29.2:8080/v1/embeddings" \
   -H "Content-Type: application/json" \
   -d '{"input": "Semantic vector search with mobile AI"}'</code></pre>
           </div>
@@ -2425,7 +2425,7 @@ new Audio(audioUrl).play();</code></pre>
               </p>
             </div>
 
-            <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>curl -X POST "https://black-term-8c36.botmaker583-55e.workers.dev/v1/rerank" \
+            <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>curl -X POST "http://192.168.29.2:8080/v1/rerank" \
   -H "Content-Type: application/json" \
   -d '{
     "query": "The company approved the investment proposal.",
@@ -2472,13 +2472,13 @@ new Audio(audioUrl).play();</code></pre>
                 <button class="docs-tab" onclick="switchSnippetTab(this, 'snip-vis-cam')">🔴 Live WebCam Frame</button>
               </div>
               <div id="snip-vis-img" class="snippet-pane active">
-                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>curl -X POST "https://black-term-8c36.botmaker583-55e.workers.dev/v1/vision/face-detection" \
+                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>curl -X POST "http://192.168.29.2:8080/v1/vision/face-detection" \
   -H "Content-Type: application/json" \
   -d '{"task": "face_detection", "image_base64": "data:image/jpeg;base64,..."}'</code></pre>
               </div>
               <div id="snip-vis-vid" class="snippet-pane" style="display: none;">
                 <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code># Video Keyframe Sequence Analysis (33-Point Pose Tracking)
-curl -X POST "https://black-term-8c36.botmaker583-55e.workers.dev/v1/vision/pose-landmarks" \
+curl -X POST "http://192.168.29.2:8080/v1/vision/pose-landmarks" \
   -H "Content-Type: application/json" \
   -d '{
     "task": "pose_landmarks",
@@ -2489,7 +2489,7 @@ curl -X POST "https://black-term-8c36.botmaker583-55e.workers.dev/v1/vision/pose
               <div id="snip-vis-cam" class="snippet-pane" style="display: none;">
                 <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>// Real-Time Live WebCam Frame Stream (JavaScript)
 const frameB64 = canvasElement.toDataURL("image/jpeg", 0.65);
-const res = await fetch("https://black-term-8c36.botmaker583-55e.workers.dev/v1/vision/face-mesh", {
+const res = await fetch("http://192.168.29.2:8080/v1/vision/face-mesh", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({ task: "face_mesh", image_base64: frameB64, is_live_stream: true })
@@ -2522,7 +2522,7 @@ console.log(`Live 468-pt Mesh computed in ${data.inference_time_ms}ms`);</code><
               </p>
             </div>
 
-            <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>curl -s "https://black-term-8c36.botmaker583-55e.workers.dev/telemetry"</code></pre>
+            <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>curl -s "http://192.168.29.2:8080/telemetry"</code></pre>
           </div>
         </div>
 
@@ -2814,7 +2814,7 @@ if (res.hands && res.hands[0]) {
             </div>
             <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>import requests, json, base64
 
-BASE_URL = "https://black-term-8c36.botmaker583-55e.workers.dev"
+BASE_URL = "http://192.168.29.2:8080"
 
 # ==========================================
 # 1. 💬 Qwen 2.5 SLM Streaming Chat
@@ -2901,7 +2901,7 @@ if __name__ == "__main__":
             <div style="background: rgba(168, 85, 247, 0.08); border-left: 3px solid var(--secondary); padding: 0.75rem 1rem; border-radius: 0 8px 8px 0; margin-bottom: 1rem; font-size: 0.85rem; color: var(--text-muted);">
               <strong>🌐 Zero-Dependency Web & Node.js:</strong> Compatible with browser native Fetch, Node.js v18+, Next.js App Router, Vue, React Native, and Electron.
             </div>
-            <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>const BASE_URL = "https://black-term-8c36.botmaker583-55e.workers.dev";
+            <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>const BASE_URL = "http://192.168.29.2:8080";
 
 // 1. 💬 Token-by-Token Streaming Chat (Qwen 2.5 SLM)
 export async function streamChat(prompt, onToken, systemPrompt = "You are a helpful AI.") {
@@ -3004,38 +3004,38 @@ export async function getTelemetry() {
               <strong>💻 Terminal & CI/CD Pipelines:</strong> Ready-to-run shell one-liners for GitHub Actions, cron jobs, and bash scripts.
             </div>
             <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code># 1. Chat Completion (SSE Real-Time Stream)
-curl -N -X POST "https://black-term-8c36.botmaker583-55e.workers.dev/v1/chat/completions" \
+curl -N -X POST "http://192.168.29.2:8080/v1/chat/completions" \
   -H "Content-Type: application/json" \
   -d '{"messages": [{"role": "user", "content": "Explain relativity in 10 words"}], "stream": true}'
 
 # 2. Audio Transcription (Whisper Base.en)
-curl -X POST "https://black-term-8c36.botmaker583-55e.workers.dev/inference" \
+curl -X POST "http://192.168.29.2:8080/inference" \
   -F "file=@audio.wav" \
   -F "temperature=0.0"
 
 # 3. Text-to-Speech (Neural Voice Synthesis)
-curl -X POST "https://black-term-8c36.botmaker583-55e.workers.dev/v1/audio/speech" \
+curl -X POST "http://192.168.29.2:8080/v1/audio/speech" \
   -H "Content-Type: application/json" \
   -d '{"input": "Hello from autonomous phone AI datacenter"}' \
   --output speech.wav
 
 # 4. Dense Vector Embeddings (896 Dimensions)
-curl -X POST "https://black-term-8c36.botmaker583-55e.workers.dev/v1/embeddings" \
+curl -X POST "http://192.168.29.2:8080/v1/embeddings" \
   -H "Content-Type: application/json" \
   -d '{"input": "Semantic vector search on mobile AI"}'
 
 # 5. Deep Cross-Attention Semantic Reranker
-curl -X POST "https://black-term-8c36.botmaker583-55e.workers.dev/v1/rerank" \
+curl -X POST "http://192.168.29.2:8080/v1/rerank" \
   -H "Content-Type: application/json" \
   -d '{"query": "The company approved funding.", "documents": ["The venture received investment.", "The engine is made of steel."]}'
 
 # 6. MediaPipe Vision: Face & Landmark Detection
-curl -X POST "https://black-term-8c36.botmaker583-55e.workers.dev/v1/vision/face-detection" \
+curl -X POST "http://192.168.29.2:8080/v1/vision/face-detection" \
   -H "Content-Type: application/json" \
   -d '{"task": "face_detection", "image_base64": "data:image/jpeg;base64,..."}'
 
 # 7. Real Battery & Kernel Telemetry (Real-Time Metrics)
-curl -s "https://black-term-8c36.botmaker583-55e.workers.dev/telemetry" | jq .battery</code></pre>
+curl -s "http://192.168.29.2:8080/telemetry" | jq .battery</code></pre>
           </div>
 
           <!-- 4. FLUTTER / DART TAB -->
@@ -3048,7 +3048,7 @@ import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 
 class PhoneAIClient {
-  static const String baseUrl = "https://black-term-8c36.botmaker583-55e.workers.dev";
+  static const String baseUrl = "http://192.168.29.2:8080";
 
   // 1. 💬 Qwen 2.5 SLM Chat (Streaming & Full)
   static Future&lt;String&gt; chat(String prompt, {String systemPrompt = "You are a helpful AI assistant."}) async {
@@ -3140,7 +3140,7 @@ class PhoneAIClient {
 use serde_json::json;
 use futures_util::StreamExt;
 
-const BASE_URL: &str = "https://black-term-8c36.botmaker583-55e.workers.dev";
+const BASE_URL: &str = "http://192.168.29.2:8080";
 
 #[tokio::main]
 async fn main() -> Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
@@ -3187,7 +3187,7 @@ import (
 	"net/http"
 )
 
-const BaseURL = "https://black-term-8c36.botmaker583-55e.workers.dev"
+const BaseURL = "http://192.168.29.2:8080"
 
 // 1. StreamChat streams tokens live from phone CPU
 func StreamChat(prompt string) error {
@@ -3301,7 +3301,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
     mobileDrawerOverlay.addEventListener("click", closeMobileDrawer);
 
     // ☢️ NUCLEAR RESILIENT HIGH-AVAILABILITY CLIENT ENGINE
-    let BASE_ENDPOINT = "https://parents-customers-tariff-dave.trycloudflare.com";
+    let BASE_ENDPOINT = "http://192.168.29.2:8080";
     let isResolvingTunnel = false;
 
     async function autoResolveDirectTunnel(force = false) {
