@@ -3300,8 +3300,8 @@ python3 mobile/nuclear_watchdog.py</code></pre>
     mobileCloseBtn.addEventListener("click", closeMobileDrawer);
     mobileDrawerOverlay.addEventListener("click", closeMobileDrawer);
 
-    // Universal CORS-Shielded Edge Worker with Live Tunnel Auto-Sync
-    let BASE_ENDPOINT = "https://black-term-8c36.botmaker583-55e.workers.dev";
+    // Universal CORS-Shielded Edge Worker with Live Tunnel Auto-Sync & Instant Failover
+    let BASE_ENDPOINT = "https://parents-customers-tariff-dave.trycloudflare.com";
     let isResolvingTunnel = false;
 
     async function autoResolveDirectTunnel() {
@@ -3312,7 +3312,8 @@ python3 mobile/nuclear_watchdog.py</code></pre>
         if (res.ok) {
           const data = await res.json();
           if (data.endpoint && data.endpoint.startsWith("https://")) {
-            console.log("⚡ [Verified Active Phone Origin]:", data.endpoint);
+            BASE_ENDPOINT = data.endpoint.replace(/\/+$/, "");
+            console.log("⚡ [Connected Active Phone Origin]:", BASE_ENDPOINT);
           }
         }
       } catch (err) {
@@ -3321,7 +3322,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       }
     }
     autoResolveDirectTunnel();
-    setInterval(autoResolveDirectTunnel, 15000);
+    setInterval(autoResolveDirectTunnel, 10000);
 
     // =========================================================================
     // 💬 QWEN 2.5 SLM CHAT HANDLER
