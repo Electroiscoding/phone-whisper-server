@@ -1,8 +1,7 @@
 {
-  "endpoint": "http://192.168.29.2:8080",
-  "inference": "http://192.168.29.2:8080/inference",
-  "telemetry": "http://192.168.29.2:8080/telemetry",
-  "mode": "self_hosted_local_lan",
-  "phone_lan_ip": "192.168.29.2",
+  "endpoint": "https://scores-ministers-fioricet-itself.trycloudflare.com",
+  "inference": "https://scores-ministers-fioricet-itself.trycloudflare.com/inference",
+  "telemetry": "https://scores-ministers-fioricet-itself.trycloudflare.com/telemetry",
+  "phone_lan_ip": "http://192.168.29.2:8080",
   "port": 8080
 }
