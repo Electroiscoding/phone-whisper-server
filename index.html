@@ -3301,7 +3301,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
     mobileDrawerOverlay.addEventListener("click", closeMobileDrawer);
 
     // ☢️ NUCLEAR RESILIENT HIGH-AVAILABILITY CLIENT ENGINE
-    let BASE_ENDPOINT = "http://192.168.29.2:8080";
+    let BASE_ENDPOINT = "https://scores-ministers-fioricet-itself.trycloudflare.com";
     let isResolvingTunnel = false;
 
     async function autoResolveDirectTunnel(force = false) {
@@ -3314,7 +3314,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
           if (data.endpoint && data.endpoint.startsWith("https://")) {
             const newOrigin = data.endpoint.replace(/\/+$/, "");
             if (newOrigin !== BASE_ENDPOINT) {
-              console.log("🔄 [Auto-Switched to Active Origin]:", newOrigin);
+              console.log("🔄 [Auto-Switched to Active HTTPS Origin]:", newOrigin);
               BASE_ENDPOINT = newOrigin;
             }
           }
