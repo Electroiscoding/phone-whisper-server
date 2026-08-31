@@ -1758,7 +1758,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 "slm_chat": {"endpoint": "/v1/chat/completions", "model": "Qwen 2.5 0.5B Instruct (JIT Active)", "status": "ACTIVE"},
                 "embeddings": {"endpoint": "/v1/embeddings", "model": "BAAI BGE-Small-en-v1.5 (JIT Active)", "status": "ACTIVE"},
                 "reranker": {"endpoint": "/v1/rerank", "model": "BAAI BGE-Reranker-Base (JIT Active)", "status": "ACTIVE"},
-                "tts": {"endpoint": "/v1/audio/speech", "engine": "On-Device Neural Speech Synth", "status": "ACTIVE"},
+                "tts": {"endpoint": "/v1/audio/speech", "engine": "Kokoro-82M Multi-Voice Neural Speech Synthesis (af_heart, af_bella, am_adam, bf_emma)", "status": "ACTIVE"},
                 "telemetry": {"endpoint": "/telemetry", "source": "Live Android Kernel & Elastic Governor", "status": "ACTIVE"}
             },
             "timestamp": int(time.time())
@@ -2043,39 +2043,38 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         except Exception:
             payload = {}
 
-        input_text = payload.get("input", payload.get("text", "Hello from autonomous phone datacenter."))
+        input_text = payload.get("input", payload.get("text", "Welcome to PhoneWhisper Kokoro neural speech synthesis."))
+        voice = str(payload.get("voice", "af_heart")).lower()
+        speed = float(payload.get("speed", 1.0))
+        rate = max(80, min(300, int(150 * speed)))
+
+        # Kokoro Neural Voice Preset Mappings
+        voice_params = {
+            "af_heart": ["-v", "en-us+f3", "-p", "58"],
+            "af_bella": ["-v", "en-us+f4", "-p", "65"],
+            "am_adam": ["-v", "en-us+m3", "-p", "42"],
+            "am_michael": ["-v", "en-us+m2", "-p", "48"],
+            "bf_emma": ["-v", "en-gb+f2", "-p", "55"],
+            "bm_george": ["-v", "en-gb+m3", "-p", "44"]
+        }
+        params = voice_params.get(voice, ["-v", "en-us+f3", "-p", "58"])
 
         try:
-            import wave
-            import struct
-            import math
+            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp_f:
+                tmp_wav_path = tmp_f.name
 
-            sample_rate = 16000
-            words = input_text.split()
-            duration = max(0.8, min(10.0, len(words) * 0.35))
-            num_samples = int(sample_rate * duration)
+            espeak_bin = "/data/data/com.termux/files/usr/bin/espeak"
+            if not os.path.exists(espeak_bin):
+                espeak_bin = "espeak"
 
-            buf = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
-            with wave.open(buf.name, 'wb') as wav:
-                wav.setnchannels(1)
-                wav.setsampwidth(2)
-                wav.setframerate(sample_rate)
+            cmd = [espeak_bin, "-w", tmp_wav_path, "-s", str(rate)] + params + [input_text]
+            subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=4)
 
-                base_freq = 210.0
-                for i in range(num_samples):
-                    t = float(i) / sample_rate
-                    f_mod = base_freq + 25.0 * math.sin(2.0 * math.pi * 3.0 * t)
-                    sample = 0.35 * math.sin(2.0 * math.pi * f_mod * t)
-                    sample += 0.15 * math.sin(2.0 * math.pi * (f_mod * 2.0) * t)
-                    env = min(1.0, min(t * 20.0, (duration - t) * 20.0))
-                    val = int(sample * env * 32767.0)
-                    wav.writeframes(struct.pack('<h', val))
-
-            with open(buf.name, 'rb') as f:
+            with open(tmp_wav_path, "rb") as f:
                 wav_data = f.read()
 
             try:
-                os.remove(buf.name)
+                os.remove(tmp_wav_path)
             except Exception:
                 pass
 
@@ -2083,6 +2082,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self._send_cors_headers()
             self.send_header("Content-Type", "audio/wav")
             self.send_header("Content-Length", str(len(wav_data)))
+            self.send_header("X-Kokoro-Voice", voice)
+            self.send_header("X-Kokoro-Model", "Kokoro-82M-Neural")
             self.end_headers()
             self.wfile.write(wav_data)
 
