@@ -1787,12 +1787,13 @@
           <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
             <label style="font-size: 0.85rem; color: var(--text-muted);">Voice:</label>
             <select id="ttsVoiceSelect" class="format-pill-select" style="padding: 0.4rem 0.8rem;">
-              <option value="af_heart" selected>❤️ af_heart (Female - Warm)</option>
-              <option value="af_bella">✨ af_bella (Female - Expressive)</option>
-              <option value="am_adam">🎙️ am_adam (Male - Deep)</option>
-              <option value="am_michael">⚡ am_michael (Male - Clear)</option>
-              <option value="bf_emma">👑 bf_emma (British Female)</option>
-              <option value="bm_george">🎩 bm_george (British Male)</option>
+              <option value="af_heart" selected>❤️ af_heart (English Female - Warm)</option>
+              <option value="df_eva">🇩🇪 df_eva (German Female)</option>
+              <option value="df_victoria">🇩🇪 df_victoria (German Female - Studio)</option>
+              <option value="dm_bernd">🇩🇪 dm_bernd (German Male)</option>
+              <option value="dm_martin">🇩🇪 dm_martin (German Male - Deep)</option>
+              <option value="ef_dora">🇪🇸 ef_dora (Spanish Female)</option>
+              <option value="ff_siwis">🇫🇷 ff_siwis (French Female)</option>
             </select>
             <label style="font-size: 0.85rem; color: var(--text-muted); margin-left: 0.5rem;">Speed:</label>
             <select id="ttsSpeedSelect" class="format-pill-select" style="padding: 0.4rem 0.8rem;">
@@ -2391,8 +2392,8 @@ console.log("Transcribed Text:", data.text);</code></pre>
                 <thead><tr><th>Field</th><th>Type</th><th>Required</th><th>Default</th><th>Description</th></tr></thead>
                 <tbody>
                   <tr><td><code>input</code></td><td>String</td><td><strong style="color: var(--danger)">Yes</strong></td><td>-</td><td>Text to synthesize into spoken audio</td></tr>
-                  <tr><td><code>voice</code></td><td>String</td><td>No</td><td><code>default</code></td><td>Voice personality profile</td></tr>
-                  <tr><td><code>speed</code></td><td>Float</td><td>No</td><td><code>1.0</code></td><td>Speech rate speed multiplier (0.5 to 2.0)</td></tr>
+                  <tr><td><code>voice</code></td><td>String</td><td>No</td><td><code>af_heart</code></td><td>Voice personality: <code>af_heart</code> (EN), <code>df_eva</code> / <code>df_victoria</code> (DE), <code>dm_bernd</code> / <code>dm_martin</code> (DE Male), <code>ef_dora</code> (ES), <code>ff_siwis</code> (FR)</td></tr>
+                  <tr><td><code>speed</code></td><td>Float</td><td>No</td><td><code>1.0</code></td><td>Speech rate multiplier (0.5 to 2.0)</td></tr>
                 </tbody>
               </table>
             </div>
@@ -2408,14 +2409,14 @@ console.log("Transcribed Text:", data.text);</code></pre>
               <div id="snip-tts-curl" class="snippet-pane active">
                 <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>curl -X POST "http://192.168.29.2:8080/v1/audio/speech" \
   -H "Content-Type: application/json" \
-  -d '{"input": "Hello world from mobile AI datacenter"}' \
+  -d '{"input": "Hello world from Kokoro neural speech", "voice": "af_heart"}' \
   --output speech.wav</code></pre>
               </div>
               <div id="snip-tts-py" class="snippet-pane" style="display: none;">
                 <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>import requests
 
 url = "http://192.168.29.2:8080/v1/audio/speech"
-res = requests.post(url, json={"input": "Welcome to on-device AI!"})
+res = requests.post(url, json={"input": "Welcome to Kokoro neural speech!", "voice": "af_heart"})
 with open("output.wav", "wb") as f:
     f.write(res.content)</code></pre>
               </div>
@@ -2423,7 +2424,7 @@ with open("output.wav", "wb") as f:
                 <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>const res = await fetch("http://192.168.29.2:8080/v1/audio/speech", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ input: "Hello from JavaScript!" })
+  body: JSON.stringify({ input: "Hello from Kokoro TTS!", voice: "af_heart" })
 });
 const audioBlob = await res.blob();
 const audioUrl = URL.createObjectURL(audioBlob);

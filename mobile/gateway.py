@@ -60,6 +60,7 @@ TELEMETRY_PATHS = [
 
 # Global Server-Wide State
 _state_lock = threading.Lock()
+_tts_lock = threading.Lock()
 _active_inferences = 0
 _active_daemon = "idle"
 _total_requests = 195
@@ -1007,9 +1008,9 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.send_response(204)
             self._send_cors_headers()
             self.end_headers()
-        elif path == "/telemetry":
+        elif path in ["/telemetry", "/v1/telemetry"]:
             self.handle_telemetry()
-        elif path == "/health":
+        elif path in ["/health", "/v1/health", "/v1/models"]:
             self.handle_health()
         elif path.startswith('/v1/agent/pop_message/'):
             job_id = path.split('/')[-1]
@@ -1048,7 +1049,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.proxy_llama_embeddings()
         elif path in ["/v1/rerank", "/rerank"]:
             self.proxy_bge_rerank()
-        elif path in ["/v1/audio/speech", "/speech"]:
+        elif path in ["/v1/audio/speech", "/speech", "/tts", "/v1/tts"]:
             self.handle_tts()
         elif path == "/load":
             self.proxy_whisper_load()
@@ -1758,7 +1759,15 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 "slm_chat": {"endpoint": "/v1/chat/completions", "model": "Qwen 2.5 0.5B Instruct (JIT Active)", "status": "ACTIVE"},
                 "embeddings": {"endpoint": "/v1/embeddings", "model": "BAAI BGE-Small-en-v1.5 (JIT Active)", "status": "ACTIVE"},
                 "reranker": {"endpoint": "/v1/rerank", "model": "BAAI BGE-Reranker-Base (JIT Active)", "status": "ACTIVE"},
-                "tts": {"endpoint": "/v1/audio/speech", "engine": "Kokoro-82M Multi-Voice Neural Speech Synthesis (af_heart, af_bella, am_adam, bf_emma)", "status": "ACTIVE"},
+                "tts": {
+                    "endpoint": "/v1/audio/speech",
+                    "aliases": ["/tts", "/v1/tts", "/speech"],
+                    "model": "Kokoro-82M (StyleTTS2 Architecture Native GGML)",
+                    "engine": "CrispASR GGML C++ Engine",
+                    "voices": ["af_heart", "df_eva", "df_victoria", "dm_bernd", "dm_martin", "ef_dora", "ff_siwis"],
+                    "sample_rate_hz": 24000,
+                    "status": "ACTIVE"
+                },
                 "telemetry": {"endpoint": "/telemetry", "source": "Live Android Kernel & Elastic Governor", "status": "ACTIVE"}
             },
             "timestamp": int(time.time())
@@ -2030,11 +2039,11 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 _total_requests += 1
 
     def handle_tts(self):
-        """On-device Neural Text-to-Speech synthesis"""
+        """On-device Real Kokoro-82M Neural Text-to-Speech synthesis via GGML"""
         global _active_inferences, _active_daemon, _total_requests
         with _state_lock:
             _active_inferences += 1
-            _active_daemon = "gateway (TTS)"
+            _active_daemon = "gateway (Kokoro-82M TTS)"
 
         content_length = int(self.headers.get("Content-Length", 0))
         body = self.rfile.read(content_length) if content_length > 0 else b"{}"
@@ -2043,32 +2052,52 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         except Exception:
             payload = {}
 
-        input_text = payload.get("input", payload.get("text", "Welcome to PhoneWhisper Kokoro neural speech synthesis."))
-        voice = str(payload.get("voice", "af_heart")).lower()
+        input_text = payload.get("input", payload.get("text", "Welcome to PhoneWhisper Kokoro 82M neural speech synthesis."))
+        voice = str(payload.get("voice", "af_heart")).lower().strip()
         speed = float(payload.get("speed", 1.0))
-        rate = max(80, min(300, int(150 * speed)))
 
-        # Kokoro Neural Voice Preset Mappings
-        voice_params = {
-            "af_heart": ["-v", "en-us+f3", "-p", "58"],
-            "af_bella": ["-v", "en-us+f4", "-p", "65"],
-            "am_adam": ["-v", "en-us+m3", "-p", "42"],
-            "am_michael": ["-v", "en-us+m2", "-p", "48"],
-            "bf_emma": ["-v", "en-gb+f2", "-p", "55"],
-            "bm_george": ["-v", "en-gb+m3", "-p", "44"]
-        }
-        params = voice_params.get(voice, ["-v", "en-us+f3", "-p", "58"])
+        # Model and voice directories
+        crispasr_bin = "/data/data/com.termux/files/home/crispasr/build/bin/crispasr"
+        models_dir = "/data/data/com.termux/files/home/models"
+        voices_dir = os.path.join(models_dir, "voices")
+
+        # Prefer Q8_0 NEON Quantized model (~2.5s) over heavy unquantized F16
+        kokoro_model = os.path.join(models_dir, "kokoro-82m-q8_0.gguf")
+        if not os.path.exists(kokoro_model):
+            kokoro_model = os.path.join(models_dir, "kokoro-82m-f16.gguf")
+
+        # Resolve voice pack
+        voice_file = os.path.join(voices_dir, f"kokoro-voice-{voice}.gguf")
+        if not os.path.exists(voice_file):
+            voice_file = os.path.join(voices_dir, f"{voice}.gguf")
+        if not os.path.exists(voice_file):
+            voice_file = os.path.join(voices_dir, "kokoro-voice-af_heart.gguf")
+        if not os.path.exists(voice_file):
+            voice_file = os.path.join(models_dir, "kokoro-voice-af_heart.gguf")
 
         try:
             with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp_f:
                 tmp_wav_path = tmp_f.name
 
-            espeak_bin = "/data/data/com.termux/files/usr/bin/espeak"
-            if not os.path.exists(espeak_bin):
-                espeak_bin = "espeak"
+            if os.path.exists(crispasr_bin) and os.path.exists(kokoro_model):
+                cmd = [
+                    "taskset", "-c", "4,5,6,7",
+                    crispasr_bin,
+                    "-m", kokoro_model,
+                    "--voice", voice_file,
+                    "--tts", input_text,
+                    "--tts-output", tmp_wav_path,
+                    "-t", "4"
+                ]
+                with _tts_lock:
+                    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+                if proc.returncode != 0 and not os.path.exists(tmp_wav_path):
+                    raise RuntimeError(f"Kokoro engine returned code {proc.returncode}: {proc.stderr}")
+            else:
+                raise FileNotFoundError("Native Kokoro neural engine binary or model not found.")
 
-            cmd = [espeak_bin, "-w", tmp_wav_path, "-s", str(rate)] + params + [input_text]
-            subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=4)
+            if not os.path.exists(tmp_wav_path) or os.path.getsize(tmp_wav_path) == 0:
+                raise RuntimeError("Kokoro synthesis produced empty audio.")
 
             with open(tmp_wav_path, "rb") as f:
                 wav_data = f.read()
@@ -2083,7 +2112,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.send_header("Content-Type", "audio/wav")
             self.send_header("Content-Length", str(len(wav_data)))
             self.send_header("X-Kokoro-Voice", voice)
-            self.send_header("X-Kokoro-Model", "Kokoro-82M-Neural")
+            self.send_header("X-Kokoro-Model", "Kokoro-82M (StyleTTS2 Architecture Native GGML)")
+            self.send_header("X-Sample-Rate", "24000")
             self.end_headers()
             self.wfile.write(wav_data)
 
@@ -2092,7 +2122,11 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self._send_cors_headers()
             self.send_header("Content-Type", "application/json")
             self.end_headers()
-            self.wfile.write(json.dumps({"error": f"TTS synthesis failed: {str(e)}"}).encode())
+            self.wfile.write(json.dumps({
+                "error": f"Kokoro-82M TTS synthesis failed: {str(e)}",
+                "model": "Kokoro-82M-Neural",
+                "backend": "crispasr-cpu-ggml"
+            }).encode())
         finally:
             with _state_lock:
                 _active_inferences = max(0, _active_inferences - 1)
