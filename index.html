@@ -3327,19 +3327,22 @@ python3 mobile/nuclear_watchdog.py</code></pre>
     autoResolveDirectTunnel();
     setInterval(autoResolveDirectTunnel, 6000);
 
-    // Universal Self-Healing Request Wrapper (Auto-retries on 502/530/Network drops)
+    // Universal Self-Healing Request Wrapper (Auto-retries on 502/522/530/Network drops)
     async function nuclearFetch(pathOrUrl, options = {}) {
       let fullUrl = pathOrUrl.startsWith("http") ? pathOrUrl : `${BASE_ENDPOINT}${pathOrUrl}`;
       try {
         let res = await fetch(fullUrl, options);
-        if (res.status === 502 || res.status === 530) {
-          console.warn("⚠️ Gateway returned " + res.status + " — querying latest live origin...");
+        if (res.status === 502 || res.status === 522 || res.status === 530) {
+          console.warn(`⚠️ Tunnel origin returned ${res.status} — auto-recovering live endpoint...`);
           await autoResolveDirectTunnel(true);
           const retryUrl = pathOrUrl.startsWith("http") ? pathOrUrl.replace(/^https:\/\/[^/]+/, BASE_ENDPOINT) : `${BASE_ENDPOINT}${pathOrUrl}`;
           return await fetch(retryUrl, options);
         }
         return res;
       } catch (err) {
+        if (err && (err.name === 'AbortError' || (err.message && err.message.includes('abort')))) {
+          throw err; // Intentional stream switch/abort — pass through silently
+        }
         console.warn("⚠️ Network drop detected — recovering live origin...", err);
         await autoResolveDirectTunnel(true);
         const retryUrl = pathOrUrl.startsWith("http") ? pathOrUrl.replace(/^https:\/\/[^/]+/, BASE_ENDPOINT) : `${BASE_ENDPOINT}${pathOrUrl}`;
