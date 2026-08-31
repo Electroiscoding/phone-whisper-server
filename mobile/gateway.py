@@ -942,18 +942,6 @@ def _telemetry_background_loop():
                 "is_active": True
             })
 
-            cf_pid = get_pid_for_port(8080) or "SYS"
-            process_table.append({
-                "name": "cloudflared",
-                "label": "Cloudflare QUIC Edge Tunnel",
-                "pid": "SYS",
-                "cpu": 0.1,
-                "memory": "42.0 MB",
-                "threads": "6 (Go/QUIC)",
-                "status": "Connected",
-                "is_active": True
-            })
-
             data = {
                 "battery": bat,
                 "cpu": {
@@ -965,8 +953,7 @@ def _telemetry_background_loop():
                     "processes": {
                         "whisper": cpu_total if (active_cnt > 0 and "whisper" in active_name.lower()) else 0.0,
                         "llama": cpu_total if (active_cnt > 0 and ("llama" in active_name.lower() or "qwen" in active_name.lower() or "rerank" in active_name.lower() or "embed" in active_name.lower())) else 0.0,
-                        "gateway": 0.1,
-                        "cloudflared": 0.1
+                        "gateway": 0.1
                     }
                 },
                 "memory": {
@@ -1012,6 +999,10 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         path = parsed.path.rstrip("/")
         if path in ["", "/"]:
             self.handle_index_html()
+        elif path == "/favicon.ico":
+            self.send_response(204)
+            self._send_cors_headers()
+            self.end_headers()
         elif path == "/telemetry":
             self.handle_telemetry()
         elif path == "/health":

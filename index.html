@@ -1619,7 +1619,7 @@
 
       <h1 class="hero-title">Worldwide Mobile AI Speech-to-Text</h1>
       <p class="hero-desc">
-        Zero cloud GPU costs. Running in-memory on a phone MediaTek ARM CPU, tunneled worldwide via Cloudflare.
+        Zero cloud GPU costs. Running 100% in-memory on a phone MediaTek ARM CPU.
       </p>
 
       <div class="studio-wrapper">
@@ -2622,7 +2622,7 @@ if (res.hands && res.hands[0]) {
             <canvas id="pingGraphCanvas" class="graph-canvas"></canvas>
           </div>
           <div class="telemetry-footer-stats">
-            <span>Cloudflare Edge RTT: ~35ms</span>
+            <span>Local Gateway RTT: ~2ms</span>
             <span>Phone CPU Inference: ~2s–12s</span>
           </div>
         </div>
@@ -2754,8 +2754,8 @@ if (res.hands && res.hands[0]) {
 
         <div class="step-card">
           <div class="step-number">2</div>
-          <div class="step-title">Cloudflare Edge Worker & QUIC Tunnel</div>
-          <div class="step-desc">Request passes through Cloudflare Worker and securely tunnels via <code>cloudflared</code> into Termux on the phone.</div>
+          <div class="step-title">Sovereign On-Device HTTP & TLS Gateway</div>
+          <div class="step-desc">Requests are processed directly by the on-device Python gateway inside Termux on the phone.</div>
         </div>
 
         <div class="step-card">
@@ -3232,7 +3232,7 @@ func main() {
               <strong>📱 Turn Any Spare Android Phone into a 24/7 AI Datacenter:</strong>
             </div>
             <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code># 1. Update and install packages in Termux
-pkg update && pkg install -y git clang cmake cloudflared tmux espeak python
+pkg update && pkg install -y git clang cmake tmux espeak python nodejs
 
 # 2. Clone repo & build whisper.cpp + llama.cpp with ARM NEON optimizations
 git clone --recursive https://github.com/Electroiscoding/phone-whisper-server
@@ -4120,7 +4120,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       outputContentArea.classList.remove("placeholder-mode");
       outputContentArea.innerText = "⏳ Phone AI model is executing Whisper neural decode...";
 
-      addTerminalLog("INFO", `[HTTP POST] Dispatching ${(selectedWavBlob.size / 1024).toFixed(1)}KB payload to Cloudflare QUIC edge...`);
+      addTerminalLog("INFO", `[HTTP POST] Dispatching ${(selectedWavBlob.size / 1024).toFixed(1)}KB payload to phone gateway...`);
 
       const formData = new FormData();
       formData.append("file", selectedWavBlob, "audio.wav");
@@ -4240,7 +4240,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
     }
 
     addTerminalLog("INFO", "Telemetry service initialized. Querying phone hardware kernel...");
-    addTerminalLog("INFO", "Cloudflare QUIC tunnel active (Anycast edge: del02).");
+    addTerminalLog("INFO", "Sovereign on-device gateway active.");
     addTerminalLog("SUCCESS", "whisper-server listening on 127.0.0.1:8000 [4 NEON threads] [4 NEON threads].");
     addTerminalLog("SUCCESS", "Android PARTIAL_WAKE_LOCK active. Doze whitelisted.");
 
