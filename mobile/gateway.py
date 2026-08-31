@@ -476,12 +476,10 @@ class ModelGovernor:
             return True
         try:
             req = urllib.request.Request(f"http://127.0.0.1:{port}/health")
-            with urllib.request.urlopen(req, timeout=0.25) as resp:
+            with urllib.request.urlopen(req, timeout=0.6) as resp:
                 return resp.status == 200
-        except urllib.error.HTTPError:
-            return False
         except Exception:
-            return is_port_alive(port)
+            return False
 
     def acquire(self, model_key):
         """Acquires a model, booting it if evicted/idle, and marks it busy."""
@@ -491,6 +489,10 @@ class ModelGovernor:
 
             cfg = self.registry[model_key]
             port = cfg["port"]
+
+            # Mark busy immediately to protect against watchdog eviction during boot
+            self.access_times[model_key] = time.time()
+            self.busy_counts[model_key] = self.busy_counts.get(model_key, 0) + 1
 
             # If already alive and ready on port, adopt immediately
             if not self._is_service_ready(model_key, port):
@@ -514,15 +516,14 @@ class ModelGovernor:
                 )
                 self.spawned_processes[model_key] = proc
 
-                # Wait for service to become fully initialized (up to 10s)
+                # Wait for service to become fully initialized (up to 15s)
                 start_w = time.time()
-                while time.time() - start_w < 10.0:
+                while time.time() - start_w < 15.0:
                     if self._is_service_ready(model_key, port):
                         break
-                    time.sleep(0.08)
+                    time.sleep(0.1)
 
             self.access_times[model_key] = time.time()
-            self.busy_counts[model_key] = self.busy_counts.get(model_key, 0) + 1
             return port
 
     def release(self, model_key):
