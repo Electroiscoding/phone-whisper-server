@@ -1,8 +1,9 @@
 {
-  "endpoint": "https://developmental-soc-rec-theology.trycloudflare.com",
-  "inference": "https://developmental-soc-rec-theology.trycloudflare.com/inference",
-  "telemetry": "https://developmental-soc-rec-theology.trycloudflare.com/telemetry",
+  "endpoint": "https://publishers-silver-sociology-pierre.trycloudflare.com",
+  "inference": "https://publishers-silver-sociology-pierre.trycloudflare.com/inference",
+  "telemetry": "https://publishers-silver-sociology-pierre.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
-  "port": 8080
+  "port": 8080,
+  "updated_at": "2026-09-02T16:20:00Z"
 }

@@ -367,7 +367,11 @@ def _spawn_swades_worker(job_id):
         env["HOME"] = home_dir
         env["JOB_PAYLOAD"] = json.dumps(job)
         
-        worker_cmd = ['node', worker_js, '--job', job_id]
+        proot_distro_bin = "/data/data/com.termux/files/usr/bin/proot-distro"
+        if os.path.exists(proot_distro_bin):
+            worker_cmd = [proot_distro_bin, 'login', 'alpine', '--', 'node', '/root/swades-agent/worker.js', '--job', job_id]
+        else:
+            worker_cmd = ['node', worker_js, '--job', job_id]
         proc = sp.Popen(worker_cmd, stdout=sp.DEVNULL, stderr=sp.DEVNULL, env=env, start_new_session=True)
         _job_manager.active_worker_pid = proc.pid
         _job_manager.update_job(job_id, worker_pid=proc.pid, status="RUNNING", started_at=datetime.now(timezone.utc).isoformat())
