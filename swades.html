@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Swades</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Plus+Jakarta+Sans:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-obsidian: #030507;
+            --text-main: #f4f4f5;
+            --border-zinc: #27272a;
+        }
+        body {
+            background-color: var(--bg-obsidian);
+            color: var(--text-main);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        h1, h2, h3, .space-grotesk {
+            font-family: 'Space Grotesk', sans-serif;
+        }
+        code, pre, .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #52525b; }
+        
+        .diff-add { background-color: rgba(34, 197, 94, 0.1); color: #4ade80; }
+        .diff-remove { background-color: rgba(239, 68, 68, 0.1); color: #f87171; }
+        .diff-line-number { color: #52525b; padding-right: 1rem; user-select: none; text-align: right; width: 3rem; display: inline-block; }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="flex justify-between items-center p-4 border-b border-zinc-800">
+        <div class="text-xl font-bold space-grotesk tracking-tight">Swades</div>
+        <div class="text-[10px] uppercase tracking-wider border border-zinc-700 px-3 py-1 rounded-sm text-zinc-400 bg-zinc-900/50">OpenRouter Free Auto-Cycle</div>
+    </header>
+
+    <!-- View 1: Centered Input (Initial State) -->
+    <main id="view-initial" class="flex-1 flex flex-col items-center justify-center p-6 w-full max-w-2xl mx-auto transition-all duration-500">
+        <div class="w-full relative group flex flex-col items-center">
+            <div class="mb-4">
+                <button id="repo-selector" class="text-sm bg-zinc-900/80 border border-zinc-700 hover:border-zinc-500 px-4 py-2 rounded-full transition-colors flex items-center gap-2 shadow-sm">
+                    <span id="repo-name" class="font-medium">Electroiscoding/xerv</span>
+                    <span class="text-xs text-zinc-500">▾</span>
+                </button>
+            </div>
+            <form id="task-form" class="relative w-full shadow-2xl">
+                <input type="text" id="task-input" placeholder="Write a task..." class="w-full bg-zinc-900 border border-zinc-700 hover:border-zinc-600 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 rounded-xl py-4 pl-6 pr-14 text-lg transition-all placeholder:text-zinc-600 shadow-inner">
+                <button type="submit" class="absolute right-2 top-1/2 -translate-y-1/2 bg-white text-black w-10 h-10 rounded-lg flex items-center justify-center hover:bg-zinc-200 transition-colors shadow">
+                    →
+                </button>
+            </form>
+        </div>
+    </main>
+
+    <!-- View 2: Split Screen (Running State) -->
+    <main id="view-running" class="hidden flex-1 flex overflow-hidden">
+        <!-- Left Panel: Timeline & Chat -->
+        <section class="w-1/3 min-w-[320px] max-w-[480px] border-r border-zinc-800 flex flex-col bg-[#050709]">
+            <div class="p-4 border-b border-zinc-800 bg-zinc-900/30">
+                <h2 id="running-task-title" class="font-medium text-sm text-zinc-300 truncate">Task Title</h2>
+                <div class="text-xs text-zinc-500 mt-2 flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-zinc-400 animate-pulse" id="status-indicator"></span>
+                    <span id="running-status" class="uppercase tracking-wider font-semibold">Running...</span>
+                </div>
+            </div>
+            
+            <div id="timeline-feed" class="flex-1 overflow-y-auto p-4 space-y-3">
+                <!-- Timeline items go here -->
+            </div>
+
+            <div class="p-4 border-t border-zinc-800 bg-[#030507]">
+                <form id="followup-form" class="relative">
+                    <button type="button" class="absolute left-2 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white w-6 h-6 flex items-center justify-center font-mono">+</button>
+                    <input type="text" id="followup-input" placeholder="Talk to Swades" class="w-full bg-zinc-900/80 border border-zinc-800 rounded-md py-2.5 pl-10 pr-10 text-sm focus:outline-none focus:border-zinc-600 transition-colors placeholder:text-zinc-600">
+                    <button type="submit" class="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white w-6 h-6 flex items-center justify-center">→</button>
+                </form>
+            </div>
+        </section>
+
+        <!-- Right Panel: Diff Viewer -->
+        <section class="flex-1 flex flex-col bg-[#080a0c]">
+            <div class="flex justify-between items-center p-3 border-b border-zinc-800 bg-zinc-900/20 text-sm">
+                <div class="flex items-center gap-2">
+                    <span class="bg-zinc-800/80 px-3 py-1 rounded-sm border border-zinc-700/50 text-xs mono text-zinc-300" id="diff-file-name">Waiting...</span>
+                </div>
+                <div class="flex items-center gap-4 text-xs font-medium">
+                    <button class="text-zinc-500 hover:text-zinc-300 flex items-center gap-1 transition-colors"><span class="text-sm">📥</span> Download zip</button>
+                    <button class="text-zinc-500 hover:text-zinc-300 transition-colors">Collapse all</button>
+                    <button class="text-zinc-400 hover:text-white border border-zinc-700 bg-zinc-900/50 px-3 py-1 rounded transition-colors flex items-center gap-1">Stacked ▾</button>
+                </div>
+            </div>
+            <div id="diff-viewer" class="flex-1 overflow-auto p-4 mono text-[13px] leading-relaxed whitespace-pre font-mono">
+                <div class="text-zinc-600 italic mt-10 text-center space-grotesk">Awaiting file changes...</div>
+            </div>
+            <div id="pr-action-container" class="hidden p-4 border-t border-zinc-800 bg-zinc-900/30 flex justify-end">
+                 <button id="pr-btn" class="bg-white text-black px-5 py-2.5 rounded font-bold hover:bg-zinc-200 transition-colors text-sm shadow flex items-center gap-2">
+                     <span>🚀</span> View Pull Request
+                 </button>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        const BASE_ENDPOINT = '';
+        
+        async function nuclearFetch(url, options = {}) {
+            try {
+                const response = await fetch(url, options);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                return await response.json();
+            } catch (e) {
+                console.error("Fetch failed:", e);
+                throw e;
+            }
+        }
+
+        const initialView = document.getElementById('view-initial');
+        const runningView = document.getElementById('view-running');
+        const taskForm = document.getElementById('task-form');
+        const taskInput = document.getElementById('task-input');
+        const repoNameSpan = document.getElementById('repo-name');
+        
+        const timelineFeed = document.getElementById('timeline-feed');
+        const diffViewer = document.getElementById('diff-viewer');
+        const diffFileName = document.getElementById('diff-file-name');
+        const runningTaskTitle = document.getElementById('running-task-title');
+        const runningStatus = document.getElementById('running-status');
+        const statusIndicator = document.getElementById('status-indicator');
+
+        let currentTaskId = null;
+
+        taskForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const task = taskInput.value.trim();
+            const repoUrl = `https://github.com/${repoNameSpan.innerText}`;
+            if (!task) return;
+
+            initialView.classList.add('hidden');
+            runningView.classList.remove('hidden');
+            runningTaskTitle.innerText = task;
+            
+            addTimelineCard('Initializing', 'Analyzing request...', 'loading');
+
+            try {
+                const res = await nuclearFetch(`${BASE_ENDPOINT}/v1/agent/submit`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ repo_url: repoUrl, task: task })
+                });
+                
+                if (res.id) {
+                    currentTaskId = res.id;
+                    startStreaming(res.id);
+                }
+            } catch (err) {
+                addTimelineCard('Failed', err.message, 'error');
+                updateStatus('Error', 'error');
+            }
+        });
+
+        function updateStatus(text, state) {
+            runningStatus.innerText = text;
+            statusIndicator.className = 'w-2 h-2 rounded-full ' + 
+                (state === 'error' ? 'bg-red-500' : 
+                 state === 'success' ? 'bg-green-500' : 'bg-zinc-400 animate-pulse');
+        }
+
+        function addTimelineCard(title, description, status = 'default') {
+            const card = document.createElement('div');
+            card.className = 'border border-zinc-800 rounded-md p-3 bg-zinc-900/40 text-sm shadow-sm transition-all hover:bg-zinc-900/60';
+            
+            let icon = '<span class="w-1.5 h-1.5 rounded-full bg-zinc-600 inline-block mr-2"></span>';
+            if (status === 'loading') icon = '<span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse inline-block mr-2"></span>';
+            else if (status === 'success') icon = '<span class="w-1.5 h-1.5 rounded-full bg-green-500 inline-block mr-2"></span>';
+            else if (status === 'error') icon = '<span class="w-1.5 h-1.5 rounded-full bg-red-500 inline-block mr-2"></span>';
+
+            card.innerHTML = `
+                <div class="flex items-center font-medium mb-1.5 ${status === 'error' ? 'text-red-400' : 'text-zinc-200'} text-[13px]">
+                    ${icon} ${title}
+                </div>
+                <div class="text-zinc-500 text-xs leading-relaxed ml-3.5">${description}</div>
+            `;
+            timelineFeed.appendChild(card);
+            timelineFeed.scrollTop = timelineFeed.scrollHeight;
+        }
+
+        function renderDiff(diffText, fileName) {
+            diffFileName.innerHTML = `${fileName} <span class="text-green-400 ml-2">+</span> <span class="text-red-400 ml-1">-</span>`;
+            diffViewer.innerHTML = '';
+            
+            const lines = diffText.split('\\n');
+            lines.forEach((line, index) => {
+                const lineDiv = document.createElement('div');
+                lineDiv.className = 'flex';
+                
+                const lineNum = document.createElement('span');
+                lineNum.className = 'diff-line-number opacity-50';
+                lineNum.innerText = index + 1;
+                
+                const contentSpan = document.createElement('span');
+                contentSpan.className = 'flex-1 pl-4';
+                contentSpan.innerText = line;
+
+                lineDiv.appendChild(lineNum);
+                lineDiv.appendChild(contentSpan);
+
+                if (line.startsWith('+')) {
+                    lineDiv.classList.add('diff-add');
+                } else if (line.startsWith('-')) {
+                    lineDiv.classList.add('diff-remove');
+                } else {
+                    lineDiv.classList.add('text-zinc-400');
+                    lineDiv.classList.add('hover:bg-zinc-900/30');
+                }
+                
+                diffViewer.appendChild(lineDiv);
+            });
+        }
+
+        async function startStreaming(id) {
+            try {
+                const eventSource = new EventSource(`${BASE_ENDPOINT}/v1/agent/stream/${id}`);
+                eventSource.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+                    handleEvent(data);
+                };
+                eventSource.onerror = () => {
+                    pollLogs(id);
+                    eventSource.close();
+                };
+            } catch (e) {
+                pollLogs(id);
+            }
+        }
+
+        async function pollLogs(id) {
+            const interval = setInterval(async () => {
+                try {
+                    const data = await nuclearFetch(`${BASE_ENDPOINT}/v1/agent/logs/${id}`);
+                    if (data && data.events) {
+                        data.events.forEach(handleEvent);
+                    }
+                    if (data && data.status === 'completed') {
+                        clearInterval(interval);
+                        updateStatus('Completed', 'success');
+                        addTimelineCard('Ready for review 🎉', 'Changes have been applied.', 'success');
+                        document.getElementById('pr-action-container').classList.remove('hidden');
+                        document.getElementById('pr-btn').innerHTML = `🚀 View Pull Request #${data.pr_number || ''}`;
+                    }
+                } catch (e) {
+                    console.error("Polling error", e);
+                }
+            }, 2000);
+        }
+
+        function handleEvent(data) {
+            if (data.type === 'action') {
+                addTimelineCard(data.title || 'Action', data.description || 'Running tool...', 'success');
+            } else if (data.type === 'diff_update') {
+                renderDiff(data.diff, data.file);
+            } else if (data.type === 'verification') {
+                addTimelineCard('Verification', data.message || 'Running checks...', 'loading');
+            } else if (data.type === 'status') {
+                updateStatus(data.message, 'loading');
+            }
+        }
+    </script>
+</body>
+</html>

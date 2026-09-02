@@ -52,6 +52,68 @@ def get_oauth_credentials():
 GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET = get_oauth_credentials()
 
 
+class OpenRouterVault:
+    DEFAULT_PATH = "/data/data/com.termux/files/home/.openrouter_keys.json"
+    MODELS = [
+        "openrouter/free",
+        "inclusionai/ling-3.0-flash-fin:free",
+        "nvidia/nemotron-3.5-lightning:free",
+        "thinkingmachines/inkling-small:free",
+        "thinkingmachines/inkling:free",
+        "inception/mercury-2.5-preview"
+    ]
+    
+    @classmethod
+    def get_active_key(cls):
+        try:
+            with open(cls.DEFAULT_PATH, 'r') as f:
+                data = json.load(f)
+                keys = data.get("keys", [])
+                active_idx = data.get("active_index", 0)
+                if keys:
+                    return keys[active_idx % len(keys)]
+        except Exception:
+            pass
+        return ""
+
+    @classmethod
+    def rotate_key(cls):
+        try:
+            with open(cls.DEFAULT_PATH, 'r+') as f:
+                data = json.load(f)
+                keys = data.get("keys", [])
+                if keys:
+                    data["active_index"] = (data.get("active_index", 0) + 1) % len(keys)
+                    f.seek(0)
+                    json.dump(data, f)
+                    f.truncate()
+        except Exception:
+            pass
+
+    @classmethod
+    def get_active_model(cls):
+        try:
+            with open(cls.DEFAULT_PATH, 'r') as f:
+                data = json.load(f)
+                return cls.MODELS[data.get("model_index", 0) % len(cls.MODELS)]
+        except Exception:
+            pass
+        return cls.MODELS[0]
+
+    @classmethod
+    def next_model(cls):
+        try:
+            with open(cls.DEFAULT_PATH, 'r+') as f:
+                data = json.load(f)
+                data["model_index"] = (data.get("model_index", 0) + 1) % len(cls.MODELS)
+                f.seek(0)
+                json.dump(data, f)
+                f.truncate()
+        except Exception:
+            pass
+
+
+
 TELEMETRY_PATHS = [
     "/data/local/tmp/battery_telemetry.json",
     "/sdcard/battery_telemetry.json",
@@ -366,12 +428,14 @@ def _spawn_swades_worker(job_id):
         env["PATH"] = f"/data/data/com.termux/files/usr/bin:{env.get('PATH', '')}"
         env["HOME"] = home_dir
         env["JOB_PAYLOAD"] = json.dumps(job)
+        env["OPENROUTER_API_KEY"] = job.get("api_key") or ""
+        env["OPENROUTER_MODEL"] = job.get("model") or ""
         
-        proot_distro_bin = "/data/data/com.termux/files/usr/bin/proot-distro"
-        if os.path.exists(proot_distro_bin):
-            worker_cmd = [proot_distro_bin, 'login', 'alpine', '--', 'node', '/root/swades-agent/worker.js', '--job', job_id]
-        else:
-            worker_cmd = ['node', worker_js, '--job', job_id]
+        worker_cmd = [
+            "/data/data/com.termux/files/usr/bin/proot-distro",
+            "login", "alpine", "--",
+            "node", "/root/Swades-Agent/worker.js", "--job", job_id
+        ]
         proc = sp.Popen(worker_cmd, stdout=sp.DEVNULL, stderr=sp.DEVNULL, env=env, start_new_session=True)
         _job_manager.active_worker_pid = proc.pid
         _job_manager.update_job(job_id, worker_pid=proc.pid, status="RUNNING", started_at=datetime.now(timezone.utc).isoformat())
@@ -1417,25 +1481,11 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             provider = payload.get("llm_provider", "phone")
             user_model = payload.get("model") or payload.get("llm_model")
 
-            if provider == "openrouter":
-                if not base_url: base_url = "https://openrouter.ai/api/v1"
-                model = user_model or "openrouter/free"
-            elif provider == "openai":
-                if not base_url: base_url = "https://api.openai.com/v1"
-                model = user_model or "gpt-4o-mini"
-            elif provider == "groq":
-                if not base_url: base_url = "https://api.groq.com/openai/v1"
-                model = user_model or "llama-3.3-70b-versatile"
-            elif provider == "deepseek":
-                if not base_url: base_url = "https://api.deepseek.com/v1"
-                model = user_model or "deepseek-chat"
-            elif provider == "custom":
-                if not base_url: base_url = "http://127.0.0.1:8080/v1"
-                model = user_model or "custom-model"
-            elif provider == "phone" or not base_url:
-                base_url = "http://127.0.0.1:8080/v1"
-                api_key = "local"
-                model = "qwen2.5"
+            provider = "openrouter"
+            base_url = "https://openrouter.ai/api/v1"
+            model = OpenRouterVault.get_active_model()
+            if not api_key:
+                api_key = OpenRouterVault.get_active_key()
 
             job_id = _job_manager.create_job(
                 repo_url, task,
@@ -1480,7 +1530,17 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         qs = urllib.parse.parse_qs(parsed.query)
         since = qs.get("since", [None])[0]
         
-        logs = _job_manager.get_logs(job_id, since)
+        raw_logs = _job_manager.get_logs(job_id, since)
+        logs = []
+        for log in raw_logs:
+            try:
+                if log["data"] and (str(log["data"]).startswith("{") or str(log["data"]).startswith("[")):
+                    import json
+                    log["data"] = json.loads(log["data"])
+            except Exception:
+                pass
+            logs.append(log)
+            
         job = _job_manager.get_job(job_id)
         status = job.get("status") if job else "UNKNOWN"
         self.send_response(200)
@@ -2156,3 +2216,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+
+
