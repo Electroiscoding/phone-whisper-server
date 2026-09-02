@@ -430,7 +430,7 @@ ${remaining <= 0 ? `- GRACE WARNING: You will be forcibly terminated in ${graceS
       const preview = result.length > 200 ? result.slice(0, 200) + chalk.dim(`... (${result.length} chars)`) : result;
       console.log(chalk.gray(`   ${preview.split("\n").join("\n   ")}\n`));
       if (onEvent) {
-        onEvent('tool_end', { tool: name, result: preview });
+        onEvent('tool_end', { tool: name, result: result });
         if (MUTATING_TOOLS.has(name)) {
           try {
             const currentDiff = await shell("git diff", resolvedWorkdir);

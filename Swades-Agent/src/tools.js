@@ -58,14 +58,10 @@ function resolvePath(p) {
 }
 
 function truncate(str, maxLen) {
-  const max = maxLen || parseInt(process.env.MAX_OUTPUT_LENGTH) || 10000;
+  // Do not truncate outputs — preserving complete context for the AI model and inspector
+  const max = maxLen || parseInt(process.env.MAX_OUTPUT_LENGTH) || 100000;
   if (str.length <= max) return str;
-  const half = Math.floor(max / 2);
-  return (
-    str.slice(0, half) +
-    `\n\n... [truncated ${str.length - max} characters] ...\n\n` +
-    str.slice(-half)
-  );
+  return str;
 }
 
 async function confirm(message) {
