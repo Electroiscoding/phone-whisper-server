@@ -636,6 +636,16 @@
                  state === 'success' ? 'bg-emerald-500' : 'bg-zinc-400 animate-pulse');
         }
 
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
         function addTimelineCard(title, description, status = 'default', rawDetails = null) {
             const card = document.createElement('div');
             card.className = 'border border-zinc-800/90 rounded-lg p-3 bg-zinc-900/40 text-sm shadow-sm transition-all hover:bg-zinc-900/70 relative';
@@ -656,7 +666,7 @@
             }
 
             if (rawStr) {
-                const safeContent = rawStr.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                const safeContent = escapeHtml(rawStr);
                 dropdownHtml = `
                     <div class="mt-2 pt-1.5 border-t border-zinc-800/60">
                         <button type="button" onclick="toggleCardDetails(this)" class="flex items-center gap-1.5 text-[11px] font-mono text-zinc-400 hover:text-white bg-zinc-800/50 hover:bg-zinc-800 border border-zinc-700/60 px-2 py-0.5 rounded transition-all">
@@ -678,7 +688,7 @@
                 <div class="flex items-center font-medium mb-1 ${status === 'error' ? 'text-red-400' : (status === 'warning' ? 'text-amber-400' : 'text-zinc-200')} text-[13px] font-mono">
                     ${icon} ${title}
                 </div>
-                <div class="text-zinc-400 text-xs leading-relaxed ml-3.5 font-body">${description}</div>
+                <div class="text-zinc-400 text-xs leading-relaxed ml-3.5 font-body whitespace-pre-wrap">${escapeHtml(description)}</div>
                 ${dropdownHtml}
             `;
             timelineFeed.appendChild(card);
@@ -1125,7 +1135,7 @@
             container.innerHTML = jobs.map(j => {
                 const isSelected = currentTaskId === j.id;
                 const statusColor = j.status === 'COMPLETED' ? 'bg-emerald-500' : (j.status === 'FAILED' ? 'bg-red-500' : 'bg-blue-400 animate-pulse');
-                const cleanTitle = (j.task || 'Autonomous Task').replace(/^["']|["']$/g, '');
+                const cleanTitle = escapeHtml((j.task || 'Autonomous Task').replace(/^["']|["']$/g, '').substring(0, 60));
                 
                 return `
                     <div onclick="loadSession('${j.id}')" class="group flex items-center justify-between px-2.5 py-2 rounded-lg cursor-pointer text-xs transition-colors ${isSelected ? 'bg-zinc-800/90 text-white font-medium border border-zinc-700/60' : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'}">
