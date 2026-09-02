@@ -1524,35 +1524,49 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         if "github_pat" in job: del job["github_pat"]
         if "api_key" in job: del job["api_key"]
             
+        resp_data = json.dumps(job).encode()
         self.send_response(200)
         self._send_cors_headers()
         self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(resp_data)))
         self.end_headers()
-        self.wfile.write(json.dumps(job).encode())
+        self.wfile.write(resp_data)
 
     def handle_agent_logs(self, job_id):
-        parsed = urllib.parse.urlparse(self.path)
-        qs = urllib.parse.parse_qs(parsed.query)
-        since = qs.get("since", [None])[0]
-        
-        raw_logs = _job_manager.get_logs(job_id, since)
-        logs = []
-        for log in raw_logs:
-            try:
-                if log["data"] and (str(log["data"]).startswith("{") or str(log["data"]).startswith("[")):
-                    import json
-                    log["data"] = json.loads(log["data"])
-            except Exception:
-                pass
-            logs.append(log)
+        try:
+            parsed = urllib.parse.urlparse(self.path)
+            qs = urllib.parse.parse_qs(parsed.query)
+            since = qs.get("since", [None])[0]
             
-        job = _job_manager.get_job(job_id)
-        status = job.get("status") if job else "UNKNOWN"
-        self.send_response(200)
-        self._send_cors_headers()
-        self.send_header("Content-Type", "application/json")
-        self.end_headers()
-        self.wfile.write(json.dumps({"logs": logs, "count": len(logs), "status": status, "job": job}).encode())
+            raw_logs = _job_manager.get_logs(job_id, since)
+            logs = []
+            for log in raw_logs:
+                d = dict(log)
+                try:
+                    if d.get("data") and (str(d["data"]).startswith("{") or str(d["data"]).startswith("[")):
+                        d["data"] = json.loads(d["data"])
+                except Exception:
+                    pass
+                logs.append(d)
+                
+            job = _job_manager.get_job(job_id)
+            clean_job = dict(job) if job else None
+            if clean_job:
+                if "github_pat" in clean_job: del clean_job["github_pat"]
+                if "api_key" in clean_job: del clean_job["api_key"]
+            status = clean_job.get("status") if clean_job else "UNKNOWN"
+            
+            resp_data = json.dumps({"logs": logs, "count": len(logs), "status": status, "job": clean_job}).encode()
+            self.send_response(200)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(resp_data)))
+            self.end_headers()
+            self.wfile.write(resp_data)
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            self.send_error(500, str(e))
 
     def handle_agent_stream(self, job_id):
         self.send_response(200)
@@ -1620,11 +1634,13 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             if "github_pat" in j: del j["github_pat"]
             if "api_key" in j: del j["api_key"]
             
+        resp_data = json.dumps({"jobs": jobs, "total": total, "limit": limit, "offset": offset}).encode()
         self.send_response(200)
         self._send_cors_headers()
         self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(resp_data)))
         self.end_headers()
-        self.wfile.write(json.dumps({"jobs": jobs, "total": total, "limit": limit, "offset": offset}).encode())
+        self.wfile.write(resp_data)
 
     def handle_agent_internal_event(self):
         try:
