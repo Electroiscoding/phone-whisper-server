@@ -212,7 +212,9 @@
                 }
                 return await response.json();
             } catch (e) {
-                console.error("Fetch failed:", e);
+                if (e.name !== 'AbortError') {
+                    console.warn("[Swades Network]:", e.message || e);
+                }
                 throw e;
             }
         }
@@ -370,6 +372,7 @@
                     }
                 }
             } catch (err) {
+                if (err.name === 'AbortError') return;
                 statusLabel.innerText = "Could not load repos. You can type any repository above.";
                 console.warn("Repo fetch warning:", err);
             }
@@ -783,7 +786,8 @@
                 if (data && data.active && data.job) {
                     const job = data.job;
                     const isActive = ['RUNNING', 'CLONING', 'PAUSED'].includes(job.status);
-                    const isRecent = job.status === 'COMPLETED' && (Date.now() - new Date(job.completed_at || job.started_at).getTime() < 300000);
+                    const startedAtMs = job.started_at ? new Date(job.started_at).getTime() : (job.created_at ? new Date(job.created_at).getTime() : 0);
+                    const isRecent = job.status === 'COMPLETED' && (startedAtMs > 0 && (Date.now() - startedAtMs < 600000));
                     
                     if (isActive || isRecent) {
                         currentTaskId = job.id;
@@ -795,6 +799,7 @@
 
                         // Replay history logs into the timeline feed
                         timelineFeed.innerHTML = '';
+                        processedEventKeys.clear();
                         if (data.logs && Array.isArray(data.logs)) {
                             data.logs.forEach(log => {
                                 handleEvent(log);
@@ -815,7 +820,7 @@
                     }
                 }
             } catch (err) {
-                console.log("No active job session to restore.");
+                // Background check completes quietly
             }
         }
 
