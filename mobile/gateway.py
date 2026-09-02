@@ -422,12 +422,17 @@ def _spawn_swades_worker(job_id):
             return
             
         home_dir = os.environ.get("HOME", "/data/data/com.termux/files/home")
-        candidates = [
-            os.path.join(home_dir, "swades-server", "worker.js"),
-            os.path.join(os.path.dirname(__file__), "swades-server", "worker.js"),
-            os.path.join(os.path.dirname(__file__), "..", "swades-server", "worker.js")
-        ]
-        worker_js = next((p for p in candidates if os.path.exists(p)), candidates[0])
+        container_root = "/data/data/com.termux/files/usr/var/lib/proot-distro/containers/alpine/rootfs/root"
+        payload_flag = []
+        if os.path.exists(container_root):
+            try:
+                payload_file = os.path.join(container_root, f".job_{job_id}.json")
+                with open(payload_file, "w") as pf:
+                    json.dump(job, pf)
+                os.chmod(payload_file, 0o600)
+                payload_flag = ["--payload", f"/root/.job_{job_id}.json"]
+            except Exception as pe:
+                print(f"[SWADES] Warning: Could not write payload file: {pe}")
         
         env = os.environ.copy()
         env["PATH"] = f"/data/data/com.termux/files/usr/bin:{env.get('PATH', '')}"
@@ -440,7 +445,7 @@ def _spawn_swades_worker(job_id):
             "/data/data/com.termux/files/usr/bin/proot-distro",
             "login", "alpine", "--",
             "node", "/root/Swades-Agent/worker.js", "--job", job_id
-        ]
+        ] + payload_flag
         worker_log_path = os.path.join(home_dir, "worker.log")
         try:
             worker_log = open(worker_log_path, "a")
@@ -1096,6 +1101,9 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         elif path.startswith('/v1/agent/status/'):
             job_id = path.split('/')[-1]
             self.handle_agent_status(job_id)
+        elif path.startswith('/v1/agent/internal_job/'):
+            job_id = path.split('/')[-1]
+            self.handle_agent_internal_job(job_id)
         elif path.startswith('/v1/agent/logs/'):
             job_id = path.split('/')[-1]
             self.handle_agent_logs(job_id)
@@ -1519,6 +1527,23 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.send_header("Content-Type", "application/json")
             self.end_headers()
             self.wfile.write(json.dumps({"error": str(e)}).encode())
+
+    def handle_agent_internal_job(self, job_id):
+        # Allow internal container requests from localhost only
+        client_ip = self.client_address[0]
+        if client_ip not in ["127.0.0.1", "::1"]:
+            self.send_error(403, "Forbidden")
+            return
+        job = _job_manager.get_job(job_id)
+        if not job:
+            self.send_error(404, "Job not found")
+            return
+        resp_data = json.dumps(job).encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(resp_data)))
+        self.end_headers()
+        self.wfile.write(resp_data)
 
     def handle_agent_status(self, job_id):
         job = _job_manager.get_job(job_id)

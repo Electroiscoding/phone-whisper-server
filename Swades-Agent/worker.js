@@ -24,11 +24,15 @@ if (!jobId) {
 
 // Resolve payload
 let payload = null;
-if (process.env.JOB_PAYLOAD) {
-  try { payload = JSON.parse(process.env.JOB_PAYLOAD); } catch(e) {}
+if (payloadPath && fs.existsSync(payloadPath)) {
+  try { 
+    payload = JSON.parse(fs.readFileSync(payloadPath, 'utf8')); 
+    // Securely delete payload file once loaded into memory
+    fs.unlinkSync(payloadPath);
+  } catch(e) {}
 }
-if (!payload && payloadPath && fs.existsSync(payloadPath)) {
-  try { payload = JSON.parse(fs.readFileSync(payloadPath, 'utf8')); } catch(e) {}
+if (!payload && process.env.JOB_PAYLOAD) {
+  try { payload = JSON.parse(process.env.JOB_PAYLOAD); } catch(e) {}
 }
 
 async function postEvent(type, data) {
@@ -52,42 +56,51 @@ async function postEvent(type, data) {
 async function main() {
   if (!payload) {
     try {
-      const res = await fetch(`http://127.0.0.1:8080/v1/agent/status/${jobId}`);
+      const res = await fetch(`http://127.0.0.1:8080/v1/agent/internal_job/${jobId}`);
       if (res.ok) payload = await res.json();
     } catch(e) {}
   }
 
   if (!payload) {
-    await postEvent('error', { error: 'Job payload not found' });
+    await postEvent('error', { error: 'Job payload not found on gateway' });
     process.exit(1);
   }
 
   const repoUrl = payload.repo_url || payload.repoUrl;
   const task = payload.task || 'Analyze repository';
-  const token = payload.github_token || payload.github_pat;
+  const token = payload.github_pat || payload.github_token;
 
   await postEvent('status', `Initializing workspace for task: ${task}`);
 
   const workspaceDir = `/root/workspaces/${jobId}`;
   const branchName = `swades/patch-${jobId}`;
 
+  // Non-interactive git environment
+  const gitEnv = {
+    ...process.env,
+    GIT_TERMINAL_PROMPT: '0',
+    GIT_ASKPASS: 'echo'
+  };
+
   try {
     execSync(`mkdir -p /root/workspaces`);
     
-    // Auth clone URL
+    // Auth clone URL for private or public repo
     let cloneUrl = repoUrl;
-    if (token && cloneUrl.startsWith('https://github.com/')) {
-      cloneUrl = cloneUrl.replace('https://github.com/', `https://${token}@github.com/`);
+    if (token) {
+      const cleanUrl = repoUrl.replace(/^https?:\/\/[^@]+@/, 'https://');
+      cloneUrl = cleanUrl.replace('https://github.com/', `https://${token}@github.com/`);
+      if (!cloneUrl.endsWith('.git')) cloneUrl += '.git';
     }
 
     await postEvent('status', `Cloning repository: ${repoUrl.replace(/^https:\/\/github\.com\//, '')}`);
     execSync(`rm -rf ${workspaceDir}`);
-    execSync(`git clone ${cloneUrl} ${workspaceDir}`, { stdio: 'pipe' });
+    execSync(`git clone ${cloneUrl} ${workspaceDir}`, { stdio: 'pipe', env: gitEnv });
     
     // Config git and create branch
-    execSync(`git config user.name "Swades Agent"`, { cwd: workspaceDir });
-    execSync(`git config user.email "agent@swades.local"`, { cwd: workspaceDir });
-    execSync(`git checkout -b ${branchName}`, { cwd: workspaceDir });
+    execSync(`git config user.name "Swades Agent"`, { cwd: workspaceDir, env: gitEnv });
+    execSync(`git config user.email "agent@swades.local"`, { cwd: workspaceDir, env: gitEnv });
+    execSync(`git checkout -b ${branchName}`, { cwd: workspaceDir, env: gitEnv });
 
     await postEvent('status', `Created working branch: ${branchName}`);
 
