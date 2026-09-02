@@ -641,7 +641,11 @@
             diffViewer.classList.toggle('hidden');
         }
 
+        let activePollInterval = null;
+        let completedCardAdded = false;
+
         async function startStreaming(id) {
+            completedCardAdded = false;
             try {
                 const eventSource = new EventSource(`${BASE_ENDPOINT}/v1/agent/stream/${id}`);
                 eventSource.onmessage = (event) => {
@@ -651,8 +655,8 @@
                     } catch (e) {}
                 };
                 eventSource.onerror = () => {
-                    pollLogs(id);
                     eventSource.close();
+                    pollLogs(id);
                 };
             } catch (e) {
                 pollLogs(id);
@@ -660,7 +664,10 @@
         }
 
         async function pollLogs(id) {
-            const interval = setInterval(async () => {
+            if (activePollInterval) {
+                clearInterval(activePollInterval);
+            }
+            activePollInterval = setInterval(async () => {
                 try {
                     const data = await nuclearFetch(`${BASE_ENDPOINT}/v1/agent/logs/${id}`);
                     if (data && data.logs && Array.isArray(data.logs)) {
@@ -669,8 +676,12 @@
                     if (data && data.job) {
                         updateStatus(data.job.status, data.job.status === 'COMPLETED' ? 'success' : (data.job.status === 'FAILED' ? 'error' : 'loading'));
                         if (data.job.status === 'COMPLETED') {
-                            clearInterval(interval);
-                            addTimelineCard('Ready for review 🎉', 'All autonomous steps completed and verified.', 'success');
+                            clearInterval(activePollInterval);
+                            activePollInterval = null;
+                            if (!completedCardAdded) {
+                                completedCardAdded = true;
+                                addTimelineCard('Ready for review 🎉', 'All autonomous steps completed and verified.', 'success');
+                            }
                             if (data.job.pr_url) {
                                 document.getElementById('pr-action-container').classList.remove('hidden');
                                 document.getElementById('pr-btn').href = data.job.pr_url;
@@ -679,7 +690,9 @@
                         }
                     }
                 } catch (e) {
-                    console.error("❌ [Swades Poll Error]:", e);
+                    if (e.name !== 'AbortError') {
+                        console.warn("[Swades Poll Notice]:", e.message || e);
+                    }
                 }
             }, 2000);
         }
@@ -825,6 +838,13 @@
         }
 
         function resetToInitialView() {
+            if (activePollInterval) {
+                clearInterval(activePollInterval);
+                activePollInterval = null;
+            }
+            completedCardAdded = false;
+            processedEventKeys.clear();
+            timelineFeed.innerHTML = '';
             runningView.classList.add('hidden');
             initialView.classList.remove('hidden');
             taskInput.value = '';
