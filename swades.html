@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Swades</title>
+    <title>Swades — Autonomous Engineering</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Plus+Jakarta+Sans:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600&family=Space+Grotesk:wght@500;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg-obsidian: #030507;
@@ -31,59 +31,106 @@
         /* Custom scrollbar */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: #52525b; }
+        ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
         
-        .diff-add { background-color: rgba(34, 197, 94, 0.1); color: #4ade80; }
-        .diff-remove { background-color: rgba(239, 68, 68, 0.1); color: #f87171; }
-        .diff-line-number { color: #52525b; padding-right: 1rem; user-select: none; text-align: right; width: 3rem; display: inline-block; }
+        .diff-add { background-color: rgba(34, 197, 94, 0.08); color: #4ade80; }
+        .diff-remove { background-color: rgba(239, 68, 68, 0.08); color: #f87171; }
+        .diff-line-number { color: #52525b; padding-right: 1rem; user-select: none; text-align: right; width: 3rem; display: inline-block; font-size: 11px; }
     </style>
 </head>
-<body>
+<body class="bg-[#030507] text-white select-none">
+
     <!-- Header -->
-    <header class="flex justify-between items-center p-4 border-b border-zinc-800">
-        <div class="text-xl font-bold space-grotesk tracking-tight">Swades</div>
+    <header class="flex justify-between items-center px-6 py-3.5 border-b border-zinc-800/80 bg-[#030507] z-30">
+        <div class="flex items-center gap-3">
+            <a href="swades.html" class="text-xl font-bold space-grotesk tracking-tight text-white hover:text-zinc-300 transition-colors">Swades</a>
+            <span class="text-[10px] text-zinc-500 uppercase tracking-widest font-mono hidden sm:inline-block">Autonomous Agent</span>
+        </div>
+
+        <!-- Top Right: GitHub Profile / Login -->
+        <div id="gh-auth-container" class="flex items-center gap-3">
+            <!-- Logged Out State -->
+            <button id="btn-gh-login" onclick="loginWithGitHub()" class="flex items-center gap-2 text-xs font-mono uppercase tracking-wider border border-zinc-700 hover:border-zinc-400 bg-zinc-900/80 hover:bg-zinc-800 px-3.5 py-1.5 rounded-full transition-all text-zinc-300 hover:text-white shadow-sm">
+                <span>🐙</span>
+                <span>Login with GitHub</span>
+            </button>
+
+            <!-- Logged In State -->
+            <div id="gh-user-menu" class="hidden relative">
+                <button id="btn-user-dropdown" onclick="toggleUserDropdown()" class="flex items-center gap-2.5 text-xs border border-zinc-800 hover:border-zinc-600 bg-zinc-900/90 px-2.5 py-1 rounded-full transition-all text-zinc-200">
+                    <img id="gh-user-avatar" src="" alt="Avatar" class="w-5 h-5 rounded-full object-cover border border-zinc-700">
+                    <span id="gh-user-name" class="font-mono font-medium max-w-[120px] truncate">@user</span>
+                    <span class="text-[10px] text-zinc-500">▾</span>
+                </button>
+                <!-- Dropdown Menu -->
+                <div id="user-dropdown-panel" class="hidden absolute right-0 mt-2 w-48 bg-[#090c10] border border-zinc-800 rounded-lg shadow-2xl py-2 z-50 text-xs font-mono">
+                    <div class="px-3 py-1.5 text-zinc-500 border-b border-zinc-800 text-[11px]" id="dropdown-user-login">Signed in</div>
+                    <button onclick="fetchUserRepositories(true)" class="w-full text-left px-3 py-2 hover:bg-zinc-800 text-zinc-300 flex items-center gap-2">
+                        <span>🔄</span> <span>Refresh Repos</span>
+                    </button>
+                    <button onclick="logoutGitHub()" class="w-full text-left px-3 py-2 hover:bg-zinc-800 text-red-400 flex items-center gap-2 border-t border-zinc-800/80 mt-1">
+                        <span>✕</span> <span>Disconnect</span>
+                    </button>
+                </div>
+            </div>
+        </div>
     </header>
 
     <!-- View 1: Centered Input (Initial State) -->
     <main id="view-initial" class="flex-1 flex flex-col items-center justify-center p-6 w-full max-w-2xl mx-auto transition-all duration-500">
         <div class="w-full relative group flex flex-col items-center">
-            <div class="mb-4">
-                <button id="repo-selector" class="text-sm bg-zinc-900/80 border border-zinc-700 hover:border-zinc-500 px-4 py-2 rounded-full transition-colors flex items-center gap-2 shadow-sm">
-                    <span id="repo-name" class="font-medium">Electroiscoding/xerv</span>
+            
+            <!-- Dynamic Repo Selector Chip -->
+            <div class="mb-4 relative">
+                <button id="repo-selector" onclick="openRepoModal()" type="button" class="text-sm bg-zinc-900/80 border border-zinc-700 hover:border-zinc-400 px-4 py-2 rounded-full transition-colors flex items-center gap-2 shadow-sm text-zinc-200">
+                    <span class="text-xs">📁</span>
+                    <span id="repo-name" class="font-mono font-medium max-w-[320px] truncate">Select Target Repository...</span>
                     <span class="text-xs text-zinc-500">▾</span>
                 </button>
             </div>
+
+            <!-- Task Input Pill -->
             <form id="task-form" class="relative w-full shadow-2xl">
-                <input type="text" id="task-input" placeholder="Write a task..." class="w-full bg-zinc-900 border border-zinc-700 hover:border-zinc-600 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 rounded-xl py-4 pl-6 pr-14 text-lg transition-all placeholder:text-zinc-600 shadow-inner">
-                <button type="submit" class="absolute right-2 top-1/2 -translate-y-1/2 bg-white text-black w-10 h-10 rounded-lg flex items-center justify-center hover:bg-zinc-200 transition-colors shadow">
+                <input type="text" id="task-input" placeholder="Write a task..." class="w-full bg-zinc-900/90 border border-zinc-700 hover:border-zinc-600 focus:border-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-400 rounded-xl py-4 pl-6 pr-14 text-base transition-all placeholder:text-zinc-600 shadow-inner">
+                <button type="submit" id="task-submit-btn" class="absolute right-2 top-1/2 -translate-y-1/2 bg-white text-black w-10 h-10 rounded-lg flex items-center justify-center hover:bg-zinc-200 transition-colors shadow font-bold text-lg">
                     →
                 </button>
             </form>
+
+            <div id="auth-hint" class="mt-3 text-[11px] font-mono text-zinc-500 flex items-center gap-1.5">
+                <span>🔒</span>
+                <span id="auth-hint-text">GitHub login required to run autonomous tasks</span>
+            </div>
         </div>
     </main>
 
     <!-- View 2: Split Screen (Running State) -->
     <main id="view-running" class="hidden flex-1 flex overflow-hidden">
         <!-- Left Panel: Timeline & Chat -->
-        <section class="w-1/3 min-w-[320px] max-w-[480px] border-r border-zinc-800 flex flex-col bg-[#050709]">
-            <div class="p-4 border-b border-zinc-800 bg-zinc-900/30">
-                <h2 id="running-task-title" class="font-medium text-sm text-zinc-300 truncate">Task Title</h2>
-                <div class="text-xs text-zinc-500 mt-2 flex items-center gap-2">
+        <section class="w-1/3 min-w-[340px] max-w-[480px] border-r border-zinc-800 flex flex-col bg-[#050709]">
+            <div class="p-4 border-b border-zinc-800 bg-zinc-900/30 flex justify-between items-center">
+                <div class="overflow-hidden">
+                    <h2 id="running-task-title" class="font-medium text-sm text-zinc-200 truncate">Task Title</h2>
+                    <div class="text-[11px] font-mono text-zinc-500 mt-1 flex items-center gap-1.5">
+                        <span id="running-repo-badge" class="truncate max-w-[200px] text-zinc-400">repo</span>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
                     <span class="w-2 h-2 rounded-full bg-zinc-400 animate-pulse" id="status-indicator"></span>
-                    <span id="running-status" class="uppercase tracking-wider font-semibold">Running...</span>
+                    <span id="running-status" class="uppercase tracking-wider font-semibold text-xs text-zinc-400 font-mono">Running</span>
                 </div>
             </div>
             
             <div id="timeline-feed" class="flex-1 overflow-y-auto p-4 space-y-3">
-                <!-- Timeline items go here -->
+                <!-- Live Timeline events go here -->
             </div>
 
             <div class="p-4 border-t border-zinc-800 bg-[#030507]">
                 <form id="followup-form" class="relative">
-                    <button type="button" class="absolute left-2 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white w-6 h-6 flex items-center justify-center font-mono">+</button>
-                    <input type="text" id="followup-input" placeholder="Talk to Swades" class="w-full bg-zinc-900/80 border border-zinc-800 rounded-md py-2.5 pl-10 pr-10 text-sm focus:outline-none focus:border-zinc-600 transition-colors placeholder:text-zinc-600">
-                    <button type="submit" class="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white w-6 h-6 flex items-center justify-center">→</button>
+                    <button type="button" class="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white w-6 h-6 flex items-center justify-center font-mono text-sm">+</button>
+                    <input type="text" id="followup-input" placeholder="Talk to Swades" class="w-full bg-zinc-900/80 border border-zinc-800 rounded-md py-2.5 pl-10 pr-10 text-sm focus:outline-none focus:border-zinc-600 transition-colors placeholder:text-zinc-600 font-body">
+                    <button type="submit" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white w-6 h-6 flex items-center justify-center font-mono">→</button>
                 </form>
             </div>
         </section>
@@ -92,32 +139,65 @@
         <section class="flex-1 flex flex-col bg-[#080a0c]">
             <div class="flex justify-between items-center p-3 border-b border-zinc-800 bg-zinc-900/20 text-sm">
                 <div class="flex items-center gap-2">
-                    <span class="bg-zinc-800/80 px-3 py-1 rounded-sm border border-zinc-700/50 text-xs mono text-zinc-300" id="diff-file-name">Waiting...</span>
+                    <span class="bg-zinc-800/80 px-3 py-1 rounded-sm border border-zinc-700/50 text-xs mono text-zinc-300" id="diff-file-name">Awaiting Changes</span>
+                    <span id="diff-stats" class="text-xs font-mono text-zinc-500"></span>
                 </div>
-                <div class="flex items-center gap-4 text-xs font-medium">
-                    <button class="text-zinc-500 hover:text-zinc-300 flex items-center gap-1 transition-colors"><span class="text-sm">📥</span> Download zip</button>
-                    <button class="text-zinc-500 hover:text-zinc-300 transition-colors">Collapse all</button>
-                    <button class="text-zinc-400 hover:text-white border border-zinc-700 bg-zinc-900/50 px-3 py-1 rounded transition-colors flex items-center gap-1">Stacked ▾</button>
+                <div class="flex items-center gap-3 text-xs font-medium">
+                    <button onclick="collapseAllDiffs()" class="text-zinc-500 hover:text-zinc-300 transition-colors">Collapse all</button>
+                    <div class="text-zinc-500 border border-zinc-800 px-2.5 py-1 rounded font-mono text-[11px]">Live Review</div>
                 </div>
             </div>
             <div id="diff-viewer" class="flex-1 overflow-auto p-4 mono text-[13px] leading-relaxed whitespace-pre font-mono">
-                <div class="text-zinc-600 italic mt-10 text-center space-grotesk">Awaiting file changes...</div>
+                <div class="text-zinc-600 italic mt-20 text-center space-grotesk text-sm">Awaiting file changes...</div>
             </div>
-            <div id="pr-action-container" class="hidden p-4 border-t border-zinc-800 bg-zinc-900/30 flex justify-end">
-                 <button id="pr-btn" class="bg-white text-black px-5 py-2.5 rounded font-bold hover:bg-zinc-200 transition-colors text-sm shadow flex items-center gap-2">
-                     <span>🚀</span> View Pull Request
-                 </button>
+            <div id="pr-action-container" class="hidden p-3.5 border-t border-zinc-800 bg-zinc-900/40 flex justify-between items-center">
+                 <div class="text-xs font-mono text-emerald-400 flex items-center gap-1.5">
+                     <span>✓</span> <span>Autonomous edits verified & committed</span>
+                 </div>
+                 <a id="pr-btn" href="#" target="_blank" class="bg-white text-black px-4 py-2 rounded font-bold hover:bg-zinc-200 transition-colors text-xs font-mono shadow flex items-center gap-1.5 no-underline">
+                     <span>🚀</span> View Pull Request ↗
+                 </a>
             </div>
         </section>
     </main>
 
+    <!-- Interactive Repository Selection Modal -->
+    <div id="repo-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-[#090c10] border border-zinc-800 rounded-xl w-full max-w-lg overflow-hidden shadow-2xl flex flex-col max-h-[80vh]">
+            <div class="p-4 border-b border-zinc-800 flex justify-between items-center">
+                <div class="font-bold space-grotesk text-sm text-zinc-200 flex items-center gap-2">
+                    <span>📁</span> <span>Select GitHub Repository</span>
+                </div>
+                <button onclick="closeRepoModal()" class="text-zinc-500 hover:text-white font-mono text-sm px-2">✕</button>
+            </div>
+            <div class="p-3 border-b border-zinc-800 bg-zinc-900/40">
+                <input type="text" id="repo-search-input" oninput="filterRepos()" placeholder="Search your repos or type owner/repo..." class="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-500 font-mono">
+            </div>
+            <div id="repo-list" class="flex-1 overflow-y-auto p-2 space-y-1">
+                <!-- Repositories populated dynamically -->
+            </div>
+            <div class="p-3 border-t border-zinc-800 bg-[#050709] flex justify-between items-center">
+                <span class="text-[11px] text-zinc-500 font-mono" id="repo-modal-status">Sign in to load your private & public repositories</span>
+                <button onclick="useCustomRepoInput()" class="text-xs text-zinc-300 hover:text-white bg-zinc-800 hover:bg-zinc-700 px-3 py-1.5 rounded font-mono transition-colors">Use Typed Repo</button>
+            </div>
+        </div>
+    </div>
+
     <script>
-        const BASE_ENDPOINT = '';
-        
+        const BASE_ENDPOINT = window.location.origin;
+        let authData = null;
+        let userRepos = [];
+        let selectedRepo = localStorage.getItem('swades_selected_repo') || '';
+        let currentTaskId = null;
+
+        // --- Fetch Wrapper ---
         async function nuclearFetch(url, options = {}) {
             try {
                 const response = await fetch(url, options);
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                if (!response.ok) {
+                    const errData = await response.json().catch(() => ({}));
+                    throw new Error(errData.error || errData.message || `HTTP ${response.status}`);
+                }
                 return await response.json();
             } catch (e) {
                 console.error("Fetch failed:", e);
@@ -125,46 +205,296 @@
             }
         }
 
+        // --- GitHub Authentication Handlers ---
+        function initAuth() {
+            // 1. Check URL parameters for OAuth code
+            const params = new URLSearchParams(window.location.search);
+            const code = params.get('code');
+            if (code) {
+                exchangeCode(code);
+                window.history.replaceState({}, document.title, window.location.pathname);
+            } else {
+                // 2. Check localStorage
+                const saved = localStorage.getItem('swades_gh_auth');
+                if (saved) {
+                    try {
+                        authData = JSON.parse(saved);
+                        renderAuthUI();
+                        fetchUserRepositories();
+                    } catch (e) {}
+                }
+            }
+
+            // 3. Listen for OAuth popup message
+            window.addEventListener('message', (event) => {
+                if (event.data && (event.data.type === 'GITHUB_AUTH' || event.data.type === 'SWADES_GITHUB_AUTH')) {
+                    authData = event.data.auth;
+                    localStorage.setItem('swades_gh_auth', JSON.stringify(authData));
+                    renderAuthUI();
+                    fetchUserRepositories();
+                }
+            });
+
+            // Update repo selector button with saved repo
+            if (selectedRepo) {
+                document.getElementById('repo-name').innerText = selectedRepo.replace(/^https:\/\/github\.com\//, '');
+            }
+        }
+
+        async function exchangeCode(code) {
+            try {
+                const res = await nuclearFetch(`${BASE_ENDPOINT}/auth/github/exchange`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code: code })
+                });
+                if (res && res.token) {
+                    authData = res;
+                    localStorage.setItem('swades_gh_auth', JSON.stringify(authData));
+                    renderAuthUI();
+                    fetchUserRepositories();
+                }
+            } catch (e) {
+                console.error("Token exchange failed", e);
+            }
+        }
+
+        function renderAuthUI() {
+            const btnLogin = document.getElementById('btn-gh-login');
+            const userMenu = document.getElementById('gh-user-menu');
+            const userAvatar = document.getElementById('gh-user-avatar');
+            const userName = document.getElementById('gh-user-name');
+            const dropdownLogin = document.getElementById('dropdown-user-login');
+            const authHint = document.getElementById('auth-hint');
+            const taskInput = document.getElementById('task-input');
+
+            if (authData && authData.token) {
+                btnLogin.classList.add('hidden');
+                userMenu.classList.remove('hidden');
+                if (authData.avatar) userAvatar.src = authData.avatar;
+                userName.innerText = `@${authData.username || 'user'}`;
+                dropdownLogin.innerText = `Signed in as @${authData.username || 'user'}`;
+                authHint.classList.add('hidden');
+                taskInput.placeholder = selectedRepo ? `Write a task for ${selectedRepo.replace(/^https:\/\/github\.com\//, '')}...` : "Write a task...";
+            } else {
+                btnLogin.classList.remove('hidden');
+                userMenu.classList.add('hidden');
+                authHint.classList.remove('hidden');
+                taskInput.placeholder = "Login with GitHub to start talking with Swades...";
+            }
+        }
+
+        function loginWithGitHub() {
+            const authUrl = `${BASE_ENDPOINT}/auth/github/login`;
+            const width = 600, height = 700;
+            const left = window.screenLeft + (window.innerWidth - width) / 2;
+            const top = window.screenTop + (window.innerHeight - height) / 2;
+            window.open(authUrl, "GitHubAuth", `width=${width},height=${height},top=${top},left=${left},status=no,resizable=yes`);
+        }
+
+        function logoutGitHub() {
+            authData = null;
+            localStorage.removeItem('swades_gh_auth');
+            renderAuthUI();
+            toggleUserDropdown(false);
+            userRepos = [];
+            renderRepoList([]);
+        }
+
+        function toggleUserDropdown(forceState = null) {
+            const panel = document.getElementById('user-dropdown-panel');
+            if (forceState !== null) {
+                panel.classList.toggle('hidden', !forceState);
+            } else {
+                panel.classList.toggle('hidden');
+            }
+        }
+
+        // Close dropdown when clicking outside
+        window.addEventListener('click', (e) => {
+            const userMenu = document.getElementById('gh-user-menu');
+            if (userMenu && !userMenu.contains(e.target)) {
+                toggleUserDropdown(false);
+            }
+        });
+
+        // --- Repository Loading & Selection ---
+        async function fetchUserRepositories(force = false) {
+            if (!authData || !authData.token) return;
+            const statusLabel = document.getElementById('repo-modal-status');
+            statusLabel.innerText = "Fetching repositories from GitHub...";
+
+            try {
+                // Fetch directly from GitHub API using the user OAuth token
+                let repos = [];
+                const ghRes = await fetch("https://api.github.com/user/repos?per_page=100&sort=updated", {
+                    headers: {
+                        "Authorization": `Bearer ${authData.token}`,
+                        "Accept": "application/vnd.github.v3+json"
+                    }
+                });
+
+                if (ghRes.ok) {
+                    repos = await ghRes.json();
+                } else {
+                    // Fallback to gateway proxy
+                    const res = await nuclearFetch(`${BASE_ENDPOINT}/auth/github/user-repos`, {
+                        headers: { "Authorization": `Bearer ${authData.token}` }
+                    });
+                    if (Array.isArray(res)) repos = res;
+                }
+
+                if (Array.isArray(repos) && repos.length > 0) {
+                    userRepos = repos;
+                    renderRepoList(userRepos);
+                    statusLabel.innerText = `${userRepos.length} repositories loaded`;
+
+                    // Default select first repository if none selected yet
+                    if (!selectedRepo) {
+                        selectRepo(repos[0].full_name || repos[0].name);
+                    }
+                }
+            } catch (err) {
+                statusLabel.innerText = "Could not load repos. You can type any repository above.";
+                console.warn("Repo fetch warning:", err);
+            }
+        }
+
+        function openRepoModal() {
+            document.getElementById('repo-modal').classList.remove('hidden');
+            document.getElementById('repo-search-input').focus();
+            if (userRepos.length === 0 && authData && authData.token) {
+                fetchUserRepositories();
+            } else if (userRepos.length > 0) {
+                renderRepoList(userRepos);
+            }
+        }
+
+        function closeRepoModal() {
+            document.getElementById('repo-modal').classList.add('hidden');
+        }
+
+        function renderRepoList(repos) {
+            const list = document.getElementById('repo-list');
+            list.innerHTML = '';
+
+            if (!repos || repos.length === 0) {
+                list.innerHTML = '<div class="text-zinc-600 text-xs p-4 text-center font-mono">No repositories found. Type any repository URL above.</div>';
+                return;
+            }
+
+            repos.forEach(repo => {
+                const item = document.createElement('div');
+                item.className = 'flex justify-between items-center p-2.5 hover:bg-zinc-800/60 rounded-lg cursor-pointer transition-colors';
+                const fullName = repo.full_name || repo.name;
+                const isPrivate = repo.private ? '🔒' : '🌐';
+                
+                item.innerHTML = `
+                    <div class="overflow-hidden pr-2">
+                        <div class="font-mono text-xs text-zinc-200 font-semibold truncate flex items-center gap-1.5">
+                            <span>${isPrivate}</span>
+                            <span>${fullName}</span>
+                        </div>
+                        <div class="text-[11px] text-zinc-500 truncate mt-0.5">${repo.description || 'No description'}</div>
+                    </div>
+                    <span class="text-[10px] font-mono text-zinc-500 bg-zinc-800 px-2 py-0.5 rounded flex-shrink-0">Select</span>
+                `;
+                item.onclick = () => selectRepo(fullName);
+                list.appendChild(item);
+            });
+        }
+
+        function filterRepos() {
+            const q = document.getElementById('repo-search-input').value.trim().toLowerCase();
+            if (!q) {
+                renderRepoList(userRepos);
+                return;
+            }
+            const filtered = userRepos.filter(r => (r.full_name || r.name).toLowerCase().includes(q));
+            renderRepoList(filtered);
+        }
+
+        function useCustomRepoInput() {
+            const input = document.getElementById('repo-search-input').value.trim();
+            if (input) {
+                selectRepo(input);
+            }
+        }
+
+        function selectRepo(repoFullName) {
+            let clean = repoFullName.replace(/^https:\/\/github\.com\//, '').replace(/\/+$/, '');
+            selectedRepo = `https://github.com/${clean}`;
+            localStorage.setItem('swades_selected_repo', selectedRepo);
+            document.getElementById('repo-name').innerText = clean;
+            closeRepoModal();
+            renderAuthUI();
+        }
+
+        // --- Task Execution ---
         const initialView = document.getElementById('view-initial');
         const runningView = document.getElementById('view-running');
         const taskForm = document.getElementById('task-form');
         const taskInput = document.getElementById('task-input');
-        const repoNameSpan = document.getElementById('repo-name');
         
         const timelineFeed = document.getElementById('timeline-feed');
         const diffViewer = document.getElementById('diff-viewer');
         const diffFileName = document.getElementById('diff-file-name');
+        const diffStats = document.getElementById('diff-stats');
         const runningTaskTitle = document.getElementById('running-task-title');
+        const runningRepoBadge = document.getElementById('running-repo-badge');
         const runningStatus = document.getElementById('running-status');
         const statusIndicator = document.getElementById('status-indicator');
 
-        let currentTaskId = null;
+        // Gating: Clicking task input triggers login if not authenticated
+        taskInput.addEventListener('focus', () => {
+            if (!authData || !authData.token) {
+                loginWithGitHub();
+            }
+        });
 
         taskForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+
+            // Gating Rule: Login required to start talking with Swades
+            if (!authData || !authData.token) {
+                loginWithGitHub();
+                return;
+            }
+
             const task = taskInput.value.trim();
-            const repoUrl = `https://github.com/${repoNameSpan.innerText}`;
             if (!task) return;
+
+            if (!selectedRepo) {
+                openRepoModal();
+                return;
+            }
 
             initialView.classList.add('hidden');
             runningView.classList.remove('hidden');
             runningTaskTitle.innerText = task;
+            runningRepoBadge.innerText = selectedRepo.replace(/^https:\/\/github\.com\//, '');
             
-            addTimelineCard('Initializing', 'Analyzing request...', 'loading');
+            addTimelineCard('Initializing', 'Connecting to Swades Autonomous Agent in Docker container...', 'loading');
 
             try {
                 const res = await nuclearFetch(`${BASE_ENDPOINT}/v1/agent/submit`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ repo_url: repoUrl, task: task })
+                    body: JSON.stringify({
+                        repo_url: selectedRepo,
+                        task: task,
+                        github_token: authData.token
+                    })
                 });
                 
-                if (res.id) {
-                    currentTaskId = res.id;
-                    startStreaming(res.id);
+                const jobId = res.job_id || res.id;
+                if (jobId) {
+                    currentTaskId = jobId;
+                    addTimelineCard('Agent Dispatched', `Job #${jobId.substring(0, 8)} running in isolated container space`, 'default');
+                    startStreaming(jobId);
                 }
             } catch (err) {
-                addTimelineCard('Failed', err.message, 'error');
+                addTimelineCard('Execution Error', err.message, 'error');
                 updateStatus('Error', 'error');
             }
         });
@@ -173,67 +503,78 @@
             runningStatus.innerText = text;
             statusIndicator.className = 'w-2 h-2 rounded-full ' + 
                 (state === 'error' ? 'bg-red-500' : 
-                 state === 'success' ? 'bg-green-500' : 'bg-zinc-400 animate-pulse');
+                 state === 'success' ? 'bg-emerald-500' : 'bg-zinc-400 animate-pulse');
         }
 
         function addTimelineCard(title, description, status = 'default') {
             const card = document.createElement('div');
-            card.className = 'border border-zinc-800 rounded-md p-3 bg-zinc-900/40 text-sm shadow-sm transition-all hover:bg-zinc-900/60';
+            card.className = 'border border-zinc-800/90 rounded-lg p-3 bg-zinc-900/40 text-sm shadow-sm transition-all hover:bg-zinc-900/70';
             
-            let icon = '<span class="w-1.5 h-1.5 rounded-full bg-zinc-600 inline-block mr-2"></span>';
-            if (status === 'loading') icon = '<span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse inline-block mr-2"></span>';
-            else if (status === 'success') icon = '<span class="w-1.5 h-1.5 rounded-full bg-green-500 inline-block mr-2"></span>';
-            else if (status === 'error') icon = '<span class="w-1.5 h-1.5 rounded-full bg-red-500 inline-block mr-2"></span>';
+            let icon = '<span class="w-1.5 h-1.5 rounded-full bg-zinc-500 inline-block mr-2"></span>';
+            if (status === 'loading') icon = '<span class="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse inline-block mr-2"></span>';
+            else if (status === 'success') icon = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block mr-2"></span>';
+            else if (status === 'error') icon = '<span class="w-1.5 h-1.5 rounded-full bg-red-400 inline-block mr-2"></span>';
 
             card.innerHTML = `
-                <div class="flex items-center font-medium mb-1.5 ${status === 'error' ? 'text-red-400' : 'text-zinc-200'} text-[13px]">
+                <div class="flex items-center font-medium mb-1 ${status === 'error' ? 'text-red-400' : 'text-zinc-200'} text-[13px] font-mono">
                     ${icon} ${title}
                 </div>
-                <div class="text-zinc-500 text-xs leading-relaxed ml-3.5">${description}</div>
+                <div class="text-zinc-400 text-xs leading-relaxed ml-3.5 font-body">${description}</div>
             `;
             timelineFeed.appendChild(card);
             timelineFeed.scrollTop = timelineFeed.scrollHeight;
         }
 
-        function renderDiff(diffText, fileName) {
-            diffFileName.innerHTML = `${fileName} <span class="text-green-400 ml-2">+</span> <span class="text-red-400 ml-1">-</span>`;
+        function renderDiff(diffText, fileName = 'Modified Files') {
+            diffFileName.innerText = fileName;
             diffViewer.innerHTML = '';
             
-            const lines = diffText.split('\\n');
+            let adds = 0, dels = 0;
+            const lines = (diffText || '').split('\n');
+            
             lines.forEach((line, index) => {
                 const lineDiv = document.createElement('div');
                 lineDiv.className = 'flex';
                 
                 const lineNum = document.createElement('span');
-                lineNum.className = 'diff-line-number opacity-50';
+                lineNum.className = 'diff-line-number';
                 lineNum.innerText = index + 1;
                 
                 const contentSpan = document.createElement('span');
-                contentSpan.className = 'flex-1 pl-4';
+                contentSpan.className = 'flex-1 pl-3';
                 contentSpan.innerText = line;
 
                 lineDiv.appendChild(lineNum);
                 lineDiv.appendChild(contentSpan);
 
-                if (line.startsWith('+')) {
+                if (line.startsWith('+') && !line.startsWith('+++')) {
                     lineDiv.classList.add('diff-add');
-                } else if (line.startsWith('-')) {
+                    adds++;
+                } else if (line.startsWith('-') && !line.startsWith('---')) {
                     lineDiv.classList.add('diff-remove');
+                    dels++;
                 } else {
                     lineDiv.classList.add('text-zinc-400');
-                    lineDiv.classList.add('hover:bg-zinc-900/30');
                 }
                 
                 diffViewer.appendChild(lineDiv);
             });
+
+            diffStats.innerHTML = `<span class="text-emerald-400">+${adds}</span> <span class="text-red-400 ml-1">-${dels}</span>`;
+        }
+
+        function collapseAllDiffs() {
+            diffViewer.classList.toggle('hidden');
         }
 
         async function startStreaming(id) {
             try {
                 const eventSource = new EventSource(`${BASE_ENDPOINT}/v1/agent/stream/${id}`);
                 eventSource.onmessage = (event) => {
-                    const data = JSON.parse(event.data);
-                    handleEvent(data);
+                    try {
+                        const data = JSON.parse(event.data);
+                        handleEvent(data);
+                    } catch (e) {}
                 };
                 eventSource.onerror = () => {
                     pollLogs(id);
@@ -248,33 +589,87 @@
             const interval = setInterval(async () => {
                 try {
                     const data = await nuclearFetch(`${BASE_ENDPOINT}/v1/agent/logs/${id}`);
-                    if (data && data.events) {
-                        data.events.forEach(handleEvent);
+                    if (data && data.logs && Array.isArray(data.logs)) {
+                        data.logs.forEach(handleEvent);
                     }
-                    if (data && data.status === 'completed') {
-                        clearInterval(interval);
-                        updateStatus('Completed', 'success');
-                        addTimelineCard('Ready for review 🎉', 'Changes have been applied.', 'success');
-                        document.getElementById('pr-action-container').classList.remove('hidden');
-                        document.getElementById('pr-btn').innerHTML = `🚀 View Pull Request #${data.pr_number || ''}`;
+                    if (data && data.job) {
+                        updateStatus(data.job.status, data.job.status === 'COMPLETED' ? 'success' : (data.job.status === 'FAILED' ? 'error' : 'loading'));
+                        if (data.job.status === 'COMPLETED') {
+                            clearInterval(interval);
+                            addTimelineCard('Ready for review 🎉', 'All autonomous steps completed and verified.', 'success');
+                            if (data.job.pr_url) {
+                                document.getElementById('pr-action-container').classList.remove('hidden');
+                                document.getElementById('pr-btn').href = data.job.pr_url;
+                                document.getElementById('pr-btn').innerHTML = `<span>🚀</span> View Pull Request #${data.job.pr_number || ''} ↗`;
+                            }
+                        }
                     }
-                } catch (e) {
-                    console.error("Polling error", e);
-                }
+                } catch (e) {}
             }, 2000);
         }
 
-        function handleEvent(data) {
-            if (data.type === 'action') {
-                addTimelineCard(data.title || 'Action', data.description || 'Running tool...', 'success');
-            } else if (data.type === 'diff_update') {
-                renderDiff(data.diff, data.file);
-            } else if (data.type === 'verification') {
-                addTimelineCard('Verification', data.message || 'Running checks...', 'loading');
-            } else if (data.type === 'status') {
-                updateStatus(data.message, 'loading');
+        function handleEvent(log) {
+            const type = (log.type || '').toLowerCase();
+            const data = log.data;
+            
+            if (type === 'status') {
+                const text = typeof data === 'string' ? data : (data?.data || JSON.stringify(data));
+                addTimelineCard('Status', text, 'default');
+            } else if (type === 'thinking') {
+                const text = typeof data === 'string' ? data : (data?.data || JSON.stringify(data));
+                addTimelineCard('Reasoning', text, 'default');
+            } else if (type === 'tool_start') {
+                const tool = data?.tool || 'Tool';
+                const args = data?.args ? (data.args.path || data.args.command || JSON.stringify(data.args)) : '';
+                addTimelineCard(`Tool: ${tool}`, args, 'loading');
+            } else if (type === 'tool_end') {
+                addTimelineCard('Tool Output', typeof data?.result === 'string' ? data.result.substring(0, 140) : 'Completed', 'success');
+            } else if (type === 'diff_update') {
+                renderDiff(data?.diff || data, data?.file || 'Modified Code');
+            } else if (type === 'verification') {
+                const passed = data?.passed !== false;
+                addTimelineCard('Self-Verification', passed ? 'Code verification and syntax tests passed.' : `Validation notice: ${data?.message || 'Retrying repair...'}`, passed ? 'success' : 'loading');
+                if (data?.diff) renderDiff(data.diff);
+            } else if (type === 'model_fallback') {
+                addTimelineCard('Model Fallback', data?.message || 'Failing over to next OpenRouter model in chain...', 'loading');
+            } else if (type === 'pr_opened') {
+                document.getElementById('pr-action-container').classList.remove('hidden');
+                document.getElementById('pr-btn').href = data?.pr_url || '#';
+                document.getElementById('pr-btn').innerHTML = `<span>🚀</span> View Pull Request #${data?.pr_number || ''} ↗`;
+                addTimelineCard('Pull Request Opened', data?.pr_url || 'Pull Request active', 'success');
+            } else if (type === 'error') {
+                addTimelineCard('Error', typeof data === 'string' ? data : (data?.error || JSON.stringify(data)), 'error');
             }
         }
+
+        // --- Follow-up Messages ---
+        document.getElementById('followup-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const input = document.getElementById('followup-input');
+            const msg = input.value.trim();
+            if (!msg || !currentTaskId) return;
+            input.value = '';
+
+            addTimelineCard('You', msg, 'default');
+
+            try {
+                await nuclearFetch(`${BASE_ENDPOINT}/v1/agent/message`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        job_id: currentTaskId,
+                        message: msg,
+                        repo_url: selectedRepo,
+                        github_token: authData?.token
+                    })
+                });
+            } catch (err) {
+                addTimelineCard('Error', `Could not send follow-up: ${err.message}`, 'error');
+            }
+        });
+
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', initAuth);
     </script>
 </body>
 </html>
