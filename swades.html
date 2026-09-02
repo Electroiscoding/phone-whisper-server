@@ -513,23 +513,77 @@
                  state === 'success' ? 'bg-emerald-500' : 'bg-zinc-400 animate-pulse');
         }
 
-        function addTimelineCard(title, description, status = 'default') {
+        function addTimelineCard(title, description, status = 'default', rawDetails = null) {
             const card = document.createElement('div');
-            card.className = 'border border-zinc-800/90 rounded-lg p-3 bg-zinc-900/40 text-sm shadow-sm transition-all hover:bg-zinc-900/70';
+            card.className = 'border border-zinc-800/90 rounded-lg p-3 bg-zinc-900/40 text-sm shadow-sm transition-all hover:bg-zinc-900/70 relative';
             
             let icon = '<span class="w-1.5 h-1.5 rounded-full bg-zinc-500 inline-block mr-2"></span>';
             if (status === 'loading') icon = '<span class="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse inline-block mr-2"></span>';
             else if (status === 'success') icon = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block mr-2"></span>';
             else if (status === 'error') icon = '<span class="w-1.5 h-1.5 rounded-full bg-red-400 inline-block mr-2"></span>';
+            else if (status === 'warning') icon = '<span class="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block mr-2"></span>';
+
+            // Generate interactive dropdown button for raw AI output/trace
+            let dropdownHtml = '';
+            let rawStr = '';
+            if (rawDetails !== null && rawDetails !== undefined) {
+                rawStr = typeof rawDetails === 'object' ? JSON.stringify(rawDetails, null, 2) : String(rawDetails);
+            } else if (description && description.length > 50) {
+                rawStr = description;
+            }
+
+            if (rawStr) {
+                const safeContent = rawStr.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                dropdownHtml = `
+                    <div class="mt-2 pt-1.5 border-t border-zinc-800/60">
+                        <button type="button" onclick="toggleCardDetails(this)" class="flex items-center gap-1.5 text-[11px] font-mono text-zinc-400 hover:text-white bg-zinc-800/50 hover:bg-zinc-800 border border-zinc-700/60 px-2 py-0.5 rounded transition-all">
+                            <span class="chevron text-[9px]">▾</span>
+                            <span class="btn-label">AI Output / Details</span>
+                        </button>
+                        <div class="details-panel hidden mt-2 p-2.5 rounded bg-[#020406] border border-zinc-800 text-xs font-mono text-zinc-300 whitespace-pre-wrap select-text max-h-60 overflow-y-auto leading-relaxed">
+                            <div class="flex justify-between items-center mb-1 pb-1 border-b border-zinc-800 text-[10px] text-zinc-500 font-mono">
+                                <span>RAW AI TRACE</span>
+                                <button type="button" onclick="copyCardTrace(this)" class="hover:text-white transition-colors cursor-pointer">Copy</button>
+                            </div>
+                            <div class="trace-body">${safeContent}</div>
+                        </div>
+                    </div>
+                `;
+            }
 
             card.innerHTML = `
-                <div class="flex items-center font-medium mb-1 ${status === 'error' ? 'text-red-400' : 'text-zinc-200'} text-[13px] font-mono">
+                <div class="flex items-center font-medium mb-1 ${status === 'error' ? 'text-red-400' : (status === 'warning' ? 'text-amber-400' : 'text-zinc-200')} text-[13px] font-mono">
                     ${icon} ${title}
                 </div>
                 <div class="text-zinc-400 text-xs leading-relaxed ml-3.5 font-body">${description}</div>
+                ${dropdownHtml}
             `;
             timelineFeed.appendChild(card);
             timelineFeed.scrollTop = timelineFeed.scrollHeight;
+        }
+
+        function toggleCardDetails(btn) {
+            const panel = btn.parentElement.querySelector('.details-panel');
+            const chevron = btn.querySelector('.chevron');
+            const label = btn.querySelector('.btn-label');
+            if (panel.classList.contains('hidden')) {
+                panel.classList.remove('hidden');
+                chevron.innerText = '▴';
+                label.innerText = 'Hide Output';
+            } else {
+                panel.classList.add('hidden');
+                chevron.innerText = '▾';
+                label.innerText = 'AI Output / Details';
+            }
+        }
+
+        function copyCardTrace(btn) {
+            const trace = btn.parentElement.parentElement.querySelector('.trace-body').innerText;
+            navigator.clipboard.writeText(trace).then(() => {
+                const orig = btn.innerText;
+                btn.innerText = 'Copied!';
+                setTimeout(() => btn.innerText = orig, 1500);
+            });
         }
 
         function renderDiff(diffText, fileName = 'Modified Files') {
@@ -611,7 +665,9 @@
                             }
                         }
                     }
-                } catch (e) {}
+                } catch (e) {
+                    console.error("❌ [Swades Poll Error]:", e);
+                }
             }, 2000);
         }
 
@@ -619,33 +675,59 @@
             const type = (log.type || '').toLowerCase();
             const data = log.data;
             
+            // 🖥️ Console logging
+            console.log(`🤖 [Swades Event: ${type}]`, data);
+
+            // Report model switches in console as requested
+            if (type === 'model_fallback' || (type === 'status' && String(data).toLowerCase().includes('fallback'))) {
+                console.warn(`🔄 [Swades Model Switch]:`, {
+                    timestamp: new Date().toISOString(),
+                    event: log,
+                    notice: data?.message || data || "Failing over to next OpenRouter model in fallback cycle"
+                });
+            }
+
+            // Report any errors in console as requested
+            if (type === 'error' || log.error) {
+                console.error(`❌ [Swades Agent Error]:`, {
+                    timestamp: new Date().toISOString(),
+                    event: log,
+                    error: data?.error || data?.message || data || "An error occurred during agent execution"
+                });
+            }
+
             if (type === 'status') {
-                const text = typeof data === 'string' ? data : (data?.data || JSON.stringify(data));
-                addTimelineCard('Status', text, 'default');
+                const text = typeof data === 'string' ? data : (data?.message || data?.data || JSON.stringify(data));
+                addTimelineCard('Status', text, 'default', data);
             } else if (type === 'thinking') {
-                const text = typeof data === 'string' ? data : (data?.data || JSON.stringify(data));
-                addTimelineCard('Reasoning', text, 'default');
+                const text = typeof data === 'string' ? data : (data?.message || data?.data || JSON.stringify(data));
+                const summary = text.length > 100 ? text.substring(0, 100) + '...' : text;
+                addTimelineCard('AI Reasoning', summary, 'default', text);
             } else if (type === 'tool_start') {
                 const tool = data?.tool || 'Tool';
                 const args = data?.args ? (data.args.path || data.args.command || JSON.stringify(data.args)) : '';
-                addTimelineCard(`Tool: ${tool}`, args, 'loading');
+                addTimelineCard(`Tool: ${tool}`, args, 'loading', data?.args || data);
             } else if (type === 'tool_end') {
-                addTimelineCard('Tool Output', typeof data?.result === 'string' ? data.result.substring(0, 140) : 'Completed', 'success');
+                const resStr = typeof data?.result === 'string' ? data.result : JSON.stringify(data?.result || data);
+                addTimelineCard('Tool Output', resStr.substring(0, 100) + (resStr.length > 100 ? '...' : ''), 'success', resStr);
             } else if (type === 'diff_update') {
                 renderDiff(data?.diff || data, data?.file || 'Modified Code');
+                addTimelineCard('Diff Generated', `Modified ${data?.file || 'code files'}`, 'success', data?.diff || data);
             } else if (type === 'verification') {
                 const passed = data?.passed !== false;
-                addTimelineCard('Self-Verification', passed ? 'Code verification and syntax tests passed.' : `Validation notice: ${data?.message || 'Retrying repair...'}`, passed ? 'success' : 'loading');
+                addTimelineCard('Self-Verification', passed ? 'Code verification and syntax tests passed.' : `Validation notice: ${data?.message || data?.error || 'Retrying repair...'}`, passed ? 'success' : 'loading', data);
                 if (data?.diff) renderDiff(data.diff);
             } else if (type === 'model_fallback') {
-                addTimelineCard('Model Fallback', data?.message || 'Failing over to next OpenRouter model in chain...', 'loading');
+                const fallbackMsg = data?.message || 'Failing over to next OpenRouter model in chain...';
+                addTimelineCard('Model Fallback', fallbackMsg, 'warning', data);
             } else if (type === 'pr_opened') {
                 document.getElementById('pr-action-container').classList.remove('hidden');
                 document.getElementById('pr-btn').href = data?.pr_url || '#';
                 document.getElementById('pr-btn').innerHTML = `<span>🚀</span> View Pull Request #${data?.pr_number || ''} ↗`;
-                addTimelineCard('Pull Request Opened', data?.pr_url || 'Pull Request active', 'success');
+                addTimelineCard('Pull Request Opened', data?.pr_url || 'Pull Request active', 'success', data);
             } else if (type === 'error') {
-                addTimelineCard('Error', typeof data === 'string' ? data : (data?.error || JSON.stringify(data)), 'error');
+                const errStr = typeof data === 'string' ? data : (data?.error || data?.message || JSON.stringify(data));
+                addTimelineCard('Error', errStr, 'error', data);
             }
         }
 
