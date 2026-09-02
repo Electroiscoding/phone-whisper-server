@@ -202,17 +202,49 @@
         let selectedRepo = localStorage.getItem('swades_selected_repo') || '';
         let currentTaskId = null;
 
-        // --- Fetch Wrapper ---
+        // --- Fetch Wrapper with Multi-Path Tunnel Failover ---
+        let directTunnelUrl = null;
+
+        async function resolveDirectTunnel() {
+            try {
+                const res = await fetch(`https://raw.githubusercontent.com/Electroiscoding/phone-whisper-server/main/endpoint.json?_t=${Date.now()}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.endpoint && data.endpoint.startsWith('https://')) {
+                        directTunnelUrl = data.endpoint.replace(/\/+$/, '');
+                        return directTunnelUrl;
+                    }
+                }
+            } catch(e) {}
+            return null;
+        }
+
         async function nuclearFetch(url, options = {}) {
             try {
                 const response = await fetch(url, options);
                 if (!response.ok) {
                     const errData = await response.json().catch(() => ({}));
+                    if (response.status === 503) {
+                        const direct = await resolveDirectTunnel();
+                        if (direct && !url.startsWith(direct)) {
+                            const directUrl = url.replace(window.location.origin, direct);
+                            const directRes = await fetch(directUrl, options);
+                            if (directRes.ok) return await directRes.json();
+                        }
+                    }
                     throw new Error(errData.error || errData.message || `HTTP ${response.status}`);
                 }
                 return await response.json();
             } catch (e) {
                 if (e.name !== 'AbortError') {
+                    const direct = await resolveDirectTunnel();
+                    if (direct && !url.startsWith(direct)) {
+                        try {
+                            const directUrl = url.replace(window.location.origin, direct);
+                            const directRes = await fetch(directUrl, options);
+                            if (directRes.ok) return await directRes.json();
+                        } catch(directErr) {}
+                    }
                     console.warn("[Swades Network]:", e.message || e);
                 }
                 throw e;
