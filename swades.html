@@ -123,9 +123,14 @@
                         <span id="running-repo-badge" class="truncate max-w-[200px] text-zinc-400">repo</span>
                     </div>
                 </div>
-                <div class="flex items-center gap-2">
-                    <span class="w-2 h-2 rounded-full bg-zinc-400 animate-pulse" id="status-indicator"></span>
-                    <span id="running-status" class="uppercase tracking-wider font-semibold text-xs text-zinc-400 font-mono">Running</span>
+                <div class="flex items-center gap-2.5">
+                    <button onclick="resetToInitialView()" type="button" class="text-[10px] font-mono text-zinc-400 hover:text-white border border-zinc-700/70 hover:border-zinc-500 bg-zinc-800/60 hover:bg-zinc-800 px-2.5 py-1 rounded transition-colors" title="Start another task">
+                        + New Task
+                    </button>
+                    <div class="flex items-center gap-1.5 pl-1 border-l border-zinc-800">
+                        <span class="w-2 h-2 rounded-full bg-zinc-400 animate-pulse" id="status-indicator"></span>
+                        <span id="running-status" class="uppercase tracking-wider font-semibold text-xs text-zinc-400 font-mono">Running</span>
+                    </div>
                 </div>
             </div>
             
@@ -246,6 +251,9 @@
             if (selectedRepo) {
                 document.getElementById('repo-name').innerText = selectedRepo.replace(/^https:\/\/github\.com\//, '');
             }
+
+            // 🔄 Auto-recover active session if page refreshed while agent is working
+            checkActiveJob();
         }
 
         async function exchangeCode(code) {
@@ -756,6 +764,56 @@
                 addTimelineCard('Error', `Could not send follow-up: ${err.message}`, 'error');
             }
         });
+
+        // --- Session Restoration & View Management ---
+        async function checkActiveJob() {
+            try {
+                const data = await nuclearFetch(`${BASE_ENDPOINT}/v1/agent/active`);
+                if (data && data.active && data.job) {
+                    const job = data.job;
+                    const isActive = ['RUNNING', 'CLONING', 'PAUSED'].includes(job.status);
+                    const isRecent = job.status === 'COMPLETED' && (Date.now() - new Date(job.completed_at || job.started_at).getTime() < 300000);
+                    
+                    if (isActive || isRecent) {
+                        currentTaskId = job.id;
+                        initialView.classList.add('hidden');
+                        runningView.classList.remove('hidden');
+                        runningTaskTitle.innerText = job.task || 'Autonomous Task';
+                        runningRepoBadge.innerText = (job.repo_url || '').replace(/^https:\/\/github\.com\//, '');
+                        updateStatus(job.status, job.status === 'COMPLETED' ? 'success' : (job.status === 'FAILED' ? 'error' : 'loading'));
+
+                        // Replay history logs into the timeline feed
+                        timelineFeed.innerHTML = '';
+                        if (data.logs && Array.isArray(data.logs)) {
+                            data.logs.forEach(log => {
+                                handleEvent(log);
+                            });
+                        }
+
+                        // Restore Pull Request button if opened
+                        if (job.pr_url) {
+                            document.getElementById('pr-action-container').classList.remove('hidden');
+                            document.getElementById('pr-btn').href = job.pr_url;
+                            document.getElementById('pr-btn').innerHTML = `<span>🚀</span> View Pull Request #${job.pr_number || ''} ↗`;
+                        }
+
+                        // Attach streaming listener and polling loop
+                        if (isActive) {
+                            startStreaming(job.id);
+                        }
+                    }
+                }
+            } catch (err) {
+                console.log("No active job session to restore.");
+            }
+        }
+
+        function resetToInitialView() {
+            runningView.classList.add('hidden');
+            initialView.classList.remove('hidden');
+            taskInput.value = '';
+            currentTaskId = null;
+        }
 
         // Initialize on load
         window.addEventListener('DOMContentLoaded', initAuth);
