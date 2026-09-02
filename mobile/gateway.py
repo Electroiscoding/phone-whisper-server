@@ -294,6 +294,8 @@ class SwadeJobManager:
                 data TEXT,
                 step_number INTEGER
             )''')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_jobs_user_created ON jobs(github_user, created_at DESC)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_job_logs_job_id ON job_logs(job_id)')
             conn.commit()
             conn.close()
         except Exception as e:
