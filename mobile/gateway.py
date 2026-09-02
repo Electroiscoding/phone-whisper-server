@@ -324,13 +324,29 @@ class SwadeJobManager:
             try:
                 conn = sqlite3.connect(self.db_path)
                 conn.row_factory = sqlite3.Row
-                # Prioritize active running/paused/cloning jobs
-                row = conn.execute('SELECT * FROM jobs WHERE status IN ("RUNNING", "CLONING", "PAUSED") ORDER BY created_at DESC LIMIT 1').fetchone()
-                if not row:
-                    # Fallback to the latest completed/failed job within the last 12 hours
-                    row = conn.execute('SELECT * FROM jobs ORDER BY created_at DESC LIMIT 1').fetchone()
+                # Check running jobs and verify if worker_pid is alive
+                running_rows = conn.execute('SELECT * FROM jobs WHERE status IN ("RUNNING", "CLONING") ORDER BY created_at DESC').fetchall()
+                active_job = None
+                for r in running_rows:
+                    j = dict(r)
+                    pid = j.get("worker_pid")
+                    is_alive = False
+                    if pid:
+                        try:
+                            os.kill(pid, 0)
+                            is_alive = True
+                        except OSError:
+                            is_alive = False
+                    
+                    has_error = conn.execute('SELECT 1 FROM job_logs WHERE job_id = ? AND type = "error" LIMIT 1', (j["id"],)).fetchone()
+                    if not is_alive or has_error:
+                        conn.execute('UPDATE jobs SET status = "FAILED" WHERE id = ?', (j["id"],))
+                        conn.commit()
+                    elif not active_job:
+                        active_job = j
+                
                 conn.close()
-                return dict(row) if row else None
+                return active_job
             except Exception:
                 return None
 
