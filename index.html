@@ -3187,7 +3187,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
 
     // 🛡️ HYPER PROD-GRADE AUTONOMOUS NETWORK OUTAGE & AUTO-RECONNECT GUARDIAN
     const isDirectHosted = window.location.port === "8080" || window.location.hostname === "192.168.29.2" || window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-    let BASE_ENDPOINT = isDirectHosted ? window.location.origin : "https://developmental-soc-rec-theology.trycloudflare.com";
+    let BASE_ENDPOINT = window.location.origin;
     
     let isConnected = true;
     let reconnectAttempts = 0;
@@ -3219,8 +3219,6 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       if (!origin || !origin.startsWith("http")) return false;
       // Never allow mixed content on HTTPS origins
       if (window.location.protocol === "https:" && origin.startsWith("http://")) return false;
-      // Never probe the static site host as API backend
-      if (origin.includes("phone-whisper-server.pages.dev") || origin.includes("github.io")) return false;
 
       try {
         const ctrl = new AbortController();
