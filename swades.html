@@ -48,130 +48,205 @@
 </head>
 <body class="bg-[#030507] text-white select-none">
 
-    <!-- Header -->
-    <header class="flex justify-between items-center px-6 py-3.5 border-b border-zinc-800/80 bg-[#030507] z-30">
-        <div class="flex items-center gap-3">
-            <a href="swades.html" class="text-xl font-bold space-grotesk tracking-tight text-white hover:text-zinc-300 transition-colors">Swades</a>
-            <span class="text-[10px] text-zinc-500 uppercase tracking-widest font-mono hidden sm:inline-block">Autonomous Agent</span>
-        </div>
-
-        <!-- Top Right: GitHub Profile / Login -->
-        <div id="gh-auth-container" class="flex items-center gap-3">
-            <!-- Logged Out State -->
-            <button id="btn-gh-login" onclick="loginWithGitHub()" class="flex items-center gap-2 text-xs font-mono uppercase tracking-wider border border-zinc-700 hover:border-zinc-400 bg-zinc-900/80 hover:bg-zinc-800 px-3.5 py-1.5 rounded-full transition-all text-zinc-300 hover:text-white shadow-sm">
-                <span>🐙</span>
-                <span>Login with GitHub</span>
-            </button>
-
-            <!-- Logged In State -->
-            <div id="gh-user-menu" class="hidden relative">
-                <button id="btn-user-dropdown" onclick="toggleUserDropdown()" class="flex items-center gap-2.5 text-xs border border-zinc-800 hover:border-zinc-600 bg-zinc-900/90 px-2.5 py-1 rounded-full transition-all text-zinc-200">
-                    <img id="gh-user-avatar" src="" alt="Avatar" class="w-5 h-5 rounded-full object-cover border border-zinc-700">
-                    <span id="gh-user-name" class="font-mono font-medium max-w-[120px] truncate">@user</span>
-                    <span class="text-[10px] text-zinc-500">▾</span>
-                </button>
-                <!-- Dropdown Menu -->
-                <div id="user-dropdown-panel" class="hidden absolute right-0 mt-2 w-48 bg-[#090c10] border border-zinc-800 rounded-lg shadow-2xl py-2 z-50 text-xs font-mono">
-                    <div class="px-3 py-1.5 text-zinc-500 border-b border-zinc-800 text-[11px]" id="dropdown-user-login">Signed in</div>
-                    <button onclick="fetchUserRepositories(true)" class="w-full text-left px-3 py-2 hover:bg-zinc-800 text-zinc-300 flex items-center gap-2">
-                        <span>🔄</span> <span>Refresh Repos</span>
-                    </button>
-                    <button onclick="logoutGitHub()" class="w-full text-left px-3 py-2 hover:bg-zinc-800 text-red-400 flex items-center gap-2 border-t border-zinc-800/80 mt-1">
-                        <span>✕</span> <span>Disconnect</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-    </header>
-
-    <!-- View 1: Centered Input (Initial State) -->
-    <main id="view-initial" class="flex-1 flex flex-col items-center justify-center p-6 w-full max-w-2xl mx-auto transition-all duration-500">
-        <div class="w-full relative group flex flex-col items-center">
-            
-            <!-- Dynamic Repo Selector Chip -->
-            <div class="mb-4 relative">
-                <button id="repo-selector" onclick="openRepoModal()" type="button" class="text-sm bg-zinc-900/80 border border-zinc-700 hover:border-zinc-400 px-4 py-2 rounded-full transition-colors flex items-center gap-2 shadow-sm text-zinc-200">
-                    <span class="text-xs">📁</span>
-                    <span id="repo-name" class="font-mono font-medium max-w-[320px] truncate">Select Target Repository...</span>
-                    <span class="text-xs text-zinc-500">▾</span>
-                </button>
-            </div>
-
-            <!-- Task Input Pill -->
-            <form id="task-form" class="relative w-full shadow-2xl">
-                <input type="text" id="task-input" placeholder="Write a task..." class="w-full bg-zinc-900/90 border border-zinc-700 hover:border-zinc-600 focus:border-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-400 rounded-xl py-4 pl-6 pr-14 text-base transition-all placeholder:text-zinc-600 shadow-inner">
-                <button type="submit" id="task-submit-btn" class="absolute right-2 top-1/2 -translate-y-1/2 bg-white text-black w-10 h-10 rounded-lg flex items-center justify-center hover:bg-zinc-200 transition-colors shadow font-bold text-lg">
-                    →
-                </button>
-            </form>
-
-            <div id="auth-hint" class="mt-3 text-[11px] font-mono text-zinc-500 flex items-center gap-1.5">
-                <span>🔒</span>
-                <span id="auth-hint-text">GitHub login required to run autonomous tasks</span>
-            </div>
-        </div>
-    </main>
-
-    <!-- View 2: Split Screen (Running State) -->
-    <main id="view-running" class="hidden flex-1 flex overflow-hidden">
-        <!-- Left Panel: Timeline & Chat -->
-        <section class="w-1/3 min-w-[340px] max-w-[480px] border-r border-zinc-800 flex flex-col bg-[#050709]">
-            <div class="p-4 border-b border-zinc-800 bg-zinc-900/30 flex justify-between items-center">
-                <div class="overflow-hidden">
-                    <h2 id="running-task-title" class="font-medium text-sm text-zinc-200 truncate">Task Title</h2>
-                    <div class="text-[11px] font-mono text-zinc-500 mt-1 flex items-center gap-1.5">
-                        <span id="running-repo-badge" class="truncate max-w-[200px] text-zinc-400">repo</span>
-                    </div>
-                </div>
+<div class="flex h-screen w-screen overflow-hidden bg-[#030507]">
+    <!-- Jules Left Sidebar -->
+    <aside id="jules-sidebar" class="w-64 shrink-0 border-r border-zinc-800/80 bg-[#06080b] flex flex-col justify-between h-full z-20 text-zinc-300 select-none transition-all duration-300">
+        <div class="flex flex-col h-full overflow-hidden">
+            <!-- Sidebar Header -->
+            <div class="p-3.5 border-b border-zinc-800/60 flex items-center justify-between">
                 <div class="flex items-center gap-2.5">
-                    <button onclick="resetToInitialView()" type="button" class="text-[10px] font-mono text-zinc-400 hover:text-white border border-zinc-700/70 hover:border-zinc-500 bg-zinc-800/60 hover:bg-zinc-800 px-2.5 py-1 rounded transition-colors" title="Start another task">
-                        + New Task
-                    </button>
-                    <div class="flex items-center gap-1.5 pl-1 border-l border-zinc-800">
-                        <span class="w-2 h-2 rounded-full bg-zinc-400 animate-pulse" id="status-indicator"></span>
-                        <span id="running-status" class="uppercase tracking-wider font-semibold text-xs text-zinc-400 font-mono">Running</span>
+                    <span class="text-base font-bold tracking-tight text-white space-grotesk flex items-center gap-1.5">
+                        <span class="text-indigo-400">⚡</span> Swades
+                    </span>
+                </div>
+                <button type="button" onclick="toggleSidebar()" class="text-zinc-500 hover:text-white p-1 rounded transition-colors" title="Toggle sidebar">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"></path></svg>
+                </button>
+            </div>
+
+            <!-- Search Bar -->
+            <div class="p-3 border-b border-zinc-800/50">
+                <div class="relative">
+                    <input type="text" id="sidebar-search" oninput="filterSidebarItems(this.value)" placeholder="Search repo or sessions..." class="w-full bg-zinc-900/90 border border-zinc-800 focus:border-zinc-700 text-xs rounded-lg pl-7 pr-3 py-1.5 text-zinc-200 placeholder:text-zinc-600 focus:outline-none font-sans">
+                    <svg class="w-3.5 h-3.5 text-zinc-500 absolute left-2 top-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                </div>
+            </div>
+
+            <!-- Scrollable Sections -->
+            <div class="flex-1 overflow-y-auto px-2 py-3 space-y-5">
+                <!-- Recent Sessions -->
+                <div>
+                    <div class="flex items-center justify-between px-2 mb-1.5 text-[11px] font-mono text-zinc-500 tracking-wider uppercase">
+                        <span>Recent sessions</span>
+                        <button type="button" onclick="resetToInitialView()" class="hover:text-zinc-300 transition-colors text-sm leading-none" title="New task">+</button>
+                    </div>
+                    <div id="sidebar-sessions-list" class="space-y-0.5">
+                        <div class="px-2 py-1.5 text-xs text-zinc-600 font-mono">Loading sessions...</div>
+                    </div>
+                </div>
+
+                <!-- Codebases -->
+                <div>
+                    <div class="px-2 mb-1.5 text-[11px] font-mono text-zinc-500 tracking-wider uppercase">
+                        <span>Codebases</span>
+                    </div>
+                    <div id="sidebar-codebases-list" class="space-y-0.5">
+                        <div class="px-2 py-1.5 text-xs text-zinc-600 font-mono">Sign in to view repos</div>
                     </div>
                 </div>
             </div>
-            
-            <div id="timeline-feed" class="flex-1 overflow-y-auto p-4 space-y-3">
-                <!-- Live Timeline events go here -->
+
+            <!-- Sidebar Footer -->
+            <div class="p-3 border-t border-zinc-800/60 bg-[#040608] space-y-2 text-xs">
+                <div class="flex items-center justify-between text-[11px] text-zinc-500 font-mono px-1">
+                    <span>Task Store</span>
+                    <span class="text-emerald-400">Zero Retention</span>
+                </div>
+                <div class="flex items-center justify-between text-zinc-400 pt-1 text-xs">
+                    <a href="https://github.com/Electroiscoding/phone-whisper-server" target="_blank" class="hover:text-white transition-colors flex items-center gap-1.5">
+                        <span>🐙</span> GitHub
+                    </a>
+                    <button type="button" onclick="clearAllUserTasks()" class="text-zinc-500 hover:text-red-400 text-[11px] transition-colors" title="Erase all tasks from phone">
+                        Erase All
+                    </button>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Viewport -->
+    <div class="flex-1 flex flex-col h-full overflow-hidden">
+        <!-- Top Navbar -->
+        <header class="flex justify-between items-center px-6 py-3 border-b border-zinc-800/80 bg-[#030507] z-10 shrink-0">
+            <div class="flex items-center gap-3">
+                <button type="button" onclick="toggleSidebar()" class="text-zinc-400 hover:text-white p-1 rounded">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                </button>
+                <span class="text-xs font-mono px-2.5 py-1 rounded-full border border-zinc-800 bg-zinc-900/60 text-zinc-400 flex items-center gap-1.5">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                    Phone AI Node
+                </span>
             </div>
 
-            <div class="p-4 border-t border-zinc-800 bg-[#030507]">
-                <form id="followup-form" class="relative">
-                    <button type="button" class="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white w-6 h-6 flex items-center justify-center font-mono text-sm">+</button>
-                    <input type="text" id="followup-input" placeholder="Talk to Swades" class="w-full bg-zinc-900/80 border border-zinc-800 rounded-md py-2.5 pl-10 pr-10 text-sm focus:outline-none focus:border-zinc-600 transition-colors placeholder:text-zinc-600 font-body">
-                    <button type="submit" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white w-6 h-6 flex items-center justify-center font-mono">→</button>
+            <!-- Top Right: GitHub Profile / Login -->
+            <div id="gh-auth-container" class="flex items-center gap-3">
+                <!-- Logged Out State -->
+                <button id="btn-gh-login" onclick="loginWithGitHub()" class="flex items-center gap-2 text-xs font-mono uppercase tracking-wider border border-zinc-700 hover:border-zinc-400 bg-zinc-900/80 hover:bg-zinc-800 px-3.5 py-1.5 rounded-full transition-all text-zinc-300 hover:text-white shadow-sm">
+                    <span>🐙</span>
+                    <span>Login with GitHub</span>
+                </button>
+
+                <!-- Logged In State -->
+                <div id="gh-user-menu" class="hidden relative">
+                    <button id="btn-user-dropdown" onclick="toggleUserDropdown()" class="flex items-center gap-2.5 text-xs border border-zinc-800 hover:border-zinc-600 bg-zinc-900/90 px-2.5 py-1 rounded-full transition-all text-zinc-200">
+                        <img id="gh-user-avatar" src="" alt="Avatar" class="w-5 h-5 rounded-full object-cover border border-zinc-700">
+                        <span id="gh-user-name" class="font-mono font-medium max-w-[120px] truncate">@user</span>
+                        <span class="text-[10px] text-zinc-500">▾</span>
+                    </button>
+                    <!-- Dropdown Menu -->
+                    <div id="user-dropdown-panel" class="hidden absolute right-0 mt-2 w-48 bg-[#090c10] border border-zinc-800 rounded-lg shadow-2xl py-2 z-50 text-xs font-mono">
+                        <div class="px-3 py-1.5 text-zinc-500 border-b border-zinc-800 text-[11px]" id="dropdown-user-login">Signed in</div>
+                        <button type="button" onclick="fetchUserRepositories(true)" class="w-full text-left px-3 py-2 hover:bg-zinc-800 text-zinc-300 flex items-center gap-2">
+                            <span>🔄</span> <span>Refresh Repos</span>
+                        </button>
+                        <button type="button" onclick="logoutGitHub()" class="w-full text-left px-3 py-2 hover:bg-zinc-800 text-red-400 flex items-center gap-2 border-t border-zinc-800/80 mt-1">
+                            <span>✕</span> <span>Disconnect</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- View 1: Centered Input (Initial State) -->
+        <main id="view-initial" class="flex-1 flex flex-col items-center justify-center p-6 w-full max-w-2xl mx-auto transition-all duration-500">
+            <div class="w-full relative group flex flex-col items-center">
+                
+                <!-- Dynamic Repo Selector Chip -->
+                <div class="mb-4 relative">
+                    <button id="repo-selector" onclick="openRepoModal()" type="button" class="text-sm bg-zinc-900/80 border border-zinc-700 hover:border-zinc-400 px-4 py-2 rounded-full transition-colors flex items-center gap-2 shadow-sm text-zinc-200">
+                        <span class="text-xs">📁</span>
+                        <span id="repo-name" class="font-mono font-medium max-w-[320px] truncate">Select Target Repository...</span>
+                        <span class="text-xs text-zinc-500">▾</span>
+                    </button>
+                </div>
+
+                <!-- Task Input Pill -->
+                <form id="task-form" class="relative w-full shadow-2xl">
+                    <input type="text" id="task-input" placeholder="Write a task..." class="w-full bg-zinc-900/90 border border-zinc-700 hover:border-zinc-600 focus:border-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-400 rounded-xl py-4 pl-6 pr-14 text-base transition-all placeholder:text-zinc-600 shadow-inner">
+                    <button type="submit" id="task-submit-btn" class="absolute right-2 top-1/2 -translate-y-1/2 bg-white text-black w-10 h-10 rounded-lg flex items-center justify-center hover:bg-zinc-200 transition-colors shadow font-bold text-lg">
+                        →
+                    </button>
                 </form>
-            </div>
-        </section>
 
-        <!-- Right Panel: Diff Viewer -->
-        <section class="flex-1 flex flex-col bg-[#080a0c]">
-            <div class="flex justify-between items-center p-3 border-b border-zinc-800 bg-zinc-900/20 text-sm">
-                <div class="flex items-center gap-2">
-                    <span class="bg-zinc-800/80 px-3 py-1 rounded-sm border border-zinc-700/50 text-xs mono text-zinc-300" id="diff-file-name">Awaiting Changes</span>
-                    <span id="diff-stats" class="text-xs font-mono text-zinc-500"></span>
-                </div>
-                <div class="flex items-center gap-3 text-xs font-medium">
-                    <button onclick="collapseAllDiffs()" class="text-zinc-500 hover:text-zinc-300 transition-colors">Collapse all</button>
-                    <div class="text-zinc-500 border border-zinc-800 px-2.5 py-1 rounded font-mono text-[11px]">Live Review</div>
+                <div id="auth-hint" class="mt-3 text-[11px] font-mono text-zinc-500 flex items-center gap-1.5">
+                    <span>🔒</span>
+                    <span id="auth-hint-text">GitHub login required to run autonomous tasks</span>
                 </div>
             </div>
-            <div id="diff-viewer" class="flex-1 overflow-auto p-4 mono text-[13px] leading-relaxed whitespace-pre font-mono">
-                <div class="text-zinc-600 italic mt-20 text-center space-grotesk text-sm">Awaiting file changes...</div>
-            </div>
-            <div id="pr-action-container" class="hidden p-3.5 border-t border-zinc-800 bg-zinc-900/40 flex justify-between items-center">
-                 <div class="text-xs font-mono text-emerald-400 flex items-center gap-1.5">
-                     <span>✓</span> <span>Autonomous edits verified & committed</span>
-                 </div>
-                 <a id="pr-btn" href="#" target="_blank" class="bg-white text-black px-4 py-2 rounded font-bold hover:bg-zinc-200 transition-colors text-xs font-mono shadow flex items-center gap-1.5 no-underline">
-                     <span>🚀</span> View Pull Request ↗
-                 </a>
-            </div>
-        </section>
-    </main>
+        </main>
+
+        <!-- View 2: Split Screen (Running State) -->
+        <main id="view-running" class="hidden flex-1 flex overflow-hidden">
+            <!-- Left Panel: Timeline & Chat -->
+            <section class="w-1/3 min-w-[340px] max-w-[480px] border-r border-zinc-800 flex flex-col bg-[#050709]">
+                <div class="p-4 border-b border-zinc-800 bg-zinc-900/30 flex justify-between items-center">
+                    <div class="overflow-hidden">
+                        <h2 id="running-task-title" class="font-medium text-sm text-zinc-200 truncate">Task Title</h2>
+                        <div class="text-[11px] font-mono text-zinc-500 mt-1 flex items-center gap-1.5">
+                            <span id="running-repo-badge" class="truncate max-w-[200px] text-zinc-400">repo</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2.5">
+                        <button onclick="resetToInitialView()" type="button" class="text-[10px] font-mono text-zinc-400 hover:text-white border border-zinc-700/70 hover:border-zinc-500 bg-zinc-800/60 hover:bg-zinc-800 px-2.5 py-1 rounded transition-colors" title="Start another task">
+                            + New Task
+                        </button>
+                        <div class="flex items-center gap-1.5 pl-1 border-l border-zinc-800">
+                            <span class="w-2 h-2 rounded-full bg-zinc-400 animate-pulse" id="status-indicator"></span>
+                            <span id="running-status" class="uppercase tracking-wider font-semibold text-xs text-zinc-400 font-mono">Running</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="timeline-feed" class="flex-1 overflow-y-auto p-4 space-y-3">
+                    <!-- Live Timeline events go here -->
+                </div>
+
+                <div class="p-4 border-t border-zinc-800 bg-[#030507]">
+                    <form id="followup-form" class="relative">
+                        <button type="button" class="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white w-6 h-6 flex items-center justify-center font-mono text-sm">+</button>
+                        <input type="text" id="followup-input" placeholder="Talk to Swades" class="w-full bg-zinc-900/80 border border-zinc-800 rounded-md py-2.5 pl-10 pr-10 text-sm focus:outline-none focus:border-zinc-600 transition-colors placeholder:text-zinc-600 font-body">
+                        <button type="submit" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white w-6 h-6 flex items-center justify-center font-mono">→</button>
+                    </form>
+                </div>
+            </section>
+
+            <!-- Right Panel: Diff Viewer -->
+            <section class="flex-1 flex flex-col bg-[#080a0c]">
+                <div class="flex justify-between items-center p-3 border-b border-zinc-800 bg-zinc-900/20 text-sm">
+                    <div class="flex items-center gap-2">
+                        <span class="bg-zinc-800/80 px-3 py-1 rounded-sm border border-zinc-700/50 text-xs mono text-zinc-300" id="diff-file-name">Awaiting Changes</span>
+                        <span id="diff-stats" class="text-xs font-mono text-zinc-500"></span>
+                    </div>
+                    <div class="flex items-center gap-3 text-xs font-medium">
+                        <button onclick="collapseAllDiffs()" class="text-zinc-500 hover:text-zinc-300 transition-colors">Collapse all</button>
+                        <div class="text-zinc-500 border border-zinc-800 px-2.5 py-1 rounded font-mono text-[11px]">Live Review</div>
+                    </div>
+                </div>
+                <div id="diff-viewer" class="flex-1 overflow-auto p-4 mono text-[13px] leading-relaxed whitespace-pre font-mono">
+                    <div class="text-zinc-600 italic mt-20 text-center space-grotesk text-sm">Awaiting file changes...</div>
+                </div>
+                <div id="pr-action-container" class="hidden p-3.5 border-t border-zinc-800 bg-zinc-900/40 flex justify-between items-center">
+                     <div class="text-xs font-mono text-emerald-400 flex items-center gap-1.5">
+                         <span>✓</span> <span>Autonomous edits verified & committed</span>
+                     </div>
+                     <a id="pr-btn" href="#" target="_blank" class="bg-white text-black px-4 py-2 rounded font-bold hover:bg-zinc-200 transition-colors text-xs font-mono shadow flex items-center gap-1.5 no-underline">
+                         <span>🚀</span> View Pull Request ↗
+                     </a>
+                </div>
+            </section>
+        </main>
+    </div>
+</div>
 
     <!-- Interactive Repository Selection Modal -->
     <div id="repo-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -396,6 +471,7 @@
                 if (Array.isArray(repos) && repos.length > 0) {
                     userRepos = repos;
                     renderRepoList(userRepos);
+                    renderSidebarCodebases(userRepos);
                     statusLabel.innerText = `${userRepos.length} repositories loaded`;
 
                     // Default select first repository if none selected yet
@@ -535,7 +611,8 @@
                     body: JSON.stringify({
                         repo_url: selectedRepo,
                         task: task,
-                        github_token: authData.token
+                        github_token: authData.token,
+                        github_user: authData.username || 'anonymous'
                     })
                 });
                 
@@ -543,6 +620,7 @@
                 if (jobId) {
                     currentTaskId = jobId;
                     addTimelineCard('Agent Dispatched', `Job #${jobId.substring(0, 8)} running in isolated container space`, 'default');
+                    fetchUserSessions();
                     startStreaming(jobId);
                 }
             } catch (err) {
@@ -1009,10 +1087,190 @@
             initialView.classList.remove('hidden');
             taskInput.value = '';
             currentTaskId = null;
+            fetchUserSessions();
+        }
+
+        // --- Jules Sidebar & Account-Separated Task Management ---
+        let allUserSessions = [];
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('jules-sidebar');
+            if (sidebar) {
+                sidebar.classList.toggle('-ml-64');
+            }
+        }
+
+        async function fetchUserSessions() {
+            const username = authData?.username || 'anonymous';
+            try {
+                const res = await nuclearFetch(`${BASE_ENDPOINT}/v1/agent/tasks?user=${encodeURIComponent(username)}`);
+                if (res && res.jobs) {
+                    allUserSessions = res.jobs;
+                    renderSidebarSessions(allUserSessions);
+                }
+            } catch (err) {
+                console.warn('[Swades] Failed to fetch sessions:', err.message);
+            }
+        }
+
+        function renderSidebarSessions(jobs) {
+            const container = document.getElementById('sidebar-sessions-list');
+            if (!container) return;
+
+            if (!jobs || jobs.length === 0) {
+                container.innerHTML = '<div class="px-3 py-2 text-xs text-zinc-600 font-mono">No recent sessions</div>';
+                return;
+            }
+
+            container.innerHTML = jobs.map(j => {
+                const isSelected = currentTaskId === j.id;
+                const statusColor = j.status === 'COMPLETED' ? 'bg-emerald-500' : (j.status === 'FAILED' ? 'bg-red-500' : 'bg-blue-400 animate-pulse');
+                const cleanTitle = (j.task || 'Autonomous Task').replace(/^["']|["']$/g, '');
+                
+                return `
+                    <div onclick="loadSession('${j.id}')" class="group flex items-center justify-between px-2.5 py-2 rounded-lg cursor-pointer text-xs transition-colors ${isSelected ? 'bg-zinc-800/90 text-white font-medium border border-zinc-700/60' : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'}">
+                        <div class="flex items-center gap-2 truncate pr-1">
+                            <span class="w-1.5 h-1.5 rounded-full shrink-0 ${statusColor}"></span>
+                            <span class="truncate text-[12px] font-sans">${cleanTitle}</span>
+                        </div>
+                        <button type="button" onclick="deleteSession('${j.id}', event)" class="opacity-0 group-hover:opacity-100 p-1 hover:text-red-400 text-zinc-500 rounded transition-all shrink-0 cursor-pointer" title="Delete permanently from phone (Zero data retention)">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderSidebarCodebases(repos) {
+            const container = document.getElementById('sidebar-codebases-list');
+            if (!container) return;
+
+            if (!repos || repos.length === 0) {
+                container.innerHTML = '<div class="px-2 py-1.5 text-xs text-zinc-600 font-mono">No repositories loaded</div>';
+                return;
+            }
+
+            container.innerHTML = repos.slice(0, 10).map(r => {
+                const isSelected = selectedRepo === r.clone_url || selectedRepo === r.html_url;
+                return `
+                    <div onclick="selectRepoFromSidebar('${r.html_url}')" class="flex items-center justify-between px-2.5 py-1.5 rounded-md cursor-pointer text-xs transition-colors ${isSelected ? 'bg-zinc-800/80 text-white font-medium' : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'}">
+                        <div class="flex items-center gap-2 truncate pr-2">
+                            <span class="text-zinc-500 font-mono text-[10px]">${r.private ? '🔒' : '📦'}</span>
+                            <span class="truncate font-mono text-[11px]">${r.full_name}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function selectRepoFromSidebar(repoUrl) {
+            selectRepo(repoUrl);
+            resetToInitialView();
+            taskInput.focus();
+        }
+
+        function filterSidebarItems(query) {
+            const q = (query || '').toLowerCase().trim();
+            if (!q) {
+                renderSidebarSessions(allUserSessions);
+                renderSidebarCodebases(userRepos);
+                return;
+            }
+
+            const filteredSessions = allUserSessions.filter(j => (j.task || '').toLowerCase().includes(q) || (j.repo_url || '').toLowerCase().includes(q));
+            renderSidebarSessions(filteredSessions);
+
+            const filteredRepos = userRepos.filter(r => (r.full_name || '').toLowerCase().includes(q));
+            renderSidebarCodebases(filteredRepos);
+        }
+
+        async function loadSession(jobId) {
+            currentTaskId = jobId;
+            try {
+                const res = await nuclearFetch(`${BASE_ENDPOINT}/v1/agent/logs/${jobId}`);
+                if (!res || !res.job) return;
+
+                const job = res.job;
+                initialView.classList.add('hidden');
+                runningView.classList.remove('hidden');
+
+                runningTaskTitle.innerText = job.task || 'Autonomous Task';
+                runningRepoBadge.innerText = (job.repo_url || '').replace(/^https:\/\/github\.com\//, '');
+                updateStatus(job.status, job.status === 'COMPLETED' ? 'success' : (job.status === 'FAILED' ? 'error' : 'loading'));
+
+                processedEventKeys.clear();
+                timelineFeed.innerHTML = '';
+                completedCardAdded = false;
+
+                if (res.logs && Array.isArray(res.logs)) {
+                    res.logs.forEach(handleEvent);
+                }
+
+                if (job.pr_url) {
+                    document.getElementById('pr-action-container').classList.remove('hidden');
+                    document.getElementById('pr-btn').href = job.pr_url;
+                    document.getElementById('pr-btn').innerHTML = `<span>🚀</span> View Pull Request #${job.pr_number || ''} ↗`;
+                }
+
+                if (['RUNNING', 'CLONING', 'PAUSED'].includes(job.status)) {
+                    startStreaming(job.id);
+                } else if (job.status === 'COMPLETED') {
+                    renderJulesReviewCard({
+                        summary: latestThinking || 'All autonomous steps completed and verified.',
+                        branch: job.branch_name || currentBranch,
+                        pr_url: job.pr_url,
+                        pr_number: job.pr_number,
+                        adds: currentAdds,
+                        dels: currentDels
+                    });
+                }
+
+                renderSidebarSessions(allUserSessions);
+            } catch (e) {
+                console.error('Failed to load session:', e);
+            }
+        }
+
+        async function deleteSession(jobId, event) {
+            if (event) event.stopPropagation();
+            if (!confirm("Permanently delete this task from the phone?\n\nThis will completely purge the task database record, all execution logs, and container workspaces (Zero Data Retention).")) {
+                return;
+            }
+
+            try {
+                const username = authData?.username || 'anonymous';
+                await nuclearFetch(`${BASE_ENDPOINT}/v1/agent/task/${jobId}?user=${encodeURIComponent(username)}`, {
+                    method: 'DELETE'
+                });
+
+                if (currentTaskId === jobId) {
+                    resetToInitialView();
+                }
+                await fetchUserSessions();
+            } catch (err) {
+                alert('Failed to delete session: ' + err.message);
+            }
+        }
+
+        async function clearAllUserTasks() {
+            if (!confirm("Permanently erase ALL stored sessions and workspaces from the phone?\n\nThis operation cannot be undone (Zero Data Retention).")) {
+                return;
+            }
+
+            try {
+                await nuclearFetch(`${BASE_ENDPOINT}/v1/agent/clear`, { method: 'POST' });
+                resetToInitialView();
+                await fetchUserSessions();
+            } catch (err) {
+                alert('Failed to clear sessions: ' + err.message);
+            }
         }
 
         // Initialize on load
-        window.addEventListener('DOMContentLoaded', initAuth);
+        window.addEventListener('DOMContentLoaded', () => {
+            initAuth();
+            fetchUserSessions();
+        });
     </script>
 </body>
 </html>

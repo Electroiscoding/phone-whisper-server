@@ -278,8 +278,14 @@ class SwadeJobManager:
                 github_pat TEXT,
                 api_key TEXT,
                 base_url TEXT,
-                model TEXT
+                model TEXT,
+                github_user TEXT DEFAULT "anonymous"
             )''')
+            try:
+                conn.execute('ALTER TABLE jobs ADD COLUMN github_user TEXT DEFAULT "anonymous"')
+                conn.commit()
+            except Exception:
+                pass
             conn.execute('''CREATE TABLE IF NOT EXISTS job_logs (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 job_id TEXT,
@@ -293,15 +299,15 @@ class SwadeJobManager:
         except Exception as e:
             print(f"[SWADES] DB init error: {e}")
 
-    def create_job(self, repo_url, task, github_pat=None, api_key=None, base_url=None, model=None):
+    def create_job(self, repo_url, task, github_pat=None, api_key=None, base_url=None, model=None, github_user=None):
         job_id = str(uuid.uuid4())[:8]
         now = datetime.now(timezone.utc).isoformat()
         with self.lock:
             try:
                 conn = sqlite3.connect(self.db_path)
-                conn.execute('''INSERT INTO jobs (id, repo_url, task, status, created_at, started_at, github_pat, api_key, base_url, model)
-                                VALUES (?, ?, ?, "RUNNING", ?, ?, ?, ?, ?, ?)''',
-                             (job_id, repo_url, task, now, now, github_pat, api_key, base_url, model))
+                conn.execute('''INSERT INTO jobs (id, repo_url, task, status, created_at, started_at, github_pat, api_key, base_url, model, github_user)
+                                VALUES (?, ?, ?, "RUNNING", ?, ?, ?, ?, ?, ?, ?)''',
+                             (job_id, repo_url, task, now, now, github_pat, api_key, base_url, model, github_user or "anonymous"))
                 conn.commit()
                 conn.close()
             except Exception as e:
@@ -405,17 +411,45 @@ class SwadeJobManager:
             except Exception:
                 return []
 
-    def list_jobs(self, limit=20, offset=0):
+    def list_jobs(self, limit=50, offset=0, github_user=None):
         with self.lock:
             try:
                 conn = sqlite3.connect(self.db_path)
                 conn.row_factory = sqlite3.Row
-                rows = conn.execute('SELECT * FROM jobs ORDER BY created_at DESC LIMIT ? OFFSET ?', (limit, offset)).fetchall()
-                total = conn.execute('SELECT COUNT(*) FROM jobs').fetchone()[0]
+                if github_user and github_user not in ('all', 'null', 'undefined'):
+                    rows = conn.execute('SELECT * FROM jobs WHERE (github_user = ? OR github_user = "anonymous") ORDER BY created_at DESC LIMIT ? OFFSET ?', (github_user, limit, offset)).fetchall()
+                    total = conn.execute('SELECT COUNT(*) FROM jobs WHERE (github_user = ? OR github_user = "anonymous")', (github_user,)).fetchone()[0]
+                else:
+                    rows = conn.execute('SELECT * FROM jobs ORDER BY created_at DESC LIMIT ? OFFSET ?', (limit, offset)).fetchall()
+                    total = conn.execute('SELECT COUNT(*) FROM jobs').fetchone()[0]
                 conn.close()
                 return [dict(r) for r in rows], total
-            except Exception:
+            except Exception as e:
+                print(f"[SWADES] list_jobs error: {e}")
                 return [], 0
+
+    def delete_job(self, job_id, github_user=None):
+        """Zero Data Retention: Deletes job metadata, logs, and container workspace from phone"""
+        with self.lock:
+            try:
+                conn = sqlite3.connect(self.db_path)
+                if github_user and github_user not in ('all', 'null', 'undefined'):
+                    conn.execute('DELETE FROM jobs WHERE id = ? AND (github_user = ? OR github_user = "anonymous")', (job_id, github_user))
+                else:
+                    conn.execute('DELETE FROM jobs WHERE id = ?', (job_id,))
+                conn.execute('DELETE FROM job_logs WHERE job_id = ?', (job_id,))
+                conn.commit()
+                conn.close()
+
+                # Wipe workspace from Alpine container on phone
+                container_ws = f"/data/data/com.termux/files/usr/var/lib/proot-distro/containers/alpine/rootfs/root/workspaces/{job_id}"
+                if os.path.exists(container_ws):
+                    import shutil
+                    shutil.rmtree(container_ws, ignore_errors=True)
+                return True
+            except Exception as e:
+                print(f"[SWADES] delete_job error: {e}")
+                return False
 
     def clear_all(self):
         with self.lock:
@@ -1128,7 +1162,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_agent_stream(job_id)
         elif path == '/v1/agent/active':
             self.handle_agent_active()
-        elif path == '/v1/agent/jobs':
+        elif path in ['/v1/agent/jobs', '/v1/agent/tasks']:
             self.handle_agent_list_jobs()
         elif path in ['/auth/github/login', '/login']:
             self.handle_github_login()
@@ -1139,11 +1173,23 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         else:
             self.send_error(404, f"Unknown endpoint: {path}")
 
+    def do_DELETE(self):
+        parsed = urllib.parse.urlparse(self.path)
+        path = parsed.path.rstrip("/")
+        if path.startswith('/v1/agent/task/') or path.startswith('/v1/agent/job/'):
+            job_id = path.split('/')[-1]
+            self.handle_agent_delete_job(job_id)
+        else:
+            self.send_error(404, f"Unknown DELETE endpoint: {path}")
+
     def do_POST(self):
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path.rstrip("/")
 
-        if path in ["/inference", "/v1/audio/transcriptions"]:
+        if (path.startswith('/v1/agent/task/') or path.startswith('/v1/agent/job/')) and path.endswith('/delete'):
+            job_id = path.split('/')[-2]
+            self.handle_agent_delete_job(job_id)
+        elif path in ["/inference", "/v1/audio/transcriptions"]:
             self.proxy_whisper()
         elif path == "/v1/chat/completions":
             self.proxy_llama_chat()
@@ -1672,16 +1718,31 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
     def handle_agent_list_jobs(self):
         parsed = urllib.parse.urlparse(self.path)
         qs = urllib.parse.parse_qs(parsed.query)
-        limit = int(qs.get("limit", ["20"])[0])
+        limit = int(qs.get("limit", ["50"])[0])
         offset = int(qs.get("offset", ["0"])[0])
+        github_user = qs.get("user", [None])[0] or qs.get("username", [None])[0]
         
-        jobs, total = _job_manager.list_jobs(limit, offset)
+        jobs, total = _job_manager.list_jobs(limit, offset, github_user=github_user)
         for j in jobs:
             if "github_pat" in j: del j["github_pat"]
             if "api_key" in j: del j["api_key"]
             
-        resp_data = json.dumps({"jobs": jobs, "total": total, "limit": limit, "offset": offset}).encode()
+        resp_data = json.dumps({"jobs": jobs, "total": total, "limit": limit, "offset": offset, "user": github_user}).encode()
         self.send_response(200)
+        self._send_cors_headers()
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(resp_data)))
+        self.end_headers()
+        self.wfile.write(resp_data)
+
+    def handle_agent_delete_job(self, job_id):
+        parsed = urllib.parse.urlparse(self.path)
+        qs = urllib.parse.parse_qs(parsed.query)
+        github_user = qs.get("user", [None])[0] or qs.get("username", [None])[0]
+
+        success = _job_manager.delete_job(job_id, github_user=github_user)
+        resp_data = json.dumps({"success": success, "deleted": job_id}).encode()
+        self.send_response(200 if success else 400)
         self._send_cors_headers()
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(resp_data)))
