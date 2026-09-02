@@ -1248,20 +1248,20 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
   <div class="box">
     <h2>🐙 GitHub Connected!</h2>
     <p>Logged in as <strong>@{user_profile.get('login', 'github_user')}</strong></p>
-    <p style="font-size: 0.85rem; color: #94a3b8;">Redirecting back to Swades Agent...</p>
+    <p style="font-size: 0.85rem; color: #94a3b8;">Redirecting back to PhoneWhisper...</p>
   </div>
   <script>
     const auth = {auth_payload};
     try {{
-      localStorage.setItem("swades_gh_auth", JSON.stringify(auth));
+      localStorage.setItem("gh_auth", JSON.stringify(auth));
       if (window.opener && !window.opener.closed) {{
-        window.opener.postMessage({{ type: "SWADES_GITHUB_AUTH", auth: auth }}, "*");
+        window.opener.postMessage({{ type: "GITHUB_AUTH", auth: auth }}, "*");
         setTimeout(() => window.close(), 600);
       }} else {{
-        window.location.href = "https://phone-whisper-server.pages.dev/#swades-studio";
+        window.location.href = "https://phone-whisper-server.pages.dev/";
       }}
     }} catch (e) {{
-      window.location.href = "https://phone-whisper-server.pages.dev/#swades-studio";
+      window.location.href = "https://phone-whisper-server.pages.dev/";
     }}
   </script>
 </body>
