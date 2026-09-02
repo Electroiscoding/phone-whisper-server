@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://recipients-arm-semester-impressed.trycloudflare.com",
-  "inference": "https://recipients-arm-semester-impressed.trycloudflare.com/inference",
-  "telemetry": "https://recipients-arm-semester-impressed.trycloudflare.com/telemetry",
+  "endpoint": "https://dictionary-faculty-bar-matter.trycloudflare.com",
+  "inference": "https://dictionary-faculty-bar-matter.trycloudflare.com/inference",
+  "telemetry": "https://dictionary-faculty-bar-matter.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-09-02T17:46:00Z"
+  "updated_at": "2026-09-02T19:00:00Z"
 }

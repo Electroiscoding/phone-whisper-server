@@ -7,7 +7,7 @@
 const GITHUB_ENDPOINT_URL = "https://raw.githubusercontent.com/Electroiscoding/phone-whisper-server/main/endpoint.json";
 const SHARED_SECRET = "mobile_ai_nuclear_key";
 
-let cachedOrigin = "https://recipients-arm-semester-impressed.trycloudflare.com";
+let cachedOrigin = "https://dictionary-faculty-bar-matter.trycloudflare.com";
 let lastFetchTime = Date.now();
 const CACHE_TTL_MS = 10000; // 10 seconds
 
