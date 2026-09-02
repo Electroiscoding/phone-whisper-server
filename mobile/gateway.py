@@ -53,7 +53,8 @@ GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET = get_oauth_credentials()
 
 
 class OpenRouterVault:
-    DEFAULT_PATH = "/data/data/com.termux/files/home/.openrouter_keys.json"
+    DEFAULT_PATH = os.path.expanduser("~/.openrouter_keys.json")
+    FALLBACK_PATH = "/data/data/com.termux/files/home/.openrouter_keys.json"
     MODELS = [
         "openrouter/free",
         "inclusionai/ling-3.0-flash-fin:free",
@@ -64,54 +65,58 @@ class OpenRouterVault:
     ]
     
     @classmethod
+    def _read_data(cls):
+        for path in [cls.DEFAULT_PATH, cls.FALLBACK_PATH]:
+            if os.path.exists(path):
+                try:
+                    with open(path, 'r') as f:
+                        return json.load(f), path
+                except Exception:
+                    pass
+        return {}, None
+
+    @classmethod
     def get_active_key(cls):
-        try:
-            with open(cls.DEFAULT_PATH, 'r') as f:
-                data = json.load(f)
-                keys = data.get("keys", [])
-                active_idx = data.get("active_index", 0)
-                if keys:
-                    return keys[active_idx % len(keys)]
-        except Exception:
-            pass
+        data, _ = cls._read_data()
+        keys = data.get("keys", [])
+        active_idx = data.get("active_key_index", data.get("active_index", 0))
+        if keys:
+            return keys[active_idx % len(keys)]
         return ""
 
     @classmethod
     def rotate_key(cls):
-        try:
-            with open(cls.DEFAULT_PATH, 'r+') as f:
-                data = json.load(f)
-                keys = data.get("keys", [])
-                if keys:
-                    data["active_index"] = (data.get("active_index", 0) + 1) % len(keys)
-                    f.seek(0)
-                    json.dump(data, f)
-                    f.truncate()
-        except Exception:
-            pass
+        data, path = cls._read_data()
+        keys = data.get("keys", [])
+        if keys and path:
+            try:
+                new_idx = (data.get("active_key_index", data.get("active_index", 0)) + 1) % len(keys)
+                data["active_key_index"] = new_idx
+                data["active_index"] = new_idx
+                with open(path, 'w') as f:
+                    json.dump(data, f, indent=2)
+            except Exception:
+                pass
 
     @classmethod
     def get_active_model(cls):
-        try:
-            with open(cls.DEFAULT_PATH, 'r') as f:
-                data = json.load(f)
-                return cls.MODELS[data.get("model_index", 0) % len(cls.MODELS)]
-        except Exception:
-            pass
-        return cls.MODELS[0]
+        data, _ = cls._read_data()
+        idx = data.get("model_index", data.get("active_model_index", 0))
+        return cls.MODELS[idx % len(cls.MODELS)]
 
     @classmethod
     def next_model(cls):
-        try:
-            with open(cls.DEFAULT_PATH, 'r+') as f:
-                data = json.load(f)
-                data["model_index"] = (data.get("model_index", 0) + 1) % len(cls.MODELS)
-                f.seek(0)
-                json.dump(data, f)
-                f.truncate()
-        except Exception:
-            pass
-
+        data, path = cls._read_data()
+        if path:
+            try:
+                idx = (data.get("model_index", data.get("active_model_index", 0)) + 1) % len(cls.MODELS)
+                data["model_index"] = idx
+                data["active_model_index"] = idx
+                with open(path, 'w') as f:
+                    json.dump(data, f, indent=2)
+            except Exception:
+                pass
+        return cls.get_active_model()
 
 
 TELEMETRY_PATHS = [
