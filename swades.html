@@ -265,7 +265,22 @@
             </div>
             <div class="p-3 border-t border-zinc-800 bg-[#050709] flex justify-between items-center">
                 <span class="text-[11px] text-zinc-500 font-mono" id="repo-modal-status">Sign in to load your private & public repositories</span>
-                <button onclick="useCustomRepoInput()" class="text-xs text-zinc-300 hover:text-white bg-zinc-800 hover:bg-zinc-700 px-3 py-1.5 rounded font-mono transition-colors">Use Typed Repo</button>
+        </div>
+    </div>
+
+    <!-- Custom In-App Deletion Modal (Immune to Browser Dialog Gating) -->
+    <div id="delete-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-[#0b0e14] border border-zinc-800 rounded-xl w-full max-w-sm overflow-hidden shadow-2xl p-5 space-y-4 font-sans text-zinc-300">
+            <div class="flex items-center gap-2.5 text-red-400 font-semibold text-sm">
+                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                <span id="delete-modal-title">Delete Task</span>
+            </div>
+            <div id="delete-modal-desc" class="text-xs text-zinc-400 leading-relaxed space-y-2">
+                <!-- Dynamic text -->
+            </div>
+            <div class="flex justify-end gap-2 pt-2 border-t border-zinc-800/80">
+                <button type="button" onclick="closeDeleteModal()" class="px-3 py-1.5 rounded text-xs font-mono text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 transition-colors cursor-pointer">Cancel</button>
+                <button type="button" id="confirm-delete-btn" class="px-3.5 py-1.5 rounded text-xs font-mono font-medium text-white bg-red-600 hover:bg-red-500 transition-all shadow-md shadow-red-950 cursor-pointer">Delete Permanently</button>
             </div>
         </div>
     </div>
@@ -1241,39 +1256,65 @@
             }
         }
 
-        async function deleteSession(jobId, event) {
-            if (event) event.stopPropagation();
-            if (!confirm("Permanently delete this task from the phone?\n\nThis will completely purge the task database record, all execution logs, and container workspaces (Zero Data Retention).")) {
-                return;
-            }
+        let pendingDeleteAction = null;
 
-            try {
-                const username = authData?.username || 'anonymous';
-                await nuclearFetch(`${BASE_ENDPOINT}/v1/agent/task/${jobId}?user=${encodeURIComponent(username)}`, {
-                    method: 'DELETE'
-                });
-
-                if (currentTaskId === jobId) {
-                    resetToInitialView();
-                }
-                await fetchUserSessions();
-            } catch (err) {
-                alert('Failed to delete session: ' + err.message);
-            }
+        function openDeleteModal(title, descriptionHtml, onConfirm) {
+            document.getElementById('delete-modal-title').innerText = title;
+            document.getElementById('delete-modal-desc').innerHTML = descriptionHtml;
+            pendingDeleteAction = onConfirm;
+            document.getElementById('delete-modal').classList.remove('hidden');
         }
 
-        async function clearAllUserTasks() {
-            if (!confirm("Permanently erase ALL stored sessions and workspaces from the phone?\n\nThis operation cannot be undone (Zero Data Retention).")) {
-                return;
-            }
+        function closeDeleteModal() {
+            document.getElementById('delete-modal').classList.add('hidden');
+            pendingDeleteAction = null;
+        }
 
-            try {
-                await nuclearFetch(`${BASE_ENDPOINT}/v1/agent/clear`, { method: 'POST' });
-                resetToInitialView();
-                await fetchUserSessions();
-            } catch (err) {
-                alert('Failed to clear sessions: ' + err.message);
+        document.getElementById('confirm-delete-btn').addEventListener('click', async () => {
+            if (pendingDeleteAction) {
+                const action = pendingDeleteAction;
+                closeDeleteModal();
+                await action();
             }
+        });
+
+        function deleteSession(jobId, event) {
+            if (event) event.stopPropagation();
+            openDeleteModal(
+                "Delete Session",
+                "Permanently delete this task from the phone?<br><br>This will completely purge the task database record, all execution logs, and container workspaces.<br><br><span class='text-emerald-400 font-mono text-[11px]'>✓ Zero Data Retention Guarantee</span>",
+                async () => {
+                    try {
+                        const username = authData?.username || 'anonymous';
+                        await nuclearFetch(`${BASE_ENDPOINT}/v1/agent/task/${jobId}?user=${encodeURIComponent(username)}`, {
+                            method: 'DELETE'
+                        });
+
+                        if (currentTaskId === jobId) {
+                            resetToInitialView();
+                        }
+                        await fetchUserSessions();
+                    } catch (err) {
+                        alert('Failed to delete session: ' + err.message);
+                    }
+                }
+            );
+        }
+
+        function clearAllUserTasks() {
+            openDeleteModal(
+                "Erase All Sessions",
+                "Permanently erase ALL stored sessions, execution logs, and container workspaces from the phone?<br><br><span class='text-rose-400 font-mono text-[11px]'>⚠️ This operation cannot be undone.</span>",
+                async () => {
+                    try {
+                        await nuclearFetch(`${BASE_ENDPOINT}/v1/agent/clear`, { method: 'POST' });
+                        resetToInitialView();
+                        await fetchUserSessions();
+                    } catch (err) {
+                        alert('Failed to clear sessions: ' + err.message);
+                    }
+                }
+            );
         }
 
         // Initialize on load
