@@ -13,23 +13,36 @@ for (let i = 0; i < args.length; i++) {
   else if (args[i] === '--payload') payloadPath = args[++i];
 }
 
-if (!jobId || !payloadPath) {
-  console.error('Usage: node worker.js --job <id> --payload <payload_path>');
+if (!jobId && process.env.JOB_ID) {
+  jobId = process.env.JOB_ID;
+}
+
+if (!jobId) {
+  console.error('Usage: node worker.js --job <id> [--payload <payload_path>]');
   process.exit(1);
 }
 
-const payload = JSON.parse(fs.readFileSync(payloadPath, 'utf8'));
-const repoUrl = payload.repoUrl; // Assuming payload contains repoUrl
-
-const workspaceDir = `/root/workspaces/${jobId}`;
-const branchName = `swades/patch-${jobId}`;
+// Resolve payload
+let payload = null;
+if (process.env.JOB_PAYLOAD) {
+  try { payload = JSON.parse(process.env.JOB_PAYLOAD); } catch(e) {}
+}
+if (!payload && payloadPath && fs.existsSync(payloadPath)) {
+  try { payload = JSON.parse(fs.readFileSync(payloadPath, 'utf8')); } catch(e) {}
+}
 
 async function postEvent(type, data) {
   try {
     await fetch('http://127.0.0.1:8080/v1/agent/internal_event', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ jobId, type, ...data })
+      body: JSON.stringify({ 
+        job_id: jobId, 
+        jobId, 
+        type, 
+        data, 
+        updates: type === 'pr_opened' ? { pr_url: data?.pr_url, status: 'COMPLETED' } : (type === 'status' && String(data).includes('completed') ? { status: 'COMPLETED' } : undefined)
+      })
     });
   } catch (err) {
     console.error('Failed to post event:', err);
@@ -37,19 +50,46 @@ async function postEvent(type, data) {
 }
 
 async function main() {
-  await postEvent('status', { status: 'starting', message: `Job ${jobId} started.` });
+  if (!payload) {
+    try {
+      const res = await fetch(`http://127.0.0.1:8080/v1/agent/status/${jobId}`);
+      if (res.ok) payload = await res.json();
+    } catch(e) {}
+  }
+
+  if (!payload) {
+    await postEvent('error', { error: 'Job payload not found' });
+    process.exit(1);
+  }
+
+  const repoUrl = payload.repo_url || payload.repoUrl;
+  const task = payload.task || 'Analyze repository';
+  const token = payload.github_token || payload.github_pat;
+
+  await postEvent('status', `Initializing workspace for task: ${task}`);
+
+  const workspaceDir = `/root/workspaces/${jobId}`;
+  const branchName = `swades/patch-${jobId}`;
 
   try {
-    // Clone repo
     execSync(`mkdir -p /root/workspaces`);
-    execSync(`git clone ${repoUrl} ${workspaceDir}`, { stdio: 'inherit' });
+    
+    // Auth clone URL
+    let cloneUrl = repoUrl;
+    if (token && cloneUrl.startsWith('https://github.com/')) {
+      cloneUrl = cloneUrl.replace('https://github.com/', `https://${token}@github.com/`);
+    }
+
+    await postEvent('status', `Cloning repository: ${repoUrl.replace(/^https:\/\/github\.com\//, '')}`);
+    execSync(`rm -rf ${workspaceDir}`);
+    execSync(`git clone ${cloneUrl} ${workspaceDir}`, { stdio: 'pipe' });
     
     // Config git and create branch
     execSync(`git config user.name "Swades Agent"`, { cwd: workspaceDir });
     execSync(`git config user.email "agent@swades.local"`, { cwd: workspaceDir });
     execSync(`git checkout -b ${branchName}`, { cwd: workspaceDir });
 
-    await postEvent('status', { status: 'cloned', message: `Repo cloned and branched to ${branchName}.` });
+    await postEvent('status', `Created working branch: ${branchName}`);
 
     // Run agent
     await runAgent({
@@ -59,10 +99,10 @@ async function main() {
       postEvent
     });
 
-    await postEvent('status', { status: 'completed', message: `Job ${jobId} finished successfully.` });
+    await postEvent('status', `Autonomous task completed successfully.`);
   } catch (err) {
     await postEvent('error', { error: err.message, stack: err.stack });
-    console.error(err);
+    console.error('Worker execution error:', err);
     process.exit(1);
   }
 }

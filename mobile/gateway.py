@@ -431,7 +431,7 @@ def _spawn_swades_worker(job_id):
         
         env = os.environ.copy()
         env["PATH"] = f"/data/data/com.termux/files/usr/bin:{env.get('PATH', '')}"
-        env["HOME"] = home_dir
+        env["JOB_ID"] = job_id
         env["JOB_PAYLOAD"] = json.dumps(job)
         env["OPENROUTER_API_KEY"] = job.get("api_key") or ""
         env["OPENROUTER_MODEL"] = job.get("model") or ""
@@ -441,7 +441,12 @@ def _spawn_swades_worker(job_id):
             "login", "alpine", "--",
             "node", "/root/Swades-Agent/worker.js", "--job", job_id
         ]
-        proc = sp.Popen(worker_cmd, stdout=sp.DEVNULL, stderr=sp.DEVNULL, env=env, start_new_session=True)
+        worker_log_path = os.path.join(home_dir, "worker.log")
+        try:
+            worker_log = open(worker_log_path, "a")
+        except Exception:
+            worker_log = sp.DEVNULL
+        proc = sp.Popen(worker_cmd, stdout=worker_log, stderr=worker_log, env=env, start_new_session=True)
         _job_manager.active_worker_pid = proc.pid
         _job_manager.update_job(job_id, worker_pid=proc.pid, status="RUNNING", started_at=datetime.now(timezone.utc).isoformat())
         _job_manager.append_log(job_id, "status", "Worker process spawned")

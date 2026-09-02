@@ -489,6 +489,8 @@
             runningTaskTitle.innerText = task;
             runningRepoBadge.innerText = selectedRepo.replace(/^https:\/\/github\.com\//, '');
             
+            processedEventKeys.clear();
+            timelineFeed.innerHTML = '';
             addTimelineCard('Initializing', 'Connecting to Swades Autonomous Agent in Docker container...', 'loading');
 
             try {
@@ -679,7 +681,16 @@
             }, 2000);
         }
 
+        const processedEventKeys = new Set();
+
         function handleEvent(log) {
+            if (!log) return;
+            const logKey = log.id ? `id_${log.id}` : `${log.timestamp}_${log.type}_${typeof log.data === 'string' ? log.data : JSON.stringify(log.data)}`;
+            if (processedEventKeys.has(logKey)) {
+                return;
+            }
+            processedEventKeys.add(logKey);
+
             const type = (log.type || '').toLowerCase();
             const data = log.data;
             
