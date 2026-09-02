@@ -1,3 +1,4 @@
+import fs from 'fs';
 import { EventEmitter } from 'events';
 
 const MODELS = [
@@ -11,55 +12,89 @@ const MODELS = [
 
 export const llmEvents = new EventEmitter();
 
+function loadKeys() {
+  const paths = [
+    '/root/.openrouter_keys.json',
+    '/data/data/com.termux/files/home/.openrouter_keys.json',
+    process.env.HOME ? `${process.env.HOME}/.openrouter_keys.json` : null
+  ].filter(Boolean);
+
+  for (const p of paths) {
+    if (fs.existsSync(p)) {
+      try {
+        const data = JSON.parse(fs.readFileSync(p, 'utf8'));
+        if (data.keys && data.keys.length > 0) return data;
+      } catch (e) {}
+    }
+  }
+  return {
+    keys: [],
+    active_key_index: 0
+  };
+}
+
+let keyVault = loadKeys();
+let activeKeyIndex = keyVault.active_key_index || 0;
+
 export async function callLLM(messages, options = {}) {
   let modelIndex = 0;
-  let retryCount = 0;
+  let keyAttempts = 0;
 
   while (modelIndex < MODELS.length) {
     const currentModel = MODELS[modelIndex];
+    const activeKey = options.apiKey || process.env.OPENROUTER_API_KEY || keyVault.keys[activeKeyIndex % keyVault.keys.length];
+
     try {
       const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`
+          'Authorization': `Bearer ${activeKey}`
         },
         body: JSON.stringify({
           model: currentModel,
           messages,
-          stream: options.stream || false
+          temperature: 0.2
         })
       });
 
       if (!response.ok) {
         const status = response.status;
-        if ([429, 404, 500].includes(status) || status === 400 /* context exhaust approximation */) {
-          throw new Error(`LLM API returned ${status}`);
+        const errText = await response.text().catch(() => '');
+        
+        // Key rate limit or quota -> rotate key
+        if (status === 429 && keyAttempts < keyVault.keys.length) {
+          keyAttempts++;
+          activeKeyIndex = (activeKeyIndex + 1) % keyVault.keys.length;
+          llmEvents.emit('model_fallback', {
+            message: `Key rate limited on ${currentModel}. Rotated to secondary key.`,
+            error: errText
+          });
+          continue;
         }
-        throw new Error(`Unexpected LLM error: ${status}`);
+
+        // Model error or fallback needed
+        throw new Error(`API returned HTTP ${status}: ${errText.substring(0, 150)}`);
       }
 
-      if (options.stream) {
-        // Simple stream wrapper or just return response
-        return response.body; 
-      } else {
-        const data = await response.json();
-        return data.choices[0].message.content;
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content;
+      if (!content) {
+        throw new Error('Empty response from model');
       }
+      return content;
     } catch (err) {
       const nextModelIndex = modelIndex + 1;
       if (nextModelIndex < MODELS.length) {
         const nextModel = MODELS[nextModelIndex];
         llmEvents.emit('model_fallback', {
-          message: `Failed on model ${currentModel}, switching to model ${nextModel}`,
+          message: `Model ${currentModel} error (${err.message}). Falling back to ${nextModel}...`,
           error: err.message
         });
         modelIndex++;
-        // If 429, we might want to rotate keys, but instruction says rotate to next key (for OpenRouter, maybe another env var?)
-        // Instructions: "Rotate to next key if 429." (Simplifying by just continuing to next model in this implementation or assuming user handles keys)
         continue;
       } else {
-        throw new Error(`All models failed. Last error: ${err.message}`);
+        throw new Error(`All fallback models failed. Last error: ${err.message}`);
       }
     }
   }
