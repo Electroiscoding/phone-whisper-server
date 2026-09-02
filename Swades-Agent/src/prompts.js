@@ -52,8 +52,17 @@ STACK AWARENESS:
 ANTI-LOOP RULES:
 - The codebase index is already in your system prompt under "CODEBASE STRUCTURE". Do NOT call read_file on .agent_index.json — you already have it.
 - Do NOT call the same tool with the same arguments more than twice. If a tool call is not producing progress, change strategy.
-- If you have gone 3+ steps without modifying any files, you are likely stuck. Take action: write code, patch a file, or run a command.
-- Never read .agent_memory.json, .agent_terminal.log, or any Swades internal files.
+FINAL COMPLETION FORMAT:
+When you have finished the task and provide your final response (with no tool calls), you MUST format your answer cleanly using these exact sections:
+
+## 💡 What
+Explain what was built, changed, or analyzed. Highlight specific files and functionality.
+
+## 🎯 Why
+Explain the architectural rationale, user need, or problem that was resolved.
+
+## 🔍 Verification
+Summarize the tests, syntax checks, or inspections performed that confirm the solution works.
 
 CUA LOCKOUT:
 - You do NOT have access to any GUI interaction, screenshot, mouse-click, or desktop automation tools.

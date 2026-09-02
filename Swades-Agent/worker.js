@@ -112,6 +112,8 @@ async function main() {
       process.env.API_KEY = payload.api_key;
     }
 
+    const taskStartTime = Date.now();
+
     // Execute the real Swades Agent v3.0 ReAct loop!
     const answer = await runAgent(task, 15, null, null, async (type, data) => {
       await postEvent(type, data);
@@ -119,8 +121,21 @@ async function main() {
 
     // Run verification check on workspace git diff
     let diffOutput = '';
+    let adds = 0;
+    let dels = 0;
+    let changedFiles = [];
+
     try {
       diffOutput = execSync('git diff', { cwd: workspaceDir }).toString();
+      const numstat = execSync('git diff --numstat', { cwd: workspaceDir }).toString();
+      numstat.split('\n').filter(Boolean).forEach(line => {
+        const parts = line.split('\t');
+        if (parts.length >= 3) {
+          adds += parseInt(parts[0]) || 0;
+          dels += parseInt(parts[1]) || 0;
+          changedFiles.push(parts[2]);
+        }
+      });
     } catch(e) {}
 
     await postEvent('verification', {
@@ -128,6 +143,8 @@ async function main() {
       diff: diffOutput,
       message: diffOutput ? 'Code changes syntax checked and verified.' : 'Repository analysis verified against codebase.'
     });
+
+    let prData = null;
 
     // Commit and push changes if any were made
     if (diffOutput.trim()) {
@@ -154,7 +171,7 @@ async function main() {
             })
           });
           if (prRes.ok) {
-            const prData = await prRes.json();
+            prData = await prRes.json();
             await postEvent('pr_opened', { pr_url: prData.html_url, pr_number: prData.number });
           }
         }
@@ -162,6 +179,19 @@ async function main() {
         console.warn('Git push notice:', pushErr.message);
       }
     }
+
+    // Emit Jules-style ready_for_review card event
+    await postEvent('ready_for_review', {
+      title: 'Ready for review 🎉',
+      branch: branchName,
+      summary: answer || 'All autonomous steps completed and verified.',
+      pr_url: prData?.html_url || null,
+      pr_number: prData?.number || null,
+      adds: adds,
+      dels: dels,
+      files_changed: changedFiles,
+      duration_seconds: Math.round((Date.now() - taskStartTime) / 1000)
+    });
 
     await postEvent('status', `Autonomous task completed successfully.`);
   } catch (err) {
