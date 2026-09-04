@@ -7,14 +7,14 @@
 const GITHUB_ENDPOINT_URL = "https://raw.githubusercontent.com/Electroiscoding/phone-whisper-server/main/endpoint.json";
 const SHARED_SECRET = "mobile_ai_nuclear_key";
 
-let cachedOrigin = "https://apollo-responded-examinations-atomic.trycloudflare.com";
+let cachedOrigin = "https://investment-nine-cumulative-nothing.trycloudflare.com";
 let lastFetchTime = Date.now();
 const CACHE_TTL_MS = 10000; // 10 seconds
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS, HEAD",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With, Accept, Origin, Cache-Control, X-Accel-Buffering, *",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With, Accept, Origin, Cache-Control, X-Accel-Buffering, x-api-key, *",
   "Access-Control-Expose-Headers": "*",
   "Access-Control-Max-Age": "86400"
 };
@@ -76,7 +76,7 @@ export default {
     }
 
     // Determine if this is an API route or static asset
-    const apiPrefixes = ["/v1/", "/auth/"];
+    const apiPrefixes = ["/v1/", "/auth/", "/s/"];
     const apiExactPaths = ["/inference", "/telemetry", "/tts", "/speech", "/health", "/models", "/backends", "/register_tunnel"];
     const isApi = apiPrefixes.some(prefix => url.pathname.startsWith(prefix)) || apiExactPaths.includes(url.pathname);
 

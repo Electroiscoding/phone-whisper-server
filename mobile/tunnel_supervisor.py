@@ -75,7 +75,11 @@ def probe_tunnel(url):
 def register_with_pages(url):
     try:
         payload = json.dumps({"endpoint": url, "secret": SHARED_SECRET}).encode()
-        req = urllib.request.Request(PAGES_REG_URL, data=payload, headers={"Content-Type": "application/json"})
+        headers = {
+            "Content-Type": "application/json",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        }
+        req = urllib.request.Request(PAGES_REG_URL, data=payload, headers=headers)
         with urllib.request.urlopen(req, timeout=5) as resp:
             data = json.loads(resp.read().decode())
             log(f"Edge registration status: {data.get('status')} (origin: {data.get('active_origin')})")
