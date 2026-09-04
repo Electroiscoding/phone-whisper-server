@@ -43,7 +43,7 @@
     .glow-emerald { text-shadow: 0 0 12px rgba(16, 185, 129, 0.4); }
     
     /* Code block syntax styling */
-    pre code { font-size: 12.5px; line-height: 1.6; }
+    pre code { font-size: 12px; line-height: 1.6; }
     .code-kw { color: #f472b6; font-weight: 600; }
     .code-fn { color: #60a5fa; }
     .code-str { color: #34d399; }
@@ -63,7 +63,7 @@
 <body class="bg-obsidian text-zinc-300 font-sans antialiased min-h-screen selection:bg-cyan-500/30 selection:text-white">
 
   <!-- TOP HUD & NAVIGATION BAR -->
-  <header class="sticky top-0 z-50 bg-[#04060a]/95 backdrop-blur-xl border-b border-cardborder px-4 lg:px-8 py-3 transition-all">
+  <header class="sticky top-0 z-40 bg-[#04060a]/95 backdrop-blur-xl border-b border-cardborder px-4 lg:px-8 py-3 transition-all">
     <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
       
       <!-- Brand & Version -->
@@ -89,17 +89,13 @@
           <span id="hud-ram-val" class="text-emerald-400 font-medium">-- / 4.0 GB</span>
         </div>
         <div class="flex items-center gap-1.5 bg-zinc-950/80 border border-zinc-800/80 px-2.5 py-1 rounded">
-          <span class="text-zinc-500">L1 CACHE:</span>
-          <span id="hud-l1-val" class="text-cyan-400 font-medium">&lt;45 ns</span>
-        </div>
-        <div class="flex items-center gap-1.5 bg-zinc-950/80 border border-zinc-800/80 px-2.5 py-1 rounded">
-          <span class="text-zinc-500">STATUS:</span>
-          <span id="hud-status-val" class="text-emerald-400 font-medium">ONLINE 24/7</span>
+          <span class="text-zinc-500">RTT:</span>
+          <span id="hud-rtt-val" class="text-cyan-400 font-medium">-- ms</span>
         </div>
       </div>
 
-      <!-- Host Switcher & Navigation Links -->
-      <div class="flex items-center gap-2.5">
+      <!-- Host Switcher, OpenAPI Button & Navigation Links -->
+      <div class="flex items-center gap-2">
         <!-- Host Environment Selector -->
         <div class="relative">
           <select id="doc-host-select" onchange="switchHostEnvironment(this.value)" class="bg-black/90 border border-zinc-800 rounded px-2.5 py-1.5 text-xs font-mono text-cyan-400 outline-none cursor-pointer focus:border-cyan-500 hover:border-zinc-700">
@@ -109,14 +105,19 @@
           </select>
         </div>
 
-        <a href="/" class="hidden sm:inline-flex items-center gap-1 text-xs font-mono px-3 py-1.5 rounded border border-zinc-800 hover:border-zinc-600 text-zinc-300 hover:text-white transition-colors">
+        <button onclick="openOpenApiModal()" class="hidden sm:inline-flex items-center gap-1 text-xs font-mono px-2.5 py-1.5 rounded border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 text-zinc-300 hover:text-white transition-colors" title="View OpenAPI 3.1 Spec">
+          <span>📜</span> <span>OpenAPI</span>
+        </button>
+
+        <a href="#playground" class="inline-flex items-center gap-1 text-xs font-mono px-2.5 py-1.5 rounded border border-cyan-800/80 bg-cyan-950/40 text-cyan-300 hover:bg-cyan-900/50 transition-colors">
+          <span>🎮</span> Playground
+        </a>
+
+        <a href="/" class="hidden lg:inline-flex items-center gap-1 text-xs font-mono px-2.5 py-1.5 rounded border border-zinc-800 hover:border-zinc-600 text-zinc-300 hover:text-white transition-colors">
           <span>🎙️</span> Studio
         </a>
-        <a href="/dashboard.html" class="inline-flex items-center gap-1 text-xs font-mono px-3 py-1.5 rounded border border-purple-500/30 bg-purple-950/20 text-purple-300 hover:bg-purple-900/30 transition-colors">
+        <a href="/dashboard.html" class="hidden sm:inline-flex items-center gap-1 text-xs font-mono px-2.5 py-1.5 rounded border border-purple-500/30 bg-purple-950/20 text-purple-300 hover:bg-purple-900/30 transition-colors">
           <span>🎛️</span> Console
-        </a>
-        <a href="/swades.html" class="hidden lg:inline-flex items-center gap-1 text-xs font-mono px-3 py-1.5 rounded border border-zinc-800 hover:border-zinc-600 text-zinc-300 hover:text-white transition-colors">
-          <span>⚡</span> Swades Agent
         </a>
         <a href="https://github.com/Electroiscoding/phone-whisper-server" target="_blank" class="p-1.5 rounded border border-zinc-800 hover:border-zinc-600 text-zinc-400 hover:text-white transition-colors" title="GitHub Repository">
           <svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
@@ -132,27 +133,38 @@
     <!-- LEFT STICKY SIDEBAR (TABLE OF CONTENTS & SEARCH) -->
     <aside id="doc-sidebar" class="w-64 lg:w-72 shrink-0 hidden md:flex flex-col sticky top-[57px] h-[calc(100vh-57px)] border-r border-cardborder bg-[#030507] p-4 overflow-y-auto">
       
-      <!-- Instant Search Bar -->
-      <div class="relative mb-4">
-        <input type="text" id="doc-search-input" oninput="filterDocumentation(this.value)" placeholder="Search documentation... (Press /)" class="w-full bg-black border border-zinc-800 rounded px-3 py-1.5 pl-8 text-xs font-mono text-white placeholder-zinc-600 outline-none focus:border-cyan-500 transition-colors" />
-        <span class="absolute left-2.5 top-2 text-zinc-500 text-xs">🔍</span>
+      <!-- Command Palette Trigger Bar -->
+      <div onclick="openCommandPalette()" class="cursor-pointer flex items-center justify-between bg-black border border-zinc-800 hover:border-zinc-600 rounded px-3 py-1.5 text-xs font-mono text-zinc-400 mb-4 transition-colors">
+        <span class="flex items-center gap-2">
+          <span>🔍</span> <span>Quick Search...</span>
+        </span>
+        <kbd class="text-[10px] bg-zinc-900 border border-zinc-700 px-1.5 py-0.5 rounded text-zinc-400">Ctrl K</kbd>
       </div>
 
       <!-- Quick Index Links -->
       <div class="space-y-6 text-xs font-mono">
         <div>
+          <div class="text-[11px] font-bold text-zinc-500 uppercase tracking-wider mb-2">Interactive Tools</div>
+          <ul class="space-y-1">
+            <li><a href="#playground" class="toc-item block py-1 px-2 border-l border-transparent text-cyan-400 hover:text-white hover:border-cyan-500 transition-all font-semibold">🎮 Live API Playground</a></li>
+            <li><a href="#configurator" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">⚙️ Parameter Configurator</a></li>
+            <li><a href="#error-matrix" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">🚨 Error Code Catalog</a></li>
+          </ul>
+        </div>
+
+        <div>
           <div class="text-[11px] font-bold text-zinc-500 uppercase tracking-wider mb-2">Getting Started</div>
           <ul class="space-y-1">
             <li><a href="#overview" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">Overview & Guarantees</a></li>
             <li><a href="#quickstart" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">5-Minute Quickstart</a></li>
-            <li><a href="#architecture" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">Global Architecture</a></li>
+            <li><a href="#architecture" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">Global Topology</a></li>
           </ul>
         </div>
 
         <div>
           <div class="text-[11px] font-bold text-zinc-500 uppercase tracking-wider mb-2">Hardware & Linux OS</div>
           <ul class="space-y-1">
-            <li><a href="#hardware-specs" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">Redmi 9i SoC Hardware</a></li>
+            <li><a href="#hardware-specs" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">Redmi 9i Hardware Specs</a></li>
             <li><a href="#thermal-governor" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">Elastic Memory Governor</a></li>
             <li><a href="#container-runtime" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">Alpine PRoot Container</a></li>
           </ul>
@@ -249,6 +261,115 @@
         </div>
       </section>
 
+      <!-- LIVE INTERACTIVE API PLAYGROUND -->
+      <section id="playground" class="doc-section mb-16 border-b border-cardborder pb-12">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h2 class="text-2xl font-bold font-grotesk text-white flex items-center gap-2">
+              <span class="text-cyan-400">🎮</span> Live In-Browser API Playground
+            </h2>
+            <p class="text-zinc-400 text-xs font-mono mt-1">Execute requests directly against the phone node or edge proxy right from your browser.</p>
+          </div>
+          <span class="hidden sm:inline-flex px-2.5 py-1 rounded bg-emerald-950/60 border border-emerald-800 text-emerald-400 text-xs font-mono">
+            Connected to Edge
+          </span>
+        </div>
+
+        <div class="bg-black border border-cardborder rounded-xl p-4 font-mono text-xs space-y-4">
+          <!-- Request Bar -->
+          <div class="flex flex-wrap items-center gap-2">
+            <select id="pg-method-select" class="bg-zinc-900 border border-zinc-700 rounded px-2.5 py-1.5 text-xs text-white font-bold outline-none">
+              <option value="POST">POST</option>
+              <option value="GET">GET</option>
+            </select>
+            <select id="pg-endpoint-select" onchange="loadPlaygroundPreset(this.value)" class="flex-1 min-w-[200px] bg-zinc-900 border border-zinc-700 rounded px-3 py-1.5 text-xs text-cyan-300 outline-none">
+              <option value="/v1/chat/completions">/v1/chat/completions (Qwen 2.5 SLM Chat)</option>
+              <option value="/v1/audio/speech">/v1/audio/speech (Kokoro Neural TTS)</option>
+              <option value="/v1/embeddings">/v1/embeddings (Vector Embeddings)</option>
+              <option value="/v1/rerank">/v1/rerank (Semantic Reranking)</option>
+              <option value="/telemetry">/telemetry (Kernel Hardware Metrics)</option>
+              <option value="/health">/health (Governor & Model Status)</option>
+            </select>
+            <button id="pg-send-btn" onclick="executePlaygroundRequest()" class="px-4 py-1.5 rounded bg-cyan-500 hover:bg-cyan-400 text-black font-bold flex items-center gap-1.5 transition-all">
+              <span>Send</span> <span>⚡</span>
+            </button>
+          </div>
+
+          <!-- Payload Editor -->
+          <div>
+            <div class="flex items-center justify-between text-[11px] text-zinc-500 mb-1">
+              <span>JSON Payload:</span>
+              <span id="pg-rtt-badge" class="text-zinc-400">Ready</span>
+            </div>
+            <textarea id="pg-payload-input" rows="4" class="w-full bg-zinc-950 border border-zinc-800 rounded p-2.5 text-xs text-zinc-200 outline-none focus:border-cyan-500 select-text font-mono"></textarea>
+          </div>
+
+          <!-- Audio Preview Container (TTS) -->
+          <div id="pg-audio-container" class="hidden p-3 bg-zinc-950 border border-emerald-800/80 rounded flex items-center justify-between gap-4">
+            <span class="text-emerald-400 font-bold text-xs flex items-center gap-1.5">
+              <span>🔊</span> Audio Generated:
+            </span>
+            <audio id="pg-audio-player" controls class="h-8 flex-1 max-w-sm"></audio>
+          </div>
+
+          <!-- Response Viewer -->
+          <div>
+            <div class="flex items-center justify-between text-[11px] text-zinc-500 mb-1">
+              <span>Response:</span>
+              <span id="pg-status-badge" class="text-zinc-500">Waiting for request...</span>
+            </div>
+            <pre id="pg-response-output" class="p-3 bg-zinc-950 border border-zinc-800 rounded text-[11px] text-zinc-300 max-h-56 overflow-y-auto select-text font-mono"><code>Click 'Send ⚡' to test live against the physical phone cluster.</code></pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- PARAMETER CONFIGURATOR -->
+      <section id="configurator" class="doc-section mb-16 border-b border-cardborder pb-12">
+        <h2 class="text-2xl font-bold font-grotesk text-white mb-2 flex items-center gap-2">
+          <span class="text-cyan-400">⚙️</span> Interactive Parameter Configurator
+        </h2>
+        <p class="text-zinc-400 text-xs font-mono mb-6">Tweak sliders below to dynamically update code generation and payload structures.</p>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-cardbg border border-cardborder rounded-xl p-5 font-mono text-xs mb-6">
+          <div>
+            <label class="block text-zinc-400 mb-1 flex items-center justify-between">
+              <span>Chat Temperature:</span>
+              <span id="cfg-temp-val" class="text-cyan-400 font-bold">0.7</span>
+            </label>
+            <input type="range" id="cfg-temp" min="0.1" max="1.5" step="0.1" value="0.7" oninput="updateConfigurator()" class="w-full accent-cyan-400" />
+          </div>
+
+          <div>
+            <label class="block text-zinc-400 mb-1 flex items-center justify-between">
+              <span>Max Generated Tokens:</span>
+              <span id="cfg-tokens-val" class="text-cyan-400 font-bold">150</span>
+            </label>
+            <input type="range" id="cfg-tokens" min="16" max="512" step="16" value="150" oninput="updateConfigurator()" class="w-full accent-cyan-400" />
+          </div>
+
+          <div>
+            <label class="block text-zinc-400 mb-1">TTS Voice Profile:</label>
+            <select id="cfg-voice" onchange="updateConfigurator()" class="w-full bg-black border border-zinc-800 rounded p-1.5 text-xs text-white outline-none">
+              <option value="af_heart">af_heart (English Female - Warm)</option>
+              <option value="df_eva">df_eva (German Female)</option>
+              <option value="df_victoria">df_victoria (German Female - Studio)</option>
+              <option value="dm_bernd">dm_bernd (German Male)</option>
+              <option value="dm_martin">dm_martin (German Male - Deep)</option>
+              <option value="ef_dora">ef_dora (Spanish Female)</option>
+              <option value="ff_siwis">ff_siwis (French Female)</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-zinc-400 mb-1 flex items-center justify-between">
+              <span>TTS Speech Speed:</span>
+              <span id="cfg-speed-val" class="text-cyan-400 font-bold">1.0x</span>
+            </label>
+            <input type="range" id="cfg-speed" min="0.5" max="2.0" step="0.1" value="1.0" oninput="updateConfigurator()" class="w-full accent-cyan-400" />
+          </div>
+        </div>
+      </section>
+
       <!-- 5-MINUTE QUICKSTART -->
       <section id="quickstart" class="doc-section mb-16 border-b border-cardborder pb-12">
         <h2 class="text-2xl font-bold font-grotesk text-white mb-3 flex items-center gap-2">
@@ -264,26 +385,28 @@
             <span class="text-xs font-mono text-zinc-400 flex items-center gap-1.5">
               <span>🚀</span> <span>Execute Speech-to-Text Transcription</span>
             </span>
-            <div class="flex items-center gap-1 text-[11px] font-mono">
-              <button onclick="switchCodeSnippet('quick-stt', 'curl')" class="tab-btn-quick-stt-curl px-2.5 py-1 rounded bg-zinc-800 text-cyan-400 font-semibold">cURL</button>
-              <button onclick="switchCodeSnippet('quick-stt', 'py')" class="tab-btn-quick-stt-py px-2.5 py-1 rounded text-zinc-500 hover:text-zinc-300">Python</button>
-              <button onclick="switchCodeSnippet('quick-stt', 'fetch')" class="tab-btn-quick-stt-fetch px-2.5 py-1 rounded text-zinc-500 hover:text-zinc-300">Fetch</button>
-              <button onclick="switchCodeSnippet('quick-stt', 'node')" class="tab-btn-quick-stt-node px-2.5 py-1 rounded text-zinc-500 hover:text-zinc-300">Node.js</button>
+            <div class="flex items-center gap-2 text-[11px] font-mono">
+              <div class="flex items-center gap-1">
+                <button onclick="switchCodeSnippet('quick-stt', 'curl')" class="tab-btn-quick-stt-curl px-2.5 py-1 rounded bg-zinc-800 text-cyan-400 font-semibold">cURL</button>
+                <button onclick="switchCodeSnippet('quick-stt', 'py')" class="tab-btn-quick-stt-py px-2.5 py-1 rounded text-zinc-500 hover:text-zinc-300">Python</button>
+                <button onclick="switchCodeSnippet('quick-stt', 'fetch')" class="tab-btn-quick-stt-fetch px-2.5 py-1 rounded text-zinc-500 hover:text-zinc-300">Fetch</button>
+                <button onclick="switchCodeSnippet('quick-stt', 'node')" class="tab-btn-quick-stt-node px-2.5 py-1 rounded text-zinc-500 hover:text-zinc-300">Node.js</button>
+              </div>
+              <button onclick="copyCurrentSnippet('quick-stt')" class="px-2 py-1 rounded border border-zinc-800 hover:border-zinc-600 text-zinc-400 hover:text-white transition-colors">
+                📋 Copy
+              </button>
             </div>
           </div>
           <div class="p-4 overflow-x-auto text-xs font-mono">
-            <!-- cURL Tab -->
             <pre id="code-quick-stt-curl" class="text-zinc-300"><code>curl -X POST "<span class="active-endpoint-url">https://phone-whisper-server.pages.dev</span>/v1/audio/transcriptions" \
   -F "file=@sample.wav" \
   -F "response_format=json"</code></pre>
-            <!-- Python Tab -->
             <pre id="code-quick-stt-py" class="hidden text-zinc-300"><code><span class="code-kw">import</span> requests
 
 url = <span class="code-str">"<span class="active-endpoint-url">https://phone-whisper-server.pages.dev</span>/v1/audio/transcriptions"</span>
 <span class="code-kw">with</span> open(<span class="code-str">"sample.wav"</span>, <span class="code-str">"rb"</span>) <span class="code-kw">as</span> f:
     res = requests.post(url, files={<span class="code-str">"file"</span>: f}, data={<span class="code-str">"response_format"</span>: <span class="code-str">"json"</span>})
     print(res.json()[<span class="code-str">"text"</span>])</code></pre>
-            <!-- Fetch Tab -->
             <pre id="code-quick-stt-fetch" class="hidden text-zinc-300"><code><span class="code-kw">const</span> formData = <span class="code-kw">new</span> FormData();
 formData.append(<span class="code-str">'file'</span>, audioBlob, <span class="code-str">'audio.wav'</span>);
 formData.append(<span class="code-str">'response_format'</span>, <span class="code-str">'json'</span>);
@@ -294,7 +417,6 @@ formData.append(<span class="code-str">'response_format'</span>, <span class="co
 });
 <span class="code-kw">const</span> data = <span class="code-kw">await</span> res.json();
 console.log(data.text);</code></pre>
-            <!-- Node Tab -->
             <pre id="code-quick-stt-node" class="hidden text-zinc-300"><code><span class="code-kw">const</span> axios = require(<span class="code-str">'axios'</span>);
 <span class="code-kw">const</span> fs = require(<span class="code-str">'fs'</span>);
 <span class="code-kw">const</span> FormData = require(<span class="code-str">'form-data'</span>);
@@ -322,7 +444,7 @@ axios.post(<span class="code-str">'<span class="active-endpoint-url">https://pho
 }</code></pre>
       </section>
 
-      <!-- SYSTEM ARCHITECTURE -->
+      <!-- GLOBAL TOPOLOGY -->
       <section id="architecture" class="doc-section mb-16 border-b border-cardborder pb-12">
         <h2 class="text-2xl font-bold font-grotesk text-white mb-3 flex items-center gap-2">
           <span class="text-cyan-400">02.</span> Global Architecture & Packet Flow
@@ -362,7 +484,7 @@ axios.post(<span class="code-str">'<span class="active-endpoint-url">https://pho
         </div>
       </section>
 
-      <!-- HARDWARE & LINUX KERNEL -->
+      <!-- HARDWARE SPECS -->
       <section id="hardware-specs" class="doc-section mb-16 border-b border-cardborder pb-12">
         <h2 class="text-2xl font-bold font-grotesk text-white mb-3 flex items-center gap-2">
           <span class="text-cyan-400">03.</span> Redmi 9i SoC Hardware Teardown
@@ -417,7 +539,7 @@ axios.post(<span class="code-str">'<span class="active-endpoint-url">https://pho
         </div>
       </section>
 
-      <!-- KERNEL & ELASTIC GOVERNOR -->
+      <!-- KERNEL & GOVERNOR -->
       <section id="thermal-governor" class="doc-section mb-16 border-b border-cardborder pb-12">
         <h2 class="text-2xl font-bold font-grotesk text-white mb-3 flex items-center gap-2">
           <span class="text-cyan-400">04.</span> Elastic Memory Governor & JIT Eviction
@@ -767,6 +889,65 @@ PRAGMA busy_timeout = 5000;</code></pre>
         </div>
       </section>
 
+      <!-- ERROR CODE CATALOG -->
+      <section id="error-matrix" class="doc-section mb-16 border-b border-cardborder pb-12">
+        <h2 class="text-2xl font-bold font-grotesk text-white mb-2 flex items-center gap-2">
+          <span class="text-rose-400">🚨</span> Error Code Catalog & Troubleshooting
+        </h2>
+        <p class="text-zinc-400 text-xs font-mono mb-6">Standardized HTTP error responses and actionable diagnostic resolutions.</p>
+
+        <div class="overflow-x-auto border border-cardborder rounded-xl">
+          <table class="w-full text-left text-xs font-mono">
+            <thead class="bg-zinc-950 text-zinc-400 border-b border-cardborder">
+              <tr>
+                <th class="p-3">Status</th>
+                <th class="p-3">Error Code</th>
+                <th class="p-3">Root Cause</th>
+                <th class="p-3">Actionable Resolution</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-cardborder bg-cardbg">
+              <tr>
+                <td class="p-3 text-amber-400 font-bold">400</td>
+                <td class="p-3 text-white font-bold">BAD_REQUEST</td>
+                <td class="p-3 text-zinc-300">Missing required parameters or malformed JSON.</td>
+                <td class="p-3 text-cyan-400">Verify Content-Type is application/json and payload matches schema.</td>
+              </tr>
+              <tr>
+                <td class="p-3 text-rose-400 font-bold">401</td>
+                <td class="p-3 text-white font-bold">UNAUTHORIZED</td>
+                <td class="p-3 text-zinc-300">Missing or invalid Bearer API key on protected route.</td>
+                <td class="p-3 text-cyan-400">Pass <code>Authorization: Bearer sk_swades_...</code> in request headers.</td>
+              </tr>
+              <tr>
+                <td class="p-3 text-amber-400 font-bold">403</td>
+                <td class="p-3 text-white font-bold">FORBIDDEN</td>
+                <td class="p-3 text-zinc-300">API key lacks required scope (e.g. read_only key trying to write).</td>
+                <td class="p-3 text-cyan-400">Generate a key with <code>full</code> or <code>write_only</code> scope in Console.</td>
+              </tr>
+              <tr>
+                <td class="p-3 text-zinc-400 font-bold">404</td>
+                <td class="p-3 text-white font-bold">NOT_FOUND</td>
+                <td class="p-3 text-zinc-300">Object not found in tenant sandbox.</td>
+                <td class="p-3 text-cyan-400">Ensure tenant ID and path match previous PUT upload destination.</td>
+              </tr>
+              <tr>
+                <td class="p-3 text-purple-400 font-bold">429</td>
+                <td class="p-3 text-white font-bold">RATE_LIMITED</td>
+                <td class="p-3 text-zinc-300">IP exceeded 120 requests/minute sliding window threshold.</td>
+                <td class="p-3 text-cyan-400">Back off and retry after the duration specified in <code>Retry-After</code>.</td>
+              </tr>
+              <tr>
+                <td class="p-3 text-rose-500 font-bold">500</td>
+                <td class="p-3 text-white font-bold">SERVER_ERROR</td>
+                <td class="p-3 text-zinc-300">Uncaught exception or model loading failure.</td>
+                <td class="p-3 text-cyan-400">Check <code>gateway.log</code> or verify phone RAM availability via <code>/telemetry</code>.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
       <!-- PYTHON & JS CLIENT SDKS -->
       <section id="sdk-python" class="doc-section mb-16 border-b border-cardborder pb-12">
         <h2 class="text-2xl font-bold font-grotesk text-white mb-3 flex items-center gap-2">
@@ -779,9 +960,9 @@ PRAGMA busy_timeout = 5000;</code></pre>
         <div class="bg-black border border-cardborder rounded-xl p-5 font-mono text-xs mb-6">
           <div class="text-white font-bold mb-3 flex items-center justify-between">
             <span>🐍 Python 3 SDK (Zero-Tassel Client)</span>
-            <span class="text-zinc-500 text-[11px]">swades_client.py</span>
+            <button onclick="copyRawCode('sdk-py-code')" class="text-zinc-400 hover:text-white text-[11px] px-2 py-0.5 rounded border border-zinc-800">📋 Copy</button>
           </div>
-          <pre class="text-zinc-300 overflow-x-auto leading-relaxed"><code><span class="code-kw">import</span> requests
+          <pre id="sdk-py-code" class="text-zinc-300 overflow-x-auto leading-relaxed"><code><span class="code-kw">import</span> requests
 
 <span class="code-kw">class</span> <span class="code-fn">PhoneDatacenterClient</span>:
     <span class="code-kw">def</span> __init__(self, base_url=<span class="code-str">"https://phone-whisper-server.pages.dev"</span>, api_key=<span class="code-kw">None</span>):
@@ -810,9 +991,9 @@ PRAGMA busy_timeout = 5000;</code></pre>
         <div id="sdk-js" class="bg-black border border-cardborder rounded-xl p-5 font-mono text-xs mb-6">
           <div class="text-white font-bold mb-3 flex items-center justify-between">
             <span>⚡ JavaScript / TypeScript Client</span>
-            <span class="text-zinc-500 text-[11px]">swadesClient.ts</span>
+            <button onclick="copyRawCode('sdk-ts-code')" class="text-zinc-400 hover:text-white text-[11px] px-2 py-0.5 rounded border border-zinc-800">📋 Copy</button>
           </div>
-          <pre class="text-zinc-300 overflow-x-auto leading-relaxed"><code><span class="code-kw">export class</span> <span class="code-fn">PhoneClient</span> {
+          <pre id="sdk-ts-code" class="text-zinc-300 overflow-x-auto leading-relaxed"><code><span class="code-kw">export class</span> <span class="code-fn">PhoneClient</span> {
   <span class="code-kw">constructor</span>(<span class="code-kw">private</span> baseUrl = <span class="code-str">'https://phone-whisper-server.pages.dev'</span>, <span class="code-kw">private</span> apiKey?: <span class="code-fn">string</span>) {}
 
   <span class="code-kw">async</span> transcribe(audioBlob: <span class="code-fn">Blob</span>) {
@@ -837,9 +1018,9 @@ PRAGMA busy_timeout = 5000;</code></pre>
         <div id="sdk-bash" class="bg-black border border-cardborder rounded-xl p-5 font-mono text-xs">
           <div class="text-white font-bold mb-3 flex items-center justify-between">
             <span>💻 Bash CLI Streamer</span>
-            <span class="text-zinc-500 text-[11px]">whisper.sh</span>
+            <button onclick="copyRawCode('sdk-bash-code')" class="text-zinc-400 hover:text-white text-[11px] px-2 py-0.5 rounded border border-zinc-800">📋 Copy</button>
           </div>
-          <pre class="text-zinc-300 overflow-x-auto leading-relaxed"><code>#!/usr/bin/env bash
+          <pre id="sdk-bash-code" class="text-zinc-300 overflow-x-auto leading-relaxed"><code>#!/usr/bin/env bash
 ENDPOINT="https://phone-whisper-server.pages.dev"
 AUDIO_FILE="$1"
 
@@ -890,7 +1071,42 @@ adb -s 192.168.29.2:5555 shell "dumpsys deviceidle whitelist +com.termux"</code>
     </main>
   </div>
 
-  <!-- JAVASCRIPT: INSTANT SEARCH, CODE TABS, SCROLL-SPY, LIVE TELEMETRY -->
+  <!-- OPENAPI 3.1 SPEC MODAL -->
+  <div id="openapi-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-[#080c13] border border-cardborder rounded-2xl w-full max-w-3xl max-h-[85vh] flex flex-col overflow-hidden shadow-2xl">
+      <div class="p-4 border-b border-cardborder flex items-center justify-between bg-zinc-950">
+        <div class="flex items-center gap-2">
+          <span class="text-cyan-400 font-mono text-sm font-bold">📜 OpenAPI 3.1.0 Specification</span>
+          <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-zinc-800 text-zinc-400">JSON Schema</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="downloadOpenApiSpec()" class="px-2.5 py-1 rounded bg-cyan-500 hover:bg-cyan-400 text-black text-xs font-mono font-bold transition-all">
+            Download JSON
+          </button>
+          <button onclick="closeOpenApiModal()" class="text-zinc-400 hover:text-white text-sm px-2">✕</button>
+        </div>
+      </div>
+      <div class="p-4 overflow-y-auto flex-1 bg-black font-mono text-xs text-zinc-300 select-text">
+        <pre><code id="openapi-spec-content"></code></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- COMMAND PALETTE MODAL (CTRL+K) -->
+  <div id="cmd-palette-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-start justify-center pt-20 p-4" onclick="handlePaletteBackdrop(event)">
+    <div class="bg-[#080c13] border border-zinc-700 rounded-xl w-full max-w-xl shadow-2xl overflow-hidden font-mono" onclick="event.stopPropagation()">
+      <div class="p-3 border-b border-zinc-800 flex items-center gap-2 bg-zinc-950">
+        <span class="text-zinc-500">🔍</span>
+        <input type="text" id="palette-search-input" oninput="runPaletteSearch(this.value)" placeholder="Type a command or jump to chapter..." class="flex-1 bg-transparent text-white text-xs outline-none" autofocus />
+        <kbd class="text-[10px] bg-zinc-900 border border-zinc-700 px-1.5 py-0.5 rounded text-zinc-500">ESC</kbd>
+      </div>
+      <div id="palette-results" class="max-h-72 overflow-y-auto p-2 divide-y divide-zinc-900 text-xs">
+        <!-- Dynamically populated results -->
+      </div>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT LOGIC -->
   <script>
     let activeHost = 'https://phone-whisper-server.pages.dev';
 
@@ -905,6 +1121,7 @@ adb -s 192.168.29.2:5555 shell "dumpsys deviceidle whitelist +com.termux"</code>
       document.querySelectorAll('.active-endpoint-url').forEach(el => {
         el.innerText = activeHost;
       });
+      measurePingRTT();
     }
 
     function switchCodeSnippet(group, tab) {
@@ -926,7 +1143,39 @@ adb -s 192.168.29.2:5555 shell "dumpsys deviceidle whitelist +com.termux"</code>
       });
     }
 
-    // Live Telemetry Poller
+    function copyCurrentSnippet(group) {
+      const activePre = document.querySelector('[id^="code-' + group + '"]:not(.hidden)');
+      if (activePre) {
+        navigator.clipboard.writeText(activePre.innerText);
+        event.target.innerText = '✓ Copied!';
+        setTimeout(() => { event.target.innerText = '📋 Copy'; }, 2000);
+      }
+    }
+
+    function copyRawCode(id) {
+      const el = document.getElementById(id);
+      if (el) {
+        navigator.clipboard.writeText(el.innerText);
+        event.target.innerText = '✓ Copied!';
+        setTimeout(() => { event.target.innerText = '📋 Copy'; }, 2000);
+      }
+    }
+
+    // Measure live round trip ping
+    async function measurePingRTT() {
+      const t0 = performance.now();
+      try {
+        const res = await fetch(activeHost + '/health', { signal: AbortSignal.timeout(3000) });
+        if (res.ok) {
+          const rtt = Math.round(performance.now() - t0);
+          document.getElementById('hud-rtt-val').innerText = rtt + ' ms';
+        }
+      } catch (e) {
+        document.getElementById('hud-rtt-val').innerText = 'offline';
+      }
+    }
+
+    // Telemetry poller
     async function fetchTelemetryHUD() {
       try {
         const res = await fetch(activeHost + '/telemetry', { signal: AbortSignal.timeout(3000) });
@@ -940,33 +1189,260 @@ adb -s 192.168.29.2:5555 shell "dumpsys deviceidle whitelist +com.termux"</code>
           if (data.device) {
             document.getElementById('hud-device-name').innerText = data.device.model || 'Redmi 9i';
           }
-          document.getElementById('hud-status-val').innerText = 'ONLINE (OK)';
         }
       } catch (err) {}
+      measurePingRTT();
     }
     fetchTelemetryHUD();
-    setInterval(fetchTelemetryHUD, 15000);
+    setInterval(fetchTelemetryHUD, 10000);
 
-    // Instant Documentation Search
-    function filterDocumentation(query) {
-      const q = query.toLowerCase().trim();
-      const sections = document.querySelectorAll('.doc-section');
-      sections.forEach(sec => {
-        const text = sec.innerText.toLowerCase();
-        if (!q || text.includes(q)) {
-          sec.style.display = 'block';
-        } else {
-          sec.style.display = 'none';
+    // --- PLAYGROUND ENGINE ---
+    const PLAYGROUND_PRESETS = {
+      '/v1/chat/completions': JSON.stringify({
+        messages: [
+          { role: 'system', content: 'You are a concise edge AI model.' },
+          { role: 'user', content: 'Tell me 1 interesting fact about MediaTek processors.' }
+        ],
+        temperature: 0.7,
+        max_tokens: 120
+      }, null, 2),
+      '/v1/audio/speech': JSON.stringify({
+        input: 'Hello from the physical smartphone cluster.',
+        voice: 'af_heart',
+        speed: 1.0
+      }, null, 2),
+      '/v1/embeddings': JSON.stringify({
+        input: 'Hyper-speed edge computing on mobile processors',
+        model: 'bge-small-en-v1.5'
+      }, null, 2),
+      '/v1/rerank': JSON.stringify({
+        query: 'smartphone datacenter',
+        documents: ['Running AI servers on Android', 'Baking blueberry cheesecake in oven']
+      }, null, 2),
+      '/telemetry': '',
+      '/health': ''
+    };
+
+    function loadPlaygroundPreset(ep) {
+      const methodSelect = document.getElementById('pg-method-select');
+      const payloadArea = document.getElementById('pg-payload-input');
+      const audioBox = document.getElementById('pg-audio-container');
+      audioBox.classList.add('hidden');
+
+      if (ep === '/telemetry' || ep === '/health') {
+        methodSelect.value = 'GET';
+        payloadArea.value = '';
+      } else {
+        methodSelect.value = 'POST';
+        payloadArea.value = PLAYGROUND_PRESETS[ep] || '{}';
+      }
+    }
+    loadPlaygroundPreset('/v1/chat/completions');
+
+    async function executePlaygroundRequest() {
+      const method = document.getElementById('pg-method-select').value;
+      const endpoint = document.getElementById('pg-endpoint-select').value;
+      const payload = document.getElementById('pg-payload-input').value.trim();
+      const statusBadge = document.getElementById('pg-status-badge');
+      const rttBadge = document.getElementById('pg-rtt-badge');
+      const outputPre = document.getElementById('pg-response-output');
+      const audioBox = document.getElementById('pg-audio-container');
+      const audioPlayer = document.getElementById('pg-audio-player');
+
+      statusBadge.innerText = 'Transmitting...';
+      statusBadge.className = 'text-cyan-400 font-bold';
+      outputPre.innerText = 'Awaiting edge response...';
+
+      const t0 = performance.now();
+      try {
+        const opts = { method: method, headers: {} };
+        if (method === 'POST') {
+          opts.headers['Content-Type'] = 'application/json';
+          opts.body = payload;
         }
-      });
+
+        const res = await fetch(activeHost + endpoint, opts);
+        const lat = Math.round(performance.now() - t0);
+        rttBadge.innerText = '⚡ ' + lat + ' ms';
+        statusBadge.innerText = res.status + ' ' + res.statusText;
+        statusBadge.className = res.ok ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold';
+
+        if (endpoint === '/v1/audio/speech' && res.ok) {
+          const blob = await res.blob();
+          const audioUrl = URL.createObjectURL(blob);
+          audioPlayer.src = audioUrl;
+          audioBox.classList.remove('hidden');
+          outputPre.innerText = `Binary audio/wav received (${blob.size} bytes). Playing audio...`;
+          audioPlayer.play();
+        } else {
+          audioBox.classList.add('hidden');
+          const data = await res.json();
+          outputPre.innerText = JSON.stringify(data, null, 2);
+        }
+      } catch (err) {
+        statusBadge.innerText = 'Error';
+        statusBadge.className = 'text-rose-400 font-bold';
+        outputPre.innerText = 'Network error: ' + err.message;
+      }
     }
 
-    // Keyboard shortcut '/' to search
+    // --- PARAMETER CONFIGURATOR ---
+    function updateConfigurator() {
+      const temp = document.getElementById('cfg-temp').value;
+      const tokens = document.getElementById('cfg-tokens').value;
+      const voice = document.getElementById('cfg-voice').value;
+      const speed = document.getElementById('cfg-speed').value;
+
+      document.getElementById('cfg-temp-val').innerText = temp;
+      document.getElementById('cfg-tokens-val').innerText = tokens;
+      document.getElementById('cfg-speed-val').innerText = speed + 'x';
+
+      // Update playground if chat is active
+      const ep = document.getElementById('pg-endpoint-select').value;
+      if (ep === '/v1/chat/completions') {
+        document.getElementById('pg-payload-input').value = JSON.stringify({
+          messages: [
+            { role: 'system', content: 'You are a concise edge assistant.' },
+            { role: 'user', content: 'Explain quantum tunneling in 1 sentence.' }
+          ],
+          temperature: parseFloat(temp),
+          max_tokens: parseInt(tokens)
+        }, null, 2);
+      } else if (ep === '/v1/audio/speech') {
+        document.getElementById('pg-payload-input').value = JSON.stringify({
+          input: 'Welcome to the sovereign edge AI cluster.',
+          voice: voice,
+          speed: parseFloat(speed)
+        }, null, 2);
+      }
+    }
+
+    // --- OPENAPI MODAL ---
+    const OPENAPI_SPEC = {
+      openapi: "3.1.0",
+      info: {
+        title: "PhoneWhisper Autonomous Edge AI Datacenter API",
+        version: "3.4.0",
+        description: "Self-hosted multi-modal AI and sub-microsecond cloud storage cluster running on ARM smartphones."
+      },
+      servers: [
+        { url: "https://phone-whisper-server.pages.dev", description: "Anycast Edge Proxy" },
+        { url: "http://192.168.29.2:8080", description: "Direct Phone Gateway" }
+      ],
+      paths: {
+        "/v1/audio/transcriptions": {
+          post: {
+            summary: "Whisper Base.en Speech-to-Text Transcription",
+            requestBody: { content: { "multipart/form-data": { schema: { type: "object", properties: { file: { type: "string", format: "binary" }, response_format: { type: "string", default: "json" } } } } } },
+            responses: { "200": { description: "Successful transcription" } }
+          }
+        },
+        "/v1/chat/completions": {
+          post: {
+            summary: "Qwen 2.5 0.5B Instruct Chat Completions",
+            requestBody: { content: { "application/json": { schema: { type: "object", properties: { messages: { type: "array", items: { type: "object" } }, temperature: { type: "number" }, max_tokens: { type: "integer" } } } } } },
+            responses: { "200": { description: "Chat completion output" } }
+          }
+        },
+        "/v1/audio/speech": {
+          post: {
+            summary: "Kokoro-82M Neural Text-to-Speech",
+            requestBody: { content: { "application/json": { schema: { type: "object", properties: { input: { type: "string" }, voice: { type: "string" }, speed: { type: "number" } } } } } },
+            responses: { "200": { description: "Binary WAV audio" } }
+          }
+        },
+        "/v1/embeddings": {
+          post: {
+            summary: "BAAI BGE Vector Embeddings",
+            requestBody: { content: { "application/json": { schema: { type: "object", properties: { input: { type: "string" }, model: { type: "string" } } } } } },
+            responses: { "200": { description: "384-dimensional vector array" } }
+          }
+        },
+        "/telemetry": {
+          get: { summary: "Live Android Linux Kernel Telemetry", responses: { "200": { description: "Hardware metrics" } } }
+        }
+      }
+    };
+
+    function openOpenApiModal() {
+      document.getElementById('openapi-spec-content').innerText = JSON.stringify(OPENAPI_SPEC, null, 2);
+      document.getElementById('openapi-modal').classList.remove('hidden');
+    }
+    function closeOpenApiModal() {
+      document.getElementById('openapi-modal').classList.add('hidden');
+    }
+    function downloadOpenApiSpec() {
+      const blob = new Blob([JSON.stringify(OPENAPI_SPEC, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'phonewhisper-openapi-3.1.json';
+      a.click();
+    }
+
+    // --- COMMAND PALETTE (CTRL+K) ---
+    const PALETTE_INDEX = [
+      { title: 'Live API Playground', hash: '#playground', tag: 'TOOL' },
+      { title: 'Parameter Configurator', hash: '#configurator', tag: 'TOOL' },
+      { title: '5-Minute Quickstart', hash: '#quickstart', tag: 'GUIDE' },
+      { title: 'Global Architecture & Topology', hash: '#architecture', tag: 'ARCH' },
+      { title: 'Redmi 9i Hardware Specs', hash: '#hardware-specs', tag: 'HARDWARE' },
+      { title: 'Elastic Memory Governor', hash: '#thermal-governor', tag: 'HARDWARE' },
+      { title: 'Whisper Speech-to-Text Model', hash: '#model-whisper', tag: 'AI' },
+      { title: 'Qwen 2.5 0.5B SLM Chat', hash: '#model-qwen', tag: 'AI' },
+      { title: 'Kokoro Neural TTS', hash: '#model-kokoro', tag: 'AI' },
+      { title: 'BGE Vector Embeddings & Reranker', hash: '#model-bge', tag: 'AI' },
+      { title: 'Sub-Microsecond L1 Storage Engine', hash: '#storage-l1', tag: 'STORAGE' },
+      { title: 'SwadesSecurityShield Rate Limiting', hash: '#security-shield', tag: 'SECURITY' },
+      { title: 'SQLite WAL Concurrency', hash: '#sqlite-wal', tag: 'SECURITY' },
+      { title: 'Error Code Catalog & Troubleshooting', hash: '#error-matrix', tag: 'ERRORS' },
+      { title: 'Python Client SDK', hash: '#sdk-python', tag: 'SDK' },
+      { title: 'TypeScript / JS Client SDK', hash: '#sdk-js', tag: 'SDK' },
+      { title: 'Operations & ADB Runbook', hash: '#runbook', tag: 'RUNBOOK' }
+    ];
+
+    function openCommandPalette() {
+      document.getElementById('cmd-palette-modal').classList.remove('hidden');
+      document.getElementById('palette-search-input').value = '';
+      runPaletteSearch('');
+      setTimeout(() => document.getElementById('palette-search-input').focus(), 50);
+    }
+    function closeCommandPalette() {
+      document.getElementById('cmd-palette-modal').classList.add('hidden');
+    }
+    function handlePaletteBackdrop(e) {
+      if (e.target === document.getElementById('cmd-palette-modal')) closeCommandPalette();
+    }
+
+    function runPaletteSearch(query) {
+      const q = query.toLowerCase().trim();
+      const resultsDiv = document.getElementById('palette-results');
+      const matches = PALETTE_INDEX.filter(item => !q || item.title.toLowerCase().includes(q) || item.tag.toLowerCase().includes(q));
+      
+      if (!matches.length) {
+        resultsDiv.innerHTML = '<div class="p-3 text-zinc-500 text-center">No matching documentation topics.</div>';
+        return;
+      }
+
+      resultsDiv.innerHTML = matches.map((m, idx) => `
+        <div onclick="jumpToPaletteSection('${m.hash}')" class="p-2.5 rounded hover:bg-zinc-800/80 cursor-pointer flex items-center justify-between transition-colors">
+          <span class="text-white font-medium">${m.title}</span>
+          <span class="text-[10px] px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-700 text-cyan-400 font-bold">${m.tag}</span>
+        </div>
+      `).join('');
+    }
+
+    function jumpToPaletteSection(hash) {
+      closeCommandPalette();
+      window.location.hash = hash;
+    }
+
     window.addEventListener('keydown', (e) => {
-      if (e.key === '/' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
         e.preventDefault();
-        const searchInput = document.getElementById('doc-search-input');
-        if (searchInput) searchInput.focus();
+        openCommandPalette();
+      } else if (e.key === 'Escape') {
+        closeCommandPalette();
+        closeOpenApiModal();
       }
     });
 
