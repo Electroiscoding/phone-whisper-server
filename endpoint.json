@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://investment-nine-cumulative-nothing.trycloudflare.com",
-  "inference": "https://investment-nine-cumulative-nothing.trycloudflare.com/inference",
-  "telemetry": "https://investment-nine-cumulative-nothing.trycloudflare.com/telemetry",
+  "endpoint": "https://grown-prior-generated-victor.trycloudflare.com",
+  "inference": "https://grown-prior-generated-victor.trycloudflare.com/inference",
+  "telemetry": "https://grown-prior-generated-victor.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-09-04T09:33:00Z"
+  "updated_at": "2026-09-04T09:42:00Z"
 }
