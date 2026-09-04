@@ -297,12 +297,14 @@
         let selectedRepo = localStorage.getItem('swades_selected_repo') || '';
         let currentTaskId = null;
 
-        // --- Fetch Wrapper with Multi-Path Tunnel Failover ---
+        // --- Fetch Wrapper with Multi-Path Autonomous Tunnel Failover ---
         let directTunnelUrl = null;
 
         async function resolveDirectTunnel() {
+            const now = Date.now();
+            // 1. Raw GitHub fetch
             try {
-                const res = await fetch(`https://raw.githubusercontent.com/Electroiscoding/phone-whisper-server/main/endpoint.json?_t=${Date.now()}`);
+                const res = await fetch(`https://raw.githubusercontent.com/Electroiscoding/phone-whisper-server/main/endpoint.json?_t=${now}`, { cache: "no-store" });
                 if (res.ok) {
                     const data = await res.json();
                     if (data.endpoint && data.endpoint.startsWith('https://')) {
@@ -311,38 +313,68 @@
                     }
                 }
             } catch(e) {}
-            return null;
-        }
 
-        async function nuclearFetch(url, options = {}) {
+            // 2. Uncached GitHub REST API fallback
             try {
-                const response = await fetch(url, options);
-                if (!response.ok) {
-                    const errData = await response.json().catch(() => ({}));
-                    if (response.status === 503) {
-                        const direct = await resolveDirectTunnel();
-                        if (direct && !url.startsWith(direct)) {
-                            const directUrl = url.replace(window.location.origin, direct);
-                            const directRes = await fetch(directUrl, options);
-                            if (directRes.ok) return await directRes.json();
+                const apiRes = await fetch(`https://api.github.com/repos/Electroiscoding/phone-whisper-server/contents/endpoint.json?ref=main&_t=${now}`, {
+                    headers: { "Accept": "application/vnd.github.v3+json" },
+                    cache: "no-store"
+                });
+                if (apiRes.ok) {
+                    const apiData = await apiRes.json();
+                    if (apiData && apiData.content) {
+                        const decoded = JSON.parse(atob(apiData.content.replace(/\s/g, '')));
+                        if (decoded.endpoint && decoded.endpoint.startsWith('https://')) {
+                            directTunnelUrl = decoded.endpoint.replace(/\/+$/, '');
+                            return directTunnelUrl;
                         }
                     }
-                    throw new Error(errData.error || errData.message || `HTTP ${response.status}`);
                 }
-                return await response.json();
-            } catch (e) {
-                if (e.name !== 'AbortError') {
-                    const direct = await resolveDirectTunnel();
-                    if (direct && !url.startsWith(direct)) {
-                        try {
-                            const directUrl = url.replace(window.location.origin, direct);
-                            const directRes = await fetch(directUrl, options);
-                            if (directRes.ok) return await directRes.json();
-                        } catch(directErr) {}
+            } catch(e) {}
+
+            return directTunnelUrl;
+        }
+
+        async function nuclearFetch(url, options = {}, maxRetries = 5) {
+            let attempt = 0;
+            let currentUrl = url;
+
+            while (attempt <= maxRetries) {
+                try {
+                    const response = await fetch(currentUrl, options);
+                    if (response.ok) {
+                        return await response.json();
+                    }
+
+                    if ([502, 503, 504, 522, 530].includes(response.status)) {
+                        attempt++;
+                        if (attempt <= maxRetries) {
+                            const delay = Math.min(3000, 400 * Math.pow(1.4, attempt));
+                            await new Promise(r => setTimeout(r, delay));
+                            const direct = await resolveDirectTunnel();
+                            if (direct && window.location.origin) {
+                                currentUrl = url.replace(window.location.origin, direct);
+                            }
+                            continue;
+                        }
+                    }
+                    const errData = await response.json().catch(() => ({}));
+                    throw new Error(errData.error || errData.message || `HTTP ${response.status}`);
+                } catch (e) {
+                    if (e.name === 'AbortError') throw e;
+                    attempt++;
+                    if (attempt <= maxRetries) {
+                        const delay = Math.min(3500, 500 * Math.pow(1.4, attempt));
+                        await new Promise(r => setTimeout(r, delay));
+                        const direct = await resolveDirectTunnel();
+                        if (direct && window.location.origin) {
+                            currentUrl = url.replace(window.location.origin, direct);
+                        }
+                        continue;
                     }
                     console.warn("[Swades Network]:", e.message || e);
+                    throw e;
                 }
-                throw e;
             }
         }
 

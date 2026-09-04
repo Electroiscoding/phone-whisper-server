@@ -25,9 +25,10 @@ async function getLiveOrigin(forceRefresh = false) {
     return cachedOrigin;
   }
 
+  // 1. Primary: Fast raw GitHub fetch
   try {
     const res = await fetch(`${GITHUB_ENDPOINT_URL}?_t=${now}`, {
-      headers: { "User-Agent": "Cloudflare-Pages-Worker/3.0" },
+      headers: { "User-Agent": "Cloudflare-Pages-Worker/3.0", "Cache-Control": "no-cache" },
       cf: { cacheTtl: 0, cacheEverything: false }
     });
     if (res.ok) {
@@ -38,9 +39,25 @@ async function getLiveOrigin(forceRefresh = false) {
         return cachedOrigin;
       }
     }
-  } catch (err) {
-    console.error("Failed to fetch fresh endpoint.json:", err);
-  }
+  } catch (err) {}
+
+  // 2. Secondary Deterministic Fallback: Uncached GitHub REST API (Bypasses raw CDN cache)
+  try {
+    const apiRes = await fetch(`https://api.github.com/repos/Electroiscoding/phone-whisper-server/contents/endpoint.json?ref=main&_t=${now}`, {
+      headers: { "User-Agent": "Cloudflare-Pages-Worker/3.0", "Accept": "application/vnd.github.v3+json" }
+    });
+    if (apiRes.ok) {
+      const apiData = await apiRes.json();
+      if (apiData && apiData.content) {
+        const decoded = JSON.parse(atob(apiData.content.replace(/\s/g, '')));
+        if (decoded.endpoint && decoded.endpoint.startsWith("https://")) {
+          cachedOrigin = decoded.endpoint.replace(/\/+$/, "");
+          lastFetchTime = now;
+          return cachedOrigin;
+        }
+      }
+    }
+  } catch (err) {}
 
   return cachedOrigin;
 }
@@ -86,14 +103,15 @@ export default {
       }
     }
 
-    // 3. Proxy Request to Live Phone Origin with Auto-Retry
+    // 3. Resilient Proxy Request to Live Phone Origin with Autonomous Multi-Attempt Retry
     let origin = await getLiveOrigin(false);
     let targetUrl = `${origin}${url.pathname}${url.search}`;
 
     let response = null;
     let attempt = 0;
+    const maxAttempts = 3;
 
-    while (attempt < 2) {
+    while (attempt < maxAttempts) {
       attempt++;
       try {
         const proxyReq = new Request(targetUrl, {
@@ -106,8 +124,8 @@ export default {
         response = await fetch(proxyReq);
 
         // If origin returned 502, 503, 504, 530, force-refresh endpoint from GitHub and retry
-        if ([502, 503, 504, 530].includes(response.status) && attempt === 1) {
-          console.warn(`Origin returned ${response.status}. Re-fetching fresh endpoint...`);
+        if ([502, 503, 504, 530].includes(response.status) && attempt < maxAttempts) {
+          await new Promise(r => setTimeout(r, attempt * 300));
           origin = await getLiveOrigin(true);
           targetUrl = `${origin}${url.pathname}${url.search}`;
           continue;
@@ -115,8 +133,8 @@ export default {
 
         break;
       } catch (fetchErr) {
-        console.error(`Fetch attempt ${attempt} failed:`, fetchErr);
-        if (attempt === 1) {
+        if (attempt < maxAttempts) {
+          await new Promise(r => setTimeout(r, attempt * 400));
           origin = await getLiveOrigin(true);
           targetUrl = `${origin}${url.pathname}${url.search}`;
           continue;

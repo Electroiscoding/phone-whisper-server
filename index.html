@@ -3246,8 +3246,10 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       updateConnectionHUD("reconnecting", `Reconnecting (Attempt ${reconnectAttempts})...`);
       console.warn(`⚠️ [Network Outage Detected]: Initiating candidate probe (Attempt #${reconnectAttempts})...`);
 
-      // 1. First probe current active BASE_ENDPOINT
-      if (await probeOriginHealth(BASE_ENDPOINT)) {
+      // 1. First probe current host / Cloudflare Pages edge proxy (Zero CORS)
+      const primaryOrigin = window.location.origin;
+      if (await probeOriginHealth(primaryOrigin)) {
+        BASE_ENDPOINT = primaryOrigin;
         isConnected = true;
         isReconnecting = false;
         reconnectAttempts = 0;
@@ -3257,9 +3259,9 @@ python3 mobile/nuclear_watchdog.py</code></pre>
         return true;
       }
 
-      // 2. Probe all local fallback candidate origins
+      // 2. Probe local fallback candidate origins
       for (const cand of CANDIDATE_ORIGINS) {
-        if (await probeOriginHealth(cand)) {
+        if (cand !== primaryOrigin && await probeOriginHealth(cand)) {
           BASE_ENDPOINT = cand.replace(/\/+$/, "");
           isConnected = true;
           isReconnecting = false;
@@ -3271,29 +3273,53 @@ python3 mobile/nuclear_watchdog.py</code></pre>
         }
       }
 
-      // 3. If accessed externally, check GitHub endpoint.json
+      // 3. Multi-source remote resolution (Raw GitHub + Uncached GitHub REST API)
       if (!isDirectHosted) {
         try {
-          const res = await fetch("https://raw.githubusercontent.com/Electroiscoding/phone-whisper-server/main/endpoint.json?_t=" + Date.now(), { cache: "no-store" });
-          if (res.ok) {
-            const data = await res.json();
-            if (data.endpoint && await probeOriginHealth(data.endpoint)) {
-              BASE_ENDPOINT = data.endpoint.replace(/\/+$/, "");
-              isConnected = true;
-              isReconnecting = false;
-              reconnectAttempts = 0;
-              lastHealthyTimestamp = Date.now();
-              updateConnectionHUD("online", "Remote Gateway Active");
-              console.log("🟢 [Connection Guardian]: Synced from remote endpoint:", BASE_ENDPOINT);
-              return true;
+          let resolvedRemote = null;
+          const now = Date.now();
+          // A. Raw GitHub fetch
+          try {
+            const res = await fetch(`https://raw.githubusercontent.com/Electroiscoding/phone-whisper-server/main/endpoint.json?_t=${now}`, { cache: "no-store" });
+            if (res.ok) {
+              const data = await res.json();
+              if (data && data.endpoint) resolvedRemote = data.endpoint;
             }
+          } catch (e) {}
+
+          // B. Uncached GitHub REST API (Bypasses raw CDN cache)
+          if (!resolvedRemote) {
+            try {
+              const apiRes = await fetch(`https://api.github.com/repos/Electroiscoding/phone-whisper-server/contents/endpoint.json?ref=main&_t=${now}`, {
+                headers: { "Accept": "application/vnd.github.v3+json" },
+                cache: "no-store"
+              });
+              if (apiRes.ok) {
+                const apiData = await apiRes.json();
+                if (apiData && apiData.content) {
+                  const decoded = JSON.parse(atob(apiData.content.replace(/\s/g, '')));
+                  if (decoded && decoded.endpoint) resolvedRemote = decoded.endpoint;
+                }
+              }
+            } catch (e) {}
+          }
+
+          if (resolvedRemote && await probeOriginHealth(resolvedRemote)) {
+            BASE_ENDPOINT = resolvedRemote.replace(/\/+$/, "");
+            isConnected = true;
+            isReconnecting = false;
+            reconnectAttempts = 0;
+            lastHealthyTimestamp = Date.now();
+            updateConnectionHUD("online", "Remote Gateway Active");
+            console.log("🟢 [Connection Guardian]: Synced from remote endpoint:", BASE_ENDPOINT);
+            return true;
           }
         } catch (e) {}
       }
 
-      // 4. Exponential backoff scheduling
-      const backoffMs = Math.min(5000, 1000 * Math.pow(1.4, reconnectAttempts));
-      updateConnectionHUD("offline", `Offline · Retrying in ${(backoffMs/1000).toFixed(1)}s`);
+      // 4. Infinite autonomous retry loop (never stops, capped at 3.5s)
+      const backoffMs = Math.min(3500, 800 * Math.pow(1.3, Math.min(reconnectAttempts, 8)));
+      updateConnectionHUD("offline", `Offline · Auto-recovering in ${(backoffMs/1000).toFixed(1)}s`);
       setTimeout(() => {
         isReconnecting = false;
         recoverFromNetworkOutage(true);
@@ -3301,7 +3327,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       return false;
     }
 
-    // Proactive background heartbeat (every 8s)
+    // Proactive background heartbeat (every 6s)
     setInterval(async () => {
       if (!isReconnecting) {
         const ok = await probeOriginHealth(BASE_ENDPOINT);
@@ -3315,23 +3341,24 @@ python3 mobile/nuclear_watchdog.py</code></pre>
           }
         }
       }
-    }, 8000);
+    }, 6000);
 
     // Universal Self-Healing Request Wrapper with Autonomous Auto-Retry
-    async function nuclearFetch(pathOrUrl, options = {}, maxRetries = 3) {
+    async function nuclearFetch(pathOrUrl, options = {}, maxRetries = 5) {
       let fullUrl = pathOrUrl.startsWith("http") ? pathOrUrl : `${BASE_ENDPOINT}${pathOrUrl}`;
       let attempt = 0;
 
       while (attempt <= maxRetries) {
         try {
           let res = await fetch(fullUrl, options);
-          if (res.status === 502 || res.status === 503 || res.status === 522 || res.status === 530) {
+          if (res.status === 502 || res.status === 503 || res.status === 504 || res.status === 522 || res.status === 530) {
             console.warn(`⚠️ Gateway returned ${res.status} — auto-recovering connection (attempt ${attempt + 1}/${maxRetries})...`);
             await recoverFromNetworkOutage(true);
             fullUrl = pathOrUrl.startsWith("http") ? pathOrUrl.replace(/^https?:\/\/[^/]+/, BASE_ENDPOINT) : `${BASE_ENDPOINT}${pathOrUrl}`;
             attempt++;
             if (attempt <= maxRetries) {
-              await new Promise(r => setTimeout(r, 600 * attempt));
+              const delay = Math.min(3000, 400 * Math.pow(1.4, attempt));
+              await new Promise(r => setTimeout(r, delay));
               continue;
             }
           }
@@ -3339,14 +3366,15 @@ python3 mobile/nuclear_watchdog.py</code></pre>
           return res;
         } catch (err) {
           if (err && (err.name === 'AbortError' || (err.message && err.message.includes('abort')))) {
-            throw err; // Intentional stream switch/abort — pass through silently
+            throw err;
           }
           console.warn(`⚠️ Network drop during fetch — auto-recovering (attempt ${attempt + 1}/${maxRetries})...`, err);
           await recoverFromNetworkOutage(true);
           fullUrl = pathOrUrl.startsWith("http") ? pathOrUrl.replace(/^https?:\/\/[^/]+/, BASE_ENDPOINT) : `${BASE_ENDPOINT}${pathOrUrl}`;
           attempt++;
           if (attempt <= maxRetries) {
-            await new Promise(r => setTimeout(r, 800 * attempt));
+            const delay = Math.min(3500, 500 * Math.pow(1.4, attempt));
+            await new Promise(r => setTimeout(r, delay));
             continue;
           }
           throw err;
