@@ -186,7 +186,7 @@ for attempt in range(1, 18):
     res_shield = http_req("/v1/storage/auth/login", method="POST", data={
         "username": "dummy_attacker",
         "password": "bad_password"
-    }, headers={"X-Client-IP": burst_ip, "CF-Connecting-IP": burst_ip})
+    }, headers={"X-Client-IP": burst_ip})
     
     if res_shield["status"] == 429:
         shield_triggered = True
