@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://delete-adjacent-layout-genetic.trycloudflare.com",
-  "inference": "https://delete-adjacent-layout-genetic.trycloudflare.com/inference",
-  "telemetry": "https://delete-adjacent-layout-genetic.trycloudflare.com/telemetry",
+  "endpoint": "https://energy-bundle-thank-sig.trycloudflare.com",
+  "inference": "https://energy-bundle-thank-sig.trycloudflare.com/inference",
+  "telemetry": "https://energy-bundle-thank-sig.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-09-02T19:15:00Z"
+  "updated_at": "2026-09-04T08:54:00Z"
 }
