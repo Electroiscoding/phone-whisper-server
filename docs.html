@@ -90,7 +90,7 @@
     /* Print & Export Media Optimization */
     @media print {
       body { background: #ffffff !important; color: #000000 !important; }
-      header, aside, #reading-progress, #toast, .print-hidden, #search-modal, #openapi-modal { display: none !important; }
+      header, aside, #reading-progress, #toast, .print-hidden, #search-modal, #openapi-modal, #shortcuts-modal { display: none !important; }
       main { max-width: 100% !important; padding: 0 !important; margin: 0 !important; }
       .bg-cardbg, .bg-zinc-950, .bg-black { background: #f8fafc !important; border-color: #cbd5e1 !important; color: #0f172a !important; }
       pre, code { background: #f1f5f9 !important; color: #0f172a !important; border: 1px solid #cbd5e1 !important; }
@@ -124,7 +124,7 @@
           <div>
             <div class="font-grotesk font-black text-white text-sm tracking-wide flex items-center gap-2">
               <span>PHONEWHISPER</span>
-              <span class="text-[9px] px-1.5 py-0.2 bg-cardborder text-neoncyan font-mono rounded border border-neoncyan/30">ENTERPRISE v3.0</span>
+              <span class="text-[9px] px-1.5 py-0.2 bg-cardborder text-neoncyan font-mono rounded border border-neoncyan/30">DATACENTER v3.2</span>
             </div>
             <div class="text-[10px] text-zinc-400 font-mono hidden sm:block">Helio G25 Edge Datacenter & Hyper-Portal</div>
           </div>
@@ -161,6 +161,9 @@
           </button>
           <button onclick="window.print()" title="Print or Save documentation as PDF" class="px-2 py-1 rounded bg-zinc-900 border border-cardborder text-xs font-mono text-zinc-300 hover:text-white hover:border-zinc-600 transition-colors flex items-center gap-1">
             <span>🖨️ PDF</span>
+          </button>
+          <button onclick="openShortcutsModal()" title="Keyboard Shortcuts (?)" class="px-2 py-1 rounded bg-zinc-900 border border-cardborder text-xs font-mono text-zinc-300 hover:text-white hover:border-zinc-600 transition-colors">
+            ⌨️ ?
           </button>
         </div>
 
@@ -221,6 +224,7 @@
             <li><a href="#hardware-live" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">📡 Live Node Telemetry</a></li>
             <li><a href="#playground" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">🎙️ Live API Playground</a></li>
             <li><a href="#api-explorer" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">🧪 Universal API Explorer</a></li>
+            <li><a href="#audio-analyzer" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">〰️ Audio & Mel-Spectrogram</a></li>
             <li><a href="#benchmark-tool" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">⚡ Edge Benchmark Runner</a></li>
             <li><a href="#cli-terminal" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">💻 Datacenter CLI Console</a></li>
             <li><a href="#latency-profiler" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">⏱️ Request Latency Profiler</a></li>
@@ -839,6 +843,55 @@
               <button onclick="copyElementText('explorer-res-body')" class="text-[10px] text-zinc-400 hover:text-white">Copy Response</button>
             </div>
             <pre class="bg-zinc-950 border border-cardborder rounded p-4 text-xs text-zinc-300 max-h-60 overflow-y-auto whitespace-pre-wrap"><code id="explorer-res-body"></code></pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION: INTERACTIVE AUDIO & MEL-SPECTROGRAM ANALYZER -->
+      <section id="audio-analyzer" class="doc-section mb-16 border-b border-cardborder pb-12">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-xl font-bold font-grotesk text-white flex items-center gap-2">
+            <span>〰️</span> Audio Oscilloscope & 80-Channel Mel-Spectrogram Analyzer
+          </h2>
+          <span class="px-2 py-0.5 rounded bg-neonemerald/10 border border-neonemerald/40 text-neonemerald text-[10px] font-mono">
+            DSP VISUALIZER
+          </span>
+        </div>
+        <p class="text-xs text-zinc-400 mb-6">
+          Inspect acoustic features in real time. Whisper Base.en transforms raw audio signals into 80-channel log mel-filterbank representations using 25ms STFT windows and 10ms hop steps.
+        </p>
+
+        <div class="bg-cardbg border border-cardborder rounded-xl p-6 shadow-2xl font-mono text-xs space-y-4">
+          <!-- Canvas Visualizer -->
+          <div class="bg-black border border-cardborder rounded-lg p-3 overflow-hidden">
+            <canvas id="audio-visualizer-canvas" class="w-full h-36 rounded bg-zinc-950"></canvas>
+          </div>
+
+          <!-- Controls & Audio DSP Stats -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="space-y-2">
+              <div class="text-white font-bold">Signal Generator & Inspector:</div>
+              <div class="flex items-center gap-2">
+                <button onclick="playOscillatorTone(440)" class="px-3 py-1.5 rounded bg-zinc-900 border border-cardborder text-neoncyan hover:border-neoncyan text-xs">
+                  ▶ 440 Hz Sine
+                </button>
+                <button onclick="playOscillatorTone(1000)" class="px-3 py-1.5 rounded bg-zinc-900 border border-cardborder text-neonemerald hover:border-neonemerald text-xs">
+                  ▶ 1,000 Hz Tone
+                </button>
+                <button onclick="stopOscillatorTone()" class="px-3 py-1.5 rounded bg-zinc-900 border border-cardborder text-rose-400 hover:border-rose-400 text-xs">
+                  ⏹ Stop
+                </button>
+              </div>
+              <div class="text-[11px] text-zinc-500">Live Web Audio API FFT analysis with 128 frequency bins.</div>
+            </div>
+
+            <!-- DSP Spec Table -->
+            <div class="bg-zinc-950 p-3 rounded border border-cardborder space-y-1 text-[11px] text-zinc-400">
+              <div class="flex justify-between"><span class="text-zinc-500">ASR Input Sample Rate:</span><span class="text-white font-bold">16,000 Hz (16kHz Mono)</span></div>
+              <div class="flex justify-between"><span class="text-zinc-500">TTS Output Sample Rate:</span><span class="text-white font-bold">24,000 Hz (24kHz Mono)</span></div>
+              <div class="flex justify-between"><span class="text-zinc-500">Filterbank Resolution:</span><span class="text-neonemerald font-bold">80 Channels (Log Mel)</span></div>
+              <div class="flex justify-between"><span class="text-zinc-500">STFT Window / Hop:</span><span class="text-neoncyan font-bold">25 ms (400 samples) / 10 ms</span></div>
+            </div>
           </div>
         </div>
       </section>
