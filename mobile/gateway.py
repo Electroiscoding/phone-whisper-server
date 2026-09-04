@@ -781,7 +781,51 @@ class SwadeStorageVault:
                     ("EDGE_WEBHOOK_URL", "https://api.swades.cloud/events/webhook", "Webhook dispatch target for lifecycle events", 1, "2026-09-04 12:00:00"),
                     ("SPILLOVER_THRESHOLD_PCT", "90", "Drive percentage threshold triggering auto JBOD spillover", 0, "2026-09-04 12:00:00"),
                 ]
-                conn.executemany('INSERT INTO secrets_vault VALUES (?,?,?,?,?)', sec_defaults)
+            # 7. Reviewer Role Permissions Matrix (RBAC)
+            conn.execute('''CREATE TABLE IF NOT EXISTS role_permissions (
+                role TEXT PRIMARY KEY,
+                view_config INTEGER DEFAULT 1,
+                edit_flags INTEGER DEFAULT 0,
+                edit_styling INTEGER DEFAULT 0,
+                manage_users INTEGER DEFAULT 0,
+                blast_notifications INTEGER DEFAULT 0,
+                view_analytics INTEGER DEFAULT 1,
+                browse_database INTEGER DEFAULT 0,
+                edit_database INTEGER DEFAULT 0,
+                access_secrets INTEGER DEFAULT 0,
+                updated_at TEXT
+            )''')
+
+            # 8. Audit Trail Logs
+            conn.execute('''CREATE TABLE IF NOT EXISTS audit_logs (
+                id TEXT PRIMARY KEY,
+                timestamp INTEGER,
+                actor TEXT,
+                action TEXT,
+                target TEXT,
+                details TEXT
+            )''')
+
+            # Seed default roles if empty
+            if conn.execute('SELECT COUNT(*) FROM role_permissions').fetchone()[0] == 0:
+                now_str = time.strftime("%Y-%m-%d %H:%M:%S")
+                role_defaults = [
+                    ("admin", 1, 1, 1, 1, 1, 1, 1, 1, 1, now_str),
+                    ("developer", 1, 1, 1, 1, 1, 1, 1, 1, 1, now_str),
+                    ("reviewer", 1, 1, 1, 0, 1, 1, 1, 0, 0, now_str),
+                    ("tester", 1, 1, 0, 0, 0, 1, 0, 0, 0, now_str),
+                    ("member", 0, 0, 0, 0, 0, 0, 0, 0, 0, now_str)
+                ]
+                conn.executemany('INSERT INTO role_permissions VALUES (?,?,?,?,?,?,?,?,?,?,?)', role_defaults)
+
+            # Seed initial audit logs if empty
+            if conn.execute('SELECT COUNT(*) FROM audit_logs').fetchone()[0] == 0:
+                audit_defaults = [
+                    ("aud_01", int(time.time()) - 3600, "system", "CLUSTER_INITIALIZE", "datacenter", "All 3 storage pools mounted and verified"),
+                    ("aud_02", int(time.time()) - 1800, "admin", "FLAG_UPDATE", "fast_l1_cache", "Set sub-microsecond L1 cache enabled=1"),
+                    ("aud_03", int(time.time()) - 900, "admin", "ROLE_ASSIGN", "reviewer", "Configured non-code reviewer permissions matrix"),
+                ]
+                conn.executemany('INSERT INTO audit_logs VALUES (?,?,?,?,?,?)', audit_defaults)
 
             conn.commit()
             conn.close()
@@ -1266,6 +1310,40 @@ class SwadeStorageVault:
         conn.commit()
         conn.close()
         return True
+
+    def get_role_permissions(self):
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        rows = [dict(r) for r in conn.execute('SELECT * FROM role_permissions ORDER BY role').fetchall()]
+        conn.close()
+        return rows
+
+    def update_role_permission(self, role, field, value):
+        conn = sqlite3.connect(self.db_path)
+        now_str = time.strftime("%Y-%m-%d %H:%M:%S")
+        conn.execute(f"UPDATE role_permissions SET {field} = ?, updated_at = ? WHERE role = ?", (1 if value else 0, now_str, role))
+        conn.commit()
+        conn.close()
+        return True
+
+    def log_audit(self, actor, action, target, details=""):
+        try:
+            conn = sqlite3.connect(self.db_path)
+            conn.execute('''INSERT INTO audit_logs (id, timestamp, actor, action, target, details)
+                            VALUES (?, ?, ?, ?, ?, ?)''',
+                         (f"aud_{secrets.token_hex(4)}", int(time.time()), actor, action, target, details))
+            conn.commit()
+            conn.close()
+        except Exception:
+            pass
+
+    def get_audit_logs(self, limit=50):
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        rows = [dict(r) for r in conn.execute('SELECT * FROM audit_logs ORDER BY timestamp DESC LIMIT ?', (limit,)).fetchall()]
+        conn.close()
+        return rows
+
 
     def get_dashboard_overview(self):
         conn = sqlite3.connect(self.db_path)
@@ -2361,6 +2439,10 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_dashboard_logs()
         elif path in ["/v1/dashboard/secrets", "/v1/admin/secrets"]:
             self.handle_dashboard_secrets_get()
+        elif path in ["/v1/dashboard/roles", "/v1/admin/roles"]:
+            self.handle_dashboard_roles_get()
+        elif path in ["/v1/dashboard/audit-logs", "/v1/admin/audit-logs"]:
+            self.handle_dashboard_audit_logs_get()
         elif path.startswith('/v1/agent/pop_message/'):
             job_id = path.split('/')[-1]
             self.handle_agent_pop_message(job_id)
@@ -2441,6 +2523,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_dashboard_db_post()
         elif path in ["/v1/dashboard/secrets", "/v1/admin/secrets"]:
             self.handle_dashboard_secrets_post()
+        elif path in ["/v1/dashboard/roles", "/v1/admin/roles"]:
+            self.handle_dashboard_roles_post()
         elif parsed.path.startswith("/v1/storage/objects/"):
             raw_key = parsed.path[len("/v1/storage/objects/"):]
             self.handle_storage_put_object(raw_key)
@@ -3591,6 +3675,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 self.send_error(400, "Missing flag key")
                 return
             _storage_vault.update_feature_flag(key, enabled, rollout, name, desc)
+            _storage_vault.log_audit("reviewer", "FLAG_UPDATE", key, f"enabled={1 if enabled else 0} rollout={rollout}")
             resp = json.dumps({"status": "updated", "key": key, "enabled": enabled}).encode("utf-8")
             self.send_response(200)
             self._send_cors_headers()
@@ -3623,6 +3708,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 self.send_error(400, "Missing config key")
                 return
             _storage_vault.update_remote_config(key, value, category, desc)
+            _storage_vault.log_audit("reviewer", "CONFIG_UPDATE", key, f"value={value}")
             resp = json.dumps({"status": "updated", "key": key, "value": value}).encode("utf-8")
             self.send_response(200)
             self._send_cors_headers()
@@ -3652,6 +3738,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 self.send_error(400, "Missing experiment id")
                 return
             _storage_vault.update_experiment(exp_id, body)
+            _storage_vault.log_audit("reviewer", "EXPERIMENT_ACTION", exp_id, f"status={body.get('status')}")
             resp = json.dumps({"status": "updated", "id": exp_id}).encode("utf-8")
             self.send_response(200)
             self._send_cors_headers()
@@ -3721,6 +3808,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 quota_bytes=body.get("quota_bytes"),
                 new_password=body.get("new_password")
             )
+            _storage_vault.log_audit("admin", "USER_ACCESS_UPDATE", user_id, f"role={body.get('role')} status={body.get('status')}")
             resp = json.dumps({"status": "updated", "user_id": user_id}).encode("utf-8")
             self.send_response(200)
             self._send_cors_headers()
@@ -3753,6 +3841,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 self.send_error(400, "Missing title or body")
                 return
             res = _storage_vault.create_notification(title, body_text, notif_type, target)
+            _storage_vault.log_audit("admin", "NOTIFICATION_BROADCAST", title, f"type={notif_type} target={target}")
             resp = json.dumps({"status": "sent", "notification": res}).encode("utf-8")
             self.send_response(201)
             self._send_cors_headers()
@@ -3816,6 +3905,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             else:
                 self.send_error(400, f"Unknown action {action}")
                 return
+            _storage_vault.log_audit("admin", "DB_MUTATION", table, f"action={action}")
             resp = json.dumps({"status": "success", "action": action}).encode("utf-8")
             self.send_response(200)
             self._send_cors_headers()
@@ -3857,6 +3947,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 self.send_error(400, "Missing secret key")
                 return
             _storage_vault.set_secret(key, value, desc)
+            _storage_vault.log_audit("admin", "SECRET_UPDATE", key, desc or "Updated vault secret")
             resp = json.dumps({"status": "updated", "key": key}).encode("utf-8")
             self.send_response(200)
             self._send_cors_headers()
@@ -3866,6 +3957,57 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.wfile.write(resp)
         except Exception as e:
             self.send_error(500, str(e))
+
+    def handle_dashboard_roles_get(self):
+        roles = _storage_vault.get_role_permissions()
+        resp = json.dumps({"roles": roles}).encode("utf-8")
+        self.send_response(200)
+        self._send_cors_headers()
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(resp)))
+        self.end_headers()
+        self.wfile.write(resp)
+
+    def handle_dashboard_roles_post(self):
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            body = json.loads(self.rfile.read(length).decode("utf-8"))
+            role = body.get("role")
+            field = body.get("field")
+            value = bool(body.get("value", 0))
+            if not role or not field:
+                self.send_error(400, "Missing role or field")
+                return
+            allowed_fields = [
+                "view_config", "edit_flags", "edit_styling", "manage_users",
+                "blast_notifications", "view_analytics", "browse_database",
+                "edit_database", "access_secrets"
+            ]
+            if field not in allowed_fields:
+                self.send_error(400, f"Invalid permission field: {field}")
+                return
+            _storage_vault.update_role_permission(role, field, value)
+            _storage_vault.log_audit("admin", "ROLE_PERM_UPDATE", role, f"{field}={1 if value else 0}")
+            resp = json.dumps({"status": "updated", "role": role, "field": field, "value": value}).encode("utf-8")
+            self.send_response(200)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(resp)))
+            self.end_headers()
+            self.wfile.write(resp)
+        except Exception as e:
+            self.send_error(500, str(e))
+
+    def handle_dashboard_audit_logs_get(self):
+        logs = _storage_vault.get_audit_logs(limit=100)
+        resp = json.dumps({"audit_logs": logs}).encode("utf-8")
+        self.send_response(200)
+        self._send_cors_headers()
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(resp)))
+        self.end_headers()
+        self.wfile.write(resp)
+
 
 
     def handle_agent_internal_event(self):

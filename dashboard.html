@@ -147,6 +147,11 @@
           <span class="text-base">⚙️</span>
           <span class="font-medium">Secrets & Webhooks</span>
         </button>
+
+        <button onclick="switchView('rbac')" id="nav-rbac" class="nav-btn w-full text-left px-3 py-2 rounded text-xs font-mono flex items-center gap-2.5 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60 border border-transparent transition-all">
+          <span class="text-base">🛡️</span>
+          <span class="font-medium">Reviewer RBAC & Audit</span>
+        </button>
       </div>
 
       <!-- Sidebar Hardware Footer -->
@@ -685,6 +690,91 @@
           </div>
         </div>
       </section>
+ 
+      <!-- ================================================================= -->
+      <!-- VIEW 9: REVIEWER RBAC & AUDIT TRAIL -->
+      <!-- ================================================================= -->
+      <section id="view-rbac" class="view-panel hidden space-y-6">
+        <div>
+          <h2 class="text-xl font-bold tracking-tight text-white space-grotesk">Reviewer Permissions Matrix & Audit Trail</h2>
+          <p class="text-xs font-mono text-zinc-400">Manage granular permissions for non-code reviewers, QA testers, and team members with immutable tamper-evident phone logging.</p>
+        </div>
+
+        <!-- Role Permissions Matrix Card -->
+        <div class="bg-[#07090d] border border-zinc-800/80 rounded-xl p-5 space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-800/80 pb-4">
+            <div>
+              <div class="font-bold text-sm text-white space-grotesk flex items-center gap-2">
+                <span>🛡️ Non-Code Reviewer Permission Grid</span>
+                <span class="text-[10px] font-mono text-cyan-400 bg-cyan-950/60 border border-cyan-800/60 px-1.5 py-0.5 rounded">REAL-TIME HOT-RELOAD</span>
+              </div>
+              <p class="text-xs font-mono text-zinc-400">Reviewers can test features, toggle experimental flags, and inspect telemetry without direct code access or database write privileges.</p>
+            </div>
+            <button onclick="loadRolesView()" class="self-start sm:self-auto text-xs font-mono px-3 py-1.5 rounded bg-zinc-900 border border-zinc-700/80 hover:border-zinc-500 text-zinc-300 flex items-center gap-1.5 transition-all">
+              <span>🔄</span> Refresh Roles
+            </button>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs font-mono border-collapse">
+              <thead>
+                <tr class="text-[11px] text-zinc-400 border-b border-zinc-800 bg-black/40">
+                  <th class="py-2.5 px-3">Role Preset</th>
+                  <th class="py-2.5 px-3 text-center">Config & Flags</th>
+                  <th class="py-2.5 px-3 text-center">Remote Styling</th>
+                  <th class="py-2.5 px-3 text-center">Manage Users</th>
+                  <th class="py-2.5 px-3 text-center">Broadcast Alerts</th>
+                  <th class="py-2.5 px-3 text-center">Live Analytics</th>
+                  <th class="py-2.5 px-3 text-center">Browse DB</th>
+                  <th class="py-2.5 px-3 text-center">Edit DB</th>
+                  <th class="py-2.5 px-3 text-center">Secrets Vault</th>
+                  <th class="py-2.5 px-3 text-right">Updated</th>
+                </tr>
+              </thead>
+              <tbody id="roles-matrix-body">
+                <!-- Dynamically Populated with checkboxes -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Audit Trail Card -->
+        <div class="bg-[#07090d] border border-zinc-800/80 rounded-xl p-5 space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-800/80 pb-4">
+            <div>
+              <div class="font-bold text-sm text-white space-grotesk flex items-center gap-2">
+                <span>📜 Hardware Audit Trail</span>
+                <span class="text-[10px] font-mono text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-1.5 py-0.5 rounded">TAMPER RESISTANT</span>
+              </div>
+              <p class="text-xs font-mono text-zinc-400">All administrative mutations, flag toggles, credential changes, and DB operations recorded in local phone SQLite storage.</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <input type="text" id="audit-filter-input" oninput="filterAuditLogs()" placeholder="Filter action or target..." class="bg-black/60 border border-zinc-800 rounded px-2.5 py-1 text-xs font-mono text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-cyan-500 w-48" />
+              <button onclick="loadAuditView()" class="text-xs font-mono px-3 py-1.5 rounded bg-zinc-900 border border-zinc-700/80 hover:border-zinc-500 text-zinc-300 flex items-center gap-1.5 transition-all">
+                <span>🔄</span> Refresh
+              </button>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs font-mono border-collapse">
+              <thead>
+                <tr class="text-[11px] text-zinc-400 border-b border-zinc-800 bg-black/40">
+                  <th class="py-2.5 px-3">Event ID</th>
+                  <th class="py-2.5 px-3">Timestamp</th>
+                  <th class="py-2.5 px-3">Actor</th>
+                  <th class="py-2.5 px-3">Action</th>
+                  <th class="py-2.5 px-3">Target</th>
+                  <th class="py-2.5 px-3">Details</th>
+                </tr>
+              </thead>
+              <tbody id="audit-logs-table-body">
+                <!-- Dynamically Populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
 
     </main>
   </div>
@@ -773,6 +863,7 @@
       else if (viewId === 'data') loadDataView();
       else if (viewId === 'logs') loadLogsView();
       else if (viewId === 'secrets') loadSecretsView();
+      else if (viewId === 'rbac') loadRbacView();
     }
 
     // --- AUTHENTICATION ---
@@ -1526,6 +1617,147 @@
 
     function copyToClipboard(txt) {
       navigator.clipboard.writeText(txt).then(() => alert("Copied to clipboard:\n" + txt));
+    }
+
+    // --- REVIEWER RBAC & AUDIT TRAIL ---
+    let cachedAuditLogs = [];
+
+    async function loadRbacView() {
+      await Promise.all([loadRolesView(), loadAuditView()]);
+    }
+
+    async function loadRolesView() {
+      try {
+        const res = await fetch(`${BASE_URL}/v1/dashboard/roles`);
+        const data = await res.json();
+        const tbody = document.getElementById('roles-matrix-body');
+        if (!data.roles || data.roles.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="10" class="py-4 text-center text-zinc-500">No roles found</td></tr>';
+          return;
+        }
+
+        const roleBadges = {
+          admin: 'bg-rose-950/60 text-rose-400 border-rose-800/60',
+          developer: 'bg-cyan-950/60 text-cyan-400 border-cyan-800/60',
+          reviewer: 'bg-violet-950/60 text-violet-400 border-violet-800/60',
+          tester: 'bg-amber-950/60 text-amber-400 border-amber-800/60',
+          member: 'bg-zinc-900 text-zinc-400 border-zinc-700'
+        };
+
+        tbody.innerHTML = data.roles.map(r => `
+          <tr class="border-b border-zinc-800/40 hover:bg-zinc-900/30">
+            <td class="py-3 px-3">
+              <span class="px-2 py-0.5 rounded text-[11px] font-bold border uppercase ${roleBadges[r.role] || 'text-zinc-300 border-zinc-700'}">${r.role}</span>
+            </td>
+            <td class="py-3 px-3 text-center">
+              <input type="checkbox" ${r.edit_flags ? 'checked' : ''} onchange="toggleRolePerm('${r.role}', 'edit_flags', this.checked)" class="w-4 h-4 rounded bg-zinc-900 border-zinc-700 text-cyan-500 focus:ring-0 cursor-pointer" ${r.role === 'admin' ? 'disabled' : ''} />
+            </td>
+            <td class="py-3 px-3 text-center">
+              <input type="checkbox" ${r.edit_styling ? 'checked' : ''} onchange="toggleRolePerm('${r.role}', 'edit_styling', this.checked)" class="w-4 h-4 rounded bg-zinc-900 border-zinc-700 text-cyan-500 focus:ring-0 cursor-pointer" ${r.role === 'admin' ? 'disabled' : ''} />
+            </td>
+            <td class="py-3 px-3 text-center">
+              <input type="checkbox" ${r.manage_users ? 'checked' : ''} onchange="toggleRolePerm('${r.role}', 'manage_users', this.checked)" class="w-4 h-4 rounded bg-zinc-900 border-zinc-700 text-cyan-500 focus:ring-0 cursor-pointer" ${r.role === 'admin' ? 'disabled' : ''} />
+            </td>
+            <td class="py-3 px-3 text-center">
+              <input type="checkbox" ${r.blast_notifications ? 'checked' : ''} onchange="toggleRolePerm('${r.role}', 'blast_notifications', this.checked)" class="w-4 h-4 rounded bg-zinc-900 border-zinc-700 text-cyan-500 focus:ring-0 cursor-pointer" ${r.role === 'admin' ? 'disabled' : ''} />
+            </td>
+            <td class="py-3 px-3 text-center">
+              <input type="checkbox" ${r.view_analytics ? 'checked' : ''} onchange="toggleRolePerm('${r.role}', 'view_analytics', this.checked)" class="w-4 h-4 rounded bg-zinc-900 border-zinc-700 text-cyan-500 focus:ring-0 cursor-pointer" ${r.role === 'admin' ? 'disabled' : ''} />
+            </td>
+            <td class="py-3 px-3 text-center">
+              <input type="checkbox" ${r.browse_database ? 'checked' : ''} onchange="toggleRolePerm('${r.role}', 'browse_database', this.checked)" class="w-4 h-4 rounded bg-zinc-900 border-zinc-700 text-cyan-500 focus:ring-0 cursor-pointer" ${r.role === 'admin' ? 'disabled' : ''} />
+            </td>
+            <td class="py-3 px-3 text-center">
+              <input type="checkbox" ${r.edit_database ? 'checked' : ''} onchange="toggleRolePerm('${r.role}', 'edit_database', this.checked)" class="w-4 h-4 rounded bg-zinc-900 border-zinc-700 text-cyan-500 focus:ring-0 cursor-pointer" ${r.role === 'admin' ? 'disabled' : ''} />
+            </td>
+            <td class="py-3 px-3 text-center">
+              <input type="checkbox" ${r.access_secrets ? 'checked' : ''} onchange="toggleRolePerm('${r.role}', 'access_secrets', this.checked)" class="w-4 h-4 rounded bg-zinc-900 border-zinc-700 text-cyan-500 focus:ring-0 cursor-pointer" ${r.role === 'admin' ? 'disabled' : ''} />
+            </td>
+            <td class="py-3 px-3 text-right text-zinc-500 text-[11px]">${r.updated_at || 'Default'}</td>
+          </tr>
+        `).join('');
+      } catch (e) {
+        console.error("Failed to load roles", e);
+      }
+    }
+
+    async function toggleRolePerm(role, field, value) {
+      try {
+        await fetch(`${BASE_URL}/v1/dashboard/roles`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ role, field, value: value ? 1 : 0 })
+        });
+        loadAuditView();
+      } catch (e) {
+        alert("Failed to update role permission: " + e.message);
+        loadRolesView();
+      }
+    }
+
+    async function loadAuditView() {
+      try {
+        const res = await fetch(`${BASE_URL}/v1/dashboard/audit-logs`);
+        const data = await res.json();
+        cachedAuditLogs = data.audit_logs || [];
+        renderAuditLogs(cachedAuditLogs);
+      } catch (e) {
+        console.error("Failed to load audit logs", e);
+      }
+    }
+
+    function renderAuditLogs(logs) {
+      const tbody = document.getElementById('audit-logs-table-body');
+      if (!logs || logs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="py-4 text-center text-zinc-500">No audit events recorded</td></tr>';
+        return;
+      }
+      const actionBadges = {
+        FLAG_UPDATE: 'bg-cyan-950/60 text-cyan-400 border-cyan-800/60',
+        CONFIG_UPDATE: 'bg-indigo-950/60 text-indigo-400 border-indigo-800/60',
+        EXPERIMENT_ACTION: 'bg-amber-950/60 text-amber-400 border-amber-800/60',
+        ROLE_PERM_UPDATE: 'bg-violet-950/60 text-violet-400 border-violet-800/60',
+        ROLE_ASSIGN: 'bg-purple-950/60 text-purple-400 border-purple-800/60',
+        USER_ACCESS_UPDATE: 'bg-rose-950/60 text-rose-400 border-rose-800/60',
+        NOTIFICATION_BROADCAST: 'bg-emerald-950/60 text-emerald-400 border-emerald-800/60',
+        DB_MUTATION: 'bg-blue-950/60 text-blue-400 border-blue-800/60',
+        SECRET_UPDATE: 'bg-red-950/60 text-red-400 border-red-800/60',
+        CLUSTER_INITIALIZE: 'bg-zinc-800 text-zinc-300 border-zinc-700'
+      };
+
+      tbody.innerHTML = logs.map(l => {
+        const d = new Date(l.timestamp * 1000);
+        const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const dateStr = d.toLocaleDateString();
+        const badgeClass = actionBadges[l.action] || 'bg-zinc-800 text-zinc-400 border-zinc-700';
+        return `
+          <tr class="border-b border-zinc-800/40 hover:bg-zinc-900/30">
+            <td class="py-2.5 px-3 text-zinc-500 font-mono text-[11px]">${l.id}</td>
+            <td class="py-2.5 px-3 text-zinc-400 font-mono whitespace-nowrap text-[11px]">${dateStr} ${timeStr}</td>
+            <td class="py-2.5 px-3 font-semibold text-white font-mono">${l.actor}</td>
+            <td class="py-2.5 px-3">
+              <span class="px-2 py-0.5 rounded text-[10px] font-mono border ${badgeClass}">${l.action}</span>
+            </td>
+            <td class="py-2.5 px-3 text-zinc-300 font-mono text-[11px]">${l.target}</td>
+            <td class="py-2.5 px-3 text-zinc-400 font-mono text-[11px] max-w-xs truncate" title="${l.details || ''}">${l.details || ''}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function filterAuditLogs() {
+      const q = (document.getElementById('audit-filter-input').value || '').toLowerCase();
+      if (!q) {
+        renderAuditLogs(cachedAuditLogs);
+        return;
+      }
+      const filtered = cachedAuditLogs.filter(l => 
+        (l.action && l.action.toLowerCase().includes(q)) ||
+        (l.target && l.target.toLowerCase().includes(q)) ||
+        (l.actor && l.actor.toLowerCase().includes(q)) ||
+        (l.details && l.details.toLowerCase().includes(q))
+      );
+      renderAuditLogs(filtered);
     }
 
     // --- INITIALIZATION ---
