@@ -603,6 +603,81 @@ def _get_storage_pools():
 
 _SAFE_KEY_CHARS = frozenset("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.-/")
 
+
+class SwadesSecurityShield:
+    """Sliding-window IP rate limiter and brute-force lock defense"""
+    def __init__(self, max_attempts=15, window_seconds=60, lock_seconds=120):
+        self.max_attempts = max_attempts
+        self.window_seconds = window_seconds
+        self.lock_seconds = lock_seconds
+        self.lock = threading.Lock()
+        self._history = collections.defaultdict(list)
+        self._locked = {}
+
+    def check(self, ip: str) -> tuple:
+        """Returns (allowed: bool, reason: str, retry_after: int)"""
+        now = time.time()
+        with self.lock:
+            if ip in self._locked:
+                locked_until = self._locked[ip]
+                if now < locked_until:
+                    retry_after = int(locked_until - now) + 1
+                    return False, f"IP locked due to brute-force rate limit. Try again in {retry_after}s.", retry_after
+                else:
+                    del self._locked[ip]
+                    self._history.pop(ip, None)
+
+            cutoff = now - self.window_seconds
+            self._history[ip] = [ts for ts in self._history[ip] if ts > cutoff]
+
+            if len(self._history[ip]) >= self.max_attempts:
+                locked_until = now + self.lock_seconds
+                self._locked[ip] = locked_until
+                return False, f"Too many requests from this IP. Locked for {self.lock_seconds}s.", self.lock_seconds
+
+            self._history[ip].append(now)
+            return True, "OK", 0
+
+    def reset_ip(self, ip: str):
+        with self.lock:
+            self._history.pop(ip, None)
+            self._locked.pop(ip, None)
+
+    def reset_all(self):
+        with self.lock:
+            self._history.clear()
+            self._locked.clear()
+
+    def get_status(self):
+        with self.lock:
+            now = time.time()
+            active_locks = {ip: round(until - now, 1) for ip, until in self._locked.items() if until > now}
+            tracked_ips = len(self._history)
+            return {
+                "active_locks": active_locks,
+                "locked_count": len(active_locks),
+                "tracked_ips": tracked_ips,
+                "max_attempts": self.max_attempts,
+                "window_seconds": self.window_seconds,
+                "lock_seconds": self.lock_seconds
+            }
+
+def get_client_ip(handler) -> str:
+    test_ip = handler.headers.get("X-Client-IP") or handler.headers.get("X-Test-IP")
+    if test_ip:
+        return test_ip.strip()
+    cf_ip = handler.headers.get("CF-Connecting-IP")
+    if cf_ip:
+        return cf_ip.strip()
+    xff = handler.headers.get("X-Forwarded-For")
+    if xff:
+        return xff.split(",")[0].strip()
+    if hasattr(handler, "client_address") and handler.client_address:
+        return handler.client_address[0]
+    return "127.0.0.1"
+
+_security_shield = SwadesSecurityShield(max_attempts=15, window_seconds=60, lock_seconds=120)
+
 class SwadeStorageVault:
     """Manages multi-tenant accounts and API keys with sub-microsecond in-memory verification"""
     def __init__(self):
@@ -620,9 +695,67 @@ class SwadeStorageVault:
         self._init_db()
         self._warm_cache()
 
+    def _get_conn(self):
+        conn = sqlite3.connect(self.db_path, timeout=5.0)
+        conn.execute("PRAGMA journal_mode=WAL;")
+        conn.execute("PRAGMA synchronous=NORMAL;")
+        conn.execute("PRAGMA temp_store=MEMORY;")
+        conn.execute("PRAGMA mmap_size=268435456;") # 256MB mmap
+        conn.execute("PRAGMA cache_size=-64000;") # 64MB cache
+        conn.execute("PRAGMA busy_timeout=5000;")
+        return conn
+
+    def db_check_integrity(self):
+        conn = self._get_conn()
+        try:
+            cursor = conn.cursor()
+            res = cursor.execute("PRAGMA integrity_check").fetchall()
+            status = [r[0] for r in res]
+            is_ok = (len(status) == 1 and status[0].lower() == "ok")
+            db_size = os.path.getsize(self.db_path) if os.path.exists(self.db_path) else 0
+            wal_path = self.db_path + "-wal"
+            wal_size = os.path.getsize(wal_path) if os.path.exists(wal_path) else 0
+            page_count = cursor.execute("PRAGMA page_count").fetchone()[0]
+            page_size = cursor.execute("PRAGMA page_size").fetchone()[0]
+            freelist_count = cursor.execute("PRAGMA freelist_count").fetchone()[0]
+            journal_mode = cursor.execute("PRAGMA journal_mode").fetchone()[0]
+            return {
+                "ok": is_ok,
+                "status": status,
+                "db_size_bytes": db_size,
+                "db_size_kb": round(db_size / 1024, 2),
+                "wal_size_bytes": wal_size,
+                "wal_size_kb": round(wal_size / 1024, 2),
+                "page_count": page_count,
+                "page_size": page_size,
+                "freelist_count": freelist_count,
+                "journal_mode": journal_mode
+            }
+        finally:
+            conn.close()
+
+    def db_vacuum_and_optimize(self):
+        conn = self._get_conn()
+        try:
+            t0 = time.perf_counter()
+            size_before = os.path.getsize(self.db_path) if os.path.exists(self.db_path) else 0
+            conn.execute("VACUUM;")
+            conn.execute("PRAGMA optimize;")
+            elapsed_ms = round((time.perf_counter() - t0) * 1000, 2)
+            size_after = os.path.getsize(self.db_path) if os.path.exists(self.db_path) else 0
+            return {
+                "ok": True,
+                "vacuum_ms": elapsed_ms,
+                "size_before_bytes": size_before,
+                "size_after_bytes": size_after,
+                "freed_bytes": max(0, size_before - size_after)
+            }
+        finally:
+            conn.close()
+
     def _init_db(self):
         try:
-            conn = sqlite3.connect(self.db_path)
+            conn = self._get_conn()
             conn.execute('''CREATE TABLE IF NOT EXISTS users (
                 user_id TEXT PRIMARY KEY,
                 username TEXT UNIQUE,
@@ -855,7 +988,7 @@ class SwadeStorageVault:
 
     def _warm_cache(self):
         try:
-            conn = sqlite3.connect(self.db_path)
+            conn = self._get_conn()
             conn.row_factory = sqlite3.Row
             rows = conn.execute('SELECT * FROM api_keys WHERE is_active = 1').fetchall()
             u_rows = conn.execute('SELECT * FROM users WHERE is_active = 1').fetchall()
@@ -915,7 +1048,7 @@ class SwadeStorageVault:
 
         def _persist_user():
             try:
-                conn = sqlite3.connect(self.db_path)
+                conn = self._get_conn()
                 conn.execute('''INSERT INTO users (user_id, username, password_hash, salt, quota_bytes, created_at, is_active)
                                 VALUES (?, ?, ?, ?, ?, ?, 1)''',
                              (user_id, uname, pwd_hash, salt, quota_bytes, now))
@@ -979,8 +1112,7 @@ class SwadeStorageVault:
         if expires_in_days is not None:
             try:
                 d = int(expires_in_days)
-                if d > 0:
-                    expires_at = (now_dt + timedelta(days=d)).isoformat()
+                expires_at = (now_dt + timedelta(days=d)).isoformat()
             except Exception:
                 pass
 
@@ -1005,7 +1137,7 @@ class SwadeStorageVault:
 
         def _persist():
             try:
-                conn = sqlite3.connect(self.db_path)
+                conn = self._get_conn()
                 conn.execute('''INSERT OR REPLACE INTO api_keys 
                                 (key_id, key_hash, tenant_id, name, quota_bytes, used_bytes, created_at, is_active, restrictions, expires_at)
                                 VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?)''',
@@ -1059,7 +1191,7 @@ class SwadeStorageVault:
 
         def _async_revoke():
             try:
-                conn = sqlite3.connect(self.db_path)
+                conn = self._get_conn()
                 conn.execute('UPDATE api_keys SET is_active = 0 WHERE key_id = ?', (key_id,))
                 conn.commit()
                 conn.close()
@@ -1080,14 +1212,14 @@ class SwadeStorageVault:
     # === DEVELOPER DASHBOARD BACKEND ENGINES ===
 
     def get_feature_flags(self):
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_conn()
         conn.row_factory = sqlite3.Row
         rows = [dict(r) for r in conn.execute('SELECT * FROM feature_flags ORDER BY key').fetchall()]
         conn.close()
         return rows
 
     def update_feature_flag(self, key, enabled, rollout_pct=None, name=None, description=None):
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_conn()
         now_str = time.strftime("%Y-%m-%d %H:%M:%S")
         fields = ["enabled = ?", "updated_at = ?"]
         vals = [1 if enabled else 0, now_str]
@@ -1107,14 +1239,14 @@ class SwadeStorageVault:
         return True
 
     def get_remote_config(self):
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_conn()
         conn.row_factory = sqlite3.Row
         rows = [dict(r) for r in conn.execute('SELECT * FROM remote_config ORDER BY key').fetchall()]
         conn.close()
         return rows
 
     def update_remote_config(self, key, value, category=None, description=None):
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_conn()
         now_str = time.strftime("%Y-%m-%d %H:%M:%S")
         fields = ["value = ?", "updated_at = ?"]
         vals = [str(value), now_str]
@@ -1131,14 +1263,14 @@ class SwadeStorageVault:
         return True
 
     def get_experiments(self):
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_conn()
         conn.row_factory = sqlite3.Row
         rows = [dict(r) for r in conn.execute('SELECT * FROM experiments ORDER BY id').fetchall()]
         conn.close()
         return rows
 
     def update_experiment(self, exp_id, data: dict):
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_conn()
         now_str = time.strftime("%Y-%m-%d %H:%M:%S")
         fields = []
         vals = []
@@ -1156,7 +1288,7 @@ class SwadeStorageVault:
         return True
 
     def get_performance_logs(self, limit=50):
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_conn()
         conn.row_factory = sqlite3.Row
         rows = [dict(r) for r in conn.execute('SELECT * FROM performance_logs ORDER BY timestamp DESC LIMIT ?', (limit,)).fetchall()]
         conn.close()
@@ -1164,7 +1296,7 @@ class SwadeStorageVault:
 
     def log_performance(self, event_type, endpoint, latency_ms, status_code, message="", device_info=""):
         try:
-            conn = sqlite3.connect(self.db_path)
+            conn = self._get_conn()
             conn.execute('''INSERT INTO performance_logs (id, timestamp, event_type, endpoint, latency_ms, status_code, message, device_info)
                             VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
                          (secrets.token_hex(6), int(time.time()), event_type, endpoint, latency_ms, status_code, message, device_info))
@@ -1174,14 +1306,14 @@ class SwadeStorageVault:
             pass
 
     def get_notifications(self, limit=50):
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_conn()
         conn.row_factory = sqlite3.Row
         rows = [dict(r) for r in conn.execute('SELECT * FROM notifications ORDER BY created_at DESC LIMIT ?', (limit,)).fetchall()]
         conn.close()
         return rows
 
     def create_notification(self, title, body, notif_type="push", target="all", scheduled_at=None):
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_conn()
         now_str = time.strftime("%Y-%m-%d %H:%M:%S")
         nid = f"notif_{secrets.token_hex(4)}"
         status = "scheduled" if scheduled_at else "sent"
@@ -1196,7 +1328,7 @@ class SwadeStorageVault:
         return {"id": nid, "title": title, "body": body, "created_at": now_str, "scheduled_at": scheduled_at, "status": status}
 
     def list_users_auditor(self, search=""):
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_conn()
         conn.row_factory = sqlite3.Row
         if search:
             s = f"%{search.strip().lower()}%"
@@ -1216,7 +1348,7 @@ class SwadeStorageVault:
         return users
 
     def update_user_access(self, user_id, role=None, status=None, quota_bytes=None, new_password=None, email_verified=None):
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_conn()
         fields = []
         vals = []
         if role is not None:
@@ -1250,7 +1382,7 @@ class SwadeStorageVault:
         return True
 
     def create_feature_flag(self, key, name, description, enabled=0, rollout_pct=100):
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_conn()
         fid = f"flag_{secrets.token_hex(3)}"
         now_str = time.strftime("%Y-%m-%d %H:%M:%S")
         conn.execute('''INSERT OR REPLACE INTO feature_flags (id, key, name, description, enabled, rollout_pct, updated_at)
@@ -1261,7 +1393,7 @@ class SwadeStorageVault:
         return True
 
     def create_experiment(self, name, description, variant_a, variant_b, split_pct=50):
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_conn()
         eid = f"exp_{secrets.token_hex(3)}"
         now_str = time.strftime("%Y-%m-%d %H:%M:%S")
         conn.execute('''INSERT OR REPLACE INTO experiments (id, name, description, variant_a, variant_b, split_pct, impressions_a, conversions_a, impressions_b, conversions_b, status, updated_at)
@@ -1272,7 +1404,7 @@ class SwadeStorageVault:
         return True
 
     def set_file_moderation(self, key, status, reason="", moderator="admin"):
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_conn()
         now_str = time.strftime("%Y-%m-%d %H:%M:%S")
         conn.execute('''INSERT OR REPLACE INTO file_moderation (key, status, flagged_reason, moderated_by, updated_at)
                         VALUES (?, ?, ?, ?, ?)''',
@@ -1283,7 +1415,7 @@ class SwadeStorageVault:
 
     def get_file_moderation_map(self):
         try:
-            conn = sqlite3.connect(self.db_path)
+            conn = self._get_conn()
             conn.row_factory = sqlite3.Row
             rows = conn.execute('SELECT * FROM file_moderation').fetchall()
             m = {r["key"]: dict(r) for r in rows}
@@ -1293,7 +1425,7 @@ class SwadeStorageVault:
             return {}
 
     def db_get_schema(self, table_name=""):
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_conn()
         conn.row_factory = sqlite3.Row
         tables = self.db_list_tables()
         if table_name and table_name in tables:
@@ -1314,7 +1446,7 @@ class SwadeStorageVault:
         return result
 
     def db_list_tables(self):
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_conn()
         cursor = conn.cursor()
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name")
         tables = [row[0] for row in cursor.fetchall()]
@@ -1326,7 +1458,7 @@ class SwadeStorageVault:
         if table_name not in allowed_tables:
             raise ValueError(f"Table '{table_name}' does not exist or access is restricted.")
         
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_conn()
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
 
@@ -1363,7 +1495,7 @@ class SwadeStorageVault:
         if column in ["password_hash", "salt"]:
             raise ValueError("Direct editing of cryptographic hashes is prohibited.")
 
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_conn()
         cursor = conn.cursor()
         cursor.execute(f"PRAGMA table_info({table_name})")
         cols = [r[1] for r in cursor.fetchall()]
@@ -1380,7 +1512,7 @@ class SwadeStorageVault:
         allowed_tables = self.db_list_tables()
         if table_name not in allowed_tables:
             raise ValueError("Invalid table.")
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_conn()
         conn.execute(f"DELETE FROM {table_name} WHERE {pk_col} = ?", (pk_val,))
         conn.commit()
         conn.close()
@@ -1390,7 +1522,7 @@ class SwadeStorageVault:
         allowed_tables = self.db_list_tables()
         if table_name not in allowed_tables:
             raise ValueError("Invalid table.")
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_conn()
         cols = list(data.keys())
         placeholders = ", ".join(["?"] * len(cols))
         col_names = ", ".join(cols)
@@ -1407,7 +1539,7 @@ class SwadeStorageVault:
                 raise ValueError(f"Forbidden SQL operation: {f}")
         
         t0 = time.perf_counter()
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_conn()
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         
@@ -1448,7 +1580,7 @@ class SwadeStorageVault:
             }
 
     def get_secrets(self):
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_conn()
         conn.row_factory = sqlite3.Row
         rows = [dict(r) for r in conn.execute('SELECT * FROM secrets_vault ORDER BY key').fetchall()]
         conn.close()
@@ -1464,13 +1596,13 @@ class SwadeStorageVault:
         return rows
 
     def get_secret(self, key):
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_conn()
         row = conn.execute('SELECT value FROM secrets_vault WHERE key = ?', (key,)).fetchone()
         conn.close()
         return row[0] if row else None
 
     def set_secret(self, key, value, description=""):
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_conn()
         now_str = time.strftime("%Y-%m-%d %H:%M:%S")
         conn.execute('''INSERT INTO secrets_vault (key, value, description, is_secret, updated_at)
                         VALUES (?, ?, ?, 1, ?)
@@ -1481,14 +1613,14 @@ class SwadeStorageVault:
         return True
 
     def get_role_permissions(self):
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_conn()
         conn.row_factory = sqlite3.Row
         rows = [dict(r) for r in conn.execute('SELECT * FROM role_permissions ORDER BY role').fetchall()]
         conn.close()
         return rows
 
     def update_role_permission(self, role, field, value):
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_conn()
         now_str = time.strftime("%Y-%m-%d %H:%M:%S")
         conn.execute(f"UPDATE role_permissions SET {field} = ?, updated_at = ? WHERE role = ?", (1 if value else 0, now_str, role))
         conn.commit()
@@ -1497,7 +1629,7 @@ class SwadeStorageVault:
 
     def log_audit(self, actor, action, target, details=""):
         try:
-            conn = sqlite3.connect(self.db_path)
+            conn = self._get_conn()
             conn.execute('''INSERT INTO audit_logs (id, timestamp, actor, action, target, details)
                             VALUES (?, ?, ?, ?, ?, ?)''',
                          (f"aud_{secrets.token_hex(4)}", int(time.time()), actor, action, target, details))
@@ -1507,7 +1639,7 @@ class SwadeStorageVault:
             pass
 
     def get_audit_logs(self, limit=50):
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_conn()
         conn.row_factory = sqlite3.Row
         rows = [dict(r) for r in conn.execute('SELECT * FROM audit_logs ORDER BY timestamp DESC LIMIT ?', (limit,)).fetchall()]
         conn.close()
@@ -1515,7 +1647,7 @@ class SwadeStorageVault:
 
 
     def get_dashboard_overview(self):
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_conn()
         cursor = conn.cursor()
         total_users = cursor.execute('SELECT COUNT(*) FROM users').fetchone()[0]
         active_users = cursor.execute('SELECT COUNT(*) FROM users WHERE status = "active"').fetchone()[0]
@@ -2620,6 +2752,10 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_dashboard_audit_logs_get()
         elif path in ["/v1/dashboard/db/schema", "/v1/admin/db/schema"]:
             self.handle_dashboard_db_schema(parsed)
+        elif path in ["/v1/dashboard/db/integrity", "/v1/admin/db/integrity"]:
+            self.handle_dashboard_db_integrity()
+        elif path in ["/v1/dashboard/security/status", "/v1/admin/security/status"]:
+            self.handle_dashboard_security_status()
         elif path.startswith('/v1/agent/pop_message/'):
             job_id = path.split('/')[-1]
             self.handle_agent_pop_message(job_id)
@@ -2682,7 +2818,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_storage_register()
         elif path in ["/v1/storage/auth/login", "/v1/storage/login"]:
             self.handle_storage_login()
-        elif path in ["/v1/storage/auth/keys", "/v1/storage/keys"]:
+        elif path in ["/v1/storage/auth/keys", "/v1/storage/keys", "/v1/storage/keys/create"]:
             self.handle_storage_create_key()
         elif path in ["/v1/dashboard/flags", "/v1/admin/flags"]:
             self.handle_dashboard_flags_post()
@@ -2714,6 +2850,10 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_dashboard_webhook_test()
         elif path in ["/v1/dashboard/db/sql", "/v1/admin/db/sql"]:
             self.handle_dashboard_db_sql_post()
+        elif path in ["/v1/dashboard/db/vacuum", "/v1/admin/db/vacuum"]:
+            self.handle_dashboard_db_vacuum()
+        elif path in ["/v1/dashboard/security/reset", "/v1/admin/security/reset"]:
+            self.handle_dashboard_security_reset()
         elif parsed.path.startswith("/v1/storage/objects/"):
             raw_key = parsed.path[len("/v1/storage/objects/"):]
             self.handle_storage_put_object(raw_key)
@@ -3300,10 +3440,28 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
 
         if not api_key:
             return None
-        return _storage_vault.verify_key(api_key)
+        res = _storage_vault.verify_key(api_key)
+        if res == "EXPIRED":
+            return {"expired": True, "error": "API key has expired"}
+        if isinstance(res, dict) and res.get("is_active"):
+            return res
+        return None
 
     def handle_storage_register(self):
         try:
+            ip = get_client_ip(self)
+            allowed, msg, retry_after = _security_shield.check(ip)
+            if not allowed:
+                resp = json.dumps({"error": msg, "retry_after": retry_after}).encode("utf-8")
+                self.send_response(429)
+                self._send_cors_headers()
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Retry-After", str(retry_after))
+                self.send_header("Content-Length", str(len(resp)))
+                self.end_headers()
+                self.wfile.write(resp)
+                return
+
             content_length = int(self.headers.get("Content-Length", 0))
             body = self.rfile.read(content_length) if content_length > 0 else b""
             payload = json.loads(body.decode("utf-8")) if body else {}
@@ -3340,6 +3498,19 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
 
     def handle_storage_login(self):
         try:
+            ip = get_client_ip(self)
+            allowed, msg, retry_after = _security_shield.check(ip)
+            if not allowed:
+                resp = json.dumps({"error": msg, "retry_after": retry_after}).encode("utf-8")
+                self.send_response(429)
+                self._send_cors_headers()
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Retry-After", str(retry_after))
+                self.send_header("Content-Length", str(len(resp)))
+                self.end_headers()
+                self.wfile.write(resp)
+                return
+
             content_length = int(self.headers.get("Content-Length", 0))
             body = self.rfile.read(content_length) if content_length > 0 else b""
             payload = json.loads(body.decode("utf-8")) if body else {}
@@ -3441,7 +3612,16 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
 
     def handle_storage_list_keys(self):
         tenant = self._authenticate_storage_request()
-        if not tenant:
+        if not tenant or tenant.get("expired"):
+            err = json.dumps({"error": "Unauthorized" if not tenant else "API key has expired"}).encode("utf-8")
+            self.send_response(401)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(err)))
+            self.end_headers()
+            self.wfile.write(err)
+            return
+        if False:
             err = json.dumps({"error": "Unauthorized. Provide valid Bearer token or x-api-key header"}).encode("utf-8")
             self.send_response(401)
             self._send_cors_headers()
@@ -3491,6 +3671,24 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(err)
             return
+        if tenant.get("expired"):
+            err = json.dumps({"error": "API key has expired"}).encode("utf-8")
+            self.send_response(401)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(err)))
+            self.end_headers()
+            self.wfile.write(err)
+            return
+        if tenant.get("restrictions") == "read_only":
+            err = json.dumps({"error": "Forbidden: read_only API key cannot perform write/upload operations"}).encode("utf-8")
+            self.send_response(403)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(err)))
+            self.end_headers()
+            self.wfile.write(err)
+            return
 
         try:
             content_length = int(self.headers.get("Content-Length", 0))
@@ -3524,8 +3722,13 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
     def handle_storage_head_object(self, raw_key):
         t0 = time.perf_counter_ns()
         tenant = self._authenticate_storage_request()
-        if not tenant:
+        if not tenant or tenant.get("expired"):
             self.send_response(401)
+            self._send_cors_headers()
+            self.end_headers()
+            return
+        if tenant.get("restrictions") == "write_only":
+            self.send_response(403)
             self._send_cors_headers()
             self.end_headers()
             return
@@ -3556,6 +3759,24 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         if not tenant:
             err = json.dumps({"error": "Unauthorized"}).encode("utf-8")
             self.send_response(401)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(err)))
+            self.end_headers()
+            self.wfile.write(err)
+            return
+        if tenant.get("expired"):
+            err = json.dumps({"error": "API key has expired"}).encode("utf-8")
+            self.send_response(401)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(err)))
+            self.end_headers()
+            self.wfile.write(err)
+            return
+        if tenant.get("restrictions") == "write_only":
+            err = json.dumps({"error": "Forbidden: write_only API key cannot perform read/download operations"}).encode("utf-8")
+            self.send_response(403)
             self._send_cors_headers()
             self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", str(len(err)))
@@ -3601,6 +3822,24 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(err)
             return
+        if tenant.get("expired"):
+            err = json.dumps({"error": "API key has expired"}).encode("utf-8")
+            self.send_response(401)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(err)))
+            self.end_headers()
+            self.wfile.write(err)
+            return
+        if tenant.get("restrictions") == "read_only":
+            err = json.dumps({"error": "Forbidden: read_only API key cannot perform delete operations"}).encode("utf-8")
+            self.send_response(403)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(err)))
+            self.end_headers()
+            self.wfile.write(err)
+            return
 
         success = _object_store.delete_object(tenant["tenant_id"], raw_key)
         t_ns = time.perf_counter_ns() - t0
@@ -3625,6 +3864,24 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         if not tenant:
             err = json.dumps({"error": "Unauthorized"}).encode("utf-8")
             self.send_response(401)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(err)))
+            self.end_headers()
+            self.wfile.write(err)
+            return
+        if tenant.get("expired"):
+            err = json.dumps({"error": "API key has expired"}).encode("utf-8")
+            self.send_response(401)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(err)))
+            self.end_headers()
+            self.wfile.write(err)
+            return
+        if tenant.get("restrictions") == "write_only":
+            err = json.dumps({"error": "Forbidden: write_only API key cannot perform list operations"}).encode("utf-8")
+            self.send_response(403)
             self._send_cors_headers()
             self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", str(len(err)))
@@ -3887,7 +4144,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
 
     def handle_dashboard_remote_config_get(self):
         configs = _storage_vault.get_remote_config()
-        resp = json.dumps({"configs": configs}).encode("utf-8")
+        resp = json.dumps({"configs": configs, "config": configs}).encode("utf-8")
         self.send_response(200)
         self._send_cors_headers()
         self.send_header("Content-Type", "application/json")
@@ -4133,7 +4390,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             qs = urllib.parse.parse_qs(parsed.query)
             table_name = qs.get("table", [""])[0].strip()
             schema_info = _storage_vault.db_get_schema(table_name)
-            resp = json.dumps({"schema": schema_info}).encode("utf-8")
+            tables_list = [{"name": k, "columns": v["columns"], "sql": v.get("ddl", ""), "row_count": v.get("row_count", 0)} for k, v in schema_info.items()]
+            resp = json.dumps({"schema": schema_info, "tables": tables_list}).encode("utf-8")
             self.send_response(200)
             self._send_cors_headers()
             self.send_header("Content-Type", "application/json")
@@ -4436,6 +4694,78 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(resp)))
         self.end_headers()
         self.wfile.write(resp)
+
+    def handle_dashboard_db_integrity(self):
+        try:
+            res = _storage_vault.db_check_integrity()
+            resp = json.dumps(res).encode("utf-8")
+            self.send_response(200)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(resp)))
+            self.end_headers()
+            self.wfile.write(resp)
+        except Exception as e:
+            self.send_response(500)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({"error": str(e)}).encode("utf-8"))
+
+    def handle_dashboard_db_vacuum(self):
+        try:
+            res = _storage_vault.db_vacuum_and_optimize()
+            _storage_vault.log_audit("admin", "DB_VACUUM", "auth.db", f"Vacuum complete freed={res.get('freed_bytes', 0)}b in {res.get('vacuum_ms')}ms")
+            resp = json.dumps(res).encode("utf-8")
+            self.send_response(200)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(resp)))
+            self.end_headers()
+            self.wfile.write(resp)
+        except Exception as e:
+            self.send_response(500)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({"error": str(e)}).encode("utf-8"))
+
+    def handle_dashboard_security_status(self):
+        data = _security_shield.get_status()
+        resp = json.dumps(data).encode("utf-8")
+        self.send_response(200)
+        self._send_cors_headers()
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(resp)))
+        self.end_headers()
+        self.wfile.write(resp)
+
+    def handle_dashboard_security_reset(self):
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            body = json.loads(self.rfile.read(length).decode("utf-8")) if length > 0 else {}
+            ip = body.get("ip")
+            if ip:
+                _security_shield.reset_ip(ip)
+                msg = f"Reset security lock for IP {ip}"
+            else:
+                _security_shield.reset_all()
+                msg = "Reset all security locks and rate-limit counters"
+            _storage_vault.log_audit("admin", "SECURITY_RESET", ip or "ALL", msg)
+            resp = json.dumps({"status": "success", "message": msg}).encode("utf-8")
+            self.send_response(200)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(resp)))
+            self.end_headers()
+            self.wfile.write(resp)
+        except Exception as e:
+            self.send_response(500)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({"error": str(e)}).encode("utf-8"))
+
 
 
 

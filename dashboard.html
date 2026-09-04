@@ -822,8 +822,32 @@
             </div>
           </div>
 
-          <!-- TAB 3: SCHEMA INSPECTOR -->
-          <div id="db-panel-schema" class="hidden space-y-3">
+          <!-- TAB 3: SCHEMA INSPECTOR & DATABASE MAINTENANCE -->
+          <div id="db-panel-schema" class="hidden space-y-4">
+            <!-- Database Health & Maintenance Action Header -->
+            <div class="p-3.5 rounded bg-[#0b0e14] border border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 font-mono text-xs">
+              <div class="flex items-center gap-3">
+                <div class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></div>
+                <div>
+                  <div class="font-bold text-white flex items-center gap-2">
+                    <span>SQLite WAL Engine</span>
+                    <span id="db-wal-mode-badge" class="px-1.5 py-0.5 rounded bg-emerald-950/80 text-emerald-400 border border-emerald-800 text-[10px]">WAL ACTIVE</span>
+                  </div>
+                  <div id="db-integrity-summary" class="text-[11px] text-zinc-400 mt-0.5">
+                    Storage: <span id="db-size-val" class="text-cyan-400">-- KB</span> | WAL: <span id="db-wal-val" class="text-zinc-300">-- KB</span> | Status: <span id="db-integrity-status" class="text-emerald-400">UNCHECKED</span>
+                  </div>
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <button onclick="runDbIntegrityCheck()" id="btn-db-integrity" class="px-3 py-1.5 rounded bg-zinc-800 hover:bg-zinc-700 text-cyan-300 hover:text-white border border-zinc-700 flex items-center gap-1.5 transition-all">
+                  <span>🛡️</span> Integrity Check
+                </button>
+                <button onclick="runDbVacuumOptimize()" id="btn-db-vacuum" class="px-3 py-1.5 rounded bg-cyan-950/60 hover:bg-cyan-900/80 text-cyan-300 border border-cyan-800 flex items-center gap-1.5 transition-all">
+                  <span>⚡</span> VACUUM & Optimize
+                </button>
+              </div>
+            </div>
+
             <div id="schema-inspector-container" class="space-y-4">
               <!-- Dynamically populated schema tables -->
             </div>
@@ -2408,6 +2432,57 @@ TimeoutError: Latency threshold breached (${l.latency_ms}ms) on ${l.device_info 
         document.getElementById('db-panel-schema').classList.remove('hidden');
         document.getElementById('db-schema-controls').classList.remove('hidden');
         loadDbSchema();
+        runDbIntegrityCheck();
+      }
+    }
+
+    async function runDbIntegrityCheck() {
+      const btn = document.getElementById('btn-db-integrity');
+      const statusEl = document.getElementById('db-integrity-status');
+      const sizeEl = document.getElementById('db-size-val');
+      const walEl = document.getElementById('db-wal-val');
+      if (btn) btn.disabled = true;
+      if (statusEl) statusEl.innerHTML = '<span class="text-amber-400">CHECKING...</span>';
+
+      try {
+        const res = await fetch(`${BASE_URL}/v1/dashboard/db/integrity`);
+        const data = await res.json();
+        if (sizeEl) sizeEl.innerText = `${data.db_size_kb || 0} KB`;
+        if (walEl) walEl.innerText = `${data.wal_size_kb || 0} KB`;
+        if (statusEl) {
+          if (data.ok) {
+            statusEl.innerHTML = '<span class="text-emerald-400">PASS (OK)</span>';
+          } else {
+            statusEl.innerHTML = `<span class="text-rose-400">ERROR: ${(data.status || []).join(', ')}</span>`;
+          }
+        }
+        showToast('Database integrity: ' + (data.ok ? 'PASSED (OK)' : 'ISSUES FOUND'));
+      } catch (e) {
+        if (statusEl) statusEl.innerHTML = `<span class="text-rose-400">FAILED: ${e.message}</span>`;
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    async function runDbVacuumOptimize() {
+      const btn = document.getElementById('btn-db-vacuum');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerText = '⚡ Optimizing...';
+      }
+
+      try {
+        const res = await fetch(`${BASE_URL}/v1/dashboard/db/vacuum`, { method: 'POST' });
+        const data = await res.json();
+        showToast(`VACUUM completed in ${data.vacuum_ms}ms! Freed ${data.freed_bytes} bytes.`);
+        runDbIntegrityCheck();
+      } catch (e) {
+        showToast(`VACUUM failed: ${e.message}`, 'error');
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<span>⚡</span> VACUUM & Optimize';
+        }
       }
     }
 
