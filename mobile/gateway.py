@@ -4484,7 +4484,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 role=body.get("role"),
                 status=body.get("status"),
                 quota_bytes=body.get("quota_bytes"),
-                new_password=body.get("new_password"),
+                new_password=body.get("new_password") or body.get("password"),
                 email_verified=email_verified
             )
             audit_action = "USER_ACCESS_UPDATE"

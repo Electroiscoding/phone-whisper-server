@@ -81,10 +81,31 @@
         <span>🌐 Public Studio</span>
       </a>
 
+      <!-- Environment Switcher -->
+      <div class="hidden xl:flex items-center gap-1.5 px-2 py-1 rounded bg-zinc-900/80 border border-zinc-800 text-[11px] font-mono">
+        <span class="text-zinc-500">HOST:</span>
+        <select id="active-host-select" onchange="changeActiveHost(this.value)" class="bg-transparent text-zinc-300 font-semibold focus:outline-none cursor-pointer">
+          <option value="" class="bg-zinc-950 text-white">Auto (Current)</option>
+          <option value="http://192.168.29.2:8080" class="bg-zinc-950 text-white">Phone LAN (:8080)</option>
+          <option value="https://grown-prior-generated-victor.trycloudflare.com" class="bg-zinc-950 text-white">Sovereign Tunnel</option>
+          <option value="https://phone-whisper-server.pages.dev" class="bg-zinc-950 text-white">Cloudflare Pages Edge</option>
+        </select>
+      </div>
+
+      <!-- Persona / Reviewer Permissions Switcher -->
+      <div class="flex items-center gap-1.5 px-2 py-1 rounded bg-zinc-900/80 border border-zinc-800 text-[11px] font-mono">
+        <span class="text-zinc-500">PERSONA:</span>
+        <select id="persona-selector" onchange="setDashboardPersona(this.value)" class="bg-transparent text-cyan-400 font-semibold focus:outline-none cursor-pointer">
+          <option value="developer" class="bg-zinc-950 text-white">Developer (Full Control)</option>
+          <option value="reviewer" class="bg-zinc-950 text-cyan-400">Non-Code Reviewer (Safe Testing)</option>
+          <option value="auditor" class="bg-zinc-950 text-amber-400">Auditor (Read-Only)</option>
+        </select>
+      </div>
+
       <!-- User Session HUD -->
       <div id="user-session-bar" class="flex items-center gap-2">
         <div id="logged-in-box" class="hidden flex items-center gap-2">
-          <div class="flex items-center gap-1.5 px-2.5 py-1 rounded bg-zinc-900 border border-zinc-700/80 text-xs font-mono">
+          <div class="flex items-center gap-1.5 px-2.5 py-1 rounded bg-zinc-900 border border-zinc-700/80 text-xs font-mono cursor-pointer hover:border-cyan-500/80 transition-colors" onclick="openAccountModal()" title="View Account & Quotas">
             <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
             <span id="auth-username" class="font-semibold text-white">admin</span>
             <span id="auth-role" class="text-[10px] uppercase tracking-wider text-cyan-400 bg-cyan-950 px-1 rounded border border-cyan-800/40">DEV</span>
@@ -97,6 +118,16 @@
       </div>
     </div>
   </header>
+
+  <!-- Reviewer Mode Notice Banner -->
+  <div id="reviewer-mode-banner" class="hidden bg-cyan-950/40 border-b border-cyan-800/40 px-4 py-1.5 text-xs font-mono text-cyan-300 flex items-center justify-between">
+    <div class="flex items-center gap-2">
+      <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+      <span class="font-bold">REVIEWER MODE ACTIVE:</span>
+      <span class="text-zinc-300">Feature Flags, Remote Styling, Experiments, Notifications & Media Moderation are interactive. Destructive SQL execution and user deletions are restricted.</span>
+    </div>
+    <button onclick="setDashboardPersona('developer')" class="text-[10px] text-cyan-400 underline hover:text-white">Switch to Developer</button>
+  </div>
 
   <!-- Main Container with Sidebar + Main Viewport -->
   <div class="flex-1 flex overflow-hidden">
@@ -1296,6 +1327,65 @@
   </div>
 
   <!-- =================================================================== -->
+  <!-- SELF-SERVICE USER ACCOUNT & QUOTA MODAL -->
+  <!-- =================================================================== -->
+  <div id="account-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="w-full max-w-md bg-[#090b10] border border-zinc-800 rounded-xl p-5 shadow-2xl space-y-4 font-mono text-xs">
+      <div class="flex items-center justify-between border-b border-zinc-800 pb-3">
+        <div class="flex items-center gap-2">
+          <div class="w-7 h-7 rounded bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-sm font-bold text-cyan-400">👤</div>
+          <div>
+            <div id="modal-account-username" class="font-bold text-white text-sm space-grotesk">Account Overview</div>
+            <div id="modal-account-id" class="text-[10px] text-zinc-500">usr_...</div>
+          </div>
+        </div>
+        <button onclick="closeAccountModal()" class="text-zinc-500 hover:text-white text-base">✕</button>
+      </div>
+
+      <!-- Storage Quota Gauge -->
+      <div class="p-3 rounded bg-black/60 border border-zinc-800 space-y-2">
+        <div class="flex items-center justify-between text-xs">
+          <span class="text-zinc-400">Cloud Storage Quota:</span>
+          <span id="modal-quota-text" class="text-cyan-400 font-bold">0.0 MB / 2048 MB</span>
+        </div>
+        <div class="w-full bg-zinc-900 rounded-full h-2 overflow-hidden">
+          <div id="modal-quota-bar" class="bg-gradient-to-r from-cyan-500 to-indigo-500 h-2 rounded-full transition-all" style="width: 2%"></div>
+        </div>
+        <div class="flex justify-between text-[10px] text-zinc-500">
+          <span>Active Role: <span id="modal-account-role" class="text-zinc-300 font-semibold uppercase">DEVELOPER</span></span>
+          <span id="modal-account-keys-count">1 Active Key</span>
+        </div>
+      </div>
+
+      <!-- Change Password Form -->
+      <div class="space-y-2.5 border-t border-zinc-800/80 pt-3">
+        <span class="font-bold text-white text-[11px] uppercase tracking-wider text-zinc-400">Security & Credentials</span>
+        <div>
+          <label class="text-zinc-400 text-[11px]">New Secure Password</label>
+          <input type="password" id="modal-new-pw" placeholder="Enter new password (min 4 chars)" class="w-full bg-black border border-zinc-800 rounded px-3 py-1.5 text-white outline-none focus:border-cyan-500 mt-1" />
+        </div>
+        <div id="modal-pw-msg" class="text-[11px] hidden"></div>
+        <button onclick="submitUserSelfPasswordChange()" class="w-full py-2 rounded bg-zinc-800 hover:bg-zinc-700 text-white font-semibold transition-all">Update My Password</button>
+      </div>
+
+      <!-- API Key Copy -->
+      <div class="p-2.5 rounded bg-black/40 border border-zinc-800/80 space-y-1">
+        <div class="flex items-center justify-between text-[11px] text-zinc-400">
+          <span>Active Primary API Key:</span>
+          <button onclick="copyActiveKeyToClipboard()" class="text-cyan-400 hover:underline">📋 Copy Key</button>
+        </div>
+        <div id="modal-account-key-preview" class="text-[11px] text-zinc-300 truncate font-mono bg-zinc-950 p-1.5 rounded border border-zinc-800">sk_live_...</div>
+      </div>
+
+      <!-- Quick Nav Buttons -->
+      <div class="flex items-center justify-between pt-2 border-t border-zinc-800 text-xs">
+        <button onclick="switchView('data'); closeAccountModal();" class="text-cyan-400 hover:underline">Go to Storage Drive →</button>
+        <button onclick="logoutUser(); closeAccountModal();" class="text-rose-400 hover:underline">Sign Out</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =================================================================== -->
   <!-- CREATE FEATURE FLAG MODAL -->
   <!-- =================================================================== -->
   <div id="flag-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
@@ -1562,11 +1652,144 @@
 
   <!-- JAVASCRIPT LOGIC -->
   <script>
-    const BASE_URL = window.location.origin;
+    let BASE_URL = window.location.origin;
     let currentUser = null;
     let activeKey = null;
     let currentAuthTab = 'login';
     let autoScrollLogs = true;
+    let currentPersona = 'developer';
+
+    // --- PERSONA & REVIEWER PERMISSIONS CONTROLLER ---
+    function setDashboardPersona(persona) {
+      currentPersona = persona;
+      const selector = document.getElementById('persona-selector');
+      if (selector) selector.value = persona;
+
+      const banner = document.getElementById('reviewer-mode-banner');
+      const roleBadge = document.getElementById('auth-role');
+
+      if (persona === 'reviewer') {
+        if (banner) {
+          banner.classList.remove('hidden');
+          banner.querySelector('.font-bold').innerText = "REVIEWER MODE ACTIVE:";
+          banner.querySelector('.text-zinc-300').innerText = "Feature Flags, Remote Styling, Experiments, Notifications & Media Moderation are interactive. Destructive SQL execution, DB vacuum, and user deletions are restricted.";
+        }
+        if (roleBadge) roleBadge.innerText = 'REVIEWER';
+
+        // Restrict destructive actions
+        const runSqlBtn = document.getElementById('btn-run-sql');
+        if (runSqlBtn) {
+          runSqlBtn.disabled = true;
+          runSqlBtn.classList.add('opacity-40', 'cursor-not-allowed');
+          runSqlBtn.title = "Restricted in Reviewer Mode";
+        }
+        const vacBtn = document.getElementById('btn-db-vacuum');
+        if (vacBtn) {
+          vacBtn.disabled = true;
+          vacBtn.classList.add('opacity-40', 'cursor-not-allowed');
+        }
+      } else if (persona === 'auditor') {
+        if (banner) {
+          banner.classList.remove('hidden');
+          banner.querySelector('.font-bold').innerText = "AUDITOR MODE ACTIVE:";
+          banner.querySelector('.text-zinc-300').innerText = "Read-only inspection active. All mutation operations across database, users, and configuration are locked.";
+        }
+        if (roleBadge) roleBadge.innerText = 'AUDITOR';
+      } else {
+        // Developer / Full Control
+        if (banner) banner.classList.add('hidden');
+        if (roleBadge) roleBadge.innerText = currentUser ? (currentUser.role || 'DEV') : 'DEV';
+
+        const runSqlBtn = document.getElementById('btn-run-sql');
+        if (runSqlBtn) {
+          runSqlBtn.disabled = false;
+          runSqlBtn.classList.remove('opacity-40', 'cursor-not-allowed');
+          runSqlBtn.title = "";
+        }
+        const vacBtn = document.getElementById('btn-db-vacuum');
+        if (vacBtn) {
+          vacBtn.disabled = false;
+          vacBtn.classList.remove('opacity-40', 'cursor-not-allowed');
+        }
+      }
+    }
+
+    // --- ENVIRONMENT & HOST SWITCHER ---
+    function changeActiveHost(newHost) {
+      BASE_URL = newHost ? newHost.replace(/\/+$/, '') : window.location.origin;
+      const label = document.getElementById('env-label');
+      if (label) {
+        label.innerText = newHost ? `NODE: ${newHost.replace(/https?:\/\//, '')}` : 'PHONE DATACENTER ONLINE';
+      }
+      refreshOverview();
+    }
+
+    // --- SELF-SERVICE USER ACCOUNT & QUOTA MODAL ---
+    function openAccountModal() {
+      if (!currentUser) {
+        openAuthModal('signin');
+        return;
+      }
+      document.getElementById('modal-account-username').innerText = currentUser.username || 'User';
+      document.getElementById('modal-account-id').innerText = currentUser.user_id || 'usr_...';
+      document.getElementById('modal-account-role').innerText = currentUser.role || 'DEVELOPER';
+
+      const usedBytes = currentUser.used_bytes || 54;
+      const usedMb = (usedBytes / (1024 * 1024)).toFixed(3);
+      const quotaBytes = currentUser.quota_bytes || 2147483648;
+      const quotaMb = Math.round(quotaBytes / (1024 * 1024));
+      const pct = Math.max(0.5, Math.min(100, (usedBytes / quotaBytes) * 100)).toFixed(2);
+
+      document.getElementById('modal-quota-text').innerText = `${usedMb} MB / ${quotaMb} MB (${pct}%)`;
+      document.getElementById('modal-quota-bar').style.width = `${pct}%`;
+
+      const keys = currentUser.api_keys || [];
+      document.getElementById('modal-account-keys-count').innerText = `${keys.length || 1} Active Key`;
+      const keyStr = activeKey || (keys[0] ? keys[0].token : 'sk_live_datacenter_key');
+      document.getElementById('modal-account-key-preview').innerText = keyStr;
+
+      document.getElementById('modal-new-pw').value = '';
+      document.getElementById('modal-pw-msg').classList.add('hidden');
+      document.getElementById('account-modal').classList.remove('hidden');
+    }
+
+    function closeAccountModal() {
+      document.getElementById('account-modal').classList.add('hidden');
+    }
+
+    function copyActiveKeyToClipboard() {
+      const k = activeKey || (currentUser && currentUser.api_keys && currentUser.api_keys[0] ? currentUser.api_keys[0].token : '');
+      if (k) copyToClipboard(k);
+    }
+
+    async function submitUserSelfPasswordChange() {
+      const newPass = document.getElementById('modal-new-pw').value.trim();
+      const msgEl = document.getElementById('modal-pw-msg');
+      msgEl.classList.add('hidden');
+
+      if (!newPass || newPass.length < 4) {
+        msgEl.innerText = "Password must be at least 4 characters.";
+        msgEl.className = "text-rose-400 text-[11px] block";
+        return;
+      }
+
+      try {
+        const res = await fetch(`${BASE_URL}/v1/dashboard/users`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: currentUser.user_id, new_password: newPass })
+        });
+        const data = await res.json();
+        if (data.status === 'error') throw new Error(data.error);
+
+        msgEl.innerText = "Password updated securely!";
+        msgEl.className = "text-emerald-400 text-[11px] block";
+        document.getElementById('modal-new-pw').value = '';
+      } catch (err) {
+        msgEl.innerText = err.message || "Failed to update password.";
+        msgEl.className = "text-rose-400 text-[11px] block";
+      }
+    }
 
     // --- VIEW SWITCHER ---
     function switchView(viewId) {
