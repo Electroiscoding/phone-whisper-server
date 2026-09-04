@@ -24,7 +24,7 @@ import hmac
 import mimetypes
 import shutil
 import subprocess as sp
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import signal
 import re
 import json
@@ -655,6 +655,27 @@ class SwadeStorageVault:
             except Exception: pass
             try: conn.execute('ALTER TABLE users ADD COLUMN last_login TEXT DEFAULT ""')
             except Exception: pass
+            try: conn.execute('ALTER TABLE users ADD COLUMN email_verified INTEGER DEFAULT 0')
+            except Exception: pass
+
+            # API Key columns extension
+            try: conn.execute('ALTER TABLE api_keys ADD COLUMN restrictions TEXT DEFAULT "full"')
+            except Exception: pass
+            try: conn.execute('ALTER TABLE api_keys ADD COLUMN expires_at TEXT DEFAULT NULL')
+            except Exception: pass
+
+            # Notification columns extension
+            try: conn.execute('ALTER TABLE notifications ADD COLUMN scheduled_at TEXT DEFAULT NULL')
+            except Exception: pass
+
+            # File Moderation table
+            conn.execute('''CREATE TABLE IF NOT EXISTS file_moderation (
+                key TEXT PRIMARY KEY,
+                status TEXT DEFAULT "approved",
+                flagged_reason TEXT,
+                moderated_by TEXT,
+                updated_at TEXT
+            )''')
 
             # 1. Feature Flags
             conn.execute('''CREATE TABLE IF NOT EXISTS feature_flags (
@@ -943,7 +964,7 @@ class SwadeStorageVault:
             "new_api_key": new_key_token
         }
 
-    def create_key(self, name="Default Key", tenant_id=None, quota_bytes=2147483648):
+    def create_key(self, name="Default Key", tenant_id=None, quota_bytes=2147483648, restrictions="full", expires_in_days=None):
         """Generates a secure API key: sk_swades_<hex24> bound to tenant/user_id"""
         if not tenant_id:
             tenant_id = f"tnt_{secrets.token_hex(6)}"
@@ -951,7 +972,17 @@ class SwadeStorageVault:
         raw_token = f"sk_swades_{secrets.token_hex(16)}"
         key_id = f"key_{secrets.token_hex(6)}"
         key_hash = self._hash_key(raw_token)
-        now = datetime.now(timezone.utc).isoformat()
+        now_dt = datetime.now(timezone.utc)
+        now = now_dt.isoformat()
+
+        expires_at = None
+        if expires_in_days is not None:
+            try:
+                d = int(expires_in_days)
+                if d > 0:
+                    expires_at = (now_dt + timedelta(days=d)).isoformat()
+            except Exception:
+                pass
 
         record = {
             "key_id": key_id,
@@ -961,7 +992,9 @@ class SwadeStorageVault:
             "quota_bytes": quota_bytes,
             "used_bytes": 0,
             "created_at": now,
-            "is_active": 1
+            "is_active": 1,
+            "restrictions": restrictions or "full",
+            "expires_at": expires_at
         }
 
         with self.lock:
@@ -974,9 +1007,9 @@ class SwadeStorageVault:
             try:
                 conn = sqlite3.connect(self.db_path)
                 conn.execute('''INSERT OR REPLACE INTO api_keys 
-                                (key_id, key_hash, tenant_id, name, quota_bytes, used_bytes, created_at, is_active)
-                                VALUES (?, ?, ?, ?, ?, ?, ?, 1)''',
-                             (key_id, key_hash, tenant_id, name, quota_bytes, 0, now))
+                                (key_id, key_hash, tenant_id, name, quota_bytes, used_bytes, created_at, is_active, restrictions, expires_at)
+                                VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?)''',
+                             (key_id, key_hash, tenant_id, name, quota_bytes, 0, now, restrictions or "full", expires_at))
                 conn.commit()
                 conn.close()
             except Exception as e:
@@ -989,6 +1022,8 @@ class SwadeStorageVault:
             "tenant_id": tenant_id,
             "name": name,
             "quota_bytes": quota_bytes,
+            "restrictions": restrictions or "full",
+            "expires_at": expires_at,
             "created_at": now
         }
 
@@ -999,6 +1034,14 @@ class SwadeStorageVault:
         kh = self._hash_key(raw_key)
         rec = self._key_cache.get(kh)
         if rec and rec.get("is_active"):
+            exp = rec.get("expires_at")
+            if exp:
+                try:
+                    exp_dt = datetime.fromisoformat(exp.replace("Z", "+00:00"))
+                    if exp_dt < datetime.now(timezone.utc):
+                        return "EXPIRED"
+                except Exception:
+                    pass
             return rec
         return None
 
@@ -1137,24 +1180,29 @@ class SwadeStorageVault:
         conn.close()
         return rows
 
-    def create_notification(self, title, body, notif_type="push", target="all"):
+    def create_notification(self, title, body, notif_type="push", target="all", scheduled_at=None):
         conn = sqlite3.connect(self.db_path)
         now_str = time.strftime("%Y-%m-%d %H:%M:%S")
         nid = f"notif_{secrets.token_hex(4)}"
-        conn.execute('INSERT INTO notifications VALUES (?, ?, ?, ?, ?, ?, ?)',
-                     (nid, title, body, notif_type, target, "sent", now_str))
+        status = "scheduled" if scheduled_at else "sent"
+        try:
+            conn.execute('INSERT INTO notifications (id, title, body, type, target, status, created_at, scheduled_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                         (nid, title, body, notif_type, target, status, now_str, scheduled_at))
+        except Exception:
+            conn.execute('INSERT INTO notifications VALUES (?, ?, ?, ?, ?, ?, ?)',
+                         (nid, title, body, notif_type, target, status, now_str))
         conn.commit()
         conn.close()
-        return {"id": nid, "title": title, "body": body, "created_at": now_str}
+        return {"id": nid, "title": title, "body": body, "created_at": now_str, "scheduled_at": scheduled_at, "status": status}
 
     def list_users_auditor(self, search=""):
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
         if search:
             s = f"%{search.strip().lower()}%"
-            rows = conn.execute('SELECT user_id, username, quota_bytes, created_at, role, status, email, is_active FROM users WHERE username LIKE ? OR user_id LIKE ? ORDER BY created_at DESC', (s, s)).fetchall()
+            rows = conn.execute('SELECT user_id, username, quota_bytes, created_at, role, status, email, email_verified, is_active FROM users WHERE username LIKE ? OR user_id LIKE ? ORDER BY created_at DESC', (s, s)).fetchall()
         else:
-            rows = conn.execute('SELECT user_id, username, quota_bytes, created_at, role, status, email, is_active FROM users ORDER BY created_at DESC LIMIT 100').fetchall()
+            rows = conn.execute('SELECT user_id, username, quota_bytes, created_at, role, status, email, email_verified, is_active FROM users ORDER BY created_at DESC LIMIT 100').fetchall()
         
         users = []
         for r in rows:
@@ -1167,7 +1215,7 @@ class SwadeStorageVault:
         conn.close()
         return users
 
-    def update_user_access(self, user_id, role=None, status=None, quota_bytes=None, new_password=None):
+    def update_user_access(self, user_id, role=None, status=None, quota_bytes=None, new_password=None, email_verified=None):
         conn = sqlite3.connect(self.db_path)
         fields = []
         vals = []
@@ -1183,6 +1231,9 @@ class SwadeStorageVault:
             fields.append("quota_bytes = ?")
             vals.append(int(quota_bytes))
             self._tenant_quotas[user_id] = int(quota_bytes)
+        if email_verified is not None:
+            fields.append("email_verified = ?")
+            vals.append(1 if email_verified else 0)
         if new_password:
             pwd_hash, salt = self._hash_password(new_password)
             fields.append("password_hash = ?")
@@ -1197,6 +1248,70 @@ class SwadeStorageVault:
         conn.close()
         self._warm_cache()
         return True
+
+    def create_feature_flag(self, key, name, description, enabled=0, rollout_pct=100):
+        conn = sqlite3.connect(self.db_path)
+        fid = f"flag_{secrets.token_hex(3)}"
+        now_str = time.strftime("%Y-%m-%d %H:%M:%S")
+        conn.execute('''INSERT OR REPLACE INTO feature_flags (id, key, name, description, enabled, rollout_pct, updated_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)''',
+                     (fid, key, name, description, 1 if enabled else 0, int(rollout_pct), now_str))
+        conn.commit()
+        conn.close()
+        return True
+
+    def create_experiment(self, name, description, variant_a, variant_b, split_pct=50):
+        conn = sqlite3.connect(self.db_path)
+        eid = f"exp_{secrets.token_hex(3)}"
+        now_str = time.strftime("%Y-%m-%d %H:%M:%S")
+        conn.execute('''INSERT OR REPLACE INTO experiments (id, name, description, variant_a, variant_b, split_pct, impressions_a, conversions_a, impressions_b, conversions_b, status, updated_at)
+                        VALUES (?, ?, ?, ?, ?, ?, 0, 0, 0, 0, 'active', ?)''',
+                     (eid, name, description, variant_a, variant_b, int(split_pct), now_str))
+        conn.commit()
+        conn.close()
+        return True
+
+    def set_file_moderation(self, key, status, reason="", moderator="admin"):
+        conn = sqlite3.connect(self.db_path)
+        now_str = time.strftime("%Y-%m-%d %H:%M:%S")
+        conn.execute('''INSERT OR REPLACE INTO file_moderation (key, status, flagged_reason, moderated_by, updated_at)
+                        VALUES (?, ?, ?, ?, ?)''',
+                     (key, status, reason, moderator, now_str))
+        conn.commit()
+        conn.close()
+        return True
+
+    def get_file_moderation_map(self):
+        try:
+            conn = sqlite3.connect(self.db_path)
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute('SELECT * FROM file_moderation').fetchall()
+            m = {r["key"]: dict(r) for r in rows}
+            conn.close()
+            return m
+        except Exception:
+            return {}
+
+    def db_get_schema(self, table_name=""):
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        tables = self.db_list_tables()
+        if table_name and table_name in tables:
+            tables = [table_name]
+        
+        result = {}
+        for t in tables:
+            cols = conn.execute(f"PRAGMA table_info({t})").fetchall()
+            sql_row = conn.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name=?", (t,)).fetchone()
+            ddl = sql_row["sql"] if sql_row else ""
+            row_count = conn.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0]
+            result[t] = {
+                "columns": [{"cid": c[0], "name": c[1], "type": c[2], "notnull": bool(c[3]), "dflt_value": c[4], "pk": bool(c[5])} for c in cols],
+                "ddl": ddl,
+                "row_count": row_count
+            }
+        conn.close()
+        return result
 
     def db_list_tables(self):
         conn = sqlite3.connect(self.db_path)
@@ -1711,9 +1826,14 @@ class SwadeObjectStore:
         t_objs.sort(key=lambda x: x.get("updated_at", ""), reverse=True)
         # Strip internal fields from public representation
         safe_list = []
+        mod_map = self.vault.get_file_moderation_map() if hasattr(self.vault, 'get_file_moderation_map') else {}
         for o in t_objs[:limit]:
             c = dict(o)
             c.pop("_disk_path", None)
+            m = mod_map.get(c.get("key"))
+            c["moderation_status"] = m.get("status", "approved") if m else "approved"
+            c["flagged_reason"] = m.get("flagged_reason", "") if m else ""
+            c["moderated_by"] = m.get("moderated_by", "") if m else ""
             safe_list.append(c)
         return safe_list, len(t_objs)
 
@@ -2498,6 +2618,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_dashboard_roles_get()
         elif path in ["/v1/dashboard/audit-logs", "/v1/admin/audit-logs"]:
             self.handle_dashboard_audit_logs_get()
+        elif path in ["/v1/dashboard/db/schema", "/v1/admin/db/schema"]:
+            self.handle_dashboard_db_schema(parsed)
         elif path.startswith('/v1/agent/pop_message/'):
             job_id = path.split('/')[-1]
             self.handle_agent_pop_message(job_id)
@@ -2564,10 +2686,14 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_storage_create_key()
         elif path in ["/v1/dashboard/flags", "/v1/admin/flags"]:
             self.handle_dashboard_flags_post()
+        elif path in ["/v1/dashboard/flags/create", "/v1/admin/flags/create"]:
+            self.handle_dashboard_flags_create()
         elif path in ["/v1/dashboard/remote-config", "/v1/admin/remote-config"]:
             self.handle_dashboard_remote_config_post()
         elif path in ["/v1/dashboard/experiments", "/v1/admin/experiments"]:
             self.handle_dashboard_experiments_post()
+        elif path in ["/v1/dashboard/experiments/create", "/v1/admin/experiments/create"]:
+            self.handle_dashboard_experiments_create()
         elif path in ["/v1/dashboard/performance", "/v1/admin/performance"]:
             self.handle_dashboard_performance_post()
         elif path in ["/v1/dashboard/users", "/v1/admin/users"]:
@@ -2576,6 +2702,10 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_dashboard_notifications_post()
         elif path in ["/v1/dashboard/db/query", "/v1/admin/db/query"]:
             self.handle_dashboard_db_post()
+        elif path in ["/v1/dashboard/storage/moderate", "/v1/admin/storage/moderate"]:
+            self.handle_dashboard_storage_moderate()
+        elif path in ["/v1/dashboard/system/gc", "/v1/admin/system/gc"]:
+            self.handle_dashboard_system_gc()
         elif path in ["/v1/dashboard/secrets", "/v1/admin/secrets"]:
             self.handle_dashboard_secrets_post()
         elif path in ["/v1/dashboard/roles", "/v1/admin/roles"]:
@@ -3273,7 +3403,15 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 return
 
             quota = _storage_vault._tenant_quotas.get(user_id, 2147483648)
-            key_data = _storage_vault.create_key(name=name, tenant_id=user_id, quota_bytes=quota)
+            restrictions = payload.get("restrictions", "full")
+            expires_in_days = payload.get("expires_in_days")
+            key_data = _storage_vault.create_key(
+                name=name,
+                tenant_id=user_id,
+                quota_bytes=quota,
+                restrictions=restrictions,
+                expires_in_days=expires_in_days
+            )
             resp = json.dumps({
                 "success": True,
                 "api_key": key_data["api_key"],
@@ -3281,6 +3419,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 "user_id": user_id,
                 "name": key_data["name"],
                 "quota_bytes": key_data["quota_bytes"],
+                "restrictions": key_data.get("restrictions", "full"),
+                "expires_at": key_data.get("expires_at"),
                 "created_at": key_data["created_at"],
                 "message": "Key created successfully for your account! Store this key safely."
             }).encode("utf-8")
@@ -3860,14 +4000,19 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             if not user_id:
                 self.send_error(400, "Missing user_id")
                 return
+            email_verified = body.get("email_verified")
             _storage_vault.update_user_access(
                 user_id,
                 role=body.get("role"),
                 status=body.get("status"),
                 quota_bytes=body.get("quota_bytes"),
-                new_password=body.get("new_password")
+                new_password=body.get("new_password"),
+                email_verified=email_verified
             )
-            _storage_vault.log_audit("admin", "USER_ACCESS_UPDATE", user_id, f"role={body.get('role')} status={body.get('status')}")
+            audit_action = "USER_ACCESS_UPDATE"
+            if email_verified is not None:
+                audit_action = "USER_EMAIL_VERIFIED" if email_verified else "USER_EMAIL_UNVERIFIED"
+            _storage_vault.log_audit("admin", audit_action, user_id, f"role={body.get('role')} status={body.get('status')} verified={email_verified}")
             resp = json.dumps({"status": "updated", "user_id": user_id}).encode("utf-8")
             self.send_response(200)
             self._send_cors_headers()
@@ -3896,13 +4041,133 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             body_text = body.get("body")
             notif_type = body.get("type", "push")
             target = body.get("target", "all")
+            scheduled_at = body.get("scheduled_at")
             if not title or not body_text:
                 self.send_error(400, "Missing title or body")
                 return
-            res = _storage_vault.create_notification(title, body_text, notif_type, target)
-            _storage_vault.log_audit("admin", "NOTIFICATION_BROADCAST", title, f"type={notif_type} target={target}")
-            resp = json.dumps({"status": "sent", "notification": res}).encode("utf-8")
+            res = _storage_vault.create_notification(title, body_text, notif_type, target, scheduled_at=scheduled_at)
+            _storage_vault.log_audit("admin", "NOTIFICATION_BROADCAST", title, f"type={notif_type} target={target} scheduled={scheduled_at}")
+            resp = json.dumps({"status": "scheduled" if scheduled_at else "sent", "notification": res}).encode("utf-8")
             self.send_response(201)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(resp)))
+            self.end_headers()
+            self.wfile.write(resp)
+        except Exception as e:
+            self.send_error(500, str(e))
+
+    def handle_dashboard_flags_create(self):
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            body = json.loads(self.rfile.read(length).decode("utf-8"))
+            key = body.get("key", "").strip()
+            name = body.get("name", key).strip()
+            desc = body.get("description", "")
+            enabled = 1 if body.get("enabled") else 0
+            rollout = int(body.get("rollout_pct", 100))
+            if not key:
+                self.send_error(400, "Missing flag key")
+                return
+            _storage_vault.create_feature_flag(key, name, desc, enabled, rollout)
+            _storage_vault.log_audit("reviewer", "FLAG_CREATE", key, f"enabled={enabled} rollout={rollout}%")
+            resp = json.dumps({"status": "created", "key": key}).encode("utf-8")
+            self.send_response(201)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(resp)))
+            self.end_headers()
+            self.wfile.write(resp)
+        except Exception as e:
+            self.send_error(500, str(e))
+
+    def handle_dashboard_experiments_create(self):
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            body = json.loads(self.rfile.read(length).decode("utf-8"))
+            name = body.get("name", "").strip()
+            desc = body.get("description", "")
+            var_a = body.get("variant_a", "Control A").strip()
+            var_b = body.get("variant_b", "Variant B").strip()
+            split = int(body.get("split_pct", 50))
+            if not name:
+                self.send_error(400, "Missing experiment name")
+                return
+            _storage_vault.create_experiment(name, desc, var_a, var_b, split)
+            _storage_vault.log_audit("reviewer", "EXPERIMENT_CREATE", name, f"split={split}% A={var_a} B={var_b}")
+            resp = json.dumps({"status": "created", "name": name}).encode("utf-8")
+            self.send_response(201)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(resp)))
+            self.end_headers()
+            self.wfile.write(resp)
+        except Exception as e:
+            self.send_error(500, str(e))
+
+    def handle_dashboard_storage_moderate(self):
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            body = json.loads(self.rfile.read(length).decode("utf-8"))
+            key = body.get("key")
+            status = body.get("status", "approved")
+            reason = body.get("reason", "Manual reviewer moderation")
+            moderator = body.get("moderator", "reviewer")
+            if not key:
+                self.send_error(400, "Missing object key")
+                return
+            _storage_vault.set_file_moderation(key, status, reason, moderator)
+            _storage_vault.log_audit(moderator, "FILE_MODERATION", key, f"status={status} reason={reason}")
+            resp = json.dumps({"status": "updated", "key": key, "moderation_status": status}).encode("utf-8")
+            self.send_response(200)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(resp)))
+            self.end_headers()
+            self.wfile.write(resp)
+        except Exception as e:
+            self.send_error(500, str(e))
+
+    def handle_dashboard_db_schema(self, parsed):
+        try:
+            qs = urllib.parse.parse_qs(parsed.query)
+            table_name = qs.get("table", [""])[0].strip()
+            schema_info = _storage_vault.db_get_schema(table_name)
+            resp = json.dumps({"schema": schema_info}).encode("utf-8")
+            self.send_response(200)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(resp)))
+            self.end_headers()
+            self.wfile.write(resp)
+        except Exception as e:
+            self.send_error(500, str(e))
+
+    def handle_dashboard_system_gc(self):
+        try:
+            import gc
+            t0 = time.perf_counter_ns()
+            collected = gc.collect()
+            
+            # Flush hot blob cache
+            _object_store._hot_blob_cache.clear()
+            _object_store._current_hot_bytes = 0
+
+            # Optimize SQLite
+            conn = sqlite3.connect(_storage_vault.db_path)
+            conn.execute("PRAGMA optimize")
+            conn.close()
+
+            _storage_vault.log_audit("developer", "SYSTEM_CACHE_FLUSH_GC", "Hardware Node", f"collected={collected}")
+            t_ms = round((time.perf_counter_ns() - t0) / 1_000_000, 3)
+            resp = json.dumps({
+                "status": "GC_COMPLETED",
+                "objects_collected": collected,
+                "execution_ms": t_ms,
+                "cache_freed": "Hot RAM blob cache cleared",
+                "timestamp": int(time.time())
+            }).encode("utf-8")
+            self.send_response(200)
             self._send_cors_headers()
             self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", str(len(resp)))

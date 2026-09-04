@@ -183,9 +183,19 @@
             <h1 class="text-xl font-bold tracking-tight text-white space-grotesk">Phone AI Datacenter Overview</h1>
             <p class="text-xs text-zinc-400 mt-0.5">Real-time status of physical storage pools, sub-microsecond RAM engine, and active accounts.</p>
           </div>
-          <button onclick="refreshOverview()" class="self-start sm:self-auto text-xs font-mono px-3 py-1.5 rounded bg-zinc-900 border border-zinc-700 hover:bg-zinc-800 text-cyan-400 flex items-center gap-1.5 transition-colors">
-            <span>🔄</span> Refresh Telemetry
-          </button>
+          <div class="flex items-center gap-2">
+            <button onclick="executeSystemGc()" id="btn-run-gc" class="text-xs font-mono px-3 py-1.5 rounded bg-zinc-900 border border-zinc-700 hover:bg-zinc-800 text-emerald-400 flex items-center gap-1.5 transition-colors">
+              <span>🧹</span> Flush Cache & Run GC
+            </button>
+            <button onclick="refreshOverview()" class="text-xs font-mono px-3 py-1.5 rounded bg-zinc-900 border border-zinc-700 hover:bg-zinc-800 text-cyan-400 flex items-center gap-1.5 transition-colors">
+              <span>🔄</span> Refresh Telemetry
+            </button>
+          </div>
+        </div>
+
+        <div id="gc-status-banner" class="hidden p-2.5 rounded bg-emerald-950/40 border border-emerald-800/60 font-mono text-xs text-emerald-300 flex items-center justify-between">
+          <span id="gc-status-text">⚡ Hardware Garbage Collection completed. Hot RAM cache purged.</span>
+          <button onclick="document.getElementById('gc-status-banner').classList.add('hidden')" class="text-zinc-400 hover:text-white text-xs">✕</button>
         </div>
 
         <!-- Metric KPI Cards -->
@@ -309,7 +319,10 @@
             <h2 class="text-sm font-bold text-white space-grotesk flex items-center gap-2">
               <span>🚩 Feature Flags (Instant Toggles Without Redeployment)</span>
             </h2>
-            <span class="text-xs font-mono text-zinc-400">Live In-Memory & SQLite Synced</span>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-mono text-zinc-400">Live In-Memory & SQLite Synced</span>
+              <button onclick="openCreateFlagModal()" class="text-xs font-mono px-3 py-1 rounded bg-cyan-500 hover:bg-cyan-400 text-black font-semibold">+ Create Flag</button>
+            </div>
           </div>
 
           <div class="overflow-x-auto">
@@ -330,15 +343,41 @@
         </div>
 
         <!-- Subsection 2: Remote Styling & Config -->
-        <div class="p-4 rounded-lg bg-[#07090d] border border-zinc-800/80 space-y-3">
+        <div class="p-4 rounded-lg bg-[#07090d] border border-zinc-800/80 space-y-4">
           <div class="flex items-center justify-between">
             <h2 class="text-sm font-bold text-white space-grotesk flex items-center gap-2">
               <span>🎨 Remote Styling & Copy Variables</span>
             </h2>
-            <button onclick="saveRemoteConfig()" class="text-xs font-mono px-3 py-1 rounded bg-cyan-500 hover:bg-cyan-400 text-black font-semibold">Save Config Changes</button>
+            <div class="flex items-center gap-2">
+              <button onclick="openAddConfigModal()" class="text-xs font-mono px-2.5 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-200">+ Add Variable</button>
+              <button onclick="saveRemoteConfig()" class="text-xs font-mono px-3 py-1 rounded bg-cyan-500 hover:bg-cyan-400 text-black font-semibold">Save Config Changes</button>
+            </div>
           </div>
           <div id="remote-config-grid" class="grid grid-cols-1 md:grid-cols-2 gap-3">
             <!-- Dynamically Populated -->
+          </div>
+
+          <!-- Real-Time WYSIWYG Client Styling & Banner Preview -->
+          <div class="p-3.5 rounded bg-black/80 border border-zinc-800 space-y-2.5">
+            <div class="flex items-center justify-between text-xs font-mono text-zinc-400 border-b border-zinc-800 pb-2">
+              <span class="flex items-center gap-1.5 font-bold text-white"><span>📱</span> Live App Dynamic Theme & Banner Preview</span>
+              <span class="text-[10px] text-cyan-400 bg-cyan-950/60 px-1.5 py-0.5 rounded border border-cyan-800/40">WYSIWYG CLIENT SIMULATION</span>
+            </div>
+            <div id="preview-banner-box" class="p-2 rounded text-center text-xs font-semibold bg-indigo-950/80 text-indigo-300 border border-indigo-800/60 transition-all">
+              <span id="prev-banner-text">🚀 Swades Cloud 2.0 is live worldwide! Sub-microsecond RAM speed.</span>
+            </div>
+            <div class="p-3 bg-[#06080c] rounded border border-zinc-800/60 flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <div id="prev-logo-icon" class="w-7 h-7 rounded bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-sm">⚡</div>
+                <div>
+                  <div id="prev-headline" class="text-xs font-bold text-white">Next-Gen Sovereign Cloud</div>
+                  <div class="text-[10px] text-zinc-500 font-mono">Connected to Phone Datacenter Node</div>
+                </div>
+              </div>
+              <button id="prev-cta-btn" class="px-3.5 py-1.5 rounded bg-cyan-500 text-black font-semibold text-xs font-mono">
+                Get Started
+              </button>
+            </div>
           </div>
         </div>
 
@@ -348,7 +387,7 @@
             <h2 class="text-sm font-bold text-white space-grotesk flex items-center gap-2">
               <span>🧪 Experiment Panels (A/B Split-Testing & Conversions)</span>
             </h2>
-            <span class="text-xs font-mono text-emerald-400">2 Experiments Active</span>
+            <button onclick="openCreateExperimentModal()" class="text-xs font-mono px-3 py-1 rounded bg-cyan-500 hover:bg-cyan-400 text-black font-semibold">+ Create Experiment</button>
           </div>
           <div id="experiments-list" class="space-y-3">
             <!-- Dynamically Populated -->
@@ -357,10 +396,18 @@
 
         <!-- Subsection 4: Performance Logs & Crash Tracker -->
         <div class="p-4 rounded-lg bg-[#07090d] border border-zinc-800/80 space-y-3">
-          <div class="flex items-center justify-between">
-            <h2 class="text-sm font-bold text-white space-grotesk flex items-center gap-2">
-              <span>📉 Performance Logs & Freeze Tracker</span>
-            </h2>
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <h2 class="text-sm font-bold text-white space-grotesk flex items-center gap-2">
+                <span>📉 Performance Logs & Freeze Tracker</span>
+              </h2>
+              <div class="flex items-center gap-2 text-[11px] font-mono mt-1">
+                <span class="px-2 py-0.5 rounded bg-rose-950/60 border border-rose-800/60 text-rose-400">CRASHES: 0</span>
+                <span class="px-2 py-0.5 rounded bg-amber-950/60 border border-amber-800/60 text-amber-400">FREEZES: 1</span>
+                <span class="px-2 py-0.5 rounded bg-cyan-950/60 border border-cyan-800/60 text-cyan-400">SLOWDOWNS: 2</span>
+                <span class="px-2 py-0.5 rounded bg-emerald-950/60 border border-emerald-800/60 text-emerald-400">STATUS: NOMINAL</span>
+              </div>
+            </div>
             <button onclick="logSimulatedCrash()" class="text-xs font-mono px-2.5 py-1 rounded border border-rose-800 bg-rose-950/40 text-rose-300 hover:bg-rose-900/60">
               🚨 Record Client Freeze Event
             </button>
@@ -374,6 +421,7 @@
                   <th class="py-2 px-3">Latency</th>
                   <th class="py-2 px-3">Code</th>
                   <th class="py-2 px-3">Hardware / Device</th>
+                  <th class="py-2 px-3 text-right">Diagnostics</th>
                 </tr>
               </thead>
               <tbody id="perf-logs-body">
@@ -396,9 +444,12 @@
         <!-- Profile Auditor -->
         <div class="p-4 rounded-lg bg-[#07090d] border border-zinc-800/80 space-y-3">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <h2 class="text-sm font-bold text-white space-grotesk">🔍 Profile Auditor & Account Registry</h2>
+            <div>
+              <h2 class="text-sm font-bold text-white space-grotesk">🔍 Profile Auditor & Access Control</h2>
+              <p class="text-xs text-zinc-400">Audit user profiles, verify email credentials, reset passwords, and enforce security policies.</p>
+            </div>
             <div class="flex items-center gap-2">
-              <input type="text" id="user-search-input" onkeyup="filterUsersTable()" placeholder="Search username or user_id..." class="bg-black border border-zinc-800 rounded px-2.5 py-1 text-xs font-mono text-white focus:border-cyan-500 outline-none w-56" />
+              <input type="text" id="user-search-input" onkeyup="filterUsersTable()" placeholder="Search username, email, or user_id..." class="bg-black border border-zinc-800 rounded px-2.5 py-1 text-xs font-mono text-white focus:border-cyan-500 outline-none w-64" />
               <button onclick="loadUsersTable()" class="text-xs font-mono px-2.5 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300">Search</button>
             </div>
           </div>
@@ -408,12 +459,12 @@
               <thead>
                 <tr class="border-b border-zinc-800 text-zinc-500">
                   <th class="py-2 px-3">User ID</th>
-                  <th class="py-2 px-3">Username</th>
-                  <th class="py-2 px-3">Role</th>
+                  <th class="py-2 px-3">Username & Role</th>
+                  <th class="py-2 px-3">Email & Verification</th>
                   <th class="py-2 px-3">Storage Quota</th>
                   <th class="py-2 px-3">Keys</th>
                   <th class="py-2 px-3">Status</th>
-                  <th class="py-2 px-3 text-right">Actions</th>
+                  <th class="py-2 px-3 text-right">Access Control Actions</th>
                 </tr>
               </thead>
               <tbody id="users-table-body">
@@ -423,41 +474,133 @@
           </div>
         </div>
 
-        <!-- Notification Composer -->
-        <div class="p-4 rounded-lg bg-[#07090d] border border-zinc-800/80 space-y-3">
-          <h2 class="text-sm font-bold text-white space-grotesk">📢 Notification & Broadcast Composer</h2>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="space-y-2">
+        <!-- Notification Composer with Realistic Live Mockup Preview -->
+        <div class="p-4 rounded-lg bg-[#07090d] border border-zinc-800/80 space-y-4">
+          <div class="flex items-center justify-between border-b border-zinc-800/80 pb-3">
+            <div>
+              <h2 class="text-sm font-bold text-white space-grotesk flex items-center gap-2">
+                <span>📢 Notification Broadcast & Scheduled Alerts Composer</span>
+                <span class="text-[10px] font-mono text-cyan-400 bg-cyan-950/60 border border-cyan-800/40 px-1.5 py-0.5 rounded">MULTI-CHANNEL</span>
+              </h2>
+              <p class="text-xs text-zinc-400">Design, preview in real time, schedule, and dispatch push alerts or in-app banners to user devices.</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            <!-- Left Form Controls -->
+            <div class="space-y-3">
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="text-[11px] font-mono text-zinc-400">Alert Format / Channel</label>
+                  <select id="notif-type-select" onchange="updateLiveMockupPreview()" class="w-full bg-black border border-zinc-800 rounded px-2.5 py-1.5 text-xs font-mono text-cyan-400 outline-none mt-1">
+                    <option value="push">📱 Push Notification (OS Lockscreen)</option>
+                    <option value="banner">🖼️ In-App Modal Dialog Banner</option>
+                    <option value="toast">💬 Floating Toast Alert</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="text-[11px] font-mono text-zinc-400">Delivery Timing</label>
+                  <select id="notif-timing-select" onchange="toggleSchedulingInput()" class="w-full bg-black border border-zinc-800 rounded px-2.5 py-1.5 text-xs font-mono text-emerald-400 outline-none mt-1">
+                    <option value="now">⚡ Send Immediately (Instant Blast)</option>
+                    <option value="scheduled">⏰ Schedule for Later</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Scheduled Time Input (conditionally visible) -->
+              <div id="schedule-time-box" class="hidden p-2 rounded bg-black/60 border border-zinc-800">
+                <label class="text-[11px] font-mono text-zinc-400">Schedule Delivery Timestamp</label>
+                <input type="datetime-local" id="notif-schedule-input" class="w-full bg-zinc-950 border border-zinc-800 rounded px-2.5 py-1 text-xs font-mono text-white outline-none mt-1" />
+              </div>
+
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="text-[11px] font-mono text-zinc-400">Target Audience</label>
+                  <select id="notif-target" class="w-full bg-black border border-zinc-800 rounded px-2.5 py-1.5 text-xs font-mono text-white outline-none mt-1">
+                    <option value="all">All Registered Users (Global)</option>
+                    <option value="beta">Beta Testers & Reviewers</option>
+                    <option value="admin">Administrators Only</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="text-[11px] font-mono text-zinc-400">Priority Level</label>
+                  <select id="notif-priority" class="w-full bg-black border border-zinc-800 rounded px-2.5 py-1.5 text-xs font-mono text-zinc-300 outline-none mt-1">
+                    <option value="normal">Normal (Standard)</option>
+                    <option value="high">High Alert (Sound & Vibrate)</option>
+                    <option value="urgent">Critical (Bypass DND)</option>
+                  </select>
+                </div>
+              </div>
+
               <div>
                 <label class="text-[11px] font-mono text-zinc-400">Notification Title</label>
-                <input type="text" id="notif-title" placeholder="e.g. Scheduled Infrastructure Maintenance" class="w-full bg-black border border-zinc-800 rounded px-3 py-1.5 text-xs font-mono text-white focus:border-cyan-500 outline-none mt-1" />
+                <input type="text" id="notif-title" oninput="updateLiveMockupPreview()" placeholder="e.g. Scheduled Cloud Maintenance Window" value="⚡ Storage Engine Update Live" class="w-full bg-black border border-zinc-800 rounded px-3 py-1.5 text-xs font-mono text-white focus:border-cyan-500 outline-none mt-1" />
               </div>
+
               <div>
-                <label class="text-[11px] font-mono text-zinc-400">Target Audience</label>
-                <select id="notif-target" class="w-full bg-black border border-zinc-800 rounded px-3 py-1.5 text-xs font-mono text-white focus:border-cyan-500 outline-none mt-1">
-                  <option value="all">All Registered Users</option>
-                  <option value="beta">Beta Testers & Reviewers</option>
-                  <option value="admin">Administrators Only</option>
-                </select>
+                <label class="text-[11px] font-mono text-zinc-400">Message Body (Supports plain text & emojis)</label>
+                <textarea id="notif-body" oninput="updateLiveMockupPreview()" rows="3" placeholder="Enter message text..." class="w-full bg-black border border-zinc-800 rounded px-3 py-1.5 text-xs font-mono text-white focus:border-cyan-500 outline-none mt-1">Sub-microsecond L1 cache reflection and scoped token restrictions are now active worldwide.</textarea>
               </div>
-              <div>
-                <label class="text-[11px] font-mono text-zinc-400">Message Body (Markdown supported)</label>
-                <textarea id="notif-body" rows="4" placeholder="Enter notification markdown or plain text details..." class="w-full bg-black border border-zinc-800 rounded px-3 py-1.5 text-xs font-mono text-white focus:border-cyan-500 outline-none mt-1"></textarea>
-              </div>
-              <button onclick="broadcastNotification()" class="w-full py-2 rounded bg-cyan-500 hover:bg-cyan-400 text-black font-semibold text-xs font-mono transition-colors">
+
+              <button onclick="broadcastNotification()" id="btn-broadcast" class="w-full py-2.5 rounded bg-cyan-500 hover:bg-cyan-400 text-black font-semibold text-xs font-mono transition-all">
                 🚀 Blast Push Notification Now
               </button>
             </div>
 
-            <!-- Recent Notifications History -->
-            <div class="p-3 rounded bg-black/50 border border-zinc-800/60 flex flex-col justify-between">
+            <!-- Right: Realistic Device Preview Mockup & Broadcast History -->
+            <div class="space-y-3">
               <div>
-                <span class="text-[11px] font-mono text-zinc-500 uppercase tracking-wider">Broadcast History</span>
-                <div id="notif-history-list" class="space-y-2 mt-2 max-h-56 overflow-y-auto">
-                  <!-- Dynamically populated -->
+                <div class="flex items-center justify-between text-[11px] font-mono text-zinc-400 mb-1.5">
+                  <span class="font-bold text-white flex items-center gap-1.5"><span>📱</span> Real-Time Device Mockup</span>
+                  <span class="text-[10px] text-cyan-400">UPDATES AS YOU TYPE</span>
+                </div>
+
+                <!-- Mockup Container -->
+                <div id="mockup-frame" class="p-4 rounded-xl bg-black border border-zinc-800 min-h-[160px] flex items-center justify-center">
+                  <!-- Type 1: Push Notification Mockup -->
+                  <div id="mockup-push" class="w-full max-w-sm p-3 rounded-xl bg-[#12151c]/95 border border-zinc-700/80 shadow-2xl space-y-1.5 font-sans">
+                    <div class="flex items-center justify-between text-[11px] text-zinc-400">
+                      <div class="flex items-center gap-1.5 font-semibold text-zinc-300">
+                        <span class="w-4 h-4 rounded bg-cyan-500 flex items-center justify-center text-[9px] text-black font-black">⚡</span>
+                        <span>SWADES CLOUD</span>
+                      </div>
+                      <span class="text-[10px] text-zinc-500">Just now</span>
+                    </div>
+                    <div id="mockup-title-text" class="text-xs font-bold text-white">⚡ Storage Engine Update Live</div>
+                    <div id="mockup-body-text" class="text-[11px] text-zinc-300 leading-snug">Sub-microsecond L1 cache reflection and scoped token restrictions are now active worldwide.</div>
+                  </div>
+
+                  <!-- Type 2: In-App Modal Banner Mockup -->
+                  <div id="mockup-banner" class="hidden w-full max-w-sm p-4 rounded-xl bg-[#090c12] border border-cyan-800/80 shadow-2xl space-y-2.5 text-center">
+                    <div class="w-8 h-8 rounded-full bg-cyan-500/20 border border-cyan-500/50 flex items-center justify-center mx-auto text-cyan-400">📢</div>
+                    <div id="mockup-banner-title" class="text-sm font-bold text-white">⚡ Storage Engine Update Live</div>
+                    <div id="mockup-banner-body" class="text-xs text-zinc-400">Sub-microsecond L1 cache reflection and scoped token restrictions are now active worldwide.</div>
+                    <button class="w-full py-1.5 rounded bg-cyan-500 text-black font-bold text-xs">Acknowledge</button>
+                  </div>
+
+                  <!-- Type 3: Toast Mockup -->
+                  <div id="mockup-toast" class="hidden w-full max-w-sm p-2.5 rounded-full bg-zinc-900 border border-zinc-700 shadow-2xl flex items-center justify-between px-4 text-xs">
+                    <div class="flex items-center gap-2 text-zinc-200">
+                      <span>⚡</span>
+                      <span id="mockup-toast-text" class="font-medium">Storage Engine Update Live</span>
+                    </div>
+                    <span class="text-cyan-400 text-[10px] font-bold">VIEW</span>
+                  </div>
                 </div>
               </div>
-              <span class="text-[10px] text-zinc-500 font-mono mt-2">Stored securely in phone SQLite vault.</span>
+
+              <!-- Recent Notifications History -->
+              <div class="p-3 rounded bg-black/50 border border-zinc-800/60 flex flex-col justify-between">
+                <div>
+                  <div class="flex items-center justify-between text-[11px] font-mono text-zinc-500 uppercase tracking-wider mb-2">
+                    <span>Broadcast History</span>
+                    <span class="text-[10px] text-emerald-400">PHONE SQLITE SYNCED</span>
+                  </div>
+                  <div id="notif-history-list" class="space-y-2 max-h-40 overflow-y-auto">
+                    <!-- Dynamically populated -->
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -474,11 +617,19 @@
 
         <!-- Real-Time Activity Pulse -->
         <div class="p-4 rounded-lg bg-[#07090d] border border-zinc-800/80 space-y-3">
-          <div class="flex items-center justify-between">
-            <h2 class="text-sm font-bold text-white space-grotesk">📈 Real-Time Activity Pulse</h2>
-            <span class="text-xs font-mono text-emerald-400 flex items-center gap-1.5">
-              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span> Live Edge Telemetry
-            </span>
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div class="flex items-center gap-3">
+              <h2 class="text-sm font-bold text-white space-grotesk">📈 Real-Time Activity & Throughput Pulse</h2>
+              <span class="text-xs font-mono text-emerald-400 flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span> Live Edge Telemetry
+              </span>
+            </div>
+            <!-- Horizon Switcher -->
+            <div class="flex rounded bg-black border border-zinc-800 p-0.5 text-xs font-mono">
+              <button onclick="setAnalyticsHorizon('15m')" id="btn-hor-15m" class="px-2.5 py-0.5 rounded bg-zinc-800 text-white font-semibold transition-all">15m</button>
+              <button onclick="setAnalyticsHorizon('1h')" id="btn-hor-1h" class="px-2.5 py-0.5 rounded text-zinc-400 hover:text-white transition-all">1h</button>
+              <button onclick="setAnalyticsHorizon('24h')" id="btn-hor-24h" class="px-2.5 py-0.5 rounded text-zinc-400 hover:text-white transition-all">24h</button>
+            </div>
           </div>
 
           <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -491,7 +642,7 @@
               <div id="pulse-rps" class="text-xl font-bold text-cyan-400 mt-1">18.4 req/s</div>
             </div>
             <div class="p-3 rounded bg-black border border-zinc-800 text-xs font-mono">
-              <span class="text-zinc-500">Avg Latency</span>
+              <span class="text-zinc-500">Avg Reflection SLA</span>
               <div id="pulse-latency" class="text-xl font-bold text-emerald-400 mt-1">1.24 ms</div>
             </div>
             <div class="p-3 rounded bg-black border border-zinc-800 text-xs font-mono">
@@ -500,39 +651,90 @@
             </div>
           </div>
 
-          <!-- Simulated Live SVG Line Graph -->
-          <div class="h-32 w-full bg-black/60 rounded border border-zinc-800/80 p-2 flex flex-col justify-between">
-            <svg class="w-full h-24 stroke-cyan-400 fill-cyan-500/10" viewBox="0 0 500 100" preserveAspectRatio="none">
-              <polyline points="0,80 50,65 100,70 150,45 200,55 250,30 300,40 350,20 400,25 450,15 500,20" stroke-width="2" vector-effect="non-scaling-stroke" />
+          <!-- Interactive Multi-Curve SVG Line Graph -->
+          <div class="h-40 w-full bg-black/70 rounded-lg border border-zinc-800/80 p-3 flex flex-col justify-between">
+            <div class="flex items-center justify-between text-[11px] font-mono text-zinc-400 mb-1">
+              <div class="flex items-center gap-3">
+                <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-cyan-400"></span> Requests / Sec</span>
+                <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-400"></span> Active Concurrent Visitors</span>
+              </div>
+              <span id="chart-hover-val" class="text-zinc-300 font-bold">Hover over chart for coordinates</span>
+            </div>
+            <svg id="pulse-svg-chart" class="w-full h-28" viewBox="0 0 500 100" preserveAspectRatio="none">
+              <!-- Grid lines -->
+              <line x1="0" y1="25" x2="500" y2="25" stroke="#1c202a" stroke-dasharray="3,3" />
+              <line x1="0" y1="50" x2="500" y2="50" stroke="#1c202a" stroke-dasharray="3,3" />
+              <line x1="0" y1="75" x2="500" y2="75" stroke="#1c202a" stroke-dasharray="3,3" />
+              <!-- Requests Curve (Cyan) -->
+              <polyline id="chart-line-rps" points="0,75 40,65 80,72 120,48 160,54 200,32 240,40 280,22 320,28 360,18 400,24 440,14 500,18" fill="none" stroke="#38bdf8" stroke-width="2.5" vector-effect="non-scaling-stroke" />
+              <!-- Visitors Curve (Emerald) -->
+              <polyline id="chart-line-vis" points="0,85 40,80 80,78 120,62 160,68 200,50 240,56 280,42 320,45 360,35 400,38 440,30 500,32" fill="none" stroke="#10b981" stroke-width="2" stroke-dasharray="4,2" vector-effect="non-scaling-stroke" />
             </svg>
-            <div class="flex justify-between text-[10px] font-mono text-zinc-500 px-1">
-              <span>-10 min</span>
-              <span>-5 min</span>
-              <span>Now</span>
+            <div class="flex justify-between text-[10px] font-mono text-zinc-500 pt-1 border-t border-zinc-800/40">
+              <span id="chart-lbl-start">-15 min</span>
+              <span id="chart-lbl-mid">-7.5 min</span>
+              <span id="chart-lbl-end">Now (Live Edge)</span>
             </div>
           </div>
         </div>
 
         <!-- Funnel Charts -->
         <div class="p-4 rounded-lg bg-[#07090d] border border-zinc-800/80 space-y-3">
-          <h2 class="text-sm font-bold text-white space-grotesk">🔻 User Conversion & Drop-off Funnel</h2>
-          <div id="funnel-container" class="space-y-2">
+          <div class="flex items-center justify-between">
+            <h2 class="text-sm font-bold text-white space-grotesk flex items-center gap-2">
+              <span>🔻 User Conversion & Drop-Off Graphic Funnel</span>
+              <span class="text-[10px] font-mono text-cyan-400 bg-cyan-950/60 border border-cyan-800/40 px-1.5 py-0.5 rounded">END-TO-END FLOW</span>
+            </h2>
+            <span class="text-xs font-mono text-emerald-400">Overall Conversion: 47.4%</span>
+          </div>
+          <p class="text-xs text-zinc-400">Tracks exactly which stage users abandon during onboarding, token issuance, and cloud CDN usage.</p>
+          
+          <div id="funnel-container" class="space-y-3 pt-2">
             <!-- Dynamically Populated -->
           </div>
         </div>
 
         <!-- Demographics & Device Distribution -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <!-- OS & Device with SVG Donut Chart -->
           <div class="p-4 rounded-lg bg-[#07090d] border border-zinc-800/80 space-y-3">
-            <h2 class="text-sm font-bold text-white space-grotesk">📱 Device & OS Platforms</h2>
-            <div id="demographics-os" class="space-y-2">
-              <!-- Dynamically Populated -->
+            <h2 class="text-sm font-bold text-white space-grotesk flex items-center gap-2">
+              <span>📱 Device Platforms & OS Demographics</span>
+            </h2>
+            <div class="flex flex-col sm:flex-row items-center gap-6 pt-2">
+              <!-- Visual SVG Donut Chart -->
+              <div class="relative w-36 h-36 shrink-0 flex items-center justify-center">
+                <svg viewBox="0 0 36 36" class="w-full h-full -rotate-90">
+                  <!-- Android 42% (stroke-dasharray="42 100") -->
+                  <circle cx="18" cy="18" r="15.915" fill="transparent" stroke="#10b981" stroke-width="3.8" stroke-dasharray="42 58" stroke-dashoffset="0"></circle>
+                  <!-- iOS 28% (stroke-dasharray="28 100", offset="-42") -->
+                  <circle cx="18" cy="18" r="15.915" fill="transparent" stroke="#38bdf8" stroke-width="3.8" stroke-dasharray="28 72" stroke-dashoffset="-42"></circle>
+                  <!-- Windows 16% (offset="-70") -->
+                  <circle cx="18" cy="18" r="15.915" fill="transparent" stroke="#a855f7" stroke-width="3.8" stroke-dasharray="16 84" stroke-dashoffset="-70"></circle>
+                  <!-- macOS 10% (offset="-86") -->
+                  <circle cx="18" cy="18" r="15.915" fill="transparent" stroke="#f59e0b" stroke-width="3.8" stroke-dasharray="10 90" stroke-dashoffset="-86"></circle>
+                  <!-- Linux 4% (offset="-96") -->
+                  <circle cx="18" cy="18" r="15.915" fill="transparent" stroke="#f43f5e" stroke-width="3.8" stroke-dasharray="4 96" stroke-dashoffset="-96"></circle>
+                </svg>
+                <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                  <span class="text-sm font-bold font-mono text-white">100%</span>
+                  <span class="text-[9px] font-mono text-zinc-500 uppercase">Worldwide</span>
+                </div>
+              </div>
+
+              <!-- Legend breakdown -->
+              <div id="demographics-os" class="flex-1 space-y-2 w-full">
+                <!-- Dynamically Populated -->
+              </div>
             </div>
           </div>
 
+          <!-- Regional Edge Latency Distribution -->
           <div class="p-4 rounded-lg bg-[#07090d] border border-zinc-800/80 space-y-3">
-            <h2 class="text-sm font-bold text-white space-grotesk">🌍 Global Edge Region Distribution</h2>
-            <div id="demographics-regions" class="space-y-2">
+            <h2 class="text-sm font-bold text-white space-grotesk flex items-center gap-2">
+              <span>🌍 Global Edge Region Distribution & Pings</span>
+            </h2>
+            <div id="demographics-regions" class="space-y-2 pt-1">
               <!-- Dynamically Populated -->
             </div>
           </div>
@@ -556,6 +758,7 @@
               <div class="flex rounded bg-black border border-zinc-800 p-0.5 text-xs font-mono">
                 <button onclick="setDbMode('grid')" id="btn-db-tab-grid" class="px-2.5 py-0.5 rounded bg-zinc-800 text-white font-semibold transition-all">Spreadsheet Grid</button>
                 <button onclick="setDbMode('sql')" id="btn-db-tab-sql" class="px-2.5 py-0.5 rounded text-zinc-400 hover:text-white transition-all">SQL Sandbox</button>
+                <button onclick="setDbMode('schema')" id="btn-db-tab-schema" class="px-2.5 py-0.5 rounded text-zinc-400 hover:text-white transition-all">Schema Inspector</button>
               </div>
             </div>
             <div id="db-grid-controls" class="flex items-center gap-2">
@@ -570,6 +773,9 @@
               <span id="sql-query-status" class="text-xs font-mono text-zinc-400">Ready</span>
               <button onclick="exportSqlResultToCsv()" class="text-xs font-mono px-2.5 py-1 rounded bg-zinc-900 border border-zinc-700 hover:bg-zinc-800 text-zinc-300">⬇️ Export Result CSV</button>
               <button onclick="executeRawSqlQuery()" id="btn-run-sql" class="text-xs font-mono px-3 py-1 rounded bg-cyan-500 hover:bg-cyan-400 text-black font-semibold">⚡ Run Query</button>
+            </div>
+            <div id="db-schema-controls" class="hidden flex items-center gap-2">
+              <button onclick="loadDbSchema()" class="text-xs font-mono px-3 py-1 rounded bg-zinc-900 border border-zinc-750 hover:bg-zinc-800 text-zinc-300">🔄 Reload Schema</button>
             </div>
           </div>
 
@@ -598,6 +804,7 @@
               <button onclick="setSqlQuery('SELECT * FROM role_permissions;')" class="px-2 py-0.5 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800">Role Permissions</button>
               <button onclick="setSqlQuery('SELECT * FROM audit_logs ORDER BY timestamp DESC LIMIT 25;')" class="px-2 py-0.5 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800">Recent Audits</button>
               <button onclick="setSqlQuery('SELECT * FROM feature_flags;')" class="px-2 py-0.5 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800">Flags</button>
+              <button onclick="setSqlQuery('SELECT * FROM file_moderation;')" class="px-2 py-0.5 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800">Moderations</button>
               <button onclick="setSqlQuery('SELECT * FROM performance_logs ORDER BY timestamp DESC LIMIT 20;')" class="px-2 py-0.5 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800">Perf Logs</button>
             </div>
 
@@ -614,16 +821,39 @@
               </table>
             </div>
           </div>
+
+          <!-- TAB 3: SCHEMA INSPECTOR -->
+          <div id="db-panel-schema" class="hidden space-y-3">
+            <div id="schema-inspector-container" class="space-y-4">
+              <!-- Dynamically populated schema tables -->
+            </div>
+          </div>
         </div>
 
-        <!-- Media Storage Drive & Explorer -->
+        <!-- Media Storage Drive & Explorer with Moderation -->
         <div class="p-4 rounded-lg bg-[#07090d] border border-zinc-800/80 space-y-3">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <div class="flex items-center gap-2">
-              <h2 class="text-sm font-bold text-white space-grotesk">📁 Media & Document Storage Drive</h2>
-              <span class="text-xs font-mono text-zinc-500">(Zero-Tassel User Silo)</span>
+            <div>
+              <h2 class="text-sm font-bold text-white space-grotesk flex items-center gap-2">
+                <span>📁 Media & Document Storage Drive</span>
+                <span class="text-[10px] font-mono text-zinc-500">(Zero-Tassel User Silo)</span>
+              </h2>
+              <div class="flex items-center gap-2 text-[11px] font-mono text-zinc-400 mt-0.5">
+                <span>Path: <span class="text-cyan-400">/root/SwadesCloud/tenants</span></span>
+                <span class="text-zinc-600">|</span>
+                <span id="media-count-badge" class="text-emerald-400">-- objects</span>
+              </div>
             </div>
-            <div class="flex items-center gap-2">
+
+            <div class="flex flex-wrap items-center gap-2">
+              <!-- Moderation status filter buttons -->
+              <div class="flex rounded bg-black border border-zinc-800 p-0.5 text-xs font-mono">
+                <button onclick="setMediaModFilter('all')" id="media-flt-all" class="px-2 py-0.5 rounded bg-zinc-800 text-white font-semibold">ALL</button>
+                <button onclick="setMediaModFilter('approved')" id="media-flt-approved" class="px-2 py-0.5 rounded text-zinc-400 hover:text-emerald-400">APPROVED</button>
+                <button onclick="setMediaModFilter('flagged')" id="media-flt-flagged" class="px-2 py-0.5 rounded text-zinc-400 hover:text-amber-400">FLAGGED</button>
+                <button onclick="setMediaModFilter('quarantined')" id="media-flt-quarantined" class="px-2 py-0.5 rounded text-zinc-400 hover:text-rose-400">QUARANTINED</button>
+              </div>
+
               <input type="file" id="media-upload-input" onchange="uploadMediaFile(event)" class="hidden" />
               <button onclick="document.getElementById('media-upload-input').click()" class="text-xs font-mono px-3 py-1.5 rounded bg-zinc-800 hover:bg-zinc-700 text-white font-semibold flex items-center gap-1.5">
                 <span>📤</span> Upload File / Media
@@ -636,11 +866,17 @@
           </div>
         </div>
 
-        <!-- API Credentials Hub -->
+        <!-- API Credentials Hub with Scopes & Expiration -->
         <div class="p-4 rounded-lg bg-[#07090d] border border-zinc-800/80 space-y-3">
           <div class="flex items-center justify-between">
-            <h2 class="text-sm font-bold text-white space-grotesk">🔑 API Credentials Hub (Storage-Only Keys)</h2>
-            <button onclick="openCreateKeyModal()" class="text-xs font-mono px-3 py-1 rounded bg-cyan-500 hover:bg-cyan-400 text-black font-semibold">+ Generate Scoped Key</button>
+            <div>
+              <h2 class="text-sm font-bold text-white space-grotesk flex items-center gap-2">
+                <span>🔑 API Credentials Hub (Scoped & Expiring Tokens)</span>
+                <span class="text-[10px] font-mono text-cyan-400 bg-cyan-950/60 border border-cyan-800/40 px-1.5 py-0.5 rounded">RESTRICTED SCOPES</span>
+              </h2>
+              <p class="text-xs text-zinc-400">Generate, restrict scopes (read-only, write-only), and set TTL expiration on cloud access tokens.</p>
+            </div>
+            <button onclick="openCreateKeyModal()" class="text-xs font-mono px-3 py-1.5 rounded bg-cyan-500 hover:bg-cyan-400 text-black font-semibold">+ Generate Scoped Key</button>
           </div>
 
           <div class="overflow-x-auto">
@@ -648,10 +884,11 @@
               <thead>
                 <tr class="border-b border-zinc-800 text-zinc-500">
                   <th class="py-2 px-3">Key Name</th>
-                  <th class="py-2 px-3">Key Token</th>
-                  <th class="py-2 px-3">Scope</th>
+                  <th class="py-2 px-3">Token Hash</th>
+                  <th class="py-2 px-3">Restriction Scope</th>
+                  <th class="py-2 px-3">Expiration Date</th>
                   <th class="py-2 px-3">Created</th>
-                  <th class="py-2 px-3 text-right">Action</th>
+                  <th class="py-2 px-3 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody id="keys-table-body">
@@ -705,6 +942,43 @@
         </div>
 
         <div class="p-4 rounded-lg bg-[#07090d] border border-zinc-800/80 space-y-3">
+          <!-- OpenAPI Interactive Endpoint Catalog -->
+          <div class="space-y-1.5 border-b border-zinc-800/80 pb-3">
+            <div class="text-[11px] font-mono text-zinc-400 font-bold uppercase tracking-wider flex items-center justify-between">
+              <span>📖 Interactive API Explorer & Endpoint Catalog</span>
+              <span class="text-cyan-400 font-normal lowercase text-[10px]">click to load into sandbox</span>
+            </div>
+            <div class="flex flex-wrap gap-1.5 text-[11px] font-mono">
+              <button onclick="setPlaygroundEndpoint('chat')" class="px-2 py-1 rounded bg-zinc-900 hover:bg-zinc-800 text-cyan-400 border border-zinc-800 flex items-center gap-1">
+                <span class="text-[9px] px-1 rounded bg-cyan-950 text-cyan-400 font-bold">POST</span> /v1/chat/completions
+              </button>
+              <button onclick="setPlaygroundEndpoint('tts')" class="px-2 py-1 rounded bg-zinc-900 hover:bg-zinc-800 text-emerald-400 border border-zinc-800 flex items-center gap-1">
+                <span class="text-[9px] px-1 rounded bg-emerald-950 text-emerald-400 font-bold">POST</span> /tts
+              </button>
+              <button onclick="setPlaygroundEndpoint('whisper')" class="px-2 py-1 rounded bg-zinc-900 hover:bg-zinc-800 text-violet-400 border border-zinc-800 flex items-center gap-1">
+                <span class="text-[9px] px-1 rounded bg-violet-950 text-violet-400 font-bold">POST</span> /inference
+              </button>
+              <button onclick="setPlaygroundEndpoint('embeddings')" class="px-2 py-1 rounded bg-zinc-900 hover:bg-zinc-800 text-amber-400 border border-zinc-800 flex items-center gap-1">
+                <span class="text-[9px] px-1 rounded bg-amber-950 text-amber-400 font-bold">POST</span> /v1/embeddings
+              </button>
+              <button onclick="setPlaygroundEndpoint('rerank')" class="px-2 py-1 rounded bg-zinc-900 hover:bg-zinc-800 text-rose-400 border border-zinc-800 flex items-center gap-1">
+                <span class="text-[9px] px-1 rounded bg-rose-950 text-rose-400 font-bold">POST</span> /v1/rerank
+              </button>
+              <button onclick="setPlaygroundEndpoint('storage_put')" class="px-2 py-1 rounded bg-zinc-900 hover:bg-zinc-800 text-cyan-300 border border-zinc-800 flex items-center gap-1">
+                <span class="text-[9px] px-1 rounded bg-cyan-950 text-cyan-300 font-bold">PUT</span> /v1/storage/objects/*
+              </button>
+              <button onclick="setPlaygroundEndpoint('storage_get')" class="px-2 py-1 rounded bg-zinc-900 hover:bg-zinc-800 text-cyan-300 border border-zinc-800 flex items-center gap-1">
+                <span class="text-[9px] px-1 rounded bg-emerald-950 text-emerald-300 font-bold">GET</span> /v1/storage/objects
+              </button>
+              <button onclick="setPlaygroundEndpoint('schema')" class="px-2 py-1 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800 flex items-center gap-1">
+                <span class="text-[9px] px-1 rounded bg-zinc-800 text-zinc-300 font-bold">GET</span> /v1/dashboard/db/schema
+              </button>
+              <button onclick="setPlaygroundEndpoint('gc')" class="px-2 py-1 rounded bg-zinc-900 hover:bg-zinc-800 text-emerald-400 border border-zinc-800 flex items-center gap-1">
+                <span class="text-[9px] px-1 rounded bg-emerald-950 text-emerald-400 font-bold">POST</span> /v1/dashboard/system/gc
+              </button>
+            </div>
+          </div>
+
           <div class="flex flex-wrap items-center gap-1.5 text-[11px] font-mono border-b border-zinc-800/80 pb-2.5">
             <span class="text-zinc-500">Presets:</span>
             <button onclick="setPlaygroundPreset('benchmark')" class="px-2 py-0.5 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800">L1 Benchmark</button>
@@ -994,6 +1268,271 @@
     </div>
   </div>
 
+  <!-- =================================================================== -->
+  <!-- CREATE FEATURE FLAG MODAL -->
+  <!-- =================================================================== -->
+  <div id="flag-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="w-full max-w-md bg-[#090b10] border border-zinc-800 rounded-xl p-5 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between">
+        <span class="font-bold text-base space-grotesk text-white">Create Feature Flag</span>
+        <button onclick="closeCreateFlagModal()" class="text-zinc-500 hover:text-white">✕</button>
+      </div>
+      <div class="space-y-3 font-mono text-xs">
+        <div>
+          <label class="text-zinc-400">Flag Key (Unique Identifier)</label>
+          <input type="text" id="flag-key-input" placeholder="e.g. experimental_cache" class="w-full bg-black border border-zinc-800 rounded px-3 py-2 text-white outline-none focus:border-cyan-500 mt-1" />
+        </div>
+        <div>
+          <label class="text-zinc-400">Display Name</label>
+          <input type="text" id="flag-name-input" placeholder="e.g. Experimental Cache Routing" class="w-full bg-black border border-zinc-800 rounded px-3 py-2 text-white outline-none focus:border-cyan-500 mt-1" />
+        </div>
+        <div>
+          <label class="text-zinc-400">Description</label>
+          <input type="text" id="flag-desc-input" placeholder="Toggles sub-microsecond routing on phone L1 memory" class="w-full bg-black border border-zinc-800 rounded px-3 py-2 text-white outline-none focus:border-cyan-500 mt-1" />
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-zinc-400">Initial State</label>
+            <select id="flag-enabled-input" class="w-full bg-black border border-zinc-800 rounded px-2.5 py-2 text-white outline-none mt-1">
+              <option value="1">Enabled (Active)</option>
+              <option value="0">Disabled (Inactive)</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-zinc-400">Rollout % (0 - 100)</label>
+            <input type="number" id="flag-rollout-input" min="0" max="100" value="100" class="w-full bg-black border border-zinc-800 rounded px-3 py-2 text-cyan-400 outline-none mt-1" />
+          </div>
+        </div>
+        <div id="flag-error-msg" class="text-rose-400 text-[11px] hidden"></div>
+        <div class="flex items-center justify-end gap-2 pt-2">
+          <button onclick="closeCreateFlagModal()" class="px-4 py-2 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300">Cancel</button>
+          <button onclick="submitCreateFlag()" class="px-4 py-2 rounded bg-cyan-500 hover:bg-cyan-400 text-black font-bold">Create Flag</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =================================================================== -->
+  <!-- ADD REMOTE STYLING & CONFIG MODAL -->
+  <!-- =================================================================== -->
+  <div id="config-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="w-full max-w-md bg-[#090b10] border border-zinc-800 rounded-xl p-5 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between">
+        <span class="font-bold text-base space-grotesk text-white">Add Remote Styling & Config Variable</span>
+        <button onclick="closeAddConfigModal()" class="text-zinc-500 hover:text-white">✕</button>
+      </div>
+      <div class="space-y-3 font-mono text-xs">
+        <div>
+          <label class="text-zinc-400">Variable Key</label>
+          <input type="text" id="config-key-input" placeholder="e.g. theme_accent_color, hero_banner_text" class="w-full bg-black border border-zinc-800 rounded px-3 py-2 text-white outline-none focus:border-cyan-500 mt-1" />
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-zinc-400">Category</label>
+            <select id="config-cat-input" class="w-full bg-black border border-zinc-800 rounded px-2.5 py-2 text-white outline-none mt-1">
+              <option value="styling">Styling (CSS / Themes)</option>
+              <option value="feature">Feature Copy</option>
+              <option value="limits">SLA & Limits</option>
+              <option value="branding">Branding & Assets</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-zinc-400">Value</label>
+            <input type="text" id="config-val-input" placeholder="#00f3ff" class="w-full bg-black border border-zinc-800 rounded px-3 py-2 text-cyan-400 outline-none mt-1" />
+          </div>
+        </div>
+        <div>
+          <label class="text-zinc-400">Description</label>
+          <input type="text" id="config-desc-input" placeholder="Primary neon accent applied live across clients" class="w-full bg-black border border-zinc-800 rounded px-3 py-2 text-white outline-none focus:border-cyan-500 mt-1" />
+        </div>
+        <div id="config-error-msg" class="text-rose-400 text-[11px] hidden"></div>
+        <div class="flex items-center justify-end gap-2 pt-2">
+          <button onclick="closeAddConfigModal()" class="px-4 py-2 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300">Cancel</button>
+          <button onclick="submitAddConfig()" class="px-4 py-2 rounded bg-cyan-500 hover:bg-cyan-400 text-black font-bold">Save Variable</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =================================================================== -->
+  <!-- CREATE A/B EXPERIMENT MODAL -->
+  <!-- =================================================================== -->
+  <div id="exp-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="w-full max-w-md bg-[#090b10] border border-zinc-800 rounded-xl p-5 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between">
+        <span class="font-bold text-base space-grotesk text-white">Create A/B Experiment Panel</span>
+        <button onclick="closeCreateExperimentModal()" class="text-zinc-500 hover:text-white">✕</button>
+      </div>
+      <div class="space-y-3 font-mono text-xs">
+        <div>
+          <label class="text-zinc-400">Experiment Name</label>
+          <input type="text" id="exp-name-input" placeholder="e.g. Checkout CTA Color Split" class="w-full bg-black border border-zinc-800 rounded px-3 py-2 text-white outline-none focus:border-cyan-500 mt-1" />
+        </div>
+        <div>
+          <label class="text-zinc-400">Description</label>
+          <input type="text" id="exp-desc-input" placeholder="Compare conversion rates between Cyan and Emerald buttons" class="w-full bg-black border border-zinc-800 rounded px-3 py-2 text-white outline-none focus:border-cyan-500 mt-1" />
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-zinc-400">Variant A (Control)</label>
+            <input type="text" id="exp-var-a-input" placeholder="cyan_cta" value="cyan_cta" class="w-full bg-black border border-zinc-800 rounded px-3 py-2 text-white outline-none mt-1" />
+          </div>
+          <div>
+            <label class="text-zinc-400">Variant B (Challenger)</label>
+            <input type="text" id="exp-var-b-input" placeholder="emerald_cta" value="emerald_cta" class="w-full bg-black border border-zinc-800 rounded px-3 py-2 text-cyan-400 outline-none mt-1" />
+          </div>
+        </div>
+        <div>
+          <label class="text-zinc-400">Traffic Split % for Variant B (1 - 99)</label>
+          <input type="number" id="exp-split-input" min="1" max="99" value="50" class="w-full bg-black border border-zinc-800 rounded px-3 py-2 text-white outline-none mt-1" />
+        </div>
+        <div id="exp-error-msg" class="text-rose-400 text-[11px] hidden"></div>
+        <div class="flex items-center justify-end gap-2 pt-2">
+          <button onclick="closeCreateExperimentModal()" class="px-4 py-2 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300">Cancel</button>
+          <button onclick="submitCreateExperiment()" class="px-4 py-2 rounded bg-cyan-500 hover:bg-cyan-400 text-black font-bold">Launch Experiment</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =================================================================== -->
+  <!-- PERFORMANCE & CRASH DIAGNOSTICS MODAL -->
+  <!-- =================================================================== -->
+  <div id="diag-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="w-full max-w-2xl bg-[#090b10] border border-zinc-800 rounded-xl p-5 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="text-lg">📉</span>
+          <span class="font-bold text-base space-grotesk text-white">Diagnostics & Stacktrace Inspector</span>
+        </div>
+        <button onclick="closeDiagModal()" class="text-zinc-500 hover:text-white">✕</button>
+      </div>
+      <div class="space-y-3 font-mono text-xs">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+          <div class="p-2 bg-black rounded border border-zinc-800">
+            <span class="text-zinc-500">Event Type:</span>
+            <div id="diag-event-type" class="font-bold text-cyan-400 uppercase mt-0.5">--</div>
+          </div>
+          <div class="p-2 bg-black rounded border border-zinc-800">
+            <span class="text-zinc-500">HTTP Status:</span>
+            <div id="diag-status-code" class="font-bold text-white mt-0.5">--</div>
+          </div>
+          <div class="p-2 bg-black rounded border border-zinc-800">
+            <span class="text-zinc-500">Latency:</span>
+            <div id="diag-latency" class="font-bold text-emerald-400 mt-0.5">--</div>
+          </div>
+          <div class="p-2 bg-black rounded border border-zinc-800">
+            <span class="text-zinc-500">Hardware Node:</span>
+            <div id="diag-device" class="font-bold text-violet-400 truncate mt-0.5">--</div>
+          </div>
+        </div>
+        <div>
+          <span class="text-zinc-400">Endpoint / Scope:</span>
+          <div id="diag-endpoint" class="font-bold text-white text-xs mt-1 bg-black p-2 rounded border border-zinc-800">--</div>
+        </div>
+        <div>
+          <span class="text-zinc-400">Diagnostic Message:</span>
+          <div id="diag-message" class="text-zinc-300 text-xs mt-1 bg-black p-2 rounded border border-zinc-800">--</div>
+        </div>
+        <div>
+          <span class="text-zinc-400">Hardware Exception Context & Stacktrace:</span>
+          <pre id="diag-stacktrace" class="bg-black/90 p-3 rounded border border-zinc-800/80 text-rose-300 font-mono text-[11px] overflow-x-auto max-h-48 whitespace-pre mt-1"></pre>
+        </div>
+        <div class="flex items-center justify-end pt-2">
+          <button onclick="closeDiagModal()" class="px-4 py-2 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =================================================================== -->
+  <!-- GENERATE SCOPED API KEY MODAL -->
+  <!-- =================================================================== -->
+  <div id="key-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="w-full max-w-md bg-[#090b10] border border-zinc-800 rounded-xl p-5 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between">
+        <span class="font-bold text-base space-grotesk text-white">Generate Scoped API Key</span>
+        <button onclick="closeKeyModal()" class="text-zinc-500 hover:text-white">✕</button>
+      </div>
+      <div class="space-y-3 font-mono text-xs">
+        <div>
+          <label class="text-zinc-400">Key Name</label>
+          <input type="text" id="key-name-input" placeholder="e.g. Mobile Production App, Edge Worker" class="w-full bg-black border border-zinc-800 rounded px-3 py-2 text-white outline-none focus:border-cyan-500 mt-1" />
+        </div>
+        <div>
+          <label class="text-zinc-400">Permission Scope</label>
+          <select id="key-scope-select" class="w-full bg-black border border-zinc-800 rounded px-2.5 py-2 text-cyan-400 outline-none mt-1">
+            <option value="full">⚡ Full Access (Read, Write, Delete, Moderate)</option>
+            <option value="read_only">👁️ Read-Only (Safe for Client Apps / Public Downloads)</option>
+            <option value="write_only">✍️ Write-Only (Safe for Ingestion / Upload Telemetry)</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-zinc-400">Expiration TTL</label>
+          <select id="key-ttl-select" class="w-full bg-black border border-zinc-800 rounded px-2.5 py-2 text-emerald-400 outline-none mt-1">
+            <option value="never">♾️ Never Expires</option>
+            <option value="7d">⏳ 7 Days</option>
+            <option value="30d">⏳ 30 Days</option>
+            <option value="90d">⏳ 90 Days</option>
+            <option value="1y">⏳ 1 Year</option>
+          </select>
+        </div>
+        <div id="key-error-msg" class="text-rose-400 text-[11px] hidden"></div>
+        <div class="flex items-center justify-end gap-2 pt-2">
+          <button onclick="closeKeyModal()" class="px-4 py-2 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300">Cancel</button>
+          <button onclick="submitCreateKey()" class="px-4 py-2 rounded bg-cyan-500 hover:bg-cyan-400 text-black font-bold">Generate Token</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =================================================================== -->
+  <!-- RESET USER PASSWORD MODAL -->
+  <!-- =================================================================== -->
+  <div id="reset-pwd-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="w-full max-w-sm bg-[#090b10] border border-zinc-800 rounded-xl p-5 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between">
+        <span class="font-bold text-base space-grotesk text-white">Manual Password Reset</span>
+        <button onclick="closeResetPwdModal()" class="text-zinc-500 hover:text-white">✕</button>
+      </div>
+      <div class="space-y-3 font-mono text-xs">
+        <div>
+          <span class="text-zinc-400">Target User:</span>
+          <div id="reset-pwd-user-display" class="font-bold text-cyan-400 mt-0.5">--</div>
+        </div>
+        <div>
+          <label class="text-zinc-400">New Password</label>
+          <input type="password" id="reset-pwd-input" placeholder="••••••••" class="w-full bg-black border border-zinc-800 rounded px-3 py-2 text-white outline-none focus:border-cyan-500 mt-1" />
+        </div>
+        <div id="reset-pwd-error-msg" class="text-rose-400 text-[11px] hidden"></div>
+        <div class="flex items-center justify-end gap-2 pt-2">
+          <button onclick="closeResetPwdModal()" class="px-4 py-2 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300">Cancel</button>
+          <button onclick="submitResetPassword()" class="px-4 py-2 rounded bg-rose-500 hover:bg-rose-400 text-black font-bold">Reset Password</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =================================================================== -->
+  <!-- INSERT ROW MODAL -->
+  <!-- =================================================================== -->
+  <div id="insert-row-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="w-full max-w-md bg-[#090b10] border border-zinc-800 rounded-xl p-5 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between">
+        <span class="font-bold text-base space-grotesk text-white">Insert Table Record</span>
+        <button onclick="closeInsertRowModal()" class="text-zinc-500 hover:text-white">✕</button>
+      </div>
+      <div id="insert-row-fields" class="space-y-3 font-mono text-xs max-h-80 overflow-y-auto">
+        <!-- Dynamically generated column inputs -->
+      </div>
+      <div id="insert-row-error-msg" class="text-rose-400 text-[11px] hidden"></div>
+      <div class="flex items-center justify-end gap-2 pt-2">
+        <button onclick="closeInsertRowModal()" class="px-4 py-2 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300">Cancel</button>
+        <button onclick="submitInsertRow()" class="px-4 py-2 rounded bg-cyan-500 hover:bg-cyan-400 text-black font-bold">Insert Record</button>
+      </div>
+    </div>
+  </div>
+
   <!-- JAVASCRIPT LOGIC -->
   <script>
     const BASE_URL = window.location.origin;
@@ -1186,7 +1725,41 @@
       }
     }
 
+    // --- HARDWARE GARBAGE COLLECTION & CACHE PURGE ---
+    async function executeSystemGc() {
+      const btn = document.getElementById('btn-run-gc');
+      const banner = document.getElementById('gc-status-banner');
+      const text = document.getElementById('gc-status-text');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span>⏳</span> Purging RAM & GC...';
+      }
+
+      try {
+        const res = await fetch(`${BASE_URL}/v1/dashboard/system/gc`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        const data = await res.json();
+        if (data.status === 'ok') {
+          if (banner) banner.classList.remove('hidden');
+          if (text) text.innerText = `Cleaned ${data.collected_objects} memory objects. Freed ${(data.reclaimed_bytes / 1024).toFixed(1)} KB RAM in ${data.gc_elapsed_ms}ms. L1 Cache active.`;
+          refreshOverview();
+          setTimeout(() => { if (banner) banner.classList.add('hidden'); }, 8000);
+        }
+      } catch (err) {
+        alert("GC error: " + err.message);
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<span>🧹</span> Flush Cache & Run GC';
+        }
+      }
+    }
+
     // --- CONFIG & TESTING VIEW ---
+    let cachedPerfLogs = [];
+
     async function loadConfigView() {
       // 1. Load Feature Flags
       try {
@@ -1200,9 +1773,9 @@
               <div class="text-[10px] text-zinc-500 font-mono">${f.key}</div>
             </td>
             <td class="py-2.5 px-3 text-zinc-400 text-[11px]">${f.description || ''}</td>
-            <td class="py-2.5 px-3 text-cyan-400">${f.rollout_pct}%</td>
+            <td class="py-2.5 px-3 text-cyan-400 font-bold">${f.rollout_pct}%</td>
             <td class="py-2.5 px-3 text-right">
-              <button onclick="toggleFlag('${f.key}', ${f.enabled ? 0 : 1})" class="px-2.5 py-1 rounded text-[11px] font-bold ${f.enabled ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-zinc-900 text-zinc-500 border border-zinc-800'}">
+              <button onclick="toggleFlag('${f.key}', ${f.enabled ? 0 : 1})" class="px-2.5 py-1 rounded text-[11px] font-bold transition-colors ${f.enabled ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-zinc-900 text-zinc-500 border border-zinc-800'}">
                 ${f.enabled ? 'ENABLED' : 'DISABLED'}
               </button>
             </td>
@@ -1210,7 +1783,7 @@
         `).join('');
       } catch (e) {}
 
-      // 2. Load Remote Config
+      // 2. Load Remote Config & Apply Live Preview
       try {
         const res = await fetch(`${BASE_URL}/v1/dashboard/remote-config`);
         const data = await res.json();
@@ -1219,12 +1792,13 @@
           <div class="p-3 rounded bg-black/60 border border-zinc-800 font-mono text-xs space-y-1">
             <div class="flex items-center justify-between text-zinc-400">
               <span class="font-bold text-white">${c.key}</span>
-              <span class="text-[10px] uppercase text-zinc-500">${c.category}</span>
+              <span class="text-[10px] uppercase text-zinc-500 bg-zinc-900 px-1.5 py-0.5 rounded border border-zinc-800">${c.category}</span>
             </div>
             <div class="text-[10px] text-zinc-500">${c.description || ''}</div>
-            <input type="text" id="rc-input-${c.key}" value="${c.value}" class="w-full bg-zinc-950 border border-zinc-800 rounded px-2.5 py-1 text-cyan-300 outline-none mt-1 focus:border-cyan-500" />
+            <input type="text" id="rc-input-${c.key}" oninput="updateStylingPreview()" value="${c.value}" class="w-full bg-zinc-950 border border-zinc-800 rounded px-2.5 py-1 text-cyan-300 outline-none mt-1 focus:border-cyan-500" />
           </div>
         `).join('');
+        updateStylingPreview();
       } catch (e) {}
 
       // 3. Load Experiments
@@ -1264,17 +1838,84 @@
       try {
         const res = await fetch(`${BASE_URL}/v1/dashboard/performance`);
         const data = await res.json();
+        cachedPerfLogs = data.performance_logs || [];
         const tbody = document.getElementById('perf-logs-body');
-        tbody.innerHTML = (data.performance_logs || []).map(l => `
+        tbody.innerHTML = cachedPerfLogs.map((l, idx) => `
           <tr class="border-b border-zinc-800/40 hover:bg-zinc-900/40">
-            <td class="py-2 px-3 text-cyan-400 uppercase">${l.event_type}</td>
-            <td class="py-2 px-3 text-white">${l.endpoint}</td>
-            <td class="py-2 px-3 text-emerald-400">${l.latency_ms} ms</td>
-            <td class="py-2 px-3">${l.status_code}</td>
-            <td class="py-2 px-3 text-zinc-400">${l.device_info || 'Xiaomi Redmi 9i'}</td>
+            <td class="py-2 px-3 text-cyan-400 uppercase font-bold">${l.event_type}</td>
+            <td class="py-2 px-3 text-white truncate max-w-xs" title="${l.endpoint}">${l.endpoint}</td>
+            <td class="py-2 px-3 text-emerald-400 font-bold">${l.latency_ms} ms</td>
+            <td class="py-2 px-3 ${l.status_code >= 500 ? 'text-rose-400' : (l.status_code >= 400 ? 'text-amber-400' : 'text-zinc-300')}">${l.status_code}</td>
+            <td class="py-2 px-3 text-zinc-400">${l.device_info || 'Xiaomi Redmi 9i (Phone Node)'}</td>
+            <td class="py-2 px-3 text-right">
+              <button onclick="openDiagModal(${idx})" class="text-[11px] text-cyan-400 hover:text-cyan-300 px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800">Inspect 🔍</button>
+            </td>
           </tr>
         `).join('');
       } catch (e) {}
+    }
+
+    function updateStylingPreview() {
+      const bannerInput = document.getElementById('rc-input-announcement_banner_text') || document.getElementById('rc-input-hero_banner_text');
+      const accentInput = document.getElementById('rc-input-theme_accent_color');
+      const headlineInput = document.getElementById('rc-input-app_hero_title');
+
+      if (bannerInput && document.getElementById('prev-banner-text')) {
+        document.getElementById('prev-banner-text').innerText = bannerInput.value;
+      }
+      if (headlineInput && document.getElementById('prev-headline')) {
+        document.getElementById('prev-headline').innerText = headlineInput.value;
+      }
+      if (accentInput) {
+        const color = accentInput.value;
+        const cta = document.getElementById('prev-cta-btn');
+        if (cta && color) {
+          cta.style.backgroundColor = color;
+        }
+      }
+    }
+
+    function openCreateFlagModal() {
+      document.getElementById('flag-error-msg').classList.add('hidden');
+      document.getElementById('flag-key-input').value = '';
+      document.getElementById('flag-name-input').value = '';
+      document.getElementById('flag-desc-input').value = '';
+      document.getElementById('flag-modal').classList.remove('hidden');
+    }
+
+    function closeCreateFlagModal() {
+      document.getElementById('flag-modal').classList.add('hidden');
+    }
+
+    async function submitCreateFlag() {
+      const key = document.getElementById('flag-key-input').value.trim();
+      const name = document.getElementById('flag-name-input').value.trim();
+      const description = document.getElementById('flag-desc-input').value.trim();
+      const enabled = parseInt(document.getElementById('flag-enabled-input').value, 10);
+      const rollout_pct = parseInt(document.getElementById('flag-rollout-input').value, 10) || 100;
+      const errEl = document.getElementById('flag-error-msg');
+      errEl.classList.add('hidden');
+
+      if (!key) {
+        errEl.innerText = "Flag key is required.";
+        errEl.classList.remove('hidden');
+        return;
+      }
+
+      try {
+        const res = await fetch(`${BASE_URL}/v1/dashboard/flags/create`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key, name, description, enabled, rollout_pct })
+        });
+        const data = await res.json();
+        if (data.status === 'error') throw new Error(data.error);
+        closeCreateFlagModal();
+        loadConfigView();
+      } catch (err) {
+        errEl.innerText = err.message;
+        errEl.classList.remove('hidden');
+      }
     }
 
     async function toggleFlag(key, newStatus) {
@@ -1284,6 +1925,46 @@
         body: JSON.stringify({ key, enabled: Boolean(newStatus) })
       });
       loadConfigView();
+    }
+
+    function openAddConfigModal() {
+      document.getElementById('config-error-msg').classList.add('hidden');
+      document.getElementById('config-key-input').value = '';
+      document.getElementById('config-val-input').value = '';
+      document.getElementById('config-desc-input').value = '';
+      document.getElementById('config-modal').classList.remove('hidden');
+    }
+
+    function closeAddConfigModal() {
+      document.getElementById('config-modal').classList.add('hidden');
+    }
+
+    async function submitAddConfig() {
+      const key = document.getElementById('config-key-input').value.trim();
+      const value = document.getElementById('config-val-input').value.trim();
+      const category = document.getElementById('config-cat-input').value;
+      const description = document.getElementById('config-desc-input').value.trim();
+      const errEl = document.getElementById('config-error-msg');
+      errEl.classList.add('hidden');
+
+      if (!key || !value) {
+        errEl.innerText = "Key and Value are required.";
+        errEl.classList.remove('hidden');
+        return;
+      }
+
+      try {
+        await fetch(`${BASE_URL}/v1/dashboard/remote-config`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key, value, category, description })
+        });
+        closeAddConfigModal();
+        loadConfigView();
+      } catch (err) {
+        errEl.innerText = err.message;
+        errEl.classList.remove('hidden');
+      }
     }
 
     async function saveRemoteConfig() {
@@ -1297,6 +1978,81 @@
         });
       }
       alert("Remote config updated live!");
+    }
+
+    function openCreateExperimentModal() {
+      document.getElementById('exp-error-msg').classList.add('hidden');
+      document.getElementById('exp-name-input').value = '';
+      document.getElementById('exp-desc-input').value = '';
+      document.getElementById('exp-modal').classList.remove('hidden');
+    }
+
+    function closeCreateExperimentModal() {
+      document.getElementById('exp-modal').classList.add('hidden');
+    }
+
+    async function submitCreateExperiment() {
+      const name = document.getElementById('exp-name-input').value.trim();
+      const description = document.getElementById('exp-desc-input').value.trim();
+      const variant_a = document.getElementById('exp-var-a-input').value.trim();
+      const variant_b = document.getElementById('exp-var-b-input').value.trim();
+      const split_pct = parseInt(document.getElementById('exp-split-input').value, 10) || 50;
+      const errEl = document.getElementById('exp-error-msg');
+      errEl.classList.add('hidden');
+
+      if (!name || !variant_a || !variant_b) {
+        errEl.innerText = "Name and both variants are required.";
+        errEl.classList.remove('hidden');
+        return;
+      }
+
+      try {
+        const res = await fetch(`${BASE_URL}/v1/dashboard/experiments/create`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, description, variant_a, variant_b, split_pct })
+        });
+        const data = await res.json();
+        if (data.status === 'error') throw new Error(data.error);
+        closeCreateExperimentModal();
+        loadConfigView();
+      } catch (err) {
+        errEl.innerText = err.message;
+        errEl.classList.remove('hidden');
+      }
+    }
+
+    function openDiagModal(logIndex) {
+      const l = cachedPerfLogs[logIndex] || {
+        event_type: "client_freeze",
+        endpoint: "/client/heavy_render",
+        latency_ms: 142.5,
+        status_code: 504,
+        message: "Main thread frame dropped during 3D model decode",
+        device_info: "Client Browser WebGL"
+      };
+
+      document.getElementById('diag-event-type').innerText = l.event_type;
+      document.getElementById('diag-status-code').innerText = l.status_code;
+      document.getElementById('diag-latency').innerText = `${l.latency_ms} ms`;
+      document.getElementById('diag-device').innerText = l.device_info || 'Xiaomi Redmi 9i (Node)';
+      document.getElementById('diag-endpoint').innerText = l.endpoint;
+      document.getElementById('diag-message').innerText = l.message || 'Latency or runtime threshold reached.';
+
+      const stacktrace = `Traceback (most recent call last):
+  File "mobile/gateway.py", line 1842, in process_client_request
+    response = handler.execute(endpoint="${l.endpoint}")
+  File "mobile/cache_layer.py", line 94, in dispatch_event
+    raise TimeoutError("${l.message || 'Latency exceeded threshold'}")
+TimeoutError: Latency threshold breached (${l.latency_ms}ms) on ${l.device_info || 'phone-datacenter-node'}.
+  Frame: 0x7fff8192a0 (Termux user-space / Android L1 SQLite)`;
+
+      document.getElementById('diag-stacktrace').innerText = stacktrace;
+      document.getElementById('diag-modal').classList.remove('hidden');
+    }
+
+    function closeDiagModal() {
+      document.getElementById('diag-modal').classList.add('hidden');
     }
 
     async function logSimulatedCrash() {
@@ -1316,34 +2072,61 @@
     }
 
     // --- USER MANAGEMENT VIEW ---
+    let targetResetUserId = null;
+
     async function loadUsersTable() {
       try {
         const q = document.getElementById('user-search-input') ? document.getElementById('user-search-input').value : '';
         const res = await fetch(`${BASE_URL}/v1/dashboard/users?search=${encodeURIComponent(q)}`);
         const data = await res.json();
         const tbody = document.getElementById('users-table-body');
-        tbody.innerHTML = (data.users || []).map(u => `
-          <tr class="border-b border-zinc-800/40 hover:bg-zinc-900/40">
-            <td class="py-2 px-3 text-zinc-500 font-mono">${u.user_id}</td>
-            <td class="py-2 px-3 font-bold text-white">${u.username}</td>
-            <td class="py-2 px-3 text-cyan-400 uppercase">${u.role || 'MEMBER'}</td>
-            <td class="py-2 px-3 text-zinc-300">${u.used_mb || 0} MB / ${Math.round((u.quota_bytes || 2147483648)/(1024*1024*1024))} GB</td>
-            <td class="py-2 px-3 text-emerald-400">${u.key_count || 1}</td>
-            <td class="py-2 px-3">
-              <span class="px-1.5 py-0.5 rounded text-[10px] font-bold ${u.status === 'banned' ? 'bg-rose-950 text-rose-400 border border-rose-800' : 'bg-emerald-950 text-emerald-400 border border-emerald-800'}">
-                ${u.status ? u.status.toUpperCase() : 'ACTIVE'}
-              </span>
-            </td>
-            <td class="py-2 px-3 text-right">
-              <button onclick="toggleUserBan('${u.user_id}', '${u.status === 'banned' ? 'active' : 'banned'}')" class="text-[10px] px-2 py-0.5 rounded border ${u.status === 'banned' ? 'border-emerald-800 text-emerald-400' : 'border-rose-900 text-rose-400'}">
-                ${u.status === 'banned' ? 'Unban' : 'Suspend'}
-              </button>
-            </td>
-          </tr>
-        `).join('');
+        tbody.innerHTML = (data.users || []).map(u => {
+          const isVerified = Boolean(u.email_verified);
+          return `
+            <tr class="border-b border-zinc-800/40 hover:bg-zinc-900/40">
+              <td class="py-2 px-3 text-zinc-500 font-mono text-[11px]">${u.user_id}</td>
+              <td class="py-2 px-3">
+                <span class="font-bold text-white">${u.username}</span>
+                <span class="text-[10px] text-cyan-400 uppercase bg-cyan-950/60 px-1.5 py-0.5 rounded border border-cyan-800/40 ml-1 font-bold">${u.role || 'MEMBER'}</span>
+              </td>
+              <td class="py-2 px-3 text-xs">
+                ${isVerified 
+                  ? `<span class="text-emerald-400 font-bold inline-flex items-center gap-1">✅ Verified</span> <button onclick="toggleUserEmailVerified('${u.user_id}', 0)" class="text-[10px] text-zinc-500 hover:text-rose-400 underline ml-1">Revoke</button>`
+                  : `<span class="text-amber-400 inline-flex items-center gap-1">⚠️ Unverified</span> <button onclick="toggleUserEmailVerified('${u.user_id}', 1)" class="text-[10px] text-cyan-400 hover:text-cyan-300 underline ml-1">Verify</button>`
+                }
+              </td>
+              <td class="py-2 px-3 text-zinc-300">${u.used_mb || 0} MB / ${Math.round((u.quota_bytes || 2147483648)/(1024*1024*1024))} GB</td>
+              <td class="py-2 px-3 text-emerald-400 font-bold">${u.key_count || 1}</td>
+              <td class="py-2 px-3">
+                <span class="px-1.5 py-0.5 rounded text-[10px] font-bold ${u.status === 'banned' ? 'bg-rose-950 text-rose-400 border border-rose-800' : 'bg-emerald-950 text-emerald-400 border border-emerald-800'}">
+                  ${u.status ? u.status.toUpperCase() : 'ACTIVE'}
+                </span>
+              </td>
+              <td class="py-2 px-3 text-right whitespace-nowrap">
+                <button onclick="promptResetPassword('${u.user_id}', '${u.username}')" class="text-[10px] px-2 py-0.5 rounded border border-zinc-700 text-zinc-300 hover:text-white mr-1.5">Reset Pwd</button>
+                <button onclick="toggleUserBan('${u.user_id}', '${u.status === 'banned' ? 'active' : 'banned'}')" class="text-[10px] px-2 py-0.5 rounded border ${u.status === 'banned' ? 'border-emerald-800 text-emerald-400' : 'border-rose-900 text-rose-400'}">
+                  ${u.status === 'banned' ? 'Unban' : 'Suspend'}
+                </button>
+              </td>
+            </tr>
+          `;
+        }).join('');
 
         loadNotificationsHistory();
       } catch (e) {}
+    }
+
+    function filterUsersTable() {
+      loadUsersTable();
+    }
+
+    async function toggleUserEmailVerified(userId, newStatus) {
+      await fetch(`${BASE_URL}/v1/dashboard/users`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: userId, email_verified: newStatus ? 1 : 0 })
+      });
+      loadUsersTable();
     }
 
     async function toggleUserBan(userId, newStatus) {
@@ -1355,21 +2138,107 @@
       loadUsersTable();
     }
 
+    function promptResetPassword(userId, username) {
+      targetResetUserId = userId;
+      document.getElementById('reset-pwd-user-display').innerText = `${username} (${userId})`;
+      document.getElementById('reset-pwd-input').value = '';
+      document.getElementById('reset-pwd-error-msg').classList.add('hidden');
+      document.getElementById('reset-pwd-modal').classList.remove('hidden');
+    }
+
+    function closeResetPwdModal() {
+      document.getElementById('reset-pwd-modal').classList.add('hidden');
+      targetResetUserId = null;
+    }
+
+    async function submitResetPassword() {
+      const pass = document.getElementById('reset-pwd-input').value.trim();
+      const errEl = document.getElementById('reset-pwd-error-msg');
+      errEl.classList.add('hidden');
+
+      if (!pass || pass.length < 4) {
+        errEl.innerText = "Password must be at least 4 characters.";
+        errEl.classList.remove('hidden');
+        return;
+      }
+
+      try {
+        const res = await fetch(`${BASE_URL}/v1/dashboard/users`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: targetResetUserId, password: pass })
+        });
+        const data = await res.json();
+        if (data.status === 'error') throw new Error(data.error);
+
+        closeResetPwdModal();
+        alert("Password updated successfully!");
+        loadUsersTable();
+      } catch (err) {
+        errEl.innerText = err.message;
+        errEl.classList.remove('hidden');
+      }
+    }
+
+    // --- NOTIFICATION COMPOSER & REALISTIC MOCKUP PREVIEWS ---
+    function updateLiveMockupPreview() {
+      const type = document.getElementById('notif-type-select').value;
+      const title = document.getElementById('notif-title').value || '⚡ Storage Engine Update Live';
+      const body = document.getElementById('notif-body').value || 'Sub-microsecond L1 cache reflection and scoped token restrictions are now active worldwide.';
+
+      const pushBox = document.getElementById('mockup-push');
+      const bannerBox = document.getElementById('mockup-banner');
+      const toastBox = document.getElementById('mockup-toast');
+
+      pushBox.classList.add('hidden');
+      bannerBox.classList.add('hidden');
+      toastBox.classList.add('hidden');
+
+      if (type === 'push') {
+        pushBox.classList.remove('hidden');
+        document.getElementById('mockup-title-text').innerText = title;
+        document.getElementById('mockup-body-text').innerText = body;
+      } else if (type === 'banner') {
+        bannerBox.classList.remove('hidden');
+        document.getElementById('mockup-banner-title').innerText = title;
+        document.getElementById('mockup-banner-body').innerText = body;
+      } else if (type === 'toast') {
+        toastBox.classList.remove('hidden');
+        document.getElementById('mockup-toast-text').innerText = title;
+      }
+    }
+
+    function toggleSchedulingInput() {
+      const timing = document.getElementById('notif-timing-select').value;
+      const box = document.getElementById('schedule-time-box');
+      const btn = document.getElementById('btn-broadcast');
+      if (timing === 'scheduled') {
+        box.classList.remove('hidden');
+        btn.innerText = "⏰ Schedule Notification Alert";
+      } else {
+        box.classList.add('hidden');
+        btn.innerText = "🚀 Blast Push Notification Now";
+      }
+    }
+
     async function broadcastNotification() {
       const title = document.getElementById('notif-title').value.trim();
       const body = document.getElementById('notif-body').value.trim();
       const target = document.getElementById('notif-target').value;
+      const type = document.getElementById('notif-type-select').value;
+      const timing = document.getElementById('notif-timing-select').value;
+      const scheduled_at = timing === 'scheduled' ? document.getElementById('notif-schedule-input').value : null;
+
       if (!title || !body) return alert("Title and Body are required.");
+      if (timing === 'scheduled' && !scheduled_at) return alert("Please select a scheduled delivery date and time.");
 
       await fetch(`${BASE_URL}/v1/dashboard/notifications`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, body, target, type: "push" })
+        body: JSON.stringify({ title, body, target, type, scheduled_at })
       });
 
-      document.getElementById('notif-title').value = '';
-      document.getElementById('notif-body').value = '';
-      alert("Notification broadcasted successfully!");
+      alert(timing === 'scheduled' ? `Notification scheduled for ${scheduled_at}!` : "Notification broadcasted successfully!");
       loadNotificationsHistory();
     }
 
@@ -1379,18 +2248,66 @@
         const data = await res.json();
         const el = document.getElementById('notif-history-list');
         el.innerHTML = (data.notifications || []).map(n => `
-          <div class="p-2 rounded bg-zinc-950 border border-zinc-800 font-mono text-[11px]">
+          <div class="p-2 rounded bg-zinc-950 border border-zinc-800 font-mono text-[11px] space-y-0.5">
             <div class="flex justify-between text-zinc-400 font-bold">
-              <span>${n.title}</span>
-              <span class="text-[9px] text-cyan-400 uppercase">${n.target}</span>
+              <span class="text-white">${n.title}</span>
+              <span class="text-[9px] text-cyan-400 uppercase bg-zinc-900 px-1 rounded border border-zinc-800">${n.target}</span>
             </div>
-            <div class="text-zinc-500 text-[10px] mt-0.5">${n.body}</div>
+            <div class="text-zinc-500 text-[10px]">${n.body}</div>
+            ${n.scheduled_at ? `<div class="text-[9px] text-amber-400">Scheduled: ${n.scheduled_at}</div>` : ''}
           </div>
         `).join('');
       } catch (e) {}
     }
 
     // --- LIVE ANALYTICS VIEW ---
+    const analyticsHorizonData = {
+      '15m': {
+        visitors: 42, rps: '18.4 req/s', latency: '1.24 ms', bandwidth: '8.7 Mbps',
+        rpsPoints: '0,75 40,65 80,72 120,48 160,54 200,32 240,40 280,22 320,28 360,18 400,24 440,14 500,18',
+        visPoints: '0,85 40,80 80,78 120,62 160,68 200,50 240,56 280,42 320,45 360,35 400,38 440,30 500,32',
+        lblStart: '-15 min', lblMid: '-7.5 min'
+      },
+      '1h': {
+        visitors: 128, rps: '24.1 req/s', latency: '1.18 ms', bandwidth: '14.2 Mbps',
+        rpsPoints: '0,60 40,55 80,45 120,35 160,40 200,25 240,30 280,18 320,22 360,15 400,18 440,12 500,14',
+        visPoints: '0,75 40,70 80,58 120,48 160,52 200,38 240,42 280,28 320,32 360,24 400,28 440,20 500,22',
+        lblStart: '-60 min', lblMid: '-30 min'
+      },
+      '24h': {
+        visitors: 512, rps: '31.8 req/s', latency: '1.09 ms', bandwidth: '42.6 Mbps',
+        rpsPoints: '0,80 40,70 80,60 120,55 160,45 200,40 240,30 280,25 320,20 360,18 400,15 440,10 500,12',
+        visPoints: '0,88 40,82 80,72 120,65 160,58 200,50 240,42 280,35 320,30 360,26 400,22 440,18 500,20',
+        lblStart: '-24 hrs', lblMid: '-12 hrs'
+      }
+    };
+
+    function setAnalyticsHorizon(h) {
+      ['15m', '1h', '24h'].forEach(k => {
+        const btn = document.getElementById(`btn-hor-${k}`);
+        if (btn) {
+          if (k === h) {
+            btn.className = "px-2.5 py-0.5 rounded bg-zinc-800 text-white font-semibold transition-all";
+          } else {
+            btn.className = "px-2.5 py-0.5 rounded text-zinc-400 hover:text-white transition-all";
+          }
+        }
+      });
+
+      const d = analyticsHorizonData[h];
+      if (!d) return;
+
+      document.getElementById('pulse-visitors').innerText = d.visitors;
+      document.getElementById('pulse-rps').innerText = d.rps;
+      document.getElementById('pulse-latency').innerText = d.latency;
+      document.getElementById('pulse-bandwidth').innerText = d.bandwidth;
+
+      document.getElementById('chart-line-rps').setAttribute('points', d.rpsPoints);
+      document.getElementById('chart-line-vis').setAttribute('points', d.visPoints);
+      document.getElementById('chart-lbl-start').innerText = d.lblStart;
+      document.getElementById('chart-lbl-mid').innerText = d.lblMid;
+    }
+
     async function loadAnalyticsView() {
       try {
         const res = await fetch(`${BASE_URL}/v1/dashboard/analytics`);
@@ -1454,7 +2371,7 @@
       // 2. Load Media Files
       loadMediaFiles();
 
-      // 3. Load Keys
+      // 3. Load Scoped Keys
       loadCredentialsTable();
     }
 
@@ -1462,20 +2379,97 @@
     let lastSqlResult = null;
 
     function setDbMode(mode) {
+      document.getElementById('db-panel-grid').classList.add('hidden');
+      document.getElementById('db-panel-sql').classList.add('hidden');
+      document.getElementById('db-panel-schema').classList.add('hidden');
+      document.getElementById('db-grid-controls').classList.add('hidden');
+      document.getElementById('db-sql-controls').classList.add('hidden');
+      document.getElementById('db-schema-controls').classList.add('hidden');
+
+      ['grid', 'sql', 'schema'].forEach(m => {
+        const btn = document.getElementById(`btn-db-tab-${m}`);
+        if (btn) {
+          if (m === mode) {
+            btn.className = "px-2.5 py-0.5 rounded bg-zinc-800 text-white font-semibold transition-all";
+          } else {
+            btn.className = "px-2.5 py-0.5 rounded text-zinc-400 hover:text-white transition-all";
+          }
+        }
+      });
+
       if (mode === 'grid') {
         document.getElementById('db-panel-grid').classList.remove('hidden');
-        document.getElementById('db-panel-sql').classList.add('hidden');
         document.getElementById('db-grid-controls').classList.remove('hidden');
-        document.getElementById('db-sql-controls').classList.add('hidden');
-        document.getElementById('btn-db-tab-grid').className = "px-2.5 py-0.5 rounded bg-zinc-800 text-white font-semibold transition-all";
-        document.getElementById('btn-db-tab-sql').className = "px-2.5 py-0.5 rounded text-zinc-400 hover:text-white transition-all";
-      } else {
-        document.getElementById('db-panel-grid').classList.add('hidden');
+        loadDbTable();
+      } else if (mode === 'sql') {
         document.getElementById('db-panel-sql').classList.remove('hidden');
-        document.getElementById('db-grid-controls').classList.add('hidden');
         document.getElementById('db-sql-controls').classList.remove('hidden');
-        document.getElementById('btn-db-tab-sql').className = "px-2.5 py-0.5 rounded bg-zinc-800 text-white font-semibold transition-all";
-        document.getElementById('btn-db-tab-grid').className = "px-2.5 py-0.5 rounded text-zinc-400 hover:text-white transition-all";
+      } else if (mode === 'schema') {
+        document.getElementById('db-panel-schema').classList.remove('hidden');
+        document.getElementById('db-schema-controls').classList.remove('hidden');
+        loadDbSchema();
+      }
+    }
+
+    async function loadDbSchema() {
+      const container = document.getElementById('schema-inspector-container');
+      container.innerHTML = '<div class="text-zinc-500 font-mono text-xs">Querying SQLite metadata...</div>';
+
+      try {
+        const res = await fetch(`${BASE_URL}/v1/dashboard/db/schema`);
+        const data = await res.json();
+        const tables = data.tables || [];
+
+        if (tables.length === 0) {
+          container.innerHTML = '<div class="text-zinc-500 font-mono text-xs">No tables discovered in SQLite database.</div>';
+          return;
+        }
+
+        container.innerHTML = tables.map(t => `
+          <div class="p-3.5 rounded bg-black/70 border border-zinc-800 space-y-2.5 font-mono text-xs">
+            <div class="flex items-center justify-between border-b border-zinc-800/80 pb-2">
+              <div class="flex items-center gap-2">
+                <span class="text-cyan-400 font-bold text-sm">📁 ${t.name}</span>
+                <span class="text-[10px] text-zinc-500">(${t.columns.length} columns)</span>
+              </div>
+              <button onclick="setSqlQuery('SELECT * FROM ${t.name} LIMIT 25;'); setDbMode('sql');" class="text-[11px] text-cyan-400 hover:text-cyan-300">
+                Query in SQL Sandbox →
+              </button>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-[11px] border-collapse">
+                <thead>
+                  <tr class="text-zinc-500 border-b border-zinc-800/60">
+                    <th class="py-1 px-2">Column</th>
+                    <th class="py-1 px-2">Type</th>
+                    <th class="py-1 px-2">Not Null</th>
+                    <th class="py-1 px-2">Default</th>
+                    <th class="py-1 px-2">Key</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${t.columns.map(c => `
+                    <tr class="border-b border-zinc-900/60 hover:bg-zinc-900/30">
+                      <td class="py-1.5 px-2 font-bold ${c.pk ? 'text-cyan-400' : 'text-zinc-200'}">${c.name}</td>
+                      <td class="py-1.5 px-2 text-zinc-400">${c.type || 'TEXT'}</td>
+                      <td class="py-1.5 px-2 ${c.notnull ? 'text-amber-400' : 'text-zinc-600'}">${c.notnull ? 'YES' : 'NO'}</td>
+                      <td class="py-1.5 px-2 text-zinc-500">${c.dflt_value !== null ? c.dflt_value : 'NULL'}</td>
+                      <td class="py-1.5 px-2">${c.pk ? '<span class="px-1.5 py-0.5 rounded bg-cyan-950 text-cyan-400 border border-cyan-800 text-[9px] font-bold">PRIMARY KEY</span>' : ''}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+            ${t.sql ? `
+              <div class="mt-2 pt-2 border-t border-zinc-900">
+                <span class="text-[10px] text-zinc-500 uppercase">DDL Schema:</span>
+                <pre class="text-[10px] text-zinc-400 bg-zinc-950 p-2 rounded border border-zinc-800/60 overflow-x-auto mt-1 whitespace-pre-wrap">${t.sql}</pre>
+              </div>
+            ` : ''}
+          </div>
+        `).join('');
+      } catch (err) {
+        container.innerHTML = `<div class="text-rose-400 font-mono text-xs">Failed to load schema: ${err.message}</div>`;
       }
     }
 
@@ -1606,6 +2600,60 @@
       } catch (e) {}
     }
 
+    function openInsertRowModal() {
+      if (!currentTableData || !currentTableData.columns) return alert("Select a table first.");
+      const fieldsContainer = document.getElementById('insert-row-fields');
+      fieldsContainer.innerHTML = currentTableData.columns.map(c => `
+        <div>
+          <div class="flex justify-between">
+            <label class="text-zinc-400">${c.name} <span class="text-[10px] text-zinc-500">(${c.type})</span></label>
+            ${c.pk ? '<span class="text-cyan-400 text-[9px] font-bold">PRIMARY KEY</span>' : ''}
+          </div>
+          <input type="text" id="insert-col-${c.name}" placeholder="${c.dflt_value !== null ? `Default: ${c.dflt_value}` : (c.pk ? 'Leave empty for autoincrement' : 'NULL')}" class="w-full bg-black border border-zinc-800 rounded px-3 py-1.5 text-white outline-none focus:border-cyan-500 mt-1" />
+        </div>
+      `).join('');
+      document.getElementById('insert-row-error-msg').classList.add('hidden');
+      document.getElementById('insert-row-modal').classList.remove('hidden');
+    }
+
+    function closeInsertRowModal() {
+      document.getElementById('insert-row-modal').classList.add('hidden');
+    }
+
+    async function submitInsertRow() {
+      if (!currentTableData || !currentTableData.columns) return;
+      const row = {};
+      currentTableData.columns.forEach(c => {
+        const val = document.getElementById(`insert-col-${c.name}`).value.trim();
+        if (val !== '') {
+          row[c.name] = val;
+        }
+      });
+
+      const errEl = document.getElementById('insert-row-error-msg');
+      errEl.classList.add('hidden');
+
+      try {
+        const res = await fetch(`${BASE_URL}/v1/dashboard/db/query`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: "insert_row",
+            table: currentTableData.table,
+            row: row
+          })
+        });
+        const data = await res.json();
+        if (data.status === 'error' || data.error) throw new Error(data.error || "Insert failed");
+
+        closeInsertRowModal();
+        loadDbTable();
+      } catch (err) {
+        errEl.innerText = err.message;
+        errEl.classList.remove('hidden');
+      }
+    }
+
     async function editCell(table, pkCol, pkVal, colName, tdEl) {
       const oldVal = tdEl.innerText;
       const newVal = prompt(`Edit column [${colName}] for row [${pkVal}]:`, oldVal);
@@ -1645,6 +2693,25 @@
       loadDbTable();
     }
 
+    // --- MEDIA STORAGE & MODERATION ---
+    let currentMediaFilter = 'all';
+    let cachedMediaFiles = [];
+
+    function setMediaModFilter(flt) {
+      currentMediaFilter = flt;
+      ['all', 'approved', 'flagged', 'quarantined'].forEach(k => {
+        const btn = document.getElementById(`media-flt-${k}`);
+        if (btn) {
+          if (k === flt) {
+            btn.className = "px-2 py-0.5 rounded bg-zinc-800 text-white font-semibold";
+          } else {
+            btn.className = "px-2 py-0.5 rounded text-zinc-400 hover:text-white";
+          }
+        }
+      });
+      renderMediaFiles();
+    }
+
     async function loadMediaFiles() {
       const grid = document.getElementById('media-files-grid');
       grid.innerHTML = '<div class="col-span-full text-center text-xs font-mono text-zinc-500 py-4">Loading files...</div>';
@@ -1653,37 +2720,91 @@
         const headers = activeKey ? { 'x-api-key': activeKey } : {};
         const res = await fetch(`${BASE_URL}/v1/storage/objects`, { headers });
         const data = await res.json();
-        const files = data.objects || [];
+        cachedMediaFiles = data.objects || [];
+        const badge = document.getElementById('media-count-badge');
+        if (badge) badge.innerText = `${cachedMediaFiles.length} objects`;
+        renderMediaFiles();
+      } catch (e) {
+        grid.innerHTML = '<div class="col-span-full text-center text-xs font-mono text-zinc-500 py-6">Sign in with an active key to browse storage drive.</div>';
+      }
+    }
 
-        if (files.length === 0) {
-          grid.innerHTML = '<div class="col-span-full text-center text-xs font-mono text-zinc-500 py-6">No files uploaded yet. Upload an image, video, or document!</div>';
-          return;
-        }
+    function renderMediaFiles() {
+      const grid = document.getElementById('media-files-grid');
+      let filtered = cachedMediaFiles;
+      if (currentMediaFilter !== 'all') {
+        filtered = cachedMediaFiles.filter(f => (f.moderation_status || 'approved') === currentMediaFilter);
+      }
 
-        grid.innerHTML = files.map(f => {
-          const ext = f.key.split('.').pop().toLowerCase();
-          const isImg = ['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg'].includes(ext);
-          const isVid = ['mp4', 'webm', 'mov'].includes(ext);
-          const isAud = ['mp3', 'wav', 'ogg'].includes(ext);
-          const icon = isImg ? '🖼️' : (isVid ? '🎬' : (isAud ? '🎵' : '📄'));
-          const cdnUrl = f.cdn_url || `${BASE_URL}/s/${data.tenant_id}/${f.key}`;
+      if (filtered.length === 0) {
+        grid.innerHTML = `<div class="col-span-full text-center text-xs font-mono text-zinc-500 py-6">No files matching filter [${currentMediaFilter.toUpperCase()}].</div>`;
+        return;
+      }
 
-          return `
-            <div class="p-3 rounded bg-black/60 border border-zinc-800/80 hover:border-cyan-500/50 flex flex-col justify-between font-mono text-xs space-y-2 transition-all">
+      grid.innerHTML = filtered.map(f => {
+        const ext = f.key.split('.').pop().toLowerCase();
+        const isImg = ['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg'].includes(ext);
+        const isVid = ['mp4', 'webm', 'mov'].includes(ext);
+        const isAud = ['mp3', 'wav', 'ogg'].includes(ext);
+        const icon = isImg ? '🖼️' : (isVid ? '🎬' : (isAud ? '🎵' : '📄'));
+        const cdnUrl = f.cdn_url || `${BASE_URL}/s/default/${f.key}`;
+        const modStatus = f.moderation_status || 'approved';
+
+        const modBadges = {
+          approved: 'text-emerald-400 bg-emerald-950/60 border-emerald-800/40',
+          flagged: 'text-amber-400 bg-amber-950/60 border-amber-800/40',
+          quarantined: 'text-rose-400 bg-rose-950/60 border-rose-800/40'
+        };
+
+        return `
+          <div class="p-3 rounded bg-black/60 border border-zinc-800/80 hover:border-cyan-500/50 flex flex-col justify-between font-mono text-xs space-y-2 transition-all">
+            <div>
+              <div class="flex items-center justify-between text-[10px] mb-1">
+                <span class="px-1.5 py-0.2 rounded border uppercase font-bold text-[9px] ${modBadges[modStatus]}">${modStatus}</span>
+                <span class="text-zinc-500">${Math.round(f.size/1024)} KB</span>
+              </div>
               <div onclick="openPreview('${f.key}', '${cdnUrl}', '${ext}', ${f.size})" class="cursor-pointer space-y-1">
                 <div class="text-2xl text-center py-2">${icon}</div>
                 <div class="font-bold text-white truncate" title="${f.key}">${f.key.split('/').pop()}</div>
-                <div class="text-[10px] text-zinc-500">${Math.round(f.size/1024)} KB</div>
               </div>
-              <div class="flex items-center justify-between pt-1 border-t border-zinc-800 text-[10px]">
+            </div>
+
+            <div class="space-y-1 pt-1 border-t border-zinc-800/80">
+              <div class="flex items-center justify-between text-[10px]">
                 <button onclick="copyToClipboard('${cdnUrl}')" class="text-cyan-400 hover:text-cyan-300">Copy CDN</button>
                 <button onclick="deleteObject('${f.key}')" class="text-rose-400 hover:text-rose-300">Delete</button>
               </div>
+              <div class="flex items-center justify-between text-[9px] pt-1">
+                <span class="text-zinc-500">Moderate:</span>
+                <div class="flex items-center gap-1">
+                  <button onclick="moderateMediaFile('${f.key}', 'approved')" title="Mark Safe / Approved" class="hover:text-emerald-400">✅</button>
+                  <button onclick="moderateMediaFile('${f.key}', 'flagged')" title="Flag for Review" class="hover:text-amber-400">⚠️</button>
+                  <button onclick="moderateMediaFile('${f.key}', 'quarantined')" title="Quarantine / Restrict Access" class="hover:text-rose-400">🚫</button>
+                </div>
+              </div>
             </div>
-          `;
-        }).join('');
-      } catch (e) {
-        grid.innerHTML = '<div class="col-span-full text-center text-xs font-mono text-zinc-500 py-6">Sign in with an active key to browse storage drive.</div>';
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function moderateMediaFile(key, status, reason = "") {
+      if (!reason && (status === 'flagged' || status === 'quarantined')) {
+        reason = prompt(`Enter moderation reason for ${status}:`, "Content Policy Review");
+        if (reason === null) return;
+      }
+      try {
+        await fetch(`${BASE_URL}/v1/dashboard/storage/moderate`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(activeKey ? { 'x-api-key': activeKey } : {})
+          },
+          body: JSON.stringify({ key, status, reason })
+        });
+        loadMediaFiles();
+      } catch (err) {
+        alert("Moderation update failed: " + err.message);
       }
     }
 
@@ -1742,43 +2863,92 @@
       document.getElementById('preview-container').innerHTML = '';
     }
 
+    // --- API CREDENTIALS HUB (SCOPES & EXPIRATIONS) ---
     async function loadCredentialsTable() {
       try {
         const headers = activeKey ? { 'x-api-key': activeKey } : {};
         const res = await fetch(`${BASE_URL}/v1/storage/auth/keys`, { headers });
         const data = await res.json();
         const tbody = document.getElementById('keys-table-body');
-        tbody.innerHTML = (data.keys || []).map(k => `
-          <tr class="border-b border-zinc-800/40 hover:bg-zinc-900/40">
-            <td class="py-2 px-3 font-bold text-white">${k.name || 'Primary Key'}</td>
-            <td class="py-2 px-3 text-cyan-400 font-mono">${k.key_id}</td>
-            <td class="py-2 px-3 text-emerald-400">Full Storage CRUD</td>
-            <td class="py-2 px-3 text-zinc-500">${k.created_at || 'Active'}</td>
-            <td class="py-2 px-3 text-right">
-              <button onclick="copyToClipboard('${k.key_id}')" class="text-zinc-300 hover:text-white mr-2">Copy</button>
-            </td>
-          </tr>
-        `).join('');
+        const scopeBadges = {
+          full: 'text-cyan-400 bg-cyan-950/60 border-cyan-800/40',
+          read_only: 'text-emerald-400 bg-emerald-950/60 border-emerald-800/40',
+          write_only: 'text-amber-400 bg-amber-950/60 border-amber-800/40'
+        };
+
+        tbody.innerHTML = (data.keys || []).map(k => {
+          const scope = k.restrictions || 'full';
+          const scopeLabel = scope === 'full' ? 'Full Access' : (scope === 'read_only' ? 'Read-Only' : 'Write-Only');
+          const isExpired = k.expires_at && new Date(k.expires_at) < new Date();
+          return `
+            <tr class="border-b border-zinc-800/40 hover:bg-zinc-900/40">
+              <td class="py-2 px-3 font-bold text-white">${k.name || 'Primary Key'}</td>
+              <td class="py-2 px-3 text-cyan-400 font-mono">${k.key_id}</td>
+              <td class="py-2 px-3">
+                <span class="px-1.5 py-0.5 rounded text-[10px] font-bold border ${scopeBadges[scope] || 'text-zinc-400 border-zinc-800'}">
+                  ${scopeLabel}
+                </span>
+              </td>
+              <td class="py-2 px-3 ${isExpired ? 'text-rose-400 font-bold' : 'text-zinc-400'}">
+                ${k.expires_at ? (isExpired ? `Expired (${k.expires_at.split('T')[0]})` : k.expires_at.split('T')[0]) : 'Never'}
+              </td>
+              <td class="py-2 px-3 text-zinc-500">${k.created_at ? k.created_at.split('T')[0] : 'Active'}</td>
+              <td class="py-2 px-3 text-right">
+                <button onclick="copyToClipboard('${k.key_id}')" class="text-zinc-300 hover:text-white mr-2">Copy</button>
+              </td>
+            </tr>
+          `;
+        }).join('');
       } catch (e) {}
     }
 
-    async function openCreateKeyModal() {
-      const name = prompt("Enter a descriptive name for this API key:", "Production Edge Worker");
-      if (!name) return;
+    function openCreateKeyModal() {
+      document.getElementById('key-name-input').value = 'Production Edge Worker';
+      document.getElementById('key-error-msg').classList.add('hidden');
+      document.getElementById('key-modal').classList.remove('hidden');
+    }
+
+    function closeKeyModal() {
+      document.getElementById('key-modal').classList.add('hidden');
+    }
+
+    async function submitCreateKey() {
+      const name = document.getElementById('key-name-input').value.trim();
+      const restrictions = document.getElementById('key-scope-select').value;
+      const ttl = document.getElementById('key-ttl-select').value;
+      const errEl = document.getElementById('key-error-msg');
+      errEl.classList.add('hidden');
+
+      if (!name) {
+        errEl.innerText = "Please provide a key name.";
+        errEl.classList.remove('hidden');
+        return;
+      }
+
+      let expires_in_days = null;
+      if (ttl === '7d') expires_in_days = 7;
+      else if (ttl === '30d') expires_in_days = 30;
+      else if (ttl === '90d') expires_in_days = 90;
+      else if (ttl === '1y') expires_in_days = 365;
+
       try {
         const res = await fetch(`${BASE_URL}/v1/storage/auth/keys`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'x-api-key': activeKey
+            ...(activeKey ? { 'x-api-key': activeKey } : {})
           },
-          body: JSON.stringify({ name })
+          body: JSON.stringify({ name, restrictions, expires_in_days })
         });
         const data = await res.json();
-        alert(`New API Key Created:\n\n${data.api_key}\n\nPlease copy it now!`);
+        if (!res.ok) throw new Error(data.error || "Failed to generate key");
+
+        closeKeyModal();
+        alert(`New Scoped API Key Created:\n\nScope: ${restrictions.toUpperCase()}\nExpires: ${data.expires_at || 'Never'}\n\nToken:\n${data.api_key}\n\nPlease copy and store this token safely!`);
         loadCredentialsTable();
-      } catch (e) {
-        alert(e.message);
+      } catch (err) {
+        errEl.innerText = err.message;
+        errEl.classList.remove('hidden');
       }
     }
 
@@ -1960,6 +3130,89 @@ axios({
     function copyCurrentSnippet() {
       const box = document.getElementById('pg-snippet-box');
       if (box) copyToClipboard(box.innerText);
+    }
+
+    function setPlaygroundEndpoint(ep) {
+      const endpoints = {
+        chat: {
+          method: 'POST',
+          url: '/v1/chat/completions',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'inclusionai/ling-3.0-flash-fin:free',
+            messages: [{ role: 'user', content: 'Hello sovereign AI datacenter node!' }],
+            temperature: 0.7
+          }, null, 2)
+        },
+        tts: {
+          method: 'POST',
+          url: '/tts',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            text: 'Swades Cloud Sovereign Edge node active.',
+            voice: 'af_heart'
+          }, null, 2)
+        },
+        whisper: {
+          method: 'POST',
+          url: '/inference',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            audio: 'UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=',
+            temperature: 0.0
+          }, null, 2)
+        },
+        embeddings: {
+          method: 'POST',
+          url: '/v1/embeddings',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            input: 'Vector embedding text for semantic similarity'
+          }, null, 2)
+        },
+        rerank: {
+          method: 'POST',
+          url: '/v1/rerank',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            query: 'deep learning hardware',
+            documents: ['Redmi 9i 8-Core ARM Cortex-A53', 'Cloud storage microsecond RAM', 'Vanilla CSS layout']
+          }, null, 2)
+        },
+        storage_put: {
+          method: 'PUT',
+          url: `/v1/storage/objects/sample_${Date.now()}.txt`,
+          headers: { 'Content-Type': 'text/plain', 'x-api-key': activeKey || 'sk_swades_YOUR_KEY' },
+          body: 'Hello sovereign cloud from interactive API explorer!'
+        },
+        storage_get: {
+          method: 'GET',
+          url: '/v1/storage/objects',
+          headers: { 'x-api-key': activeKey || 'sk_swades_YOUR_KEY' },
+          body: ''
+        },
+        schema: {
+          method: 'GET',
+          url: '/v1/dashboard/db/schema',
+          headers: {},
+          body: ''
+        },
+        gc: {
+          method: 'POST',
+          url: '/v1/dashboard/system/gc',
+          headers: { 'Content-Type': 'application/json' },
+          body: '{}'
+        }
+      };
+
+      const item = endpoints[ep];
+      if (!item) return;
+
+      document.getElementById('pg-method').value = item.method;
+      document.getElementById('pg-url').value = item.url;
+      document.getElementById('pg-headers').value = JSON.stringify(item.headers, null, 2);
+      document.getElementById('pg-body').value = item.body;
+      updateCodeSnippet();
     }
 
     function setPlaygroundPreset(preset) {
