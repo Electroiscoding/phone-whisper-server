@@ -406,6 +406,10 @@ res_vacuum = http_req("/v1/dashboard/db/vacuum", method="POST")
 vac_ok = (res_vacuum["status"] == 200 and res_vacuum["json"].get("ok") is True)
 report.log("Database", "SQLite VACUUM & PRAGMA optimize", vac_ok, f"Time: {res_vacuum['json'].get('vacuum_ms')}ms Freed: {res_vacuum['json'].get('freed_bytes')}b")
 
+# 7.3 Automated Test Account Teardown & Purge
+res_purge = http_req("/v1/dashboard/users", method="POST", data={"action": "purge_tests"})
+report.log("Database", "Automated Test Accounts Teardown", res_purge["status"] == 200, f"Purged test tenants: {res_purge['json'].get('deleted_count', 0)}")
+
 # =============================================================================
 # SECTION 8: FREE WORLDWIDE ZERO-AUTH AI ENDPOINTS
 # =============================================================================

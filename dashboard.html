@@ -449,8 +449,11 @@
               <p class="text-xs text-zinc-400">Audit user profiles, verify email credentials, reset passwords, and enforce security policies.</p>
             </div>
             <div class="flex items-center gap-2">
-              <input type="text" id="user-search-input" onkeyup="filterUsersTable()" placeholder="Search username, email, or user_id..." class="bg-black border border-zinc-800 rounded px-2.5 py-1 text-xs font-mono text-white focus:border-cyan-500 outline-none w-64" />
+              <input type="text" id="user-search-input" onkeyup="filterUsersTable()" placeholder="Search username, email, or user_id..." class="bg-black border border-zinc-800 rounded px-2.5 py-1 text-xs font-mono text-white focus:border-cyan-500 outline-none w-56" />
               <button onclick="loadUsersTable()" class="text-xs font-mono px-2.5 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300">Search</button>
+              <button onclick="purgeTestAccounts()" title="Purge automated test accounts created during automated stress tests" class="text-xs font-mono px-2.5 py-1 rounded bg-rose-950/60 border border-rose-800 hover:bg-rose-900 text-rose-300 flex items-center gap-1 transition-colors">
+                <span>🧹</span> Purge Test Accounts
+              </button>
             </div>
           </div>
 
@@ -635,19 +638,19 @@
           <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div class="p-3 rounded bg-black border border-zinc-800 text-xs font-mono">
               <span class="text-zinc-500">Active Visitors</span>
-              <div id="pulse-visitors" class="text-xl font-bold text-white mt-1">42</div>
+              <div id="pulse-visitors" class="text-xl font-bold text-white mt-1">--</div>
             </div>
             <div class="p-3 rounded bg-black border border-zinc-800 text-xs font-mono">
               <span class="text-zinc-500">Requests / Sec</span>
-              <div id="pulse-rps" class="text-xl font-bold text-cyan-400 mt-1">18.4 req/s</div>
+              <div id="pulse-rps" class="text-xl font-bold text-cyan-400 mt-1">-- req/s</div>
             </div>
             <div class="p-3 rounded bg-black border border-zinc-800 text-xs font-mono">
               <span class="text-zinc-500">Avg Reflection SLA</span>
-              <div id="pulse-latency" class="text-xl font-bold text-emerald-400 mt-1">1.24 ms</div>
+              <div id="pulse-latency" class="text-xl font-bold text-emerald-400 mt-1">-- ms</div>
             </div>
             <div class="p-3 rounded bg-black border border-zinc-800 text-xs font-mono">
               <span class="text-zinc-500">Edge Bandwidth</span>
-              <div id="pulse-bandwidth" class="text-xl font-bold text-violet-400 mt-1">8.7 Mbps</div>
+              <div id="pulse-bandwidth" class="text-xl font-bold text-violet-400 mt-1">-- Mbps</div>
             </div>
           </div>
 
@@ -2127,9 +2130,12 @@ TimeoutError: Latency threshold breached (${l.latency_ms}ms) on ${l.device_info 
                 </span>
               </td>
               <td class="py-2 px-3 text-right whitespace-nowrap">
-                <button onclick="promptResetPassword('${u.user_id}', '${u.username}')" class="text-[10px] px-2 py-0.5 rounded border border-zinc-700 text-zinc-300 hover:text-white mr-1.5">Reset Pwd</button>
-                <button onclick="toggleUserBan('${u.user_id}', '${u.status === 'banned' ? 'active' : 'banned'}')" class="text-[10px] px-2 py-0.5 rounded border ${u.status === 'banned' ? 'border-emerald-800 text-emerald-400' : 'border-rose-900 text-rose-400'}">
+                <button onclick="promptResetPassword('${u.user_id}', '${u.username}')" class="text-[10px] px-2 py-0.5 rounded border border-zinc-700 text-zinc-300 hover:text-white mr-1">Reset Pwd</button>
+                <button onclick="toggleUserBan('${u.user_id}', '${u.status === 'banned' ? 'active' : 'banned'}')" class="text-[10px] px-2 py-0.5 rounded border ${u.status === 'banned' ? 'border-emerald-800 text-emerald-400' : 'border-amber-900 text-amber-400'} mr-1">
                   ${u.status === 'banned' ? 'Unban' : 'Suspend'}
+                </button>
+                <button onclick="deleteUserAccount('${u.user_id}', '${u.username}')" class="text-[10px] px-2 py-0.5 rounded border border-rose-900 bg-rose-950/40 text-rose-400 hover:bg-rose-900 transition-colors">
+                  Delete
                 </button>
               </td>
             </tr>
@@ -2142,6 +2148,43 @@ TimeoutError: Latency threshold breached (${l.latency_ms}ms) on ${l.device_info 
 
     function filterUsersTable() {
       loadUsersTable();
+    }
+
+    async function deleteUserAccount(userId, username) {
+      if (!confirm(`Permanently delete account "${username}" (${userId})? This will immediately revoke all their API keys and purge their access.`)) return;
+      try {
+        const res = await fetch(`${BASE_URL}/v1/dashboard/users`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'delete_user', user_id: userId })
+        });
+        const data = await res.json();
+        if (data.status === 'deleted') {
+          loadUsersTable();
+          refreshOverview();
+        } else {
+          alert("Failed to delete user: " + (data.error || "Unknown error"));
+        }
+      } catch (err) {
+        alert("Delete failed: " + err.message);
+      }
+    }
+
+    async function purgeTestAccounts() {
+      if (!confirm("Are you sure you want to purge all automated test accounts (dev_alpha_*, dev_bravo_*, test_*)? Real accounts will not be affected.")) return;
+      try {
+        const res = await fetch(`${BASE_URL}/v1/dashboard/users`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'purge_tests' })
+        });
+        const data = await res.json();
+        alert(`Successfully purged ${data.deleted_count || 0} test accounts.`);
+        loadUsersTable();
+        refreshOverview();
+      } catch (err) {
+        alert("Purge failed: " + err.message);
+      }
     }
 
     async function toggleUserEmailVerified(userId, newStatus) {
@@ -2285,28 +2328,10 @@ TimeoutError: Latency threshold breached (${l.latency_ms}ms) on ${l.device_info 
     }
 
     // --- LIVE ANALYTICS VIEW ---
-    const analyticsHorizonData = {
-      '15m': {
-        visitors: 42, rps: '18.4 req/s', latency: '1.24 ms', bandwidth: '8.7 Mbps',
-        rpsPoints: '0,75 40,65 80,72 120,48 160,54 200,32 240,40 280,22 320,28 360,18 400,24 440,14 500,18',
-        visPoints: '0,85 40,80 80,78 120,62 160,68 200,50 240,56 280,42 320,45 360,35 400,38 440,30 500,32',
-        lblStart: '-15 min', lblMid: '-7.5 min'
-      },
-      '1h': {
-        visitors: 128, rps: '24.1 req/s', latency: '1.18 ms', bandwidth: '14.2 Mbps',
-        rpsPoints: '0,60 40,55 80,45 120,35 160,40 200,25 240,30 280,18 320,22 360,15 400,18 440,12 500,14',
-        visPoints: '0,75 40,70 80,58 120,48 160,52 200,38 240,42 280,28 320,32 360,24 400,28 440,20 500,22',
-        lblStart: '-60 min', lblMid: '-30 min'
-      },
-      '24h': {
-        visitors: 512, rps: '31.8 req/s', latency: '1.09 ms', bandwidth: '42.6 Mbps',
-        rpsPoints: '0,80 40,70 80,60 120,55 160,45 200,40 240,30 280,25 320,20 360,18 400,15 440,10 500,12',
-        visPoints: '0,88 40,82 80,72 120,65 160,58 200,50 240,42 280,35 320,30 360,26 400,22 440,18 500,20',
-        lblStart: '-24 hrs', lblMid: '-12 hrs'
-      }
-    };
+    let currentAnalyticsHorizon = '15m';
 
     function setAnalyticsHorizon(h) {
+      currentAnalyticsHorizon = h;
       ['15m', '1h', '24h'].forEach(k => {
         const btn = document.getElementById(`btn-hor-${k}`);
         if (btn) {
@@ -2317,68 +2342,83 @@ TimeoutError: Latency threshold breached (${l.latency_ms}ms) on ${l.device_info 
           }
         }
       });
-
-      const d = analyticsHorizonData[h];
-      if (!d) return;
-
-      document.getElementById('pulse-visitors').innerText = d.visitors;
-      document.getElementById('pulse-rps').innerText = d.rps;
-      document.getElementById('pulse-latency').innerText = d.latency;
-      document.getElementById('pulse-bandwidth').innerText = d.bandwidth;
-
-      document.getElementById('chart-line-rps').setAttribute('points', d.rpsPoints);
-      document.getElementById('chart-line-vis').setAttribute('points', d.visPoints);
-      document.getElementById('chart-lbl-start').innerText = d.lblStart;
-      document.getElementById('chart-lbl-mid').innerText = d.lblMid;
+      loadAnalyticsView();
     }
 
     async function loadAnalyticsView() {
       try {
-        const res = await fetch(`${BASE_URL}/v1/dashboard/analytics`);
+        const res = await fetch(`${BASE_URL}/v1/dashboard/analytics?horizon=${currentAnalyticsHorizon}`);
         const data = await res.json();
 
-        // Funnel
+        // 1. Live Real-Time Throughput Pulse KPIs
+        if (data.realtime_pulse) {
+          document.getElementById('pulse-visitors').innerText = data.realtime_pulse.active_visitors;
+          document.getElementById('pulse-rps').innerText = `${data.realtime_pulse.requests_per_sec} req/s`;
+          document.getElementById('pulse-latency').innerText = `${data.realtime_pulse.avg_latency_ms} ms`;
+          document.getElementById('pulse-bandwidth').innerText = `${data.realtime_pulse.edge_bandwidth_mbps} Mbps`;
+        }
+
+        // 2. Dynamic Real SVG Multi-Curve Time Series
+        if (data.chart) {
+          const rpsEl = document.getElementById('chart-line-rps');
+          const visEl = document.getElementById('chart-line-vis');
+          if (rpsEl && data.chart.rps_points) rpsEl.setAttribute('points', data.chart.rps_points);
+          if (visEl && data.chart.vis_points) visEl.setAttribute('points', data.chart.vis_points);
+          if (data.chart.lbl_start) document.getElementById('chart-lbl-start').innerText = data.chart.lbl_start;
+          if (data.chart.lbl_mid) document.getElementById('chart-lbl-mid').innerText = data.chart.lbl_mid;
+          if (data.chart.lbl_end) document.getElementById('chart-lbl-end').innerText = data.chart.lbl_end;
+        }
+
+        // 3. Funnel
         const fc = document.getElementById('funnel-container');
-        fc.innerHTML = (data.funnel || []).map(s => `
-          <div class="space-y-1 font-mono text-xs">
-            <div class="flex justify-between">
-              <span class="text-white font-semibold">${s.step}</span>
-              <span class="text-zinc-400">${s.users} users (${s.pct}%)</span>
+        if (fc) {
+          fc.innerHTML = (data.funnel || []).map(s => `
+            <div class="space-y-1 font-mono text-xs">
+              <div class="flex justify-between">
+                <span class="text-white font-semibold">${s.step}</span>
+                <span class="text-zinc-400">${s.users} users (${s.pct}%)</span>
+              </div>
+              <div class="w-full bg-zinc-900 rounded-full h-2 overflow-hidden">
+                <div class="bg-gradient-to-r from-cyan-500 to-indigo-500 h-2 rounded-full" style="width: ${s.pct}%"></div>
+              </div>
             </div>
-            <div class="w-full bg-zinc-900 rounded-full h-2 overflow-hidden">
-              <div class="bg-gradient-to-r from-cyan-500 to-indigo-500 h-2 rounded-full" style="width: ${s.pct}%"></div>
-            </div>
-          </div>
-        `).join('');
+          `).join('');
+        }
 
-        // OS
+        // 4. OS / Platforms
         const osEl = document.getElementById('demographics-os');
-        osEl.innerHTML = (data.demographics.platforms || []).map(p => `
-          <div class="flex items-center justify-between text-xs font-mono">
-            <span class="text-zinc-300">${p.name}</span>
-            <div class="flex items-center gap-2">
-              <div class="w-32 bg-zinc-900 rounded-full h-1.5 overflow-hidden">
-                <div class="bg-cyan-400 h-1.5 rounded-full" style="width: ${p.pct}%"></div>
+        if (osEl && data.demographics && data.demographics.platforms) {
+          osEl.innerHTML = data.demographics.platforms.map(p => `
+            <div class="flex items-center justify-between text-xs font-mono">
+              <span class="text-zinc-300">${p.name}</span>
+              <div class="flex items-center gap-2">
+                <div class="w-32 bg-zinc-900 rounded-full h-1.5 overflow-hidden">
+                  <div class="bg-cyan-400 h-1.5 rounded-full" style="width: ${p.pct}%"></div>
+                </div>
+                <span class="text-zinc-400 w-8 text-right">${p.pct}%</span>
               </div>
-              <span class="text-zinc-400 w-8 text-right">${p.pct}%</span>
             </div>
-          </div>
-        `).join('');
+          `).join('');
+        }
 
-        // Regions
+        // 5. Regions
         const regEl = document.getElementById('demographics-regions');
-        regEl.innerHTML = (data.demographics.edge_regions || []).map(r => `
-          <div class="flex items-center justify-between text-xs font-mono">
-            <span class="text-zinc-300">${r.region}</span>
-            <div class="flex items-center gap-2">
-              <div class="w-32 bg-zinc-900 rounded-full h-1.5 overflow-hidden">
-                <div class="bg-indigo-400 h-1.5 rounded-full" style="width: ${r.pct}%"></div>
+        if (regEl && data.demographics && data.demographics.edge_regions) {
+          regEl.innerHTML = data.demographics.edge_regions.map(r => `
+            <div class="flex items-center justify-between text-xs font-mono">
+              <span class="text-zinc-300">${r.region}</span>
+              <div class="flex items-center gap-2">
+                <div class="w-32 bg-zinc-900 rounded-full h-1.5 overflow-hidden">
+                  <div class="bg-indigo-400 h-1.5 rounded-full" style="width: ${r.pct}%"></div>
+                </div>
+                <span class="text-zinc-400 w-8 text-right">${r.pct}%</span>
               </div>
-              <span class="text-zinc-400 w-8 text-right">${r.pct}%</span>
             </div>
-          </div>
-        `).join('');
-      } catch (e) {}
+          `).join('');
+        }
+      } catch (e) {
+        console.error("Live analytics error:", e);
+      }
     }
 
     // --- DATA & STORAGE VIEW ---
@@ -2789,10 +2829,16 @@ TimeoutError: Latency threshold breached (${l.latency_ms}ms) on ${l.device_info 
 
     async function loadMediaFiles() {
       const grid = document.getElementById('media-files-grid');
+      if (!activeKey) {
+        grid.innerHTML = '<div class="col-span-full text-center text-xs font-mono text-zinc-500 py-6">Sign in with an active account or key to browse storage drive.</div>';
+        const badge = document.getElementById('media-count-badge');
+        if (badge) badge.innerText = `0 objects`;
+        return;
+      }
       grid.innerHTML = '<div class="col-span-full text-center text-xs font-mono text-zinc-500 py-4">Loading files...</div>';
 
       try {
-        const headers = activeKey ? { 'x-api-key': activeKey } : {};
+        const headers = { 'x-api-key': activeKey };
         const res = await fetch(`${BASE_URL}/v1/storage/objects`, { headers });
         const data = await res.json();
         cachedMediaFiles = data.objects || [];
@@ -2940,8 +2986,13 @@ TimeoutError: Latency threshold breached (${l.latency_ms}ms) on ${l.device_info 
 
     // --- API CREDENTIALS HUB (SCOPES & EXPIRATIONS) ---
     async function loadCredentialsTable() {
+      const tbody = document.getElementById('keys-table-body');
+      if (!activeKey) {
+        if (tbody) tbody.innerHTML = '<tr><td colspan="6" class="text-center py-6 text-zinc-500 font-mono text-xs">Sign in with an account to view and generate scoped API keys.</td></tr>';
+        return;
+      }
       try {
-        const headers = activeKey ? { 'x-api-key': activeKey } : {};
+        const headers = { 'x-api-key': activeKey };
         const res = await fetch(`${BASE_URL}/v1/storage/auth/keys`, { headers });
         const data = await res.json();
         const tbody = document.getElementById('keys-table-body');

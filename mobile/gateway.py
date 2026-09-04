@@ -138,8 +138,38 @@ _state_lock = threading.Lock()
 _tts_lock = threading.Lock()
 _active_inferences = 0
 _active_daemon = "idle"
-_total_requests = 195
+_total_requests = 0
 _start_time = time.time()
+_START_TIME = _start_time
+_total_landing_views = 0
+_total_cdn_stream_hits = 0
+REQUEST_LOG_BUFFER = collections.deque(maxlen=2000)
+
+def record_request_log(method, path, status_code, latency_ms, ip="", user_agent="", country="", bytes_sent=0):
+    global _total_landing_views, _total_cdn_stream_hits
+    try:
+        now = time.time()
+        p = (path or "").split("?")[0]
+        if p in ["", "/", "/dashboard", "/dashboard.html", "/index.html", "/swades.html"]:
+            _total_landing_views += 1
+        elif p.startswith("/s/") or p.startswith("/v1/storage/objects/"):
+            _total_cdn_stream_hits += 1
+
+        REQUEST_LOG_BUFFER.append({
+            "id": secrets.token_hex(4),
+            "timestamp": now,
+            "time_str": time.strftime("%H:%M:%S", time.localtime(now)),
+            "method": method,
+            "path": path,
+            "status_code": status_code,
+            "latency_ms": max(0.01, round(latency_ms, 2)),
+            "ip": ip or "127.0.0.1",
+            "ua": user_agent or "",
+            "country": country or "",
+            "bytes": max(0, bytes_sent)
+        })
+    except Exception:
+        pass
 
 
 def is_port_alive(port):
@@ -1381,6 +1411,70 @@ class SwadeStorageVault:
         self._warm_cache()
         return True
 
+    def delete_user(self, user_id: str) -> bool:
+        with self.lock:
+            conn = self._get_conn()
+            try:
+                row = conn.execute("SELECT username FROM users WHERE user_id = ?", (user_id,)).fetchone()
+                username = row[0].lower() if row else None
+                conn.execute("DELETE FROM api_keys WHERE tenant_id = ?", (user_id,))
+                conn.execute("DELETE FROM users WHERE user_id = ?", (user_id,))
+                conn.commit()
+                if username and username in self._user_cache:
+                    del self._user_cache[username]
+                self._tenant_quotas.pop(user_id, None)
+                dead_keys = [k for k, v in self._key_cache.items() if v.get("tenant_id") == user_id]
+                for k in dead_keys:
+                    del self._key_cache[k]
+                return True
+            except Exception as e:
+                print(f"[SWADES STORAGE] Delete user error: {e}")
+                return False
+            finally:
+                conn.close()
+
+    def purge_test_users(self) -> int:
+        with self.lock:
+            conn = self._get_conn()
+            try:
+                rows = conn.execute("""
+                    SELECT user_id, username FROM users 
+                    WHERE username LIKE 'dev_alpha_%' 
+                       OR username LIKE 'dev_bravo_%' 
+                       OR username LIKE 'test_%' 
+                       OR username LIKE 'user_%_1788516166'
+                       OR username = 'bob_hacker'
+                """).fetchall()
+                test_uids = [r[0] for r in rows]
+                if not test_uids:
+                    return 0
+                conn.execute("""
+                    DELETE FROM api_keys WHERE tenant_id IN (
+                        SELECT user_id FROM users 
+                        WHERE username LIKE 'dev_alpha_%' 
+                           OR username LIKE 'dev_bravo_%' 
+                           OR username LIKE 'test_%' 
+                           OR username LIKE 'user_%_1788516166'
+                           OR username = 'bob_hacker'
+                    )
+                """)
+                conn.execute("""
+                    DELETE FROM users 
+                    WHERE username LIKE 'dev_alpha_%' 
+                       OR username LIKE 'dev_bravo_%' 
+                       OR username LIKE 'test_%' 
+                       OR username LIKE 'user_%_1788516166'
+                       OR username = 'bob_hacker'
+                """)
+                conn.commit()
+                self._warm_cache()
+                return len(test_uids)
+            except Exception as e:
+                print(f"[SWADES STORAGE] Purge test users error: {e}")
+                return 0
+            finally:
+                conn.close()
+
     def create_feature_flag(self, key, name, description, enabled=0, rollout_pct=100):
         conn = self._get_conn()
         fid = f"flag_{secrets.token_hex(3)}"
@@ -1679,41 +1773,149 @@ class SwadeStorageVault:
             }
         }
 
-    def get_analytics_summary(self):
+    def get_analytics_summary(self, horizon="15m"):
+        now = time.time()
+        h_seconds = 900 if horizon == "15m" else (3600 if horizon == "1h" else 86400)
+        cutoff = now - h_seconds
+
+        all_reqs = list(REQUEST_LOG_BUFFER)
+        active_set = [r for r in all_reqs if r.get("timestamp", 0) >= cutoff]
+        if not active_set and all_reqs:
+            active_set = all_reqs[-50:]
+
+        unique_ips = set(r.get("ip", "") for r in active_set if r.get("ip"))
+        active_visitors = max(1, len(unique_ips)) if active_set else 1
+        elapsed_sec = max(1.0, min(h_seconds, now - _START_TIME))
+        rps = round(len(active_set) / elapsed_sec, 2)
+        avg_lat = round(sum(r.get("latency_ms", 0.5) for r in active_set) / max(1, len(active_set)), 2) if active_set else 0.45
+        total_bytes = sum(r.get("bytes", 0) for r in active_set)
+        edge_mbps = round((total_bytes * 8) / (elapsed_sec * 1_000_000), 3)
+
+        conn = self._get_conn()
+        try:
+            total_users = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+            total_keys = conn.execute("SELECT COUNT(*) FROM api_keys WHERE is_active = 1").fetchone()[0]
+        except Exception:
+            total_users = len(self._user_cache)
+            total_keys = len(self._key_cache)
+        finally:
+            conn.close()
+
+        total_objects = sum(_object_store._tenant_object_count.values()) if '_object_store' in globals() else 0
+        base_visitors = max(_total_landing_views, total_users * 3, total_keys * 2, total_objects + 5, 25)
+        total_cdn = max(_total_cdn_stream_hits, 0)
+
+        pct_users = min(100.0, round((total_users / base_visitors) * 100, 1))
+        pct_keys = min(pct_users, round((total_keys / base_visitors) * 100, 1))
+        pct_objs = min(pct_keys, round((max(1, total_objects) / base_visitors) * 100, 1)) if total_objects > 0 else 0.0
+        pct_cdn = min(pct_objs, round((total_cdn / base_visitors) * 100, 1)) if total_cdn > 0 else 0.0
+
+        funnel = [
+            {"step": "1. Landing View", "users": base_visitors, "pct": 100.0, "drop_pct": 0.0},
+            {"step": "2. Account Registration", "users": total_users, "pct": pct_users, "drop_pct": round(max(0.0, 100.0 - pct_users), 1)},
+            {"step": "3. Primary API Key Issued", "users": total_keys, "pct": pct_keys, "drop_pct": round(max(0.0, pct_users - pct_keys), 1)},
+            {"step": "4. First Object Uploaded", "users": total_objects, "pct": pct_objs, "drop_pct": round(max(0.0, pct_keys - pct_objs), 1)},
+            {"step": "5. Worldwide CDN Stream Hit", "users": total_cdn, "pct": pct_cdn, "drop_pct": round(max(0.0, pct_objs - pct_cdn), 1)}
+        ]
+
+        platforms_map = collections.defaultdict(int)
+        browsers_map = collections.defaultdict(int)
+        regions_map = collections.defaultdict(int)
+
+        dataset = active_set if active_set else all_reqs
+        if not dataset:
+            dataset = [{"ua": "Mozilla/5.0 (Linux; Android 10) Mobile", "country": "Direct / LAN", "ip": "127.0.0.1"}]
+
+        for r in dataset:
+            ua = r.get("ua", "")
+            if "Android" in ua:
+                platforms_map["Android Linux (ARM64)"] += 1
+            elif "iPhone" in ua or "iPad" in ua:
+                platforms_map["iOS / iPadOS"] += 1
+            elif "Windows" in ua:
+                platforms_map["Windows 11 / 10"] += 1
+            elif "Macintosh" in ua or "Mac OS" in ua:
+                platforms_map["macOS (Apple Silicon)"] += 1
+            elif "Linux" in ua:
+                platforms_map["Linux Desktop / Server"] += 1
+            elif "python" in ua or "curl" in ua:
+                platforms_map["cURL & Python SDK"] += 1
+            else:
+                platforms_map["Standard Client"] += 1
+
+            if "Edg/" in ua:
+                browsers_map["Microsoft Edge"] += 1
+            elif "Chrome" in ua and "Edg" not in ua:
+                browsers_map["Chrome / Chromium"] += 1
+            elif "Firefox" in ua:
+                browsers_map["Firefox (Gecko)"] += 1
+            elif "Safari" in ua and "Chrome" not in ua:
+                browsers_map["Safari (WebKit)"] += 1
+            elif "python" in ua or "curl" in ua:
+                browsers_map["cURL & SDK Clients"] += 1
+            else:
+                browsers_map["Web View / Other"] += 1
+
+            c = r.get("country", "")
+            ip = r.get("ip", "")
+            if c:
+                regions_map[f"Edge Region ({c})"] += 1
+            elif ip.startswith("192.168.") or ip.startswith("10.") or ip == "127.0.0.1":
+                regions_map["Local LAN / Sovereign Edge"] += 1
+            else:
+                regions_map["Worldwide Anycast CDN"] += 1
+
+        total_d = sum(platforms_map.values()) or 1
+        platforms = [{"name": k, "pct": round((v / total_d) * 100, 1)} for k, v in sorted(platforms_map.items(), key=lambda x: -x[1])]
+        browsers = [{"name": k, "pct": round((v / total_d) * 100, 1)} for k, v in sorted(browsers_map.items(), key=lambda x: -x[1])]
+        regions = [{"region": k, "pct": round((v / total_d) * 100, 1)} for k, v in sorted(regions_map.items(), key=lambda x: -x[1])]
+
+        num_buckets = 15
+        bucket_duration = max(1.0, h_seconds / num_buckets)
+        rps_counts = [0] * num_buckets
+        vis_counts = [0] * num_buckets
+
+        for r in active_set:
+            age = now - r.get("timestamp", now)
+            idx = num_buckets - 1 - int(age / bucket_duration)
+            if 0 <= idx < num_buckets:
+                rps_counts[idx] += 1
+                vis_counts[idx] += 1
+
+        max_rps = max(max(rps_counts), 1)
+        max_vis = max(max(vis_counts), 1)
+
+        rps_points = []
+        vis_points = []
+        for i in range(num_buckets):
+            x = int(i * (500 / (num_buckets - 1)))
+            y_rps = int(90 - (rps_counts[i] / max_rps) * 75)
+            y_vis = int(90 - (vis_counts[i] / max_vis) * 65)
+            rps_points.append(f"{x},{y_rps}")
+            vis_points.append(f"{x},{y_vis}")
+
+        lbl_start = f"-{int(h_seconds/60)} min" if h_seconds < 3600 else f"-{int(h_seconds/3600)} hr"
+        lbl_mid = f"-{int(h_seconds/120)} min" if h_seconds < 3600 else f"-{round(h_seconds/7200, 1)} hr"
+
         return {
             "realtime_pulse": {
-                "active_visitors": 42,
-                "requests_per_sec": 18.4,
-                "avg_latency_ms": 1.24,
-                "edge_bandwidth_mbps": 8.7
+                "active_visitors": active_visitors,
+                "requests_per_sec": rps,
+                "avg_latency_ms": avg_lat,
+                "edge_bandwidth_mbps": edge_mbps
             },
-            "funnel": [
-                {"step": "1. Landing View", "users": 3420, "pct": 100, "drop_pct": 0},
-                {"step": "2. Account Registration", "users": 2680, "pct": 78.4, "drop_pct": 21.6},
-                {"step": "3. Primary API Key Issued", "users": 2490, "pct": 72.8, "drop_pct": 7.1},
-                {"step": "4. First Object Uploaded", "users": 1840, "pct": 53.8, "drop_pct": 26.1},
-                {"step": "5. Worldwide CDN Stream Hit", "users": 1620, "pct": 47.4, "drop_pct": 11.9}
-            ],
+            "funnel": funnel,
             "demographics": {
-                "platforms": [
-                    {"name": "Android Linux (ARM64)", "pct": 42},
-                    {"name": "iOS / iPadOS", "pct": 28},
-                    {"name": "Windows 11 / 10", "pct": 16},
-                    {"name": "macOS (Apple Silicon)", "pct": 10},
-                    {"name": "Linux Desktop", "pct": 4}
-                ],
-                "browsers": [
-                    {"name": "Chrome / Chromium", "pct": 61},
-                    {"name": "Safari (WebKit)", "pct": 24},
-                    {"name": "Firefox (Gecko)", "pct": 11},
-                    {"name": "cURL & SDK Clients", "pct": 4}
-                ],
-                "edge_regions": [
-                    {"region": "North America (IAD, SFO, ORD)", "pct": 36},
-                    {"region": "Europe (FRA, LHR, AMS)", "pct": 28},
-                    {"region": "Asia-Pacific (SIN, NRT, BOM)", "pct": 30},
-                    {"region": "Latin America & Others", "pct": 6}
-                ]
+                "platforms": platforms,
+                "browsers": browsers,
+                "edge_regions": regions
+            },
+            "chart": {
+                "rps_points": " ".join(rps_points),
+                "vis_points": " ".join(vis_points),
+                "lbl_start": lbl_start,
+                "lbl_mid": lbl_mid,
+                "lbl_end": "Now (Live Edge)"
             }
         }
 
@@ -2060,7 +2262,6 @@ class ModelGovernor:
                 "label": "Qwen 2.5 SLM (Chat)",
                 "port": 8001,
                 "cmd": [
-                    "taskset", "-c", "4,5,6,7",
                     f"{self.home}/llama.cpp/build/bin/llama-server",
                     "-m", f"{self.home}/models/qwen2.5-0.5b-instruct-q4_k_m.gguf",
                     "--port", "8001",
@@ -2632,31 +2833,22 @@ def _telemetry_background_loop():
         time.sleep(1.0)
 
 _tel_thread = threading.Thread(target=_telemetry_background_loop, daemon=True)
-REQUEST_LOG_BUFFER = collections.deque(maxlen=500)
-_START_TIME = time.time()
-
-def record_request_log(method, path, status_code, latency_ms, ip=""):
-    try:
-        REQUEST_LOG_BUFFER.append({
-            "id": secrets.token_hex(4),
-            "timestamp": int(time.time()),
-            "time_str": time.strftime("%H:%M:%S"),
-            "method": method,
-            "path": path,
-            "status_code": status_code,
-            "latency_ms": round(latency_ms, 2),
-            "ip": ip or "127.0.0.1"
-        })
-    except Exception:
-        pass
-
 
 class MultiModalGatewayHandler(BaseHTTPRequestHandler):
+    def handle_one_request(self):
+        self._req_start_time = time.perf_counter()
+        super().handle_one_request()
+
     def log_request(self, code='-', size='-'):
         try:
             c = int(code) if str(code).isdigit() else 200
-            client_ip = self.client_address[0] if hasattr(self, 'client_address') else "127.0.0.1"
-            record_request_log(self.command, self.path, c, 1.2, client_ip)
+            s = int(size) if str(size).isdigit() else 0
+            client_ip = _get_client_ip(self)
+            ua = self.headers.get("User-Agent", "") if hasattr(self, 'headers') and self.headers else ""
+            country = self.headers.get("CF-IPCountry", self.headers.get("X-Country", "")) if hasattr(self, 'headers') and self.headers else ""
+            start_t = getattr(self, "_req_start_time", None)
+            latency_ms = (time.perf_counter() - start_t) * 1000.0 if start_t else 0.5
+            record_request_log(self.command, self.path, c, latency_ms, ip=client_ip, user_agent=ua, country=country, bytes_sent=s)
         except Exception:
             pass
 
@@ -2737,7 +2929,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         elif path in ["/v1/dashboard/notifications", "/v1/admin/notifications"]:
             self.handle_dashboard_notifications_get()
         elif path in ["/v1/dashboard/analytics", "/v1/admin/analytics"]:
-            self.handle_dashboard_analytics_get()
+            self.handle_dashboard_analytics_get(parsed)
         elif path in ["/v1/dashboard/db/tables", "/v1/admin/db/tables"]:
             self.handle_dashboard_db_tables()
         elif path in ["/v1/dashboard/db/query", "/v1/admin/db/query"]:
@@ -4252,8 +4444,37 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
     def handle_dashboard_users_post(self):
         try:
             length = int(self.headers.get("Content-Length", 0))
-            body = json.loads(self.rfile.read(length).decode("utf-8"))
+            body = json.loads(self.rfile.read(length).decode("utf-8")) if length > 0 else {}
+            action = body.get("action")
             user_id = body.get("user_id")
+
+            if action == "purge_tests":
+                count = _storage_vault.purge_test_users()
+                _storage_vault.log_audit("admin", "PURGE_TESTS", "users", f"deleted={count}")
+                resp = json.dumps({"status": "purged", "deleted_count": count}).encode("utf-8")
+                self.send_response(200)
+                self._send_cors_headers()
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(resp)))
+                self.end_headers()
+                self.wfile.write(resp)
+                return
+
+            if action == "delete_user":
+                if not user_id:
+                    self.send_error(400, "Missing user_id")
+                    return
+                ok = _storage_vault.delete_user(user_id)
+                _storage_vault.log_audit("admin", "DELETE_USER", user_id, f"success={ok}")
+                resp = json.dumps({"status": "deleted", "user_id": user_id, "success": ok}).encode("utf-8")
+                self.send_response(200)
+                self._send_cors_headers()
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(resp)))
+                self.end_headers()
+                self.wfile.write(resp)
+                return
+
             if not user_id:
                 self.send_error(400, "Missing user_id")
                 return
@@ -4434,8 +4655,12 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         except Exception as e:
             self.send_error(500, str(e))
 
-    def handle_dashboard_analytics_get(self):
-        data = _storage_vault.get_analytics_summary()
+    def handle_dashboard_analytics_get(self, parsed=None):
+        horizon = "15m"
+        if parsed and parsed.query:
+            qs = urllib.parse.parse_qs(parsed.query)
+            horizon = qs.get("horizon", ["15m"])[0]
+        data = _storage_vault.get_analytics_summary(horizon=horizon)
         resp = json.dumps(data).encode("utf-8")
         self.send_response(200)
         self._send_cors_headers()
@@ -5300,7 +5525,6 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
 
             if os.path.exists(crispasr_bin) and os.path.exists(kokoro_model):
                 cmd = [
-                    "taskset", "-c", "4,5,6,7",
                     crispasr_bin,
                     "-m", kokoro_model,
                     "--voice", voice_file,
@@ -5308,8 +5532,11 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                     "--tts-output", tmp_wav_path,
                     "-t", "4"
                 ]
+                tts_env = os.environ.copy()
+                tts_env["HOME"] = "/data/data/com.termux/files/home"
+                tts_env["PATH"] = "/data/data/com.termux/files/usr/bin:" + tts_env.get("PATH", "")
                 with _tts_lock:
-                    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+                    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=120, env=tts_env)
                 if proc.returncode != 0 and not os.path.exists(tmp_wav_path):
                     raise RuntimeError(f"Kokoro engine returned code {proc.returncode}: {proc.stderr}")
             else:
