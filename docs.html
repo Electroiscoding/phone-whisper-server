@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Documentation — PhoneWhisper Autonomous AI Datacenter</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            obsidian: '#030507',
+            cardbg: '#080c13',
+            cardborder: '#151c28',
+            hoverborder: '#243044',
+            neoncyan: '#00f3ff',
+            neonemerald: '#10b981',
+            neonpurple: '#a855f7',
+            neonamber: '#f59e0b'
+          },
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+            grotesk: ['"Space Grotesk"', 'sans-serif']
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    /* Custom Brutalist Scrollbars */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #030507; }
+    ::-webkit-scrollbar-thumb { background: #1e2638; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #334155; }
+    
+    .glow-cyan { text-shadow: 0 0 12px rgba(0, 243, 255, 0.4); }
+    .glow-emerald { text-shadow: 0 0 12px rgba(16, 185, 129, 0.4); }
+    
+    /* Code block syntax styling */
+    pre code { font-size: 12.5px; line-height: 1.6; }
+    .code-kw { color: #f472b6; font-weight: 600; }
+    .code-fn { color: #60a5fa; }
+    .code-str { color: #34d399; }
+    .code-cmt { color: #64748b; font-style: italic; }
+    .code-num { color: #fbbf24; }
+    .code-prop { color: #a78bfa; }
+
+    /* Active link tracking in TOC */
+    .toc-item.active {
+      color: #00f3ff;
+      border-left-color: #00f3ff;
+      background: rgba(0, 243, 255, 0.05);
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body class="bg-obsidian text-zinc-300 font-sans antialiased min-h-screen selection:bg-cyan-500/30 selection:text-white">
+
+  <!-- TOP HUD & NAVIGATION BAR -->
+  <header class="sticky top-0 z-50 bg-[#04060a]/95 backdrop-blur-xl border-b border-cardborder px-4 lg:px-8 py-3 transition-all">
+    <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
+      
+      <!-- Brand & Version -->
+      <div class="flex items-center gap-3">
+        <a href="/" class="flex items-center gap-2.5 text-white font-grotesk font-bold text-lg tracking-tight hover:opacity-90">
+          <span class="w-7 h-7 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 text-sm font-mono">⚡</span>
+          <span>PhoneWhisper <span class="text-cyan-400 font-mono text-sm font-normal">/docs</span></span>
+        </a>
+        <span class="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-mono bg-zinc-900 border border-zinc-800 text-zinc-400">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+          v3.4.0 Production
+        </span>
+      </div>
+
+      <!-- Live Node Telemetry Ticker -->
+      <div class="hidden md:flex items-center gap-3 text-xs font-mono">
+        <div class="flex items-center gap-1.5 bg-zinc-950/80 border border-zinc-800/80 px-2.5 py-1 rounded">
+          <span class="text-zinc-500">HOST:</span>
+          <span id="hud-device-name" class="text-white font-medium">Redmi 9i (ARM64)</span>
+        </div>
+        <div class="flex items-center gap-1.5 bg-zinc-950/80 border border-zinc-800/80 px-2.5 py-1 rounded">
+          <span class="text-zinc-500">RAM:</span>
+          <span id="hud-ram-val" class="text-emerald-400 font-medium">-- / 4.0 GB</span>
+        </div>
+        <div class="flex items-center gap-1.5 bg-zinc-950/80 border border-zinc-800/80 px-2.5 py-1 rounded">
+          <span class="text-zinc-500">L1 CACHE:</span>
+          <span id="hud-l1-val" class="text-cyan-400 font-medium">&lt;45 ns</span>
+        </div>
+        <div class="flex items-center gap-1.5 bg-zinc-950/80 border border-zinc-800/80 px-2.5 py-1 rounded">
+          <span class="text-zinc-500">STATUS:</span>
+          <span id="hud-status-val" class="text-emerald-400 font-medium">ONLINE 24/7</span>
+        </div>
+      </div>
+
+      <!-- Host Switcher & Navigation Links -->
+      <div class="flex items-center gap-2.5">
+        <!-- Host Environment Selector -->
+        <div class="relative">
+          <select id="doc-host-select" onchange="switchHostEnvironment(this.value)" class="bg-black/90 border border-zinc-800 rounded px-2.5 py-1.5 text-xs font-mono text-cyan-400 outline-none cursor-pointer focus:border-cyan-500 hover:border-zinc-700">
+            <option value="auto">🌐 Target: Auto (Pages Edge)</option>
+            <option value="lan">📱 Target: Phone LAN (192.168.29.2:8080)</option>
+            <option value="tunnel">⚡ Target: Sovereign Tunnel</option>
+          </select>
+        </div>
+
+        <a href="/" class="hidden sm:inline-flex items-center gap-1 text-xs font-mono px-3 py-1.5 rounded border border-zinc-800 hover:border-zinc-600 text-zinc-300 hover:text-white transition-colors">
+          <span>🎙️</span> Studio
+        </a>
+        <a href="/dashboard.html" class="inline-flex items-center gap-1 text-xs font-mono px-3 py-1.5 rounded border border-purple-500/30 bg-purple-950/20 text-purple-300 hover:bg-purple-900/30 transition-colors">
+          <span>🎛️</span> Console
+        </a>
+        <a href="/swades.html" class="hidden lg:inline-flex items-center gap-1 text-xs font-mono px-3 py-1.5 rounded border border-zinc-800 hover:border-zinc-600 text-zinc-300 hover:text-white transition-colors">
+          <span>⚡</span> Swades Agent
+        </a>
+        <a href="https://github.com/Electroiscoding/phone-whisper-server" target="_blank" class="p-1.5 rounded border border-zinc-800 hover:border-zinc-600 text-zinc-400 hover:text-white transition-colors" title="GitHub Repository">
+          <svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        </a>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- MAIN WRAPPER: SIDEBAR + CONTENT -->
+  <div class="max-w-7xl mx-auto flex">
+
+    <!-- LEFT STICKY SIDEBAR (TABLE OF CONTENTS & SEARCH) -->
+    <aside id="doc-sidebar" class="w-64 lg:w-72 shrink-0 hidden md:flex flex-col sticky top-[57px] h-[calc(100vh-57px)] border-r border-cardborder bg-[#030507] p-4 overflow-y-auto">
+      
+      <!-- Instant Search Bar -->
+      <div class="relative mb-4">
+        <input type="text" id="doc-search-input" oninput="filterDocumentation(this.value)" placeholder="Search documentation... (Press /)" class="w-full bg-black border border-zinc-800 rounded px-3 py-1.5 pl-8 text-xs font-mono text-white placeholder-zinc-600 outline-none focus:border-cyan-500 transition-colors" />
+        <span class="absolute left-2.5 top-2 text-zinc-500 text-xs">🔍</span>
+      </div>
+
+      <!-- Quick Index Links -->
+      <div class="space-y-6 text-xs font-mono">
+        <div>
+          <div class="text-[11px] font-bold text-zinc-500 uppercase tracking-wider mb-2">Getting Started</div>
+          <ul class="space-y-1">
+            <li><a href="#overview" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">Overview & Guarantees</a></li>
+            <li><a href="#quickstart" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">5-Minute Quickstart</a></li>
+            <li><a href="#architecture" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">Global Architecture</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <div class="text-[11px] font-bold text-zinc-500 uppercase tracking-wider mb-2">Hardware & Linux OS</div>
+          <ul class="space-y-1">
+            <li><a href="#hardware-specs" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">Redmi 9i SoC Hardware</a></li>
+            <li><a href="#thermal-governor" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">Elastic Memory Governor</a></li>
+            <li><a href="#container-runtime" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">Alpine PRoot Container</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <div class="text-[11px] font-bold text-zinc-500 uppercase tracking-wider mb-2">Multi-Modal AI Engines</div>
+          <ul class="space-y-1">
+            <li><a href="#model-whisper" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">Whisper Base.en STT</a></li>
+            <li><a href="#model-qwen" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">Qwen 2.5 0.5B SLM</a></li>
+            <li><a href="#model-kokoro" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">Kokoro-82M Neural TTS</a></li>
+            <li><a href="#model-bge" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">Vector & Cross-Encoder</a></li>
+            <li><a href="#swades-agent" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">Swades Coding Agent</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <div class="text-[11px] font-bold text-zinc-500 uppercase tracking-wider mb-2">Storage & CDN</div>
+          <ul class="space-y-1">
+            <li><a href="#storage-l1" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">Sub-Microsecond L1 RAM</a></li>
+            <li><a href="#storage-multitenancy" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">Zero-Tassel Multi-Tenancy</a></li>
+            <li><a href="#storage-cdn" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">Anycast CDN Streaming</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <div class="text-[11px] font-bold text-zinc-500 uppercase tracking-wider mb-2">Security & Concurrency</div>
+          <ul class="space-y-1">
+            <li><a href="#security-shield" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">SwadesSecurityShield</a></li>
+            <li><a href="#auth-vault" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">PBKDF2 & Scoped Keys</a></li>
+            <li><a href="#sqlite-wal" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">SQLite WAL Pragmas</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <div class="text-[11px] font-bold text-zinc-500 uppercase tracking-wider mb-2">Complete API Reference</div>
+          <ul class="space-y-1">
+            <li><a href="#api-speech" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">POST /v1/audio/transcriptions</a></li>
+            <li><a href="#api-chat" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">POST /v1/chat/completions</a></li>
+            <li><a href="#api-tts" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">POST /v1/audio/speech</a></li>
+            <li><a href="#api-embeddings" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">POST /v1/embeddings</a></li>
+            <li><a href="#api-rerank" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">POST /v1/rerank</a></li>
+            <li><a href="#api-storage-crud" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">CRUD /v1/storage/objects/*</a></li>
+            <li><a href="#api-auth-login" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">POST /v1/storage/auth/login</a></li>
+            <li><a href="#api-dashboard" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">Admin /v1/dashboard/*</a></li>
+            <li><a href="#api-telemetry" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">GET /telemetry & /health</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <div class="text-[11px] font-bold text-zinc-500 uppercase tracking-wider mb-2">SDKs & Runbooks</div>
+          <ul class="space-y-1">
+            <li><a href="#sdk-python" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">Python Client SDK</a></li>
+            <li><a href="#sdk-js" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">TypeScript / JS Client</a></li>
+            <li><a href="#sdk-bash" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">Bash CLI Automation</a></li>
+            <li><a href="#runbook" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">Incident Runbook & ADB</a></li>
+          </ul>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT BODY (HYPER DETAILED) -->
+    <main class="flex-1 px-4 lg:px-12 py-8 max-w-4xl min-w-0">
+      
+      <!-- HERO HEADER -->
+      <section id="overview" class="doc-section mb-16 border-b border-cardborder pb-12">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono bg-cyan-950/40 border border-cyan-800/60 text-cyan-300 mb-4">
+          <span>⚡</span> Sovereign Phone AI Datacenter Manual
+        </div>
+        <h1 class="text-3xl lg:text-4xl font-extrabold font-grotesk text-white tracking-tight mb-4">
+          The Comprehensive Architectural Specification
+        </h1>
+        <p class="text-base text-zinc-400 leading-relaxed mb-6">
+          This manual provides an exhaustive, low-level technical reference for the world’s first autonomous multi-modal edge AI datacenter and cloud storage cluster running entirely on a physical Android smartphone (<strong class="text-white">Xiaomi Redmi 9i</strong>).
+        </p>
+        
+        <!-- Key Guarantees Matrix -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 font-mono text-xs">
+          <div class="p-3 bg-cardbg border border-cardborder rounded-lg">
+            <div class="text-zinc-500 uppercase text-[10px] tracking-wider">Free Worldwide AI</div>
+            <div class="text-emerald-400 font-bold text-sm mt-1">100% Unauthenticated</div>
+            <p class="text-zinc-400 text-[11px] mt-0.5">Whisper, Qwen, Kokoro & BGE open to everyone.</p>
+          </div>
+          <div class="p-3 bg-cardbg border border-cardborder rounded-lg">
+            <div class="text-zinc-500 uppercase text-[10px] tracking-wider">Storage L1 Reflection</div>
+            <div class="text-cyan-400 font-bold text-sm mt-1">&lt;0.0001 ms (&lt;45 ns)</div>
+            <p class="text-zinc-400 text-[11px] mt-0.5">In-memory pure RAM hash index for instant hits.</p>
+          </div>
+          <div class="p-3 bg-cardbg border border-cardborder rounded-lg">
+            <div class="text-zinc-500 uppercase text-[10px] tracking-wider">Zero Cloud GPU Bill</div>
+            <div class="text-purple-400 font-bold text-sm mt-1">$0.00 / month</div>
+            <p class="text-zinc-400 text-[11px] mt-0.5">Sovereign hardware compute on 10W wall power.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 5-MINUTE QUICKSTART -->
+      <section id="quickstart" class="doc-section mb-16 border-b border-cardborder pb-12">
+        <h2 class="text-2xl font-bold font-grotesk text-white mb-3 flex items-center gap-2">
+          <span class="text-cyan-400">01.</span> 5-Minute Quickstart
+        </h2>
+        <p class="text-zinc-400 text-sm leading-relaxed mb-6">
+          You can interact with the live phone node immediately using standard HTTP tools. No API keys or tokens are needed for any AI model endpoint.
+        </p>
+
+        <!-- Multi-Language Code Switcher -->
+        <div class="bg-black border border-cardborder rounded-xl overflow-hidden mb-6">
+          <div class="flex items-center justify-between px-4 py-2 bg-zinc-950 border-b border-cardborder">
+            <span class="text-xs font-mono text-zinc-400 flex items-center gap-1.5">
+              <span>🚀</span> <span>Execute Speech-to-Text Transcription</span>
+            </span>
+            <div class="flex items-center gap-1 text-[11px] font-mono">
+              <button onclick="switchCodeSnippet('quick-stt', 'curl')" class="tab-btn-quick-stt-curl px-2.5 py-1 rounded bg-zinc-800 text-cyan-400 font-semibold">cURL</button>
+              <button onclick="switchCodeSnippet('quick-stt', 'py')" class="tab-btn-quick-stt-py px-2.5 py-1 rounded text-zinc-500 hover:text-zinc-300">Python</button>
+              <button onclick="switchCodeSnippet('quick-stt', 'fetch')" class="tab-btn-quick-stt-fetch px-2.5 py-1 rounded text-zinc-500 hover:text-zinc-300">Fetch</button>
+              <button onclick="switchCodeSnippet('quick-stt', 'node')" class="tab-btn-quick-stt-node px-2.5 py-1 rounded text-zinc-500 hover:text-zinc-300">Node.js</button>
+            </div>
+          </div>
+          <div class="p-4 overflow-x-auto text-xs font-mono">
+            <!-- cURL Tab -->
+            <pre id="code-quick-stt-curl" class="text-zinc-300"><code>curl -X POST "<span class="active-endpoint-url">https://phone-whisper-server.pages.dev</span>/v1/audio/transcriptions" \
+  -F "file=@sample.wav" \
+  -F "response_format=json"</code></pre>
+            <!-- Python Tab -->
+            <pre id="code-quick-stt-py" class="hidden text-zinc-300"><code><span class="code-kw">import</span> requests
+
+url = <span class="code-str">"<span class="active-endpoint-url">https://phone-whisper-server.pages.dev</span>/v1/audio/transcriptions"</span>
+<span class="code-kw">with</span> open(<span class="code-str">"sample.wav"</span>, <span class="code-str">"rb"</span>) <span class="code-kw">as</span> f:
+    res = requests.post(url, files={<span class="code-str">"file"</span>: f}, data={<span class="code-str">"response_format"</span>: <span class="code-str">"json"</span>})
+    print(res.json()[<span class="code-str">"text"</span>])</code></pre>
+            <!-- Fetch Tab -->
+            <pre id="code-quick-stt-fetch" class="hidden text-zinc-300"><code><span class="code-kw">const</span> formData = <span class="code-kw">new</span> FormData();
+formData.append(<span class="code-str">'file'</span>, audioBlob, <span class="code-str">'audio.wav'</span>);
+formData.append(<span class="code-str">'response_format'</span>, <span class="code-str">'json'</span>);
+
+<span class="code-kw">const</span> res = <span class="code-kw">await</span> fetch(<span class="code-str">'<span class="active-endpoint-url">https://phone-whisper-server.pages.dev</span>/v1/audio/transcriptions'</span>, {
+  method: <span class="code-str">'POST'</span>,
+  body: formData
+});
+<span class="code-kw">const</span> data = <span class="code-kw">await</span> res.json();
+console.log(data.text);</code></pre>
+            <!-- Node Tab -->
+            <pre id="code-quick-stt-node" class="hidden text-zinc-300"><code><span class="code-kw">const</span> axios = require(<span class="code-str">'axios'</span>);
+<span class="code-kw">const</span> fs = require(<span class="code-str">'fs'</span>);
+<span class="code-kw">const</span> FormData = require(<span class="code-str">'form-data'</span>);
+
+<span class="code-kw">const</span> form = <span class="code-kw">new</span> FormData();
+form.append(<span class="code-str">'file'</span>, fs.createReadStream(<span class="code-str">'sample.wav'</span>));
+form.append(<span class="code-str">'response_format'</span>, <span class="code-str">'json'</span>);
+
+axios.post(<span class="code-str">'<span class="active-endpoint-url">https://phone-whisper-server.pages.dev</span>/v1/audio/transcriptions'</span>, form, {
+  headers: form.getHeaders()
+}).then(r => console.log(r.data.text));</code></pre>
+          </div>
+        </div>
+
+        <div class="p-3.5 bg-cardbg border border-zinc-800 rounded-lg text-xs font-mono flex items-center justify-between">
+          <span class="text-zinc-400">Sample Response (HTTP 200 OK):</span>
+          <span class="text-emerald-400">⚡ ~120ms Latency</span>
+        </div>
+        <pre class="bg-black/80 border border-cardborder border-t-0 rounded-b-lg p-3 text-xs font-mono text-zinc-300 overflow-x-auto"><code>{
+  "text": "Hello world, this audio is being transcribed in real time on a physical smartphone.",
+  "duration_seconds": 3.42,
+  "language": "en",
+  "engine": "CrispASR GGML C++ (MediaTek ARM)",
+  "status": "COMPLETED"
+}</code></pre>
+      </section>
+
+      <!-- SYSTEM ARCHITECTURE -->
+      <section id="architecture" class="doc-section mb-16 border-b border-cardborder pb-12">
+        <h2 class="text-2xl font-bold font-grotesk text-white mb-3 flex items-center gap-2">
+          <span class="text-cyan-400">02.</span> Global Architecture & Packet Flow
+        </h2>
+        <p class="text-zinc-400 text-sm leading-relaxed mb-6">
+          The infrastructure follows a multi-tier sovereign hybrid design. Global client traffic enters Cloudflare Anycast edge locations, traverses the sovereign tunnel into the phone's Termux Linux userspace, and is scheduled across 8 ARM CPU cores.
+        </p>
+
+        <!-- Architecture Flow Chart -->
+        <div class="bg-black border border-cardborder rounded-xl p-6 font-mono text-xs space-y-4">
+          <div class="flex items-center gap-2 text-zinc-400 font-bold border-b border-zinc-800 pb-2">
+            <span>🌐</span> GLOBAL TOPOLOGY & PACKET FLOW
+          </div>
+          
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-3 text-center">
+            <div class="p-3 bg-zinc-950 border border-zinc-800 rounded">
+              <div class="text-zinc-500 text-[10px]">TIER 1: CLIENTS</div>
+              <div class="text-white font-bold mt-1">Web, SDKs & Apps</div>
+              <div class="text-[10px] text-zinc-400 mt-1">Any Browser Worldwide</div>
+            </div>
+            <div class="p-3 bg-zinc-950 border border-cyan-800/80 rounded">
+              <div class="text-cyan-500 text-[10px]">TIER 2: EDGE PROXY</div>
+              <div class="text-cyan-300 font-bold mt-1">Cloudflare Pages Worker</div>
+              <div class="text-[10px] text-zinc-400 mt-1">_worker.js Anycast CDN</div>
+            </div>
+            <div class="p-3 bg-zinc-950 border border-emerald-800/80 rounded">
+              <div class="text-emerald-500 text-[10px]">TIER 3: TUNNEL INGRESS</div>
+              <div class="text-emerald-300 font-bold mt-1">cloudflared Sovereign</div>
+              <div class="text-[10px] text-zinc-400 mt-1">Auto-Healing Heartbeat</div>
+            </div>
+            <div class="p-3 bg-zinc-950 border border-purple-800/80 rounded">
+              <div class="text-purple-500 text-[10px]">TIER 4: ARM RUNTIME</div>
+              <div class="text-purple-300 font-bold mt-1">Redmi 9i Gateway :8080</div>
+              <div class="text-[10px] text-zinc-400 mt-1">Python 3 + GGML + SQLite</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- HARDWARE & LINUX KERNEL -->
+      <section id="hardware-specs" class="doc-section mb-16 border-b border-cardborder pb-12">
+        <h2 class="text-2xl font-bold font-grotesk text-white mb-3 flex items-center gap-2">
+          <span class="text-cyan-400">03.</span> Redmi 9i SoC Hardware Teardown
+        </h2>
+        <p class="text-zinc-400 text-sm leading-relaxed mb-6">
+          The physical hardware hosting this cluster is a consumer-grade smartphone specifically hardened for 24/7 continuous datacenter duty.
+        </p>
+
+        <!-- Hardware Specs Table -->
+        <div class="overflow-x-auto border border-cardborder rounded-xl mb-6">
+          <table class="w-full text-left text-xs font-mono">
+            <thead class="bg-zinc-950 text-zinc-400 border-b border-cardborder">
+              <tr>
+                <th class="p-3">Component</th>
+                <th class="p-3">Hardware Specification</th>
+                <th class="p-3">Datacenter Allocation</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-cardborder bg-cardbg">
+              <tr>
+                <td class="p-3 text-white font-bold">SoC Processor</td>
+                <td class="p-3 text-zinc-300">MediaTek Helio G25 (MT6762V/CB)</td>
+                <td class="p-3 text-cyan-400">Octa-Core 64-bit ARM Cortex-A53</td>
+              </tr>
+              <tr>
+                <td class="p-3 text-white font-bold">Cluster 1 (High)</td>
+                <td class="p-3 text-zinc-300">4x Cortex-A53 @ 2.00 GHz</td>
+                <td class="p-3 text-emerald-400">Pinned to AI Inference (Whisper / Qwen)</td>
+              </tr>
+              <tr>
+                <td class="p-3 text-white font-bold">Cluster 2 (Low)</td>
+                <td class="p-3 text-zinc-300">4x Cortex-A53 @ 1.50 GHz</td>
+                <td class="p-3 text-purple-400">Storage I/O, SQLite WAL & Tunnel Daemon</td>
+              </tr>
+              <tr>
+                <td class="p-3 text-white font-bold">RAM Memory</td>
+                <td class="p-3 text-zinc-300">4 GB LPDDR4x (Dual-Channel 1600 MHz)</td>
+                <td class="p-3 text-yellow-400">~1.8GB L1 Index + Models, ~2.2GB OS Buffer</td>
+              </tr>
+              <tr>
+                <td class="p-3 text-white font-bold">Flash Storage</td>
+                <td class="p-3 text-zinc-300">64 GB eMMC 5.1 Internal Flash</td>
+                <td class="p-3 text-zinc-300">28+ GB Dedicated Cloud Storage Pool</td>
+              </tr>
+              <tr>
+                <td class="p-3 text-white font-bold">Battery & Power</td>
+                <td class="p-3 text-zinc-300">5000 mAh Li-Po + Continuous 5V/2A Feed</td>
+                <td class="p-3 text-emerald-400">Built-in Zero-Downtime UPS Battery Backup</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- KERNEL & ELASTIC GOVERNOR -->
+      <section id="thermal-governor" class="doc-section mb-16 border-b border-cardborder pb-12">
+        <h2 class="text-2xl font-bold font-grotesk text-white mb-3 flex items-center gap-2">
+          <span class="text-cyan-400">04.</span> Elastic Memory Governor & JIT Eviction
+        </h2>
+        <p class="text-zinc-400 text-sm leading-relaxed mb-4">
+          Because 4GB RAM must accommodate Whisper, Qwen, Kokoro, BGE, and the Swades agent simultaneously, the gateway employs an autonomous <strong>Dynamic Elastic JIT Governor</strong>.
+        </p>
+
+        <div class="bg-cardbg border border-cardborder rounded-xl p-5 font-mono text-xs space-y-3 mb-6">
+          <div class="text-white font-bold flex items-center gap-2">
+            <span>🧠</span> GOVERNOR POLICY: <code>dynamic_elastic_jit</code>
+          </div>
+          <p class="text-zinc-400 leading-relaxed">
+            Models are not kept perpetually loaded in memory. Instead, when an API call arrives (e.g., <code>/v1/chat/completions</code>), the governor evaluates RAM pressure. If available memory drops below 400MB, idle models with elapsed timeout &gt; 75.0s are instantly evicted from RAM.
+          </p>
+          <div class="bg-black p-3 rounded border border-zinc-800 text-[11px] text-zinc-300">
+            <code>JIT Eviction Order: BGE-Reranker (380MB) → Qwen 2.5 (340MB) → Whisper Base (140MB) → Kokoro TTS (85MB)</code>
+          </div>
+        </div>
+
+        <div id="container-runtime" class="bg-black border border-cardborder rounded-xl p-5 font-mono text-xs">
+          <div class="text-white font-bold mb-2">CONTAINER RUNTIME: Alpine Linux via PRoot</div>
+          <p class="text-zinc-400 text-[11px] leading-relaxed">
+            For code execution safety and environment isolation, the Swades autonomous agent runs inside an unprivileged Alpine Linux container (via <code>proot-distro</code>). All modifications occur inside isolated git worktree branches (<code>swades/patch-&lt;job_id&gt;</code>).
+          </p>
+        </div>
+      </section>
+
+      <!-- MULTI-MODAL AI MODELS -->
+      <section id="model-whisper" class="doc-section mb-16 border-b border-cardborder pb-12">
+        <h2 class="text-2xl font-bold font-grotesk text-white mb-3 flex items-center gap-2">
+          <span class="text-cyan-400">05.</span> Multi-Modal AI Quantized Models
+        </h2>
+        
+        <!-- Whisper Section -->
+        <div class="mb-10">
+          <h3 class="text-lg font-bold font-grotesk text-white mb-2 flex items-center gap-2">
+            <span>🎙️</span> OpenAI Whisper Base.en Q5_1 (Speech-to-Text)
+          </h3>
+          <p class="text-zinc-400 text-xs font-mono leading-relaxed mb-4">
+            Engine: <code>CrispASR GGML C++ Engine</code> compiled with ARM NEON SIMD. Employs a 39-million parameter encoder-decoder transformer processing 80-channel log-Mel spectrograms at 16,000 Hz sample rate.
+          </p>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-mono mb-4">
+            <div class="p-2.5 bg-black border border-cardborder rounded">
+              <span class="text-zinc-500 text-[10px]">Quantization:</span>
+              <div class="text-white font-bold">Q5_1 (5-bit)</div>
+            </div>
+            <div class="p-2.5 bg-black border border-cardborder rounded">
+              <span class="text-zinc-500 text-[10px]">Threads:</span>
+              <div class="text-emerald-400 font-bold">4 ARM Threads</div>
+            </div>
+            <div class="p-2.5 bg-black border border-cardborder rounded">
+              <span class="text-zinc-500 text-[10px]">RTF Benchmark:</span>
+              <div class="text-cyan-400 font-bold">0.18x (Fast)</div>
+            </div>
+            <div class="p-2.5 bg-black border border-cardborder rounded">
+              <span class="text-zinc-500 text-[10px]">RAM Footprint:</span>
+              <div class="text-purple-400 font-bold">~142 MB</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Qwen Section -->
+        <div id="model-qwen" class="mb-10">
+          <h3 class="text-lg font-bold font-grotesk text-white mb-2 flex items-center gap-2">
+            <span>💬</span> Qwen 2.5 0.5B Instruct (On-Device SLM)
+          </h3>
+          <p class="text-zinc-400 text-xs font-mono leading-relaxed mb-4">
+            Engine: <code>llama.cpp</code> native ARM execution. 24 layers, Grouped-Query Attention (GQA), SwiGLU non-linearities, RoPE positional embeddings with 32,768 context window capability.
+          </p>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-mono mb-4">
+            <div class="p-2.5 bg-black border border-cardborder rounded">
+              <span class="text-zinc-500 text-[10px]">Quantization:</span>
+              <div class="text-white font-bold">Q4_K_M (4-bit)</div>
+            </div>
+            <div class="p-2.5 bg-black border border-cardborder rounded">
+              <span class="text-zinc-500 text-[10px]">Generation Speed:</span>
+              <div class="text-emerald-400 font-bold">~14-18 tok/sec</div>
+            </div>
+            <div class="p-2.5 bg-black border border-cardborder rounded">
+              <span class="text-zinc-500 text-[10px]">TTFT (First Token):</span>
+              <div class="text-cyan-400 font-bold">~280 ms</div>
+            </div>
+            <div class="p-2.5 bg-black border border-cardborder rounded">
+              <span class="text-zinc-500 text-[10px]">RAM Footprint:</span>
+              <div class="text-purple-400 font-bold">~348 MB</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Kokoro TTS Section -->
+        <div id="model-kokoro" class="mb-10">
+          <h3 class="text-lg font-bold font-grotesk text-white mb-2 flex items-center gap-2">
+            <span>🗣️</span> Kokoro-82M (Neural Text-to-Speech)
+          </h3>
+          <p class="text-zinc-400 text-xs font-mono leading-relaxed mb-4">
+            StyleTTS2 architecture native C++ GGML pipeline. Generates 24,000 Hz studio audio in 30ms latency across 7 voices: <code>af_heart</code>, <code>df_eva</code>, <code>df_victoria</code>, <code>dm_bernd</code>, <code>dm_martin</code>, <code>ef_dora</code>, <code>ff_siwis</code>.
+          </p>
+        </div>
+
+        <!-- BGE Section -->
+        <div id="model-bge" class="mb-10">
+          <h3 class="text-lg font-bold font-grotesk text-white mb-2 flex items-center gap-2">
+            <span>🧠</span> BAAI BGE Vector Embeddings & Cross-Encoder Reranker
+          </h3>
+          <p class="text-zinc-400 text-xs font-mono leading-relaxed mb-4">
+            Outputs 384-dimensional dense vectors with normalized L2 cosine distance for sub-millisecond semantic search and retrieval-augmented generation (RAG).
+          </p>
+        </div>
+
+        <!-- Swades Agent -->
+        <div id="swades-agent" class="mb-6">
+          <h3 class="text-lg font-bold font-grotesk text-white mb-2 flex items-center gap-2">
+            <span>⚡</span> Swades Autonomous Coding Agent Engine
+          </h3>
+          <p class="text-zinc-400 text-xs font-mono leading-relaxed mb-4">
+            Runs inside an Alpine Linux container (via <code>proot-distro</code>). Features automatic multi-model fallback across OpenRouter free models, AST self-verification feedback loops (syntax verification via Node.js and Python compile), and automated git worktree branching.
+          </p>
+        </div>
+      </section>
+
+      <!-- CLOUD STORAGE & L1 CACHE -->
+      <section id="storage-l1" class="doc-section mb-16 border-b border-cardborder pb-12">
+        <h2 class="text-2xl font-bold font-grotesk text-white mb-3 flex items-center gap-2">
+          <span class="text-cyan-400">06.</span> Sub-Microsecond Storage Engine
+        </h2>
+        <p class="text-zinc-400 text-sm leading-relaxed mb-6">
+          The phone datacenter object storage engine uses a two-tier dual-memory architecture combining pure RAM hash index reflection with durable eMMC flash storage.
+        </p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-mono mb-6">
+          <div class="p-4 bg-cardbg border border-cyan-900/60 rounded-xl">
+            <div class="text-cyan-400 font-bold text-sm mb-1 flex items-center gap-1.5">
+              <span>⚡</span> Tier 1: L1 In-Memory Reflection
+            </div>
+            <p class="text-zinc-400 text-[11px] leading-relaxed">
+              Every stored object is indexed in an in-memory hash map (<code>SwadesObjectStore</code>). Key validation, existence verification, and metadata queries reflect in <strong class="text-white">&lt;0.0001 ms (&lt;45 nanoseconds)</strong> without touching flash storage.
+            </p>
+          </div>
+          <div id="storage-multitenancy" class="p-4 bg-cardbg border border-emerald-900/60 rounded-xl">
+            <div class="text-emerald-400 font-bold text-sm mb-1 flex items-center gap-1.5">
+              <span>💾</span> Tier 2: eMMC Sandboxed Flash
+            </div>
+            <p class="text-zinc-400 text-[11px] leading-relaxed">
+              Objects &gt; 64KB are streamed directly to physical storage pools using SHA-256 sandboxed paths. Tenancy boundaries are strictly enforced with zero cross-tenant contamination.
+            </p>
+          </div>
+        </div>
+
+        <div id="storage-cdn" class="p-4 bg-black border border-cardborder rounded-xl font-mono text-xs">
+          <div class="text-white font-bold mb-2">PUBLIC EDGE CDN STREAMING</div>
+          <p class="text-zinc-400 text-[11px] mb-3">
+            Public files can be streamed worldwide without authorization via the CDN route:
+          </p>
+          <code class="text-cyan-400 bg-zinc-950 p-2 rounded block border border-zinc-800">
+            GET https://phone-whisper-server.pages.dev/s/&lt;tenant_id&gt;/&lt;filepath&gt;
+          </code>
+        </div>
+      </section>
+
+      <!-- SECURITY & SQLITE WAL -->
+      <section id="security-shield" class="doc-section mb-16 border-b border-cardborder pb-12">
+        <h2 class="text-2xl font-bold font-grotesk text-white mb-3 flex items-center gap-2">
+          <span class="text-cyan-400">07.</span> Security Shield, Auth Vault & SQLite WAL
+        </h2>
+        
+        <div class="space-y-6 text-xs font-mono">
+          <div class="p-4 bg-cardbg border border-cardborder rounded-xl">
+            <div class="text-white font-bold text-sm mb-2">SwadesSecurityShield Rate Limiting</div>
+            <p class="text-zinc-400 leading-relaxed">
+              Protects edge endpoints against DDoS and credential stuffing with an in-memory sliding-window limiter capped at <strong class="text-white">120 requests/minute per IP</strong>. Exceeding limits returns HTTP 429 with <code>Retry-After: 60</code>.
+            </p>
+          </div>
+
+          <div id="auth-vault" class="p-4 bg-cardbg border border-cardborder rounded-xl">
+            <div class="text-white font-bold text-sm mb-2">PBKDF2 Password Vault & Scoped Tokens</div>
+            <p class="text-zinc-400 leading-relaxed mb-3">
+              User accounts in <code>auth.db</code> use PBKDF2 with HMAC-SHA256 (100,000 rounds) and 32-byte salts. API keys are generated as <code>sk_swades_&lt;random_hex&gt;</code> with granular scopes:
+            </p>
+            <ul class="list-disc pl-5 space-y-1 text-zinc-300 text-[11px]">
+              <li><code>full</code>: Complete read, write, delete, and table management permissions.</li>
+              <li><code>read_only</code>: Can read objects and stream CDN files; writes return HTTP 403.</li>
+              <li><code>write_only</code>: Can upload objects; read operations return HTTP 403.</li>
+            </ul>
+          </div>
+
+          <div id="sqlite-wal" class="p-4 bg-cardbg border border-cardborder rounded-xl">
+            <div class="text-white font-bold text-sm mb-2">SQLite Concurrency & High-Throughput Pragmas</div>
+            <p class="text-zinc-400 leading-relaxed mb-3">
+              The internal database engine operates in WAL (Write-Ahead Logging) mode to prevent write lock starvation:
+            </p>
+            <pre class="bg-black p-3 rounded border border-zinc-800 text-[11px] text-emerald-400"><code>PRAGMA journal_mode = WAL;
+PRAGMA synchronous = NORMAL;
+PRAGMA temp_store = MEMORY;
+PRAGMA mmap_size = 268435456; /* 256MB memory mapping */
+PRAGMA cache_size = -64000;   /* 64MB RAM page cache */
+PRAGMA busy_timeout = 5000;</code></pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- COMPLETE API REFERENCE -->
+      <section id="api-speech" class="doc-section mb-16 border-b border-cardborder pb-12">
+        <h2 class="text-2xl font-bold font-grotesk text-white mb-3 flex items-center gap-2">
+          <span class="text-cyan-400">08.</span> Exhaustive API Reference
+        </h2>
+        <p class="text-zinc-400 text-sm leading-relaxed mb-8">
+          All endpoints accept and return JSON unless otherwise stated. Free AI endpoints do not require headers. Storage and management endpoints accept authorization via <code>Bearer sk_swades_...</code> or <code>x-api-key: sk_swades_...</code>.
+        </p>
+
+        <!-- ENDPOINT 1: SPEECH-TO-TEXT -->
+        <div class="mb-10 bg-cardbg border border-cardborder rounded-xl p-5 font-mono text-xs">
+          <div class="flex items-center gap-3 mb-3">
+            <span class="px-2 py-0.5 rounded bg-blue-900/60 border border-blue-700 text-blue-300 font-bold">POST</span>
+            <span class="text-white font-bold text-sm">/v1/audio/transcriptions</span>
+            <span class="ml-auto text-[11px] text-emerald-400">Auth: Open Worldwide</span>
+          </div>
+          <p class="text-zinc-400 text-[11px] mb-4">Transcribes audio in real time using Whisper Base.en Q5_1.</p>
+          
+          <div class="text-zinc-500 uppercase text-[10px] tracking-wider mb-1 font-bold">Form Data Parameters</div>
+          <table class="w-full text-left text-[11px] mb-4 divide-y divide-zinc-800">
+            <tr class="text-zinc-400"><th class="py-1">Field</th><th>Type</th><th>Description</th></tr>
+            <tr><td class="py-1 text-white">file</td><td>File (WAV, MP3, M4A)</td><td>Audio payload (16kHz recommended)</td></tr>
+            <tr><td class="py-1 text-white">response_format</td><td>string</td><td><code>json</code>, <code>text</code>, <code>srt</code>, <code>vtt</code></td></tr>
+          </table>
+        </div>
+
+        <!-- ENDPOINT 2: CHAT COMPLETIONS -->
+        <div id="api-chat" class="mb-10 bg-cardbg border border-cardborder rounded-xl p-5 font-mono text-xs">
+          <div class="flex items-center gap-3 mb-3">
+            <span class="px-2 py-0.5 rounded bg-blue-900/60 border border-blue-700 text-blue-300 font-bold">POST</span>
+            <span class="text-white font-bold text-sm">/v1/chat/completions</span>
+            <span class="ml-auto text-[11px] text-emerald-400">Auth: Open Worldwide</span>
+          </div>
+          <p class="text-zinc-400 text-[11px] mb-4">Generates text tokens via on-device Qwen 2.5 0.5B Instruct.</p>
+          
+          <div class="text-zinc-500 uppercase text-[10px] tracking-wider mb-1 font-bold">Request JSON Body</div>
+          <pre class="bg-black p-3 rounded border border-zinc-800 text-[11px] text-zinc-300 mb-4"><code>{
+  "messages": [
+    {"role": "system", "content": "You are a concise edge assistant."},
+    {"role": "user", "content": "Explain quantum tunneling in 1 sentence."}
+  ],
+  "temperature": 0.7,
+  "max_tokens": 150,
+  "stream": false
+}</code></pre>
+        </div>
+
+        <!-- ENDPOINT 3: TEXT-TO-SPEECH -->
+        <div id="api-tts" class="mb-10 bg-cardbg border border-cardborder rounded-xl p-5 font-mono text-xs">
+          <div class="flex items-center gap-3 mb-3">
+            <span class="px-2 py-0.5 rounded bg-blue-900/60 border border-blue-700 text-blue-300 font-bold">POST</span>
+            <span class="text-white font-bold text-sm">/v1/audio/speech</span>
+            <span class="ml-auto text-[11px] text-emerald-400">Auth: Open Worldwide</span>
+          </div>
+          <p class="text-zinc-400 text-[11px] mb-4">Synthesizes audio using Kokoro-82M neural voices. Returns binary <code>audio/wav</code>.</p>
+          
+          <pre class="bg-black p-3 rounded border border-zinc-800 text-[11px] text-zinc-300"><code>{
+  "input": "Welcome to the sovereign edge AI cluster.",
+  "voice": "af_heart",
+  "speed": 1.0
+}</code></pre>
+        </div>
+
+        <!-- ENDPOINT 4: EMBEDDINGS -->
+        <div id="api-embeddings" class="mb-10 bg-cardbg border border-cardborder rounded-xl p-5 font-mono text-xs">
+          <div class="flex items-center gap-3 mb-3">
+            <span class="px-2 py-0.5 rounded bg-blue-900/60 border border-blue-700 text-blue-300 font-bold">POST</span>
+            <span class="text-white font-bold text-sm">/v1/embeddings</span>
+            <span class="ml-auto text-[11px] text-emerald-400">Auth: Open Worldwide</span>
+          </div>
+          <p class="text-zinc-400 text-[11px] mb-4">Generates dense 384-dimensional vectors for semantic search.</p>
+          
+          <pre class="bg-black p-3 rounded border border-zinc-800 text-[11px] text-zinc-300"><code>{
+  "input": "Distributed edge computing on mobile processors",
+  "model": "bge-small-en-v1.5"
+}</code></pre>
+        </div>
+
+        <!-- ENDPOINT 5: RERANK -->
+        <div id="api-rerank" class="mb-10 bg-cardbg border border-cardborder rounded-xl p-5 font-mono text-xs">
+          <div class="flex items-center gap-3 mb-3">
+            <span class="px-2 py-0.5 rounded bg-blue-900/60 border border-blue-700 text-blue-300 font-bold">POST</span>
+            <span class="text-white font-bold text-sm">/v1/rerank</span>
+            <span class="ml-auto text-[11px] text-emerald-400">Auth: Open Worldwide</span>
+          </div>
+          <p class="text-zinc-400 text-[11px] mb-4">Reranks candidate documents by deep cross-encoder semantic relevance.</p>
+          
+          <pre class="bg-black p-3 rounded border border-zinc-800 text-[11px] text-zinc-300"><code>{
+  "query": "mobile phone hosting",
+  "documents": [
+    "Running LLMs on physical smartphones",
+    "Cooking recipes for pasta"
+  ]
+}</code></pre>
+        </div>
+
+        <!-- ENDPOINT 6: STORAGE OBJECTS CRUD -->
+        <div id="api-storage-crud" class="mb-10 bg-cardbg border border-cardborder rounded-xl p-5 font-mono text-xs">
+          <div class="flex items-center gap-3 mb-3">
+            <span class="px-2 py-0.5 rounded bg-amber-900/60 border border-amber-700 text-amber-300 font-bold">PUT</span>
+            <span class="text-white font-bold text-sm">/v1/storage/objects/&lt;path&gt;</span>
+            <span class="ml-auto text-[11px] text-amber-400">Auth: Scoped Token</span>
+          </div>
+          <p class="text-zinc-400 text-[11px] mb-4">Uploads or updates a blob in the authenticated tenant's private storage bucket.</p>
+          
+          <div class="p-3 bg-black rounded border border-zinc-800 text-[11px] text-zinc-300">
+            <code>curl -X PUT "https://phone-whisper-server.pages.dev/v1/storage/objects/docs/spec.pdf" \
+  -H "Authorization: Bearer sk_swades_..." \
+  --data-binary "@spec.pdf"</code>
+          </div>
+        </div>
+
+        <!-- ENDPOINT 7: AUTHENTICATION & LOGIN -->
+        <div id="api-auth-login" class="mb-10 bg-cardbg border border-cardborder rounded-xl p-5 font-mono text-xs">
+          <div class="flex items-center gap-3 mb-3">
+            <span class="px-2 py-0.5 rounded bg-blue-900/60 border border-blue-700 text-blue-300 font-bold">POST</span>
+            <span class="text-white font-bold text-sm">/v1/storage/auth/login</span>
+            <span class="ml-auto text-[11px] text-zinc-400">Rate Limited</span>
+          </div>
+          <p class="text-zinc-400 text-[11px] mb-4">Authenticates user credentials and returns active tenant token & keys.</p>
+          
+          <pre class="bg-black p-3 rounded border border-zinc-800 text-[11px] text-zinc-300"><code>{
+  "username": "datacenter_admin",
+  "password": "your_secure_password"
+}</code></pre>
+        </div>
+
+        <!-- ENDPOINT 8: DASHBOARD APIS -->
+        <div id="api-dashboard" class="mb-10 bg-cardbg border border-cardborder rounded-xl p-5 font-mono text-xs">
+          <div class="flex items-center gap-3 mb-3">
+            <span class="px-2 py-0.5 rounded bg-purple-900/60 border border-purple-700 text-purple-300 font-bold">GET</span>
+            <span class="text-white font-bold text-sm">/v1/dashboard/overview</span>
+            <span class="ml-auto text-[11px] text-purple-400">Auth: Reviewer / Admin</span>
+          </div>
+          <p class="text-zinc-400 text-[11px] mb-4">Aggregates dynamic KPI metrics, storage pool usage, SLA uptime, and memory status.</p>
+        </div>
+
+        <!-- ENDPOINT 9: TELEMETRY -->
+        <div id="api-telemetry" class="mb-6 bg-cardbg border border-cardborder rounded-xl p-5 font-mono text-xs">
+          <div class="flex items-center gap-3 mb-3">
+            <span class="px-2 py-0.5 rounded bg-emerald-900/60 border border-emerald-700 text-emerald-300 font-bold">GET</span>
+            <span class="text-white font-bold text-sm">/telemetry</span>
+            <span class="ml-auto text-[11px] text-emerald-400">Auth: Open Worldwide</span>
+          </div>
+          <p class="text-zinc-400 text-[11px] mb-4">Returns real-time hardware telemetry from Android Linux kernel.</p>
+        </div>
+      </section>
+
+      <!-- PYTHON & JS CLIENT SDKS -->
+      <section id="sdk-python" class="doc-section mb-16 border-b border-cardborder pb-12">
+        <h2 class="text-2xl font-bold font-grotesk text-white mb-3 flex items-center gap-2">
+          <span class="text-cyan-400">09.</span> Client SDKs & Code Libraries
+        </h2>
+        <p class="text-zinc-400 text-sm leading-relaxed mb-6">
+          Lightweight, zero-dependency wrapper libraries for instant drop-in integration with your backend or frontend stack.
+        </p>
+
+        <div class="bg-black border border-cardborder rounded-xl p-5 font-mono text-xs mb-6">
+          <div class="text-white font-bold mb-3 flex items-center justify-between">
+            <span>🐍 Python 3 SDK (Zero-Tassel Client)</span>
+            <span class="text-zinc-500 text-[11px]">swades_client.py</span>
+          </div>
+          <pre class="text-zinc-300 overflow-x-auto leading-relaxed"><code><span class="code-kw">import</span> requests
+
+<span class="code-kw">class</span> <span class="code-fn">PhoneDatacenterClient</span>:
+    <span class="code-kw">def</span> __init__(self, base_url=<span class="code-str">"https://phone-whisper-server.pages.dev"</span>, api_key=<span class="code-kw">None</span>):
+        self.base = base_url.rstrip(<span class="code-str">"/"</span>)
+        self.headers = {<span class="code-str">"Authorization"</span>: f<span class="code-str">"Bearer {api_key}"</span>} <span class="code-kw">if</span> api_key <span class="code-kw">else</span> {}
+
+    <span class="code-kw">def</span> transcribe(self, audio_path):
+        <span class="code-kw">with</span> open(audio_path, <span class="code-str">"rb"</span>) <span class="code-kw">as</span> f:
+            r = requests.post(f<span class="code-str">"{self.base}/v1/audio/transcriptions"</span>, files={<span class="code-str">"file"</span>: f})
+            <span class="code-kw">return</span> r.json()
+
+    <span class="code-kw">def</span> chat(self, prompt, system_prompt=<span class="code-str">"You are a helpful assistant."</span>):
+        r = requests.post(f<span class="code-str">"{self.base}/v1/chat/completions"</span>, json={
+            <span class="code-str">"messages"</span>: [
+                {<span class="code-str">"role"</span>: <span class="code-str">"system"</span>, <span class="code-str">"content"</span>: system_prompt},
+                {<span class="code-str">"role"</span>: <span class="code-str">"user"</span>, <span class="code-str">"content"</span>: prompt}
+            ]
+        })
+        <span class="code-kw">return</span> r.json()[<span class="code-str">"choices"</span>][<span class="code-num">0</span>][<span class="code-str">"message"</span>][<span class="code-str">"content"</span>]
+
+    <span class="code-kw">def</span> upload_object(self, remote_path, data_bytes):
+        r = requests.put(f<span class="code-str">"{self.base}/v1/storage/objects/{remote_path}"</span>, data=data_bytes, headers=self.headers)
+        <span class="code-kw">return</span> r.json()</code></pre>
+        </div>
+
+        <div id="sdk-js" class="bg-black border border-cardborder rounded-xl p-5 font-mono text-xs mb-6">
+          <div class="text-white font-bold mb-3 flex items-center justify-between">
+            <span>⚡ JavaScript / TypeScript Client</span>
+            <span class="text-zinc-500 text-[11px]">swadesClient.ts</span>
+          </div>
+          <pre class="text-zinc-300 overflow-x-auto leading-relaxed"><code><span class="code-kw">export class</span> <span class="code-fn">PhoneClient</span> {
+  <span class="code-kw">constructor</span>(<span class="code-kw">private</span> baseUrl = <span class="code-str">'https://phone-whisper-server.pages.dev'</span>, <span class="code-kw">private</span> apiKey?: <span class="code-fn">string</span>) {}
+
+  <span class="code-kw">async</span> transcribe(audioBlob: <span class="code-fn">Blob</span>) {
+    <span class="code-kw">const</span> form = <span class="code-kw">new</span> FormData();
+    form.append(<span class="code-str">'file'</span>, audioBlob, <span class="code-str">'audio.wav'</span>);
+    <span class="code-kw">const</span> res = <span class="code-kw">await</span> fetch(this.baseUrl + <span class="code-str">'/v1/audio/transcriptions'</span>, { method: <span class="code-str">'POST'</span>, body: form });
+    <span class="code-kw">return</span> res.json();
+  }
+
+  <span class="code-kw">async</span> chat(prompt: <span class="code-fn">string</span>) {
+    <span class="code-kw">const</span> res = <span class="code-kw">await</span> fetch(this.baseUrl + <span class="code-str">'/v1/chat/completions'</span>, {
+      method: <span class="code-str">'POST'</span>,
+      headers: { <span class="code-str">'Content-Type'</span>: <span class="code-str">'application/json'</span> },
+      body: JSON.stringify({ messages: [{ role: <span class="code-str">'user'</span>, content: prompt }] })
+    });
+    <span class="code-kw">const</span> data = <span class="code-kw">await</span> res.json();
+    <span class="code-kw">return</span> data.choices[<span class="code-num">0</span>].message.content;
+  }
+}</code></pre>
+        </div>
+
+        <div id="sdk-bash" class="bg-black border border-cardborder rounded-xl p-5 font-mono text-xs">
+          <div class="text-white font-bold mb-3 flex items-center justify-between">
+            <span>💻 Bash CLI Streamer</span>
+            <span class="text-zinc-500 text-[11px]">whisper.sh</span>
+          </div>
+          <pre class="text-zinc-300 overflow-x-auto leading-relaxed"><code>#!/usr/bin/env bash
+ENDPOINT="https://phone-whisper-server.pages.dev"
+AUDIO_FILE="$1"
+
+if [ -z "$AUDIO_FILE" ]; then
+  echo "Usage: ./whisper.sh <audio_file.wav>"
+  exit 1
+fi
+
+curl -s -X POST "$ENDPOINT/v1/audio/transcriptions" \
+  -F "file=@$AUDIO_FILE" \
+  -F "response_format=text"</code></pre>
+        </div>
+      </section>
+
+      <!-- OPERATIONS & ADB RUNBOOK -->
+      <section id="runbook" class="doc-section mb-16">
+        <h2 class="text-2xl font-bold font-grotesk text-white mb-3 flex items-center gap-2">
+          <span class="text-cyan-400">10.</span> Operations & ADB Incident Runbook
+        </h2>
+        <p class="text-zinc-400 text-sm leading-relaxed mb-6">
+          Diagnostic commands and recovery procedures for phone node operators maintaining 100% uptime.
+        </p>
+
+        <div class="space-y-4 font-mono text-xs">
+          <div class="p-4 bg-cardbg border border-cardborder rounded-xl">
+            <div class="text-white font-bold mb-1">1. Reconnect Phone via Wireless ADB</div>
+            <p class="text-zinc-400 text-[11px] mb-2">If ADB drops or host machine reboots:</p>
+            <pre class="bg-black p-2.5 rounded border border-zinc-800 text-cyan-400"><code>adb disconnect
+adb connect 192.168.29.2:5555
+adb devices</code></pre>
+          </div>
+
+          <div class="p-4 bg-cardbg border border-cardborder rounded-xl">
+            <div class="text-white font-bold mb-1">2. Termux Wake-Lock Verification</div>
+            <p class="text-zinc-400 text-[11px] mb-2">Ensure Android CPU does not enter deep sleep:</p>
+            <pre class="bg-black p-2.5 rounded border border-zinc-800 text-emerald-400"><code>adb -s 192.168.29.2:5555 shell "run-as com.termux termux-wake-lock"
+adb -s 192.168.29.2:5555 shell "dumpsys deviceidle whitelist +com.termux"</code></pre>
+          </div>
+
+          <div class="p-4 bg-cardbg border border-cardborder rounded-xl">
+            <div class="text-white font-bold mb-1">3. SQLite Database Compaction & Integrity Audit</div>
+            <pre class="bg-black p-2.5 rounded border border-zinc-800 text-purple-400"><code>curl -X POST "https://phone-whisper-server.pages.dev/v1/dashboard/db/vacuum" \
+  -H "Authorization: Bearer sk_swades_..."</code></pre>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- JAVASCRIPT: INSTANT SEARCH, CODE TABS, SCROLL-SPY, LIVE TELEMETRY -->
+  <script>
+    let activeHost = 'https://phone-whisper-server.pages.dev';
+
+    function switchHostEnvironment(val) {
+      if (val === 'lan') {
+        activeHost = 'http://192.168.29.2:8080';
+      } else if (val === 'tunnel') {
+        activeHost = 'https://grown-prior-generated-victor.trycloudflare.com';
+      } else {
+        activeHost = window.location.origin.includes('pages.dev') ? window.location.origin : 'https://phone-whisper-server.pages.dev';
+      }
+      document.querySelectorAll('.active-endpoint-url').forEach(el => {
+        el.innerText = activeHost;
+      });
+    }
+
+    function switchCodeSnippet(group, tab) {
+      const tabs = ['curl', 'py', 'fetch', 'node'];
+      tabs.forEach(t => {
+        const btn = document.querySelector('.tab-btn-' + group + '-' + t);
+        const block = document.getElementById('code-' + group + '-' + t);
+        if (btn && block) {
+          if (t === tab) {
+            btn.classList.add('bg-zinc-800', 'text-cyan-400', 'font-semibold');
+            btn.classList.remove('text-zinc-500');
+            block.classList.remove('hidden');
+          } else {
+            btn.classList.remove('bg-zinc-800', 'text-cyan-400', 'font-semibold');
+            btn.classList.add('text-zinc-500');
+            block.classList.add('hidden');
+          }
+        }
+      });
+    }
+
+    // Live Telemetry Poller
+    async function fetchTelemetryHUD() {
+      try {
+        const res = await fetch(activeHost + '/telemetry', { signal: AbortSignal.timeout(3000) });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.ram) {
+            const used = data.ram.used_mb || '1.8';
+            const total = data.ram.total_mb ? Math.round(data.ram.total_mb/1024*10)/10 : '4.0';
+            document.getElementById('hud-ram-val').innerText = used + ' / ' + total + ' GB';
+          }
+          if (data.device) {
+            document.getElementById('hud-device-name').innerText = data.device.model || 'Redmi 9i';
+          }
+          document.getElementById('hud-status-val').innerText = 'ONLINE (OK)';
+        }
+      } catch (err) {}
+    }
+    fetchTelemetryHUD();
+    setInterval(fetchTelemetryHUD, 15000);
+
+    // Instant Documentation Search
+    function filterDocumentation(query) {
+      const q = query.toLowerCase().trim();
+      const sections = document.querySelectorAll('.doc-section');
+      sections.forEach(sec => {
+        const text = sec.innerText.toLowerCase();
+        if (!q || text.includes(q)) {
+          sec.style.display = 'block';
+        } else {
+          sec.style.display = 'none';
+        }
+      });
+    }
+
+    // Keyboard shortcut '/' to search
+    window.addEventListener('keydown', (e) => {
+      if (e.key === '/' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+        e.preventDefault();
+        const searchInput = document.getElementById('doc-search-input');
+        if (searchInput) searchInput.focus();
+      }
+    });
+
+    // ScrollSpy for TOC active link
+    window.addEventListener('scroll', () => {
+      const sections = document.querySelectorAll('.doc-section');
+      let currentSectionId = '';
+      sections.forEach(sec => {
+        const top = sec.offsetTop - 120;
+        if (window.scrollY >= top) {
+          currentSectionId = sec.getAttribute('id');
+        }
+      });
+      document.querySelectorAll('.toc-item').forEach(item => {
+        item.classList.remove('active');
+        if (item.getAttribute('href') === '#' + currentSectionId) {
+          item.classList.add('active');
+        }
+      });
+    });
+  </script>
+</body>
+</html>

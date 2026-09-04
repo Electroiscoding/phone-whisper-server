@@ -150,7 +150,7 @@ def record_request_log(method, path, status_code, latency_ms, ip="", user_agent=
     try:
         now = time.time()
         p = (path or "").split("?")[0]
-        if p in ["", "/", "/dashboard", "/dashboard.html", "/index.html", "/swades.html"]:
+        if p in ["", "/", "/dashboard", "/dashboard.html", "/index.html", "/swades.html", "/docs", "/docs.html"]:
             _total_landing_views += 1
         elif p.startswith("/s/") or p.startswith("/v1/storage/objects/"):
             _total_cdn_stream_hits += 1
@@ -2914,6 +2914,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_storage_list_keys()
         elif path in ["/dashboard", "/dashboard.html"]:
             self.handle_dashboard_html()
+        elif path in ["/docs", "/docs.html"]:
+            self.handle_docs_html()
         elif path in ["/v1/dashboard/overview", "/v1/admin/overview"]:
             self.handle_dashboard_overview()
         elif path in ["/v1/dashboard/flags", "/v1/admin/flags"]:
@@ -4289,6 +4291,25 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 self.wfile.write(content)
                 return
         self.send_error(404, "dashboard.html not found on server")
+
+    def handle_docs_html(self):
+        """Serves the exhaustive documentation single page application"""
+        for p in [
+            os.path.join(os.getcwd(), "docs.html"),
+            "/data/data/com.termux/files/home/docs.html",
+            os.path.expanduser("~/docs.html")
+        ]:
+            if os.path.exists(p):
+                with open(p, "rb") as f:
+                    content = f.read()
+                self.send_response(200)
+                self._send_cors_headers()
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Content-Length", str(len(content)))
+                self.end_headers()
+                self.wfile.write(content)
+                return
+        self.send_error(404, "docs.html not found on server")
 
     def handle_dashboard_overview(self):
         data = _storage_vault.get_dashboard_overview()

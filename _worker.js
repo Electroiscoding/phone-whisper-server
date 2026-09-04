@@ -82,7 +82,13 @@ export default {
 
     // If it's a static frontend request, serve through Cloudflare Pages static assets
     if (!isApi && env.ASSETS) {
-      return env.ASSETS.fetch(request);
+      const assetRes = await env.ASSETS.fetch(request);
+      if (assetRes.status === 404 && !url.pathname.includes(".")) {
+        const htmlUrl = new URL(url.pathname + ".html", request.url);
+        const htmlRes = await env.ASSETS.fetch(new Request(htmlUrl, request));
+        if (htmlRes.ok) return htmlRes;
+      }
+      return assetRes;
     }
 
     // 2. Direct Tunnel Registration from Phone
