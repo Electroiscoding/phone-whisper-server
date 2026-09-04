@@ -1,0 +1,1538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Developer & Reviewer Console — Phone Cloud Datacenter</title>
+  <script>
+    const _ow = console.warn;
+    console.warn = function(...args) {
+      if (args[0] && typeof args[0] === 'string' && args[0].includes('cdn.tailwindcss.com')) return;
+      _ow.apply(console, args);
+    };
+  </script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-obsidian: #030507;
+      --card-bg: #07090d;
+      --card-border: #181b22;
+      --accent-cyan: #38bdf8;
+      --accent-emerald: #10b981;
+      --accent-violet: #a855f7;
+      --accent-rose: #f43f5e;
+    }
+    body {
+      background-color: var(--bg-obsidian);
+      color: #e4e4e7;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      margin: 0;
+      overflow-x: hidden;
+    }
+    .space-grotesk { font-family: 'Space Grotesk', sans-serif; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+    
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 2px; }
+    ::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
+
+    .glow-cyan { box-shadow: 0 0 20px -5px rgba(56, 189, 248, 0.25); }
+    .glow-emerald { box-shadow: 0 0 20px -5px rgba(16, 185, 129, 0.25); }
+    .glow-rose { box-shadow: 0 0 20px -5px rgba(244, 63, 94, 0.25); }
+    
+    .table-cell-editable:hover {
+      background-color: rgba(56, 189, 248, 0.08);
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body class="bg-[#030507] text-zinc-200 min-h-screen flex flex-col antialiased select-none">
+
+  <!-- Top Global Brutalist Header -->
+  <header class="sticky top-0 z-40 bg-[#06080c]/90 backdrop-blur-md border-b border-zinc-800/80 px-4 py-2.5 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <a href="/" class="flex items-center gap-2 hover:opacity-80 transition-opacity">
+        <span class="w-6 h-6 rounded bg-gradient-to-tr from-cyan-500 to-indigo-500 flex items-center justify-center text-xs font-black text-black">⚡</span>
+        <span class="font-bold tracking-tight text-white space-grotesk text-base">SWADES <span class="text-cyan-400 font-normal text-xs uppercase tracking-widest ml-1 px-1.5 py-0.5 rounded bg-cyan-950/60 border border-cyan-800/60">Cloud Console</span></span>
+      </a>
+      <span class="text-zinc-600">/</span>
+      <div id="env-badge" class="flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-mono bg-emerald-950/50 border border-emerald-800/60 text-emerald-400">
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span id="env-label">PHONE DATACENTER ONLINE</span>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <!-- Quick Telemetry Ticker -->
+      <div class="hidden md:flex items-center gap-4 text-xs font-mono text-zinc-400 border-r border-zinc-800/80 pr-4">
+        <div>RAM L1: <span id="hdr-ram-latency" class="text-cyan-400 font-bold">45.0 ns</span></div>
+        <div>SLA: <span class="text-emerald-400 font-bold">&lt;0.0001ms</span></div>
+        <div>POOLS: <span id="hdr-pools-count" class="text-zinc-200 font-bold">3 ACTIVE</span></div>
+      </div>
+
+      <!-- Navigation links to other spaces -->
+      <a href="/swades.html" class="hidden sm:inline-flex items-center gap-1 text-xs font-mono px-2.5 py-1 rounded border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 text-zinc-300 transition-colors">
+        <span>💻 Agent Jules</span>
+      </a>
+      <a href="/" class="hidden sm:inline-flex items-center gap-1 text-xs font-mono px-2.5 py-1 rounded border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 text-zinc-300 transition-colors">
+        <span>🌐 Public Studio</span>
+      </a>
+
+      <!-- User Session HUD -->
+      <div id="user-session-bar" class="flex items-center gap-2">
+        <div id="logged-in-box" class="hidden flex items-center gap-2">
+          <div class="flex items-center gap-1.5 px-2.5 py-1 rounded bg-zinc-900 border border-zinc-700/80 text-xs font-mono">
+            <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
+            <span id="auth-username" class="font-semibold text-white">admin</span>
+            <span id="auth-role" class="text-[10px] uppercase tracking-wider text-cyan-400 bg-cyan-950 px-1 rounded border border-cyan-800/40">DEV</span>
+          </div>
+          <button onclick="logoutUser()" class="text-xs font-mono text-zinc-400 hover:text-rose-400 px-2 py-1 rounded border border-zinc-800 hover:border-rose-900 transition-colors">Sign Out</button>
+        </div>
+        <div id="logged-out-box">
+          <button onclick="openAuthModal('signin')" class="text-xs font-mono px-3 py-1 rounded bg-cyan-500 hover:bg-cyan-400 text-black font-semibold transition-all">Sign In</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container with Sidebar + Main Viewport -->
+  <div class="flex-1 flex overflow-hidden">
+    
+    <!-- Sidebar Navigation -->
+    <aside class="w-64 shrink-0 bg-[#05070a] border-r border-zinc-800/80 flex flex-col justify-between select-none">
+      <div class="p-3 flex flex-col gap-1 overflow-y-auto">
+        <div class="text-[11px] font-mono text-zinc-500 uppercase tracking-wider px-2 py-1">Views & Control</div>
+
+        <button onclick="switchView('overview')" id="nav-overview" class="nav-btn w-full text-left px-3 py-2 rounded text-xs font-mono flex items-center gap-2.5 text-white bg-zinc-800/80 border border-zinc-700/60 transition-all">
+          <span class="text-base">⚡</span>
+          <span class="font-medium">Overview & HUD</span>
+        </button>
+
+        <button onclick="switchView('config')" id="nav-config" class="nav-btn w-full text-left px-3 py-2 rounded text-xs font-mono flex items-center gap-2.5 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60 border border-transparent transition-all">
+          <span class="text-base">🎛️</span>
+          <span class="font-medium">Config & Testing</span>
+        </button>
+
+        <button onclick="switchView('users')" id="nav-users" class="nav-btn w-full text-left px-3 py-2 rounded text-xs font-mono flex items-center gap-2.5 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60 border border-transparent transition-all">
+          <span class="text-base">👥</span>
+          <span class="font-medium">User Management</span>
+        </button>
+
+        <button onclick="switchView('analytics')" id="nav-analytics" class="nav-btn w-full text-left px-3 py-2 rounded text-xs font-mono flex items-center gap-2.5 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60 border border-transparent transition-all">
+          <span class="text-base">📈</span>
+          <span class="font-medium">Live Analytics</span>
+        </button>
+
+        <button onclick="switchView('data')" id="nav-data" class="nav-btn w-full text-left px-3 py-2 rounded text-xs font-mono flex items-center gap-2.5 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60 border border-transparent transition-all">
+          <span class="text-base">🗄️</span>
+          <span class="font-medium">Data & Storage</span>
+        </button>
+
+        <div class="text-[11px] font-mono text-zinc-500 uppercase tracking-wider px-2 pt-4 pb-1">Developer Tools</div>
+
+        <button onclick="switchView('logs')" id="nav-logs" class="nav-btn w-full text-left px-3 py-2 rounded text-xs font-mono flex items-center gap-2.5 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60 border border-transparent transition-all">
+          <span class="text-base">🪵</span>
+          <span class="font-medium">Live Log Streamer</span>
+        </button>
+
+        <button onclick="switchView('playground')" id="nav-playground" class="nav-btn w-full text-left px-3 py-2 rounded text-xs font-mono flex items-center gap-2.5 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60 border border-transparent transition-all">
+          <span class="text-base">🧪</span>
+          <span class="font-medium">API Playground</span>
+        </button>
+
+        <button onclick="switchView('secrets')" id="nav-secrets" class="nav-btn w-full text-left px-3 py-2 rounded text-xs font-mono flex items-center gap-2.5 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60 border border-transparent transition-all">
+          <span class="text-base">⚙️</span>
+          <span class="font-medium">Secrets & Webhooks</span>
+        </button>
+      </div>
+
+      <!-- Sidebar Hardware Footer -->
+      <div class="p-3 border-t border-zinc-800/80 bg-black/40 text-[11px] font-mono text-zinc-400 flex flex-col gap-1.5">
+        <div class="flex justify-between items-center">
+          <span class="text-zinc-500">Device</span>
+          <span class="text-zinc-300 font-semibold">Xiaomi Redmi 9i</span>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-zinc-500">Architecture</span>
+          <span class="text-zinc-300">ARM64 Cortex-A53</span>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-zinc-500">RAM Bus</span>
+          <span class="text-cyan-400">LPDDR4X 1600MHz</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Viewport Area -->
+    <main class="flex-1 overflow-y-auto p-4 sm:p-6 bg-[#030507]">
+      
+      <!-- =================================================================== -->
+      <!-- VIEW 1: OVERVIEW & TELEMETRY HUD -->
+      <!-- =================================================================== -->
+      <section id="view-overview" class="view-panel space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-800/80 pb-4">
+          <div>
+            <h1 class="text-xl font-bold tracking-tight text-white space-grotesk">Phone AI Datacenter Overview</h1>
+            <p class="text-xs text-zinc-400 mt-0.5">Real-time status of physical storage pools, sub-microsecond RAM engine, and active accounts.</p>
+          </div>
+          <button onclick="refreshOverview()" class="self-start sm:self-auto text-xs font-mono px-3 py-1.5 rounded bg-zinc-900 border border-zinc-700 hover:bg-zinc-800 text-cyan-400 flex items-center gap-1.5 transition-colors">
+            <span>🔄</span> Refresh Telemetry
+          </button>
+        </div>
+
+        <!-- Metric KPI Cards -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div class="p-4 rounded-lg bg-[#07090d] border border-zinc-800/80 flex flex-col gap-1">
+            <span class="text-[11px] font-mono text-zinc-500 uppercase">L1 CRUD Reflection</span>
+            <div class="flex items-baseline gap-2">
+              <span id="kpi-reflection" class="text-2xl font-bold font-mono text-cyan-400">45.0 ns</span>
+              <span class="text-[10px] text-emerald-400 bg-emerald-950/60 px-1 rounded border border-emerald-800/40">SLA PASS</span>
+            </div>
+            <span class="text-[11px] text-zinc-400 mt-1">Direct LPDDR4X Memory Bus</span>
+          </div>
+
+          <div class="p-4 rounded-lg bg-[#07090d] border border-zinc-800/80 flex flex-col gap-1">
+            <span class="text-[11px] font-mono text-zinc-500 uppercase">Registered Users</span>
+            <div class="flex items-baseline gap-2">
+              <span id="kpi-users-count" class="text-2xl font-bold font-mono text-white">--</span>
+              <span class="text-[10px] text-cyan-400 bg-cyan-950/60 px-1 rounded border border-cyan-800/40">Zero Tassel</span>
+            </div>
+            <span class="text-[11px] text-zinc-400 mt-1">Cryptographically Isolated</span>
+          </div>
+
+          <div class="p-4 rounded-lg bg-[#07090d] border border-zinc-800/80 flex flex-col gap-1">
+            <span class="text-[11px] font-mono text-zinc-500 uppercase">Active API Keys</span>
+            <div class="flex items-baseline gap-2">
+              <span id="kpi-keys-count" class="text-2xl font-bold font-mono text-emerald-400">--</span>
+              <span class="text-[10px] text-zinc-400">Storage Only</span>
+            </div>
+            <span class="text-[11px] text-zinc-400 mt-1">Phone-Hosted SQLite Vault</span>
+          </div>
+
+          <div class="p-4 rounded-lg bg-[#07090d] border border-zinc-800/80 flex flex-col gap-1">
+            <span class="text-[11px] font-mono text-zinc-500 uppercase">Total Objects Hosted</span>
+            <div class="flex items-baseline gap-2">
+              <span id="kpi-objects-count" class="text-2xl font-bold font-mono text-violet-400">--</span>
+              <span id="kpi-storage-mb" class="text-[11px] text-zinc-300 font-mono">0.0 MB</span>
+            </div>
+            <span class="text-[11px] text-zinc-400 mt-1">Worldwide CDN Permalinks</span>
+          </div>
+        </div>
+
+        <!-- Physical Storage Pools Gauges -->
+        <div class="p-4 rounded-lg bg-[#07090d] border border-zinc-800/80 space-y-3">
+          <div class="flex items-center justify-between">
+            <h2 class="text-sm font-bold text-white space-grotesk flex items-center gap-2">
+              <span>💾 Physical Multi-Drive Storage Pools</span>
+              <span class="text-[10px] font-mono text-emerald-400 px-1.5 py-0.5 rounded bg-emerald-950/60 border border-emerald-800/50">JBOD POOLED</span>
+            </h2>
+            <span class="text-xs font-mono text-zinc-500">Auto-Spillover Threshold: 90%</span>
+          </div>
+
+          <div id="overview-pools-grid" class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+
+        <!-- Quick 1-Click Nanosecond CRUD Benchmark -->
+        <div class="p-4 rounded-lg bg-gradient-to-r from-[#07090d] to-[#0d1117] border border-cyan-900/40 space-y-3">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <div class="text-sm font-bold text-white space-grotesk">1-Click Live Hardware Reflection Benchmark</div>
+              <div class="text-xs text-zinc-400">Measures true LPDDR4X memory reflection speeds on this phone CPU.</div>
+            </div>
+            <button onclick="runLiveBenchmark()" id="btn-run-bench" class="px-4 py-2 rounded bg-cyan-500 hover:bg-cyan-400 text-black font-semibold text-xs font-mono transition-all">
+              ⚡ Execute 50-Op Burst Benchmark
+            </button>
+          </div>
+          <div id="bench-results-box" class="hidden p-3 rounded bg-black/60 border border-zinc-800 font-mono text-xs grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div>HEAD Latency: <span id="bench-head" class="text-cyan-400 font-bold">--</span></div>
+            <div>GET Cached: <span id="bench-get" class="text-emerald-400 font-bold">--</span></div>
+            <div>DELETE Latency: <span id="bench-del" class="text-violet-400 font-bold">--</span></div>
+            <div>PUT Reflection: <span id="bench-put" class="text-zinc-300 font-bold">--</span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =================================================================== -->
+      <!-- VIEW 2: INTERFACE CONFIGURATION & TESTING (Feature Flags, Styling, Experiments, Crash Logs) -->
+      <!-- =================================================================== -->
+      <section id="view-config" class="view-panel hidden space-y-6">
+        <div class="border-b border-zinc-800/80 pb-3">
+          <h1 class="text-xl font-bold tracking-tight text-white space-grotesk">Interface Configuration & Testing View</h1>
+          <p class="text-xs text-zinc-400 mt-0.5">Control live feature flags, remote styling variables, A/B experiments, and monitor performance logs.</p>
+        </div>
+
+        <!-- Subsection 1: Feature Flags -->
+        <div class="p-4 rounded-lg bg-[#07090d] border border-zinc-800/80 space-y-3">
+          <div class="flex items-center justify-between">
+            <h2 class="text-sm font-bold text-white space-grotesk flex items-center gap-2">
+              <span>🚩 Feature Flags (Instant Toggles Without Redeployment)</span>
+            </h2>
+            <span class="text-xs font-mono text-zinc-400">Live In-Memory & SQLite Synced</span>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs font-mono border-collapse">
+              <thead>
+                <tr class="border-b border-zinc-800 text-zinc-500">
+                  <th class="py-2 px-3">Flag Key & Name</th>
+                  <th class="py-2 px-3">Description</th>
+                  <th class="py-2 px-3">Rollout</th>
+                  <th class="py-2 px-3 text-right">Status & Action</th>
+                </tr>
+              </thead>
+              <tbody id="flags-table-body">
+                <!-- Dynamically Populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Subsection 2: Remote Styling & Config -->
+        <div class="p-4 rounded-lg bg-[#07090d] border border-zinc-800/80 space-y-3">
+          <div class="flex items-center justify-between">
+            <h2 class="text-sm font-bold text-white space-grotesk flex items-center gap-2">
+              <span>🎨 Remote Styling & Copy Variables</span>
+            </h2>
+            <button onclick="saveRemoteConfig()" class="text-xs font-mono px-3 py-1 rounded bg-cyan-500 hover:bg-cyan-400 text-black font-semibold">Save Config Changes</button>
+          </div>
+          <div id="remote-config-grid" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <!-- Dynamically Populated -->
+          </div>
+        </div>
+
+        <!-- Subsection 3: Experiment Panels (A/B Testing) -->
+        <div class="p-4 rounded-lg bg-[#07090d] border border-zinc-800/80 space-y-3">
+          <div class="flex items-center justify-between">
+            <h2 class="text-sm font-bold text-white space-grotesk flex items-center gap-2">
+              <span>🧪 Experiment Panels (A/B Split-Testing & Conversions)</span>
+            </h2>
+            <span class="text-xs font-mono text-emerald-400">2 Experiments Active</span>
+          </div>
+          <div id="experiments-list" class="space-y-3">
+            <!-- Dynamically Populated -->
+          </div>
+        </div>
+
+        <!-- Subsection 4: Performance Logs & Crash Tracker -->
+        <div class="p-4 rounded-lg bg-[#07090d] border border-zinc-800/80 space-y-3">
+          <div class="flex items-center justify-between">
+            <h2 class="text-sm font-bold text-white space-grotesk flex items-center gap-2">
+              <span>📉 Performance Logs & Freeze Tracker</span>
+            </h2>
+            <button onclick="logSimulatedCrash()" class="text-xs font-mono px-2.5 py-1 rounded border border-rose-800 bg-rose-950/40 text-rose-300 hover:bg-rose-900/60">
+              🚨 Record Client Freeze Event
+            </button>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs font-mono border-collapse">
+              <thead>
+                <tr class="border-b border-zinc-800 text-zinc-500">
+                  <th class="py-2 px-3">Event Type</th>
+                  <th class="py-2 px-3">Endpoint / Scope</th>
+                  <th class="py-2 px-3">Latency</th>
+                  <th class="py-2 px-3">Code</th>
+                  <th class="py-2 px-3">Hardware / Device</th>
+                </tr>
+              </thead>
+              <tbody id="perf-logs-body">
+                <!-- Dynamically Populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- =================================================================== -->
+      <!-- VIEW 3: USER MANAGEMENT VIEW (Auditor, Access Control, Notification Composer) -->
+      <!-- =================================================================== -->
+      <section id="view-users" class="view-panel hidden space-y-6">
+        <div class="border-b border-zinc-800/80 pb-3">
+          <h1 class="text-xl font-bold tracking-tight text-white space-grotesk">User Management View</h1>
+          <p class="text-xs text-zinc-400 mt-0.5">Audit user accounts, adjust permissions, enforce quotas, and blast broadcast notifications.</p>
+        </div>
+
+        <!-- Profile Auditor -->
+        <div class="p-4 rounded-lg bg-[#07090d] border border-zinc-800/80 space-y-3">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <h2 class="text-sm font-bold text-white space-grotesk">🔍 Profile Auditor & Account Registry</h2>
+            <div class="flex items-center gap-2">
+              <input type="text" id="user-search-input" onkeyup="filterUsersTable()" placeholder="Search username or user_id..." class="bg-black border border-zinc-800 rounded px-2.5 py-1 text-xs font-mono text-white focus:border-cyan-500 outline-none w-56" />
+              <button onclick="loadUsersTable()" class="text-xs font-mono px-2.5 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300">Search</button>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs font-mono border-collapse">
+              <thead>
+                <tr class="border-b border-zinc-800 text-zinc-500">
+                  <th class="py-2 px-3">User ID</th>
+                  <th class="py-2 px-3">Username</th>
+                  <th class="py-2 px-3">Role</th>
+                  <th class="py-2 px-3">Storage Quota</th>
+                  <th class="py-2 px-3">Keys</th>
+                  <th class="py-2 px-3">Status</th>
+                  <th class="py-2 px-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="users-table-body">
+                <!-- Dynamically Populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Notification Composer -->
+        <div class="p-4 rounded-lg bg-[#07090d] border border-zinc-800/80 space-y-3">
+          <h2 class="text-sm font-bold text-white space-grotesk">📢 Notification & Broadcast Composer</h2>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="space-y-2">
+              <div>
+                <label class="text-[11px] font-mono text-zinc-400">Notification Title</label>
+                <input type="text" id="notif-title" placeholder="e.g. Scheduled Infrastructure Maintenance" class="w-full bg-black border border-zinc-800 rounded px-3 py-1.5 text-xs font-mono text-white focus:border-cyan-500 outline-none mt-1" />
+              </div>
+              <div>
+                <label class="text-[11px] font-mono text-zinc-400">Target Audience</label>
+                <select id="notif-target" class="w-full bg-black border border-zinc-800 rounded px-3 py-1.5 text-xs font-mono text-white focus:border-cyan-500 outline-none mt-1">
+                  <option value="all">All Registered Users</option>
+                  <option value="beta">Beta Testers & Reviewers</option>
+                  <option value="admin">Administrators Only</option>
+                </select>
+              </div>
+              <div>
+                <label class="text-[11px] font-mono text-zinc-400">Message Body (Markdown supported)</label>
+                <textarea id="notif-body" rows="4" placeholder="Enter notification markdown or plain text details..." class="w-full bg-black border border-zinc-800 rounded px-3 py-1.5 text-xs font-mono text-white focus:border-cyan-500 outline-none mt-1"></textarea>
+              </div>
+              <button onclick="broadcastNotification()" class="w-full py-2 rounded bg-cyan-500 hover:bg-cyan-400 text-black font-semibold text-xs font-mono transition-colors">
+                🚀 Blast Push Notification Now
+              </button>
+            </div>
+
+            <!-- Recent Notifications History -->
+            <div class="p-3 rounded bg-black/50 border border-zinc-800/60 flex flex-col justify-between">
+              <div>
+                <span class="text-[11px] font-mono text-zinc-500 uppercase tracking-wider">Broadcast History</span>
+                <div id="notif-history-list" class="space-y-2 mt-2 max-h-56 overflow-y-auto">
+                  <!-- Dynamically populated -->
+                </div>
+              </div>
+              <span class="text-[10px] text-zinc-500 font-mono mt-2">Stored securely in phone SQLite vault.</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =================================================================== -->
+      <!-- VIEW 4: LIVE ANALYTICS VIEW (Activity Pulse, Funnels, Demographics) -->
+      <!-- =================================================================== -->
+      <section id="view-analytics" class="view-panel hidden space-y-6">
+        <div class="border-b border-zinc-800/80 pb-3">
+          <h1 class="text-xl font-bold tracking-tight text-white space-grotesk">Live Analytics View</h1>
+          <p class="text-xs text-zinc-400 mt-0.5">Real-time throughput pulse, signup-to-upload conversion funnels, and demographic breakdown.</p>
+        </div>
+
+        <!-- Real-Time Activity Pulse -->
+        <div class="p-4 rounded-lg bg-[#07090d] border border-zinc-800/80 space-y-3">
+          <div class="flex items-center justify-between">
+            <h2 class="text-sm font-bold text-white space-grotesk">📈 Real-Time Activity Pulse</h2>
+            <span class="text-xs font-mono text-emerald-400 flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span> Live Edge Telemetry
+            </span>
+          </div>
+
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div class="p-3 rounded bg-black border border-zinc-800 text-xs font-mono">
+              <span class="text-zinc-500">Active Visitors</span>
+              <div id="pulse-visitors" class="text-xl font-bold text-white mt-1">42</div>
+            </div>
+            <div class="p-3 rounded bg-black border border-zinc-800 text-xs font-mono">
+              <span class="text-zinc-500">Requests / Sec</span>
+              <div id="pulse-rps" class="text-xl font-bold text-cyan-400 mt-1">18.4 req/s</div>
+            </div>
+            <div class="p-3 rounded bg-black border border-zinc-800 text-xs font-mono">
+              <span class="text-zinc-500">Avg Latency</span>
+              <div id="pulse-latency" class="text-xl font-bold text-emerald-400 mt-1">1.24 ms</div>
+            </div>
+            <div class="p-3 rounded bg-black border border-zinc-800 text-xs font-mono">
+              <span class="text-zinc-500">Edge Bandwidth</span>
+              <div id="pulse-bandwidth" class="text-xl font-bold text-violet-400 mt-1">8.7 Mbps</div>
+            </div>
+          </div>
+
+          <!-- Simulated Live SVG Line Graph -->
+          <div class="h-32 w-full bg-black/60 rounded border border-zinc-800/80 p-2 flex flex-col justify-between">
+            <svg class="w-full h-24 stroke-cyan-400 fill-cyan-500/10" viewBox="0 0 500 100" preserveAspectRatio="none">
+              <polyline points="0,80 50,65 100,70 150,45 200,55 250,30 300,40 350,20 400,25 450,15 500,20" stroke-width="2" vector-effect="non-scaling-stroke" />
+            </svg>
+            <div class="flex justify-between text-[10px] font-mono text-zinc-500 px-1">
+              <span>-10 min</span>
+              <span>-5 min</span>
+              <span>Now</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Funnel Charts -->
+        <div class="p-4 rounded-lg bg-[#07090d] border border-zinc-800/80 space-y-3">
+          <h2 class="text-sm font-bold text-white space-grotesk">🔻 User Conversion & Drop-off Funnel</h2>
+          <div id="funnel-container" class="space-y-2">
+            <!-- Dynamically Populated -->
+          </div>
+        </div>
+
+        <!-- Demographics & Device Distribution -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="p-4 rounded-lg bg-[#07090d] border border-zinc-800/80 space-y-3">
+            <h2 class="text-sm font-bold text-white space-grotesk">📱 Device & OS Platforms</h2>
+            <div id="demographics-os" class="space-y-2">
+              <!-- Dynamically Populated -->
+            </div>
+          </div>
+
+          <div class="p-4 rounded-lg bg-[#07090d] border border-zinc-800/80 space-y-3">
+            <h2 class="text-sm font-bold text-white space-grotesk">🌍 Global Edge Region Distribution</h2>
+            <div id="demographics-regions" class="space-y-2">
+              <!-- Dynamically Populated -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =================================================================== -->
+      <!-- VIEW 5: DATA & STORAGE VIEW (Database Browser, Media Drive, Credentials) -->
+      <!-- =================================================================== -->
+      <section id="view-data" class="view-panel hidden space-y-6">
+        <div class="border-b border-zinc-800/80 pb-3">
+          <h1 class="text-xl font-bold tracking-tight text-white space-grotesk">Data & Storage View</h1>
+          <p class="text-xs text-zinc-400 mt-0.5">Spreadsheet database browser, visual media drive with preview modal, and API credentials hub.</p>
+        </div>
+
+        <!-- Visual Database Browser -->
+        <div class="p-4 rounded-lg bg-[#07090d] border border-zinc-800/80 space-y-3">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <span class="text-sm font-bold text-white space-grotesk">📊 Visual Database Browser</span>
+              <select id="db-table-select" onchange="loadDbTable()" class="bg-black border border-zinc-800 rounded px-2.5 py-1 text-xs font-mono text-cyan-400 outline-none">
+                <!-- Tables loaded dynamically -->
+              </select>
+            </div>
+            <div class="flex items-center gap-2">
+              <span id="db-total-rows" class="text-xs font-mono text-zinc-500">-- rows</span>
+              <button onclick="openInsertRowModal()" class="text-xs font-mono px-2.5 py-1 rounded bg-cyan-500 hover:bg-cyan-400 text-black font-semibold">+ Insert Row</button>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto max-h-96 overflow-y-auto border border-zinc-800/60 rounded">
+            <table class="w-full text-left text-xs font-mono border-collapse" id="db-grid-table">
+              <thead class="sticky top-0 bg-[#0c0f14] z-10 text-zinc-400 border-b border-zinc-800">
+                <tr id="db-grid-headers"></tr>
+              </thead>
+              <tbody id="db-grid-body">
+                <!-- Rows loaded dynamically -->
+              </tbody>
+            </table>
+          </div>
+          <div class="text-[11px] font-mono text-zinc-500 flex justify-between">
+            <span>💡 Tip: Double-click any cell to edit value directly. Passwords & salts are masked for security.</span>
+          </div>
+        </div>
+
+        <!-- Media Storage Drive & Explorer -->
+        <div class="p-4 rounded-lg bg-[#07090d] border border-zinc-800/80 space-y-3">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <h2 class="text-sm font-bold text-white space-grotesk">📁 Media & Document Storage Drive</h2>
+              <span class="text-xs font-mono text-zinc-500">(Zero-Tassel User Silo)</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <input type="file" id="media-upload-input" onchange="uploadMediaFile(event)" class="hidden" />
+              <button onclick="document.getElementById('media-upload-input').click()" class="text-xs font-mono px-3 py-1.5 rounded bg-zinc-800 hover:bg-zinc-700 text-white font-semibold flex items-center gap-1.5">
+                <span>📤</span> Upload File / Media
+              </button>
+            </div>
+          </div>
+
+          <div id="media-files-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+            <!-- Dynamically populated files -->
+          </div>
+        </div>
+
+        <!-- API Credentials Hub -->
+        <div class="p-4 rounded-lg bg-[#07090d] border border-zinc-800/80 space-y-3">
+          <div class="flex items-center justify-between">
+            <h2 class="text-sm font-bold text-white space-grotesk">🔑 API Credentials Hub (Storage-Only Keys)</h2>
+            <button onclick="openCreateKeyModal()" class="text-xs font-mono px-3 py-1 rounded bg-cyan-500 hover:bg-cyan-400 text-black font-semibold">+ Generate Scoped Key</button>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs font-mono border-collapse">
+              <thead>
+                <tr class="border-b border-zinc-800 text-zinc-500">
+                  <th class="py-2 px-3">Key Name</th>
+                  <th class="py-2 px-3">Key Token</th>
+                  <th class="py-2 px-3">Scope</th>
+                  <th class="py-2 px-3">Created</th>
+                  <th class="py-2 px-3 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody id="keys-table-body">
+                <!-- Dynamically populated keys -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- =================================================================== -->
+      <!-- VIEW 6: LIVE LOG STREAMER -->
+      <!-- =================================================================== -->
+      <section id="view-logs" class="view-panel hidden space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-800/80 pb-3">
+          <div>
+            <h1 class="text-xl font-bold tracking-tight text-white space-grotesk">Live Edge & Hardware Log Streamer</h1>
+            <p class="text-xs text-zinc-400 mt-0.5">Real-time HTTP requests, status codes, reflection times, and IP inspection.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="toggleLogAutoScroll()" id="btn-autoscroll" class="text-xs font-mono px-2.5 py-1 rounded bg-cyan-950 border border-cyan-800/60 text-cyan-400">Auto-Scroll: ON</button>
+            <button onclick="clearLogViewer()" class="text-xs font-mono px-2.5 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300">Clear</button>
+          </div>
+        </div>
+
+        <div id="log-terminal" class="bg-black/90 border border-zinc-800 rounded-lg p-3 font-mono text-xs h-[500px] overflow-y-auto space-y-1">
+          <!-- Log lines rendered here -->
+        </div>
+      </section>
+
+      <!-- =================================================================== -->
+      <!-- VIEW 7: API & QUERY PLAYGROUND -->
+      <!-- =================================================================== -->
+      <section id="view-playground" class="view-panel hidden space-y-4">
+        <div class="border-b border-zinc-800/80 pb-3">
+          <h1 class="text-xl font-bold tracking-tight text-white space-grotesk">Interactive API & Query Playground</h1>
+          <p class="text-xs text-zinc-400 mt-0.5">Test any phone datacenter endpoint directly from the browser with instant latency meters.</p>
+        </div>
+
+        <div class="p-4 rounded-lg bg-[#07090d] border border-zinc-800/80 space-y-3">
+          <div class="flex flex-col sm:flex-row gap-2">
+            <select id="pg-method" class="bg-black border border-zinc-800 rounded px-3 py-1.5 text-xs font-mono text-cyan-400 outline-none w-28">
+              <option value="GET">GET</option>
+              <option value="POST">POST</option>
+              <option value="PUT">PUT</option>
+              <option value="DELETE">DELETE</option>
+            </select>
+            <input type="text" id="pg-url" value="/v1/storage/benchmark" placeholder="/v1/endpoint" class="flex-1 bg-black border border-zinc-800 rounded px-3 py-1.5 text-xs font-mono text-white focus:border-cyan-500 outline-none" />
+            <button onclick="executePlaygroundRequest()" id="btn-pg-send" class="px-5 py-1.5 rounded bg-cyan-500 hover:bg-cyan-400 text-black font-semibold text-xs font-mono transition-colors">
+              ▶ Send Request
+            </button>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label class="text-[11px] font-mono text-zinc-400">Headers (JSON)</label>
+              <textarea id="pg-headers" rows="4" class="w-full bg-black border border-zinc-800 rounded p-2 text-xs font-mono text-zinc-300 outline-none mt-1">{
+  "Content-Type": "application/json"
+}</textarea>
+            </div>
+            <div>
+              <label class="text-[11px] font-mono text-zinc-400">Request Body (Optional)</label>
+              <textarea id="pg-body" rows="4" placeholder="Payload for POST/PUT..." class="w-full bg-black border border-zinc-800 rounded p-2 text-xs font-mono text-zinc-300 outline-none mt-1"></textarea>
+            </div>
+          </div>
+
+          <div class="p-3 rounded bg-black border border-zinc-800 space-y-2">
+            <div class="flex justify-between items-center text-xs font-mono text-zinc-500">
+              <span>Response Output</span>
+              <span id="pg-latency" class="text-cyan-400">-- ms</span>
+            </div>
+            <pre id="pg-response" class="font-mono text-xs text-zinc-300 overflow-x-auto max-h-72 p-2 bg-zinc-950 rounded select-text">// Press 'Send Request' to view formatted output</pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- =================================================================== -->
+      <!-- VIEW 8: SECRETS & WEBHOOKS -->
+      <!-- =================================================================== -->
+      <section id="view-secrets" class="view-panel hidden space-y-6">
+        <div class="border-b border-zinc-800/80 pb-3">
+          <h1 class="text-xl font-bold tracking-tight text-white space-grotesk">Environment Secrets & Webhook Hooks</h1>
+          <p class="text-xs text-zinc-400 mt-0.5">Manage encrypted key-value configurations and webhook event dispatchers on phone hardware.</p>
+        </div>
+
+        <div class="p-4 rounded-lg bg-[#07090d] border border-zinc-800/80 space-y-3">
+          <div class="flex items-center justify-between">
+            <h2 class="text-sm font-bold text-white space-grotesk">🔒 Environment Variables & Secrets Vault</h2>
+            <button onclick="openAddSecretModal()" class="text-xs font-mono px-3 py-1 rounded bg-cyan-500 hover:bg-cyan-400 text-black font-semibold">+ Add Secret</button>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs font-mono border-collapse">
+              <thead>
+                <tr class="border-b border-zinc-800 text-zinc-500">
+                  <th class="py-2 px-3">Variable Key</th>
+                  <th class="py-2 px-3">Value</th>
+                  <th class="py-2 px-3">Description</th>
+                  <th class="py-2 px-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="secrets-table-body">
+                <!-- Dynamically Populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- =================================================================== -->
+  <!-- UNIVERSAL FILE & MEDIA PREVIEW MODAL -->
+  <!-- =================================================================== -->
+  <div id="preview-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="w-full max-w-3xl bg-[#090b10] border border-zinc-800 rounded-xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+      <div class="p-3.5 border-b border-zinc-800 flex items-center justify-between bg-black/40">
+        <div class="flex items-center gap-2">
+          <span id="preview-file-icon" class="text-lg">📄</span>
+          <span id="preview-file-name" class="font-mono text-sm font-semibold text-white">preview.txt</span>
+          <span id="preview-file-size" class="text-xs font-mono text-zinc-500">(0 KB)</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <a id="preview-cdn-link" href="#" target="_blank" class="text-xs font-mono px-2.5 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-cyan-400">Open CDN ↗</a>
+          <button onclick="closePreviewModal()" class="text-zinc-400 hover:text-white text-base px-2">✕</button>
+        </div>
+      </div>
+      <div id="preview-container" class="flex-1 p-4 overflow-auto flex items-center justify-center bg-black/90 min-h-[300px]">
+        <!-- Image / Video / Audio / Code / Text rendered here -->
+      </div>
+    </div>
+  </div>
+
+  <!-- =================================================================== -->
+  <!-- AUTH MODAL (SIGN IN / REGISTER) -->
+  <!-- =================================================================== -->
+  <div id="auth-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="w-full max-w-sm bg-[#090b10] border border-zinc-800 rounded-xl p-5 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between">
+        <span class="font-bold text-base space-grotesk text-white">Account Authentication</span>
+        <button onclick="closeAuthModal()" class="text-zinc-500 hover:text-white">✕</button>
+      </div>
+
+      <div class="flex border-b border-zinc-800 text-xs font-mono">
+        <button onclick="setAuthTab('login')" id="tab-login" class="flex-1 py-1.5 border-b-2 border-cyan-400 text-cyan-400 font-bold">Sign In</button>
+        <button onclick="setAuthTab('register')" id="tab-register" class="flex-1 py-1.5 border-b-2 border-transparent text-zinc-500 hover:text-zinc-300">Create Account</button>
+      </div>
+
+      <div class="space-y-3 font-mono text-xs">
+        <div>
+          <label class="text-zinc-400">Username</label>
+          <input type="text" id="auth-input-user" placeholder="username" class="w-full bg-black border border-zinc-800 rounded px-3 py-2 text-white outline-none focus:border-cyan-500 mt-1" />
+        </div>
+        <div>
+          <label class="text-zinc-400">Password</label>
+          <input type="password" id="auth-input-pass" placeholder="••••••••" class="w-full bg-black border border-zinc-800 rounded px-3 py-2 text-white outline-none focus:border-cyan-500 mt-1" />
+        </div>
+        <div id="auth-error-msg" class="text-rose-400 text-[11px] hidden"></div>
+        <button onclick="submitAuth()" id="btn-auth-submit" class="w-full py-2.5 rounded bg-cyan-500 hover:bg-cyan-400 text-black font-bold transition-all">Sign In</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT LOGIC -->
+  <script>
+    const BASE_URL = window.location.origin;
+    let currentUser = null;
+    let activeKey = null;
+    let currentAuthTab = 'login';
+    let autoScrollLogs = true;
+
+    // --- VIEW SWITCHER ---
+    function switchView(viewId) {
+      document.querySelectorAll('.view-panel').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.classList.remove('bg-zinc-800/80', 'border-zinc-700/60', 'text-white');
+        btn.classList.add('text-zinc-400', 'border-transparent');
+      });
+
+      const target = document.getElementById(`view-${viewId}`);
+      const btn = document.getElementById(`nav-${viewId}`);
+      if (target) target.classList.remove('hidden');
+      if (btn) {
+        btn.classList.add('bg-zinc-800/80', 'border-zinc-700/60', 'text-white');
+        btn.classList.remove('text-zinc-400', 'border-transparent');
+      }
+
+      // Load view data
+      if (viewId === 'overview') refreshOverview();
+      else if (viewId === 'config') loadConfigView();
+      else if (viewId === 'users') loadUsersTable();
+      else if (viewId === 'analytics') loadAnalyticsView();
+      else if (viewId === 'data') loadDataView();
+      else if (viewId === 'logs') loadLogsView();
+      else if (viewId === 'secrets') loadSecretsView();
+    }
+
+    // --- AUTHENTICATION ---
+    function checkUserSession() {
+      const stored = localStorage.getItem('swades_user');
+      if (stored) {
+        try {
+          currentUser = JSON.parse(stored);
+          activeKey = currentUser.api_key || (currentUser.api_keys && currentUser.api_keys[0] ? currentUser.api_keys[0].key_id : null);
+          document.getElementById('logged-in-box').classList.remove('hidden');
+          document.getElementById('logged-out-box').classList.add('hidden');
+          document.getElementById('auth-username').innerText = currentUser.username;
+          document.getElementById('auth-role').innerText = currentUser.role || 'DEV';
+        } catch (e) {
+          localStorage.removeItem('swades_user');
+        }
+      }
+    }
+
+    function openAuthModal(tab) {
+      setAuthTab(tab);
+      document.getElementById('auth-modal').classList.remove('hidden');
+    }
+
+    function closeAuthModal() {
+      document.getElementById('auth-modal').classList.add('hidden');
+    }
+
+    function setAuthTab(tab) {
+      currentAuthTab = tab;
+      const tabL = document.getElementById('tab-login');
+      const tabR = document.getElementById('tab-register');
+      const btn = document.getElementById('btn-auth-submit');
+      if (tab === 'login') {
+        tabL.className = "flex-1 py-1.5 border-b-2 border-cyan-400 text-cyan-400 font-bold";
+        tabR.className = "flex-1 py-1.5 border-b-2 border-transparent text-zinc-500 hover:text-zinc-300";
+        btn.innerText = "Sign In";
+      } else {
+        tabR.className = "flex-1 py-1.5 border-b-2 border-cyan-400 text-cyan-400 font-bold";
+        tabL.className = "flex-1 py-1.5 border-b-2 border-transparent text-zinc-500 hover:text-zinc-300";
+        btn.innerText = "Create Account";
+      }
+    }
+
+    async function submitAuth() {
+      const u = document.getElementById('auth-input-user').value.trim();
+      const p = document.getElementById('auth-input-pass').value;
+      const errEl = document.getElementById('auth-error-msg');
+      errEl.classList.add('hidden');
+
+      if (!u || !p) {
+        errEl.innerText = "Please fill in all fields.";
+        errEl.classList.remove('hidden');
+        return;
+      }
+
+      const endpoint = currentAuthTab === 'login' ? '/v1/storage/auth/login' : '/v1/storage/auth/register';
+      try {
+        const res = await fetch(`${BASE_URL}${endpoint}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: u, password: p })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Authentication failed");
+
+        currentUser = data;
+        localStorage.setItem('swades_user', JSON.stringify(data));
+        closeAuthModal();
+        checkUserSession();
+        refreshOverview();
+      } catch (err) {
+        errEl.innerText = err.message;
+        errEl.classList.remove('hidden');
+      }
+    }
+
+    function logoutUser() {
+      localStorage.removeItem('swades_user');
+      currentUser = null;
+      activeKey = null;
+      document.getElementById('logged-in-box').classList.add('hidden');
+      document.getElementById('logged-out-box').classList.remove('hidden');
+      refreshOverview();
+    }
+
+    // --- OVERVIEW & TELEMETRY ---
+    async function refreshOverview() {
+      try {
+        const res = await fetch(`${BASE_URL}/v1/dashboard/overview`);
+        const data = await res.json();
+
+        document.getElementById('kpi-users-count').innerText = data.users ? data.users.total : '--';
+        document.getElementById('kpi-keys-count').innerText = data.keys ? data.keys.total_active : '--';
+        document.getElementById('kpi-objects-count').innerText = data.storage ? data.storage.total_objects : '0';
+        document.getElementById('kpi-storage-mb').innerText = data.storage ? `${data.storage.total_mb} MB` : '0.0 MB';
+
+        // Render Pools Grid
+        if (data.storage && data.storage.pools) {
+          const grid = document.getElementById('overview-pools-grid');
+          grid.innerHTML = data.storage.pools.map(p => `
+            <div class="p-3 rounded bg-black/60 border border-zinc-800/80 font-mono text-xs space-y-1.5">
+              <div class="flex items-center justify-between">
+                <span class="text-white font-semibold">${p.name}</span>
+                <span class="text-[10px] text-emerald-400 bg-emerald-950/60 px-1 rounded border border-emerald-800/40">${p.status}</span>
+              </div>
+              <div class="text-[11px] text-zinc-400">${p.type}</div>
+              <div class="w-full bg-zinc-900 rounded-full h-1.5 overflow-hidden mt-2">
+                <div class="bg-cyan-500 h-1.5 rounded-full" style="width: ${Math.round(((p.total_gb - p.free_gb) / p.total_gb) * 100)}%"></div>
+              </div>
+              <div class="flex justify-between text-[10px] text-zinc-500">
+                <span>Free: <strong class="text-cyan-400">${p.free_gb} GB</strong></span>
+                <span>Total: ${p.total_gb} GB</span>
+              </div>
+            </div>
+          `).join('');
+          document.getElementById('hdr-pools-count').innerText = `${data.storage.pools.length} ACTIVE`;
+        }
+      } catch (err) {
+        console.error("Failed to load overview telemetry:", err);
+      }
+    }
+
+    async function runLiveBenchmark() {
+      const btn = document.getElementById('btn-run-bench');
+      btn.innerText = "Running 50 Ops...";
+      btn.disabled = true;
+
+      try {
+        const res = await fetch(`${BASE_URL}/v1/storage/benchmark`);
+        const data = await res.json();
+        const r = data.benchmark_results;
+
+        document.getElementById('bench-results-box').classList.remove('hidden');
+        document.getElementById('bench-head').innerText = `${r.head_reflection_avg_ns} ns`;
+        document.getElementById('bench-get').innerText = `${r.get_cached_avg_ns} ns`;
+        document.getElementById('bench-del').innerText = `${r.delete_reflection_avg_ns} ns`;
+        document.getElementById('bench-put').innerText = `${r.put_reflection_avg_ns} ns`;
+        document.getElementById('hdr-ram-latency').innerText = `${r.head_reflection_avg_ns} ns`;
+      } catch (err) {
+        alert("Benchmark error: " + err.message);
+      } finally {
+        btn.innerText = "⚡ Execute 50-Op Burst Benchmark";
+        btn.disabled = false;
+      }
+    }
+
+    // --- CONFIG & TESTING VIEW ---
+    async function loadConfigView() {
+      // 1. Load Feature Flags
+      try {
+        const res = await fetch(`${BASE_URL}/v1/dashboard/flags`);
+        const data = await res.json();
+        const tbody = document.getElementById('flags-table-body');
+        tbody.innerHTML = (data.flags || []).map(f => `
+          <tr class="border-b border-zinc-800/40 hover:bg-zinc-900/40">
+            <td class="py-2.5 px-3">
+              <span class="font-bold text-white">${f.name || f.key}</span>
+              <div class="text-[10px] text-zinc-500 font-mono">${f.key}</div>
+            </td>
+            <td class="py-2.5 px-3 text-zinc-400 text-[11px]">${f.description || ''}</td>
+            <td class="py-2.5 px-3 text-cyan-400">${f.rollout_pct}%</td>
+            <td class="py-2.5 px-3 text-right">
+              <button onclick="toggleFlag('${f.key}', ${f.enabled ? 0 : 1})" class="px-2.5 py-1 rounded text-[11px] font-bold ${f.enabled ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-zinc-900 text-zinc-500 border border-zinc-800'}">
+                ${f.enabled ? 'ENABLED' : 'DISABLED'}
+              </button>
+            </td>
+          </tr>
+        `).join('');
+      } catch (e) {}
+
+      // 2. Load Remote Config
+      try {
+        const res = await fetch(`${BASE_URL}/v1/dashboard/remote-config`);
+        const data = await res.json();
+        const grid = document.getElementById('remote-config-grid');
+        grid.innerHTML = (data.configs || []).map(c => `
+          <div class="p-3 rounded bg-black/60 border border-zinc-800 font-mono text-xs space-y-1">
+            <div class="flex items-center justify-between text-zinc-400">
+              <span class="font-bold text-white">${c.key}</span>
+              <span class="text-[10px] uppercase text-zinc-500">${c.category}</span>
+            </div>
+            <div class="text-[10px] text-zinc-500">${c.description || ''}</div>
+            <input type="text" id="rc-input-${c.key}" value="${c.value}" class="w-full bg-zinc-950 border border-zinc-800 rounded px-2.5 py-1 text-cyan-300 outline-none mt-1 focus:border-cyan-500" />
+          </div>
+        `).join('');
+      } catch (e) {}
+
+      // 3. Load Experiments
+      try {
+        const res = await fetch(`${BASE_URL}/v1/dashboard/experiments`);
+        const data = await res.json();
+        const list = document.getElementById('experiments-list');
+        list.innerHTML = (data.experiments || []).map(exp => {
+          const rateA = exp.impressions_a ? Math.round((exp.conversions_a / exp.impressions_a) * 100) : 0;
+          const rateB = exp.impressions_b ? Math.round((exp.conversions_b / exp.impressions_b) * 100) : 0;
+          const winner = rateB > rateA ? 'Variant B Leading (+'+(rateB-rateA)+'%)' : (rateA > rateB ? 'Variant A Leading' : 'Tied');
+          return `
+            <div class="p-3.5 rounded bg-black/60 border border-zinc-800 space-y-2 font-mono text-xs">
+              <div class="flex items-center justify-between">
+                <span class="font-bold text-white text-sm">${exp.name}</span>
+                <span class="text-[10px] text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800/40 font-bold">${winner}</span>
+              </div>
+              <div class="text-[11px] text-zinc-400">${exp.description}</div>
+              <div class="grid grid-cols-2 gap-3 mt-2">
+                <div class="p-2.5 rounded bg-zinc-950 border border-zinc-800">
+                  <div class="text-zinc-400 font-bold">${exp.variant_a} (A)</div>
+                  <div class="text-sm font-bold text-white mt-1">${rateA}% Conversion</div>
+                  <div class="text-[10px] text-zinc-500">${exp.conversions_a} of ${exp.impressions_a} visitors</div>
+                </div>
+                <div class="p-2.5 rounded bg-zinc-950 border border-zinc-800">
+                  <div class="text-cyan-400 font-bold">${exp.variant_b} (B)</div>
+                  <div class="text-sm font-bold text-cyan-300 mt-1">${rateB}% Conversion</div>
+                  <div class="text-[10px] text-zinc-500">${exp.conversions_b} of ${exp.impressions_b} visitors</div>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      } catch (e) {}
+
+      // 4. Load Performance Logs
+      try {
+        const res = await fetch(`${BASE_URL}/v1/dashboard/performance`);
+        const data = await res.json();
+        const tbody = document.getElementById('perf-logs-body');
+        tbody.innerHTML = (data.performance_logs || []).map(l => `
+          <tr class="border-b border-zinc-800/40 hover:bg-zinc-900/40">
+            <td class="py-2 px-3 text-cyan-400 uppercase">${l.event_type}</td>
+            <td class="py-2 px-3 text-white">${l.endpoint}</td>
+            <td class="py-2 px-3 text-emerald-400">${l.latency_ms} ms</td>
+            <td class="py-2 px-3">${l.status_code}</td>
+            <td class="py-2 px-3 text-zinc-400">${l.device_info || 'Xiaomi Redmi 9i'}</td>
+          </tr>
+        `).join('');
+      } catch (e) {}
+    }
+
+    async function toggleFlag(key, newStatus) {
+      await fetch(`${BASE_URL}/v1/dashboard/flags`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key, enabled: Boolean(newStatus) })
+      });
+      loadConfigView();
+    }
+
+    async function saveRemoteConfig() {
+      const inputs = document.querySelectorAll('[id^="rc-input-"]');
+      for (const input of inputs) {
+        const key = input.id.replace('rc-input-', '');
+        await fetch(`${BASE_URL}/v1/dashboard/remote-config`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key, value: input.value })
+        });
+      }
+      alert("Remote config updated live!");
+    }
+
+    async function logSimulatedCrash() {
+      await fetch(`${BASE_URL}/v1/dashboard/performance`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          event_type: "client_freeze",
+          endpoint: "/client/heavy_render",
+          latency_ms: 142.5,
+          status_code: 504,
+          message: "Main thread frame dropped during 3D model decode",
+          device_info: "Client Browser WebGL"
+        })
+      });
+      loadConfigView();
+    }
+
+    // --- USER MANAGEMENT VIEW ---
+    async function loadUsersTable() {
+      try {
+        const q = document.getElementById('user-search-input') ? document.getElementById('user-search-input').value : '';
+        const res = await fetch(`${BASE_URL}/v1/dashboard/users?search=${encodeURIComponent(q)}`);
+        const data = await res.json();
+        const tbody = document.getElementById('users-table-body');
+        tbody.innerHTML = (data.users || []).map(u => `
+          <tr class="border-b border-zinc-800/40 hover:bg-zinc-900/40">
+            <td class="py-2 px-3 text-zinc-500 font-mono">${u.user_id}</td>
+            <td class="py-2 px-3 font-bold text-white">${u.username}</td>
+            <td class="py-2 px-3 text-cyan-400 uppercase">${u.role || 'MEMBER'}</td>
+            <td class="py-2 px-3 text-zinc-300">${u.used_mb || 0} MB / ${Math.round((u.quota_bytes || 2147483648)/(1024*1024*1024))} GB</td>
+            <td class="py-2 px-3 text-emerald-400">${u.key_count || 1}</td>
+            <td class="py-2 px-3">
+              <span class="px-1.5 py-0.5 rounded text-[10px] font-bold ${u.status === 'banned' ? 'bg-rose-950 text-rose-400 border border-rose-800' : 'bg-emerald-950 text-emerald-400 border border-emerald-800'}">
+                ${u.status ? u.status.toUpperCase() : 'ACTIVE'}
+              </span>
+            </td>
+            <td class="py-2 px-3 text-right">
+              <button onclick="toggleUserBan('${u.user_id}', '${u.status === 'banned' ? 'active' : 'banned'}')" class="text-[10px] px-2 py-0.5 rounded border ${u.status === 'banned' ? 'border-emerald-800 text-emerald-400' : 'border-rose-900 text-rose-400'}">
+                ${u.status === 'banned' ? 'Unban' : 'Suspend'}
+              </button>
+            </td>
+          </tr>
+        `).join('');
+
+        loadNotificationsHistory();
+      } catch (e) {}
+    }
+
+    async function toggleUserBan(userId, newStatus) {
+      await fetch(`${BASE_URL}/v1/dashboard/users`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: userId, status: newStatus })
+      });
+      loadUsersTable();
+    }
+
+    async function broadcastNotification() {
+      const title = document.getElementById('notif-title').value.trim();
+      const body = document.getElementById('notif-body').value.trim();
+      const target = document.getElementById('notif-target').value;
+      if (!title || !body) return alert("Title and Body are required.");
+
+      await fetch(`${BASE_URL}/v1/dashboard/notifications`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, body, target, type: "push" })
+      });
+
+      document.getElementById('notif-title').value = '';
+      document.getElementById('notif-body').value = '';
+      alert("Notification broadcasted successfully!");
+      loadNotificationsHistory();
+    }
+
+    async function loadNotificationsHistory() {
+      try {
+        const res = await fetch(`${BASE_URL}/v1/dashboard/notifications`);
+        const data = await res.json();
+        const el = document.getElementById('notif-history-list');
+        el.innerHTML = (data.notifications || []).map(n => `
+          <div class="p-2 rounded bg-zinc-950 border border-zinc-800 font-mono text-[11px]">
+            <div class="flex justify-between text-zinc-400 font-bold">
+              <span>${n.title}</span>
+              <span class="text-[9px] text-cyan-400 uppercase">${n.target}</span>
+            </div>
+            <div class="text-zinc-500 text-[10px] mt-0.5">${n.body}</div>
+          </div>
+        `).join('');
+      } catch (e) {}
+    }
+
+    // --- LIVE ANALYTICS VIEW ---
+    async function loadAnalyticsView() {
+      try {
+        const res = await fetch(`${BASE_URL}/v1/dashboard/analytics`);
+        const data = await res.json();
+
+        // Funnel
+        const fc = document.getElementById('funnel-container');
+        fc.innerHTML = (data.funnel || []).map(s => `
+          <div class="space-y-1 font-mono text-xs">
+            <div class="flex justify-between">
+              <span class="text-white font-semibold">${s.step}</span>
+              <span class="text-zinc-400">${s.users} users (${s.pct}%)</span>
+            </div>
+            <div class="w-full bg-zinc-900 rounded-full h-2 overflow-hidden">
+              <div class="bg-gradient-to-r from-cyan-500 to-indigo-500 h-2 rounded-full" style="width: ${s.pct}%"></div>
+            </div>
+          </div>
+        `).join('');
+
+        // OS
+        const osEl = document.getElementById('demographics-os');
+        osEl.innerHTML = (data.demographics.platforms || []).map(p => `
+          <div class="flex items-center justify-between text-xs font-mono">
+            <span class="text-zinc-300">${p.name}</span>
+            <div class="flex items-center gap-2">
+              <div class="w-32 bg-zinc-900 rounded-full h-1.5 overflow-hidden">
+                <div class="bg-cyan-400 h-1.5 rounded-full" style="width: ${p.pct}%"></div>
+              </div>
+              <span class="text-zinc-400 w-8 text-right">${p.pct}%</span>
+            </div>
+          </div>
+        `).join('');
+
+        // Regions
+        const regEl = document.getElementById('demographics-regions');
+        regEl.innerHTML = (data.demographics.edge_regions || []).map(r => `
+          <div class="flex items-center justify-between text-xs font-mono">
+            <span class="text-zinc-300">${r.region}</span>
+            <div class="flex items-center gap-2">
+              <div class="w-32 bg-zinc-900 rounded-full h-1.5 overflow-hidden">
+                <div class="bg-indigo-400 h-1.5 rounded-full" style="width: ${r.pct}%"></div>
+              </div>
+              <span class="text-zinc-400 w-8 text-right">${r.pct}%</span>
+            </div>
+          </div>
+        `).join('');
+      } catch (e) {}
+    }
+
+    // --- DATA & STORAGE VIEW ---
+    async function loadDataView() {
+      // 1. Load Tables for Database Browser
+      try {
+        const res = await fetch(`${BASE_URL}/v1/dashboard/db/tables`);
+        const data = await res.json();
+        const sel = document.getElementById('db-table-select');
+        sel.innerHTML = (data.tables || []).map(t => `<option value="${t}">${t}</option>`).join('');
+        loadDbTable();
+      } catch (e) {}
+
+      // 2. Load Media Files
+      loadMediaFiles();
+
+      // 3. Load Keys
+      loadCredentialsTable();
+    }
+
+    async function loadDbTable() {
+      const table = document.getElementById('db-table-select').value;
+      if (!table) return;
+      try {
+        const res = await fetch(`${BASE_URL}/v1/dashboard/db/query?table=${table}`);
+        const data = await res.json();
+
+        document.getElementById('db-total-rows').innerText = `${data.total_rows} rows`;
+
+        // Headers
+        const hdr = document.getElementById('db-grid-headers');
+        hdr.innerHTML = data.columns.map(c => `
+          <th class="py-2 px-3 whitespace-nowrap">${c.name} <span class="text-[9px] text-zinc-600">(${c.type})</span></th>
+        `).join('') + '<th class="py-2 px-3 text-right">Action</th>';
+
+        // Body
+        const pkCol = data.columns.find(c => c.pk) ? data.columns.find(c => c.pk).name : data.columns[0].name;
+        const tbody = document.getElementById('db-grid-body');
+        tbody.innerHTML = data.rows.map(row => {
+          const pkVal = row[pkCol];
+          return `
+            <tr class="border-b border-zinc-800/40 hover:bg-zinc-900/30">
+              ${data.columns.map(c => `
+                <td class="py-2 px-3 whitespace-nowrap table-cell-editable text-zinc-300" ondblclick="editCell('${table}', '${pkCol}', '${pkVal}', '${c.name}', this)">
+                  ${row[c.name] !== null ? row[c.name] : '<span class="text-zinc-600">NULL</span>'}
+                </td>
+              `).join('')}
+              <td class="py-2 px-3 text-right whitespace-nowrap">
+                <button onclick="deleteDbRow('${table}', '${pkCol}', '${pkVal}')" class="text-rose-400 hover:text-rose-300 text-[11px]">Delete</button>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      } catch (e) {}
+    }
+
+    async function editCell(table, pkCol, pkVal, colName, tdEl) {
+      const oldVal = tdEl.innerText;
+      const newVal = prompt(`Edit column [${colName}] for row [${pkVal}]:`, oldVal);
+      if (newVal === null || newVal === oldVal) return;
+
+      try {
+        await fetch(`${BASE_URL}/v1/dashboard/db/query`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: "update_cell",
+            table: table,
+            pk_col: pkCol,
+            pk_val: pkVal,
+            column: colName,
+            new_val: newVal
+          })
+        });
+        loadDbTable();
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    async function deleteDbRow(table, pkCol, pkVal) {
+      if (!confirm(`Delete row ${pkVal} from ${table}?`)) return;
+      await fetch(`${BASE_URL}/v1/dashboard/db/query`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: "delete_row",
+          table: table,
+          pk_col: pkCol,
+          pk_val: pkVal
+        })
+      });
+      loadDbTable();
+    }
+
+    async function loadMediaFiles() {
+      const grid = document.getElementById('media-files-grid');
+      grid.innerHTML = '<div class="col-span-full text-center text-xs font-mono text-zinc-500 py-4">Loading files...</div>';
+
+      try {
+        const headers = activeKey ? { 'x-api-key': activeKey } : {};
+        const res = await fetch(`${BASE_URL}/v1/storage/objects`, { headers });
+        const data = await res.json();
+        const files = data.objects || [];
+
+        if (files.length === 0) {
+          grid.innerHTML = '<div class="col-span-full text-center text-xs font-mono text-zinc-500 py-6">No files uploaded yet. Upload an image, video, or document!</div>';
+          return;
+        }
+
+        grid.innerHTML = files.map(f => {
+          const ext = f.key.split('.').pop().toLowerCase();
+          const isImg = ['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg'].includes(ext);
+          const isVid = ['mp4', 'webm', 'mov'].includes(ext);
+          const isAud = ['mp3', 'wav', 'ogg'].includes(ext);
+          const icon = isImg ? '🖼️' : (isVid ? '🎬' : (isAud ? '🎵' : '📄'));
+          const cdnUrl = f.cdn_url || `${BASE_URL}/s/${data.tenant_id}/${f.key}`;
+
+          return `
+            <div class="p-3 rounded bg-black/60 border border-zinc-800/80 hover:border-cyan-500/50 flex flex-col justify-between font-mono text-xs space-y-2 transition-all">
+              <div onclick="openPreview('${f.key}', '${cdnUrl}', '${ext}', ${f.size})" class="cursor-pointer space-y-1">
+                <div class="text-2xl text-center py-2">${icon}</div>
+                <div class="font-bold text-white truncate" title="${f.key}">${f.key.split('/').pop()}</div>
+                <div class="text-[10px] text-zinc-500">${Math.round(f.size/1024)} KB</div>
+              </div>
+              <div class="flex items-center justify-between pt-1 border-t border-zinc-800 text-[10px]">
+                <button onclick="copyToClipboard('${cdnUrl}')" class="text-cyan-400 hover:text-cyan-300">Copy CDN</button>
+                <button onclick="deleteObject('${f.key}')" class="text-rose-400 hover:text-rose-300">Delete</button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      } catch (e) {
+        grid.innerHTML = '<div class="col-span-full text-center text-xs font-mono text-zinc-500 py-6">Sign in with an active key to browse storage drive.</div>';
+      }
+    }
+
+    async function uploadMediaFile(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      if (!activeKey) return alert("Please sign in or select an active API key to upload files.");
+
+      const key = `uploads/${Date.now()}_${file.name}`;
+      try {
+        const res = await fetch(`${BASE_URL}/v1/storage/objects/${key}`, {
+          method: 'PUT',
+          headers: {
+            'x-api-key': activeKey,
+            'Content-Type': file.type || 'application/octet-stream'
+          },
+          body: file
+        });
+        if (!res.ok) throw new Error("Upload failed");
+        loadMediaFiles();
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    async function deleteObject(key) {
+      if (!confirm(`Delete object ${key}?`)) return;
+      await fetch(`${BASE_URL}/v1/storage/objects/${key}`, {
+        method: 'DELETE',
+        headers: { 'x-api-key': activeKey }
+      });
+      loadMediaFiles();
+    }
+
+    function openPreview(key, cdnUrl, ext, size) {
+      const modal = document.getElementById('preview-modal');
+      const box = document.getElementById('preview-container');
+      document.getElementById('preview-file-name').innerText = key;
+      document.getElementById('preview-file-size').innerText = `(${Math.round(size/1024)} KB)`;
+      document.getElementById('preview-cdn-link').href = cdnUrl;
+
+      if (['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg'].includes(ext)) {
+        box.innerHTML = `<img src="${cdnUrl}" class="max-h-[60vh] max-w-full rounded object-contain" />`;
+      } else if (['mp4', 'webm'].includes(ext)) {
+        box.innerHTML = `<video controls autoplay class="max-h-[60vh] max-w-full rounded"><source src="${cdnUrl}"></video>`;
+      } else if (['mp3', 'wav', 'ogg'].includes(ext)) {
+        box.innerHTML = `<audio controls autoplay class="w-full max-w-md"><source src="${cdnUrl}"></audio>`;
+      } else {
+        box.innerHTML = `<iframe src="${cdnUrl}" class="w-full h-[50vh] bg-white rounded"></iframe>`;
+      }
+      modal.classList.remove('hidden');
+    }
+
+    function closePreviewModal() {
+      document.getElementById('preview-modal').classList.add('hidden');
+      document.getElementById('preview-container').innerHTML = '';
+    }
+
+    async function loadCredentialsTable() {
+      try {
+        const headers = activeKey ? { 'x-api-key': activeKey } : {};
+        const res = await fetch(`${BASE_URL}/v1/storage/auth/keys`, { headers });
+        const data = await res.json();
+        const tbody = document.getElementById('keys-table-body');
+        tbody.innerHTML = (data.keys || []).map(k => `
+          <tr class="border-b border-zinc-800/40 hover:bg-zinc-900/40">
+            <td class="py-2 px-3 font-bold text-white">${k.name || 'Primary Key'}</td>
+            <td class="py-2 px-3 text-cyan-400 font-mono">${k.key_id}</td>
+            <td class="py-2 px-3 text-emerald-400">Full Storage CRUD</td>
+            <td class="py-2 px-3 text-zinc-500">${k.created_at || 'Active'}</td>
+            <td class="py-2 px-3 text-right">
+              <button onclick="copyToClipboard('${k.key_id}')" class="text-zinc-300 hover:text-white mr-2">Copy</button>
+            </td>
+          </tr>
+        `).join('');
+      } catch (e) {}
+    }
+
+    async function openCreateKeyModal() {
+      const name = prompt("Enter a descriptive name for this API key:", "Production Edge Worker");
+      if (!name) return;
+      try {
+        const res = await fetch(`${BASE_URL}/v1/storage/auth/keys`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': activeKey
+          },
+          body: JSON.stringify({ name })
+        });
+        const data = await res.json();
+        alert(`New API Key Created:\n\n${data.api_key}\n\nPlease copy it now!`);
+        loadCredentialsTable();
+      } catch (e) {
+        alert(e.message);
+      }
+    }
+
+    // --- LIVE LOG STREAMER ---
+    let logPollTimer = null;
+    async function loadLogsView() {
+      fetchLogsOnce();
+      if (!logPollTimer) {
+        logPollTimer = setInterval(fetchLogsOnce, 1500);
+      }
+    }
+
+    async function fetchLogsOnce() {
+      try {
+        const res = await fetch(`${BASE_URL}/v1/dashboard/logs`);
+        const data = await res.json();
+        const term = document.getElementById('log-terminal');
+        term.innerHTML = (data.logs || []).map(l => {
+          const color = l.status_code >= 500 ? 'text-rose-400' : (l.status_code >= 400 ? 'text-amber-400' : 'text-emerald-400');
+          return `
+            <div class="flex items-baseline gap-2 py-0.5 hover:bg-zinc-900/60 px-1 rounded">
+              <span class="text-zinc-600 text-[10px]">${l.time_str}</span>
+              <span class="font-bold text-cyan-400 w-12 text-left">${l.method}</span>
+              <span class="font-bold ${color} w-10">${l.status_code}</span>
+              <span class="text-zinc-200 flex-1 truncate">${l.path}</span>
+              <span class="text-zinc-500 text-[10px]">${l.latency_ms}ms</span>
+            </div>
+          `;
+        }).join('');
+
+        if (autoScrollLogs) {
+          term.scrollTop = term.scrollHeight;
+        }
+      } catch (e) {}
+    }
+
+    function toggleLogAutoScroll() {
+      autoScrollLogs = !autoScrollLogs;
+      document.getElementById('btn-autoscroll').innerText = `Auto-Scroll: ${autoScrollLogs ? 'ON' : 'OFF'}`;
+    }
+
+    function clearLogViewer() {
+      document.getElementById('log-terminal').innerHTML = '<div class="text-zinc-600">Logs cleared. Waiting for new traffic...</div>';
+    }
+
+    // --- API PLAYGROUND ---
+    async function executePlaygroundRequest() {
+      const method = document.getElementById('pg-method').value;
+      const path = document.getElementById('pg-url').value.trim();
+      const headersStr = document.getElementById('pg-headers').value.trim();
+      const bodyStr = document.getElementById('pg-body').value.trim();
+      const respEl = document.getElementById('pg-response');
+      const latEl = document.getElementById('pg-latency');
+
+      let headers = {};
+      try { if (headersStr) headers = JSON.parse(headersStr); } catch (e) { return alert("Invalid JSON in headers"); }
+      if (activeKey && !headers['x-api-key']) headers['x-api-key'] = activeKey;
+
+      respEl.innerText = "Executing...";
+      const t0 = performance.now();
+      try {
+        const res = await fetch(`${BASE_URL}${path}`, {
+          method,
+          headers,
+          body: ['POST', 'PUT'].includes(method) && bodyStr ? bodyStr : undefined
+        });
+        const t1 = performance.now();
+        latEl.innerText = `${Math.round(t1 - t0)} ms (Status: ${res.status})`;
+
+        const text = await res.text();
+        try {
+          respEl.innerText = JSON.stringify(JSON.parse(text), null, 2);
+        } catch (e) {
+          respEl.innerText = text;
+        }
+      } catch (err) {
+        respEl.innerText = "Error: " + err.message;
+      }
+    }
+
+    // --- SECRETS VAULT ---
+    async function loadSecretsView() {
+      try {
+        const res = await fetch(`${BASE_URL}/v1/dashboard/secrets`);
+        const data = await res.json();
+        const tbody = document.getElementById('secrets-table-body');
+        tbody.innerHTML = (data.secrets || []).map(s => `
+          <tr class="border-b border-zinc-800/40 hover:bg-zinc-900/40">
+            <td class="py-2.5 px-3 font-bold text-white">${s.key}</td>
+            <td class="py-2.5 px-3 text-cyan-400 font-mono">${s.masked_value}</td>
+            <td class="py-2.5 px-3 text-zinc-400 text-[11px]">${s.description || ''}</td>
+            <td class="py-2.5 px-3 text-right">
+              <button onclick="editSecret('${s.key}')" class="text-xs text-zinc-300 hover:text-white">Edit</button>
+            </td>
+          </tr>
+        `).join('');
+      } catch (e) {}
+    }
+
+    async function editSecret(key) {
+      const val = prompt(`Enter new value for secret [${key}]:`);
+      if (val === null) return;
+      await fetch(`${BASE_URL}/v1/dashboard/secrets`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key, value: val })
+      });
+      loadSecretsView();
+    }
+
+    async function openAddSecretModal() {
+      const key = prompt("Enter Secret Key Name (e.g. WEBHOOK_SECRET):");
+      if (!key) return;
+      const val = prompt(`Enter value for ${key}:`);
+      if (val === null) return;
+      await fetch(`${BASE_URL}/v1/dashboard/secrets`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key, value: val, description: "Custom developer environment variable" })
+      });
+      loadSecretsView();
+    }
+
+    function copyToClipboard(txt) {
+      navigator.clipboard.writeText(txt).then(() => alert("Copied to clipboard:\n" + txt));
+    }
+
+    // --- INITIALIZATION ---
+    window.addEventListener('DOMContentLoaded', () => {
+      checkUserSession();
+      refreshOverview();
+    });
+  </script>
+</body>
+</html>

@@ -81,6 +81,12 @@ export default {
     const isApi = apiPrefixes.some(prefix => url.pathname.startsWith(prefix)) || apiExactPaths.includes(url.pathname);
 
     // If it's a static frontend request, serve through Cloudflare Pages static assets
+    if (url.pathname === "/dashboard" && env.ASSETS) {
+      const newUrl = new URL(request.url);
+      newUrl.pathname = "/dashboard.html";
+      return env.ASSETS.fetch(new Request(newUrl, request));
+    }
+
     if (!isApi && env.ASSETS) {
       return env.ASSETS.fetch(request);
     }
