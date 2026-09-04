@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://energy-bundle-thank-sig.trycloudflare.com",
-  "inference": "https://energy-bundle-thank-sig.trycloudflare.com/inference",
-  "telemetry": "https://energy-bundle-thank-sig.trycloudflare.com/telemetry",
+  "endpoint": "https://apollo-responded-examinations-atomic.trycloudflare.com",
+  "inference": "https://apollo-responded-examinations-atomic.trycloudflare.com/inference",
+  "telemetry": "https://apollo-responded-examinations-atomic.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-09-04T08:54:00Z"
+  "updated_at": "2026-09-04T09:07:00Z"
 }
