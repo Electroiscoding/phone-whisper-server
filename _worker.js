@@ -25,15 +25,18 @@ async function getLiveOrigin(forceRefresh = false) {
     return cachedOrigin;
   }
 
-  // 1. Primary: Fast raw GitHub fetch
+  // 1. Primary: 100% Uncached GitHub REST API with raw header (Bypasses raw CDN 5-minute cache)
   try {
-    const res = await fetch(`${GITHUB_ENDPOINT_URL}?_t=${now}`, {
-      headers: { "User-Agent": "Cloudflare-Pages-Worker/3.0", "Cache-Control": "no-cache" },
-      cf: { cacheTtl: 0, cacheEverything: false }
+    const apiRes = await fetch(`https://api.github.com/repos/Electroiscoding/phone-whisper-server/contents/endpoint.json?ref=main&_t=${now}`, {
+      headers: {
+        "User-Agent": "Cloudflare-Pages-Worker/3.0",
+        "Accept": "application/vnd.github.v3.raw",
+        "Cache-Control": "no-cache"
+      }
     });
-    if (res.ok) {
-      const data = await res.json();
-      if (data.endpoint && data.endpoint.startsWith("https://")) {
+    if (apiRes.ok) {
+      const data = await apiRes.json();
+      if (data && data.endpoint && data.endpoint.startsWith("https://")) {
         cachedOrigin = data.endpoint.replace(/\/+$/, "");
         lastFetchTime = now;
         return cachedOrigin;
@@ -41,20 +44,18 @@ async function getLiveOrigin(forceRefresh = false) {
     }
   } catch (err) {}
 
-  // 2. Secondary Deterministic Fallback: Uncached GitHub REST API (Bypasses raw CDN cache)
+  // 2. Secondary Fallback: Raw GitHub CDN
   try {
-    const apiRes = await fetch(`https://api.github.com/repos/Electroiscoding/phone-whisper-server/contents/endpoint.json?ref=main&_t=${now}`, {
-      headers: { "User-Agent": "Cloudflare-Pages-Worker/3.0", "Accept": "application/vnd.github.v3+json" }
+    const res = await fetch(`${GITHUB_ENDPOINT_URL}?_t=${now}`, {
+      headers: { "User-Agent": "Cloudflare-Pages-Worker/3.0", "Cache-Control": "no-cache" },
+      cf: { cacheTtl: 0, cacheEverything: false }
     });
-    if (apiRes.ok) {
-      const apiData = await apiRes.json();
-      if (apiData && apiData.content) {
-        const decoded = JSON.parse(atob(apiData.content.replace(/\s/g, '')));
-        if (decoded.endpoint && decoded.endpoint.startsWith("https://")) {
-          cachedOrigin = decoded.endpoint.replace(/\/+$/, "");
-          lastFetchTime = now;
-          return cachedOrigin;
-        }
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.endpoint && data.endpoint.startsWith("https://")) {
+        cachedOrigin = data.endpoint.replace(/\/+$/, "");
+        lastFetchTime = now;
+        return cachedOrigin;
       }
     }
   } catch (err) {}
