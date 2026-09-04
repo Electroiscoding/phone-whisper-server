@@ -1594,8 +1594,11 @@
       </div>
     </div>
 
-    <!-- Desktop Navigation Links (Untouched) -->
+    <!-- Desktop Navigation Links -->
     <div class="nav-links-desktop">
+      <a href="/chat.html" class="nav-btn" style="background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(129, 140, 248, 0.2)); border-color: var(--primary); color: #fff; font-weight: 700; display: inline-flex; align-items: center; gap: 0.4rem;">
+        <span>🤖</span> <span>Demo</span>
+      </a>
       <a href="#studio" class="nav-link">Studio</a>
       <a href="#cloud-storage" class="nav-link" style="color: #38bdf8; font-weight: 700;">Cloud Storage ☁️</a>
       <a href="/dashboard.html" class="nav-link" style="color: #a855f7; font-weight: 700;">Console 🎛️</a>
@@ -1627,11 +1630,17 @@
     </div>
 
     <div class="mobile-nav-links">
+      <a href="/chat.html" class="mobile-nav-item" onclick="closeMobileDrawer()" style="background: rgba(56, 189, 248, 0.12); border-color: var(--primary); color: #fff; font-weight: 700;">
+        <span>🤖</span> <span>Live Demo</span>
+      </a>
       <a href="#studio" class="mobile-nav-item" onclick="closeMobileDrawer()">
         <span>🎙️</span> <span>Voice Studio</span>
       </a>
       <a href="#cloud-storage" class="mobile-nav-item" onclick="closeMobileDrawer()" style="color: #38bdf8;">
         <span>☁️</span> <span>Cloud Storage & CDN</span>
+      </a>
+      <a href="/dashboard.html" class="mobile-nav-item" onclick="closeMobileDrawer()" style="color: #c084fc;">
+        <span>🎛️</span> <span>Cloud Console</span>
       </a>
       <a href="#cheatsheet" class="mobile-nav-item" onclick="closeMobileDrawer()">
         <span>⚡</span> <span>API Cheatsheet</span>
@@ -1653,22 +1662,44 @@
 
   <div class="container">
 
-    <!-- HERO & INTERACTIVE PILL RECORDER STUDIO -->
-    <section class="hero" id="studio">
-      <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; justify-content: center; align-items: center; margin-bottom: 1.5rem;">
-        <div class="status-pill" style="margin-bottom: 0;">
-          <div class="status-dot"></div>
-          <span>Phone Host: 24/7 Active • 100% Publicly Reachable Worldwide</span>
-        </div>
-        <a href="/chat.html" class="nav-btn" style="background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(129, 140, 248, 0.2)); border-color: var(--primary); color: #fff; font-weight: 700;">
-          <span>🤖</span> <span>Launch Full Voice & Chat Studio →</span>
-        </a>
+    <!-- HERO SECTION (PRISTINE & UNCLUTTERED) -->
+    <section class="hero">
+      <div class="status-pill">
+        <div class="status-dot"></div>
+        <span>Phone Host: 24/7 Active • 100% Publicly Reachable Worldwide</span>
       </div>
 
       <h1 class="hero-title">Worldwide Mobile AI Speech-to-Text</h1>
       <p class="hero-desc">
         Zero cloud GPU costs. Running 100% in-memory on a phone MediaTek ARM CPU.
       </p>
+
+      <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; justify-content: center; align-items: center; margin-bottom: 0.5rem;">
+        <a href="#studio" class="btn-action" style="padding: 0.55rem 1.15rem; font-size: 0.85rem; font-weight: 600; background: rgba(56, 189, 248, 0.1); border-color: rgba(56, 189, 248, 0.3); color: #38bdf8;">
+          <span>🎙️</span> <span>Speech Studio</span>
+        </a>
+        <a href="#cloud-storage" class="btn-action" style="padding: 0.55rem 1.15rem; font-size: 0.85rem; font-weight: 600; background: rgba(56, 189, 248, 0.06); border-color: rgba(56, 189, 248, 0.2); color: #93c5fd;">
+          <span>☁️</span> <span>Edge Storage</span>
+        </a>
+        <a href="/dashboard.html" class="btn-action" style="padding: 0.55rem 1.15rem; font-size: 0.85rem; font-weight: 600; background: rgba(168, 85, 247, 0.1); border-color: rgba(168, 85, 247, 0.3); color: #c084fc;">
+          <span>🎛️</span> <span>Console</span>
+        </a>
+        <a href="#cheatsheet" class="btn-action" style="padding: 0.55rem 1.15rem; font-size: 0.85rem; font-weight: 600;">
+          <span>⚡</span> <span>API Cheatsheet</span>
+        </a>
+      </div>
+    </section>
+
+    <!-- SECTION 1: ON-DEVICE SPEECH-TO-TEXT STUDIO -->
+    <section id="studio" style="margin-top: 1rem;">
+      <div class="section-head">
+        <span class="section-tag">
+          <span>🎙️</span>
+          <span>Mode 1: Speech-to-Text (Whisper Base.en)</span>
+        </span>
+        <h2 class="section-title">On-Device Speech-to-Text Studio</h2>
+        <p class="section-desc">Record audio in your browser or upload WAV/MP3 files to transcribe in real time directly on the phone ARM CPU.</p>
+      </div>
 
       <div class="studio-wrapper">
         <div class="pill-recorder-bar" id="pillRecorderBar">
