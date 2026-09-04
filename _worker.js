@@ -167,7 +167,7 @@ export default {
     const responseHeaders = new Headers(response.headers);
     Object.entries(CORS_HEADERS).forEach(([k, v]) => responseHeaders.set(k, v));
 
-    return new Response(response.body, {
+    return new Response(request.method === "HEAD" ? null : response.body, {
       status: response.status,
       statusText: response.statusText,
       headers: responseHeaders
