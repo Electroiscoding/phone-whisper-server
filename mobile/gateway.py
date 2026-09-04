@@ -1284,6 +1284,54 @@ class SwadeStorageVault:
         conn.close()
         return True
 
+    def db_execute_raw_sql(self, sql_query):
+        sql_clean = sql_query.strip()
+        forbidden = ["ATTACH", "DETACH", "PRAGMA WRITABLE_SCHEMA", "DROP DATABASE"]
+        for f in forbidden:
+            if f in sql_clean.upper():
+                raise ValueError(f"Forbidden SQL operation: {f}")
+        
+        t0 = time.perf_counter()
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        is_select = (sql_clean.upper().startswith("SELECT") or 
+                     sql_clean.upper().startswith("PRAGMA") or 
+                     sql_clean.upper().startswith("EXPLAIN"))
+        
+        if is_select:
+            cursor.execute(sql_clean)
+            rows = cursor.fetchall()
+            cols = [d[0] for d in cursor.description] if cursor.description else []
+            result_rows = []
+            for r in rows:
+                row_dict = dict(r)
+                for k in ["password_hash", "salt"]:
+                    if k in row_dict and row_dict[k]:
+                        row_dict[k] = "••••••••"
+                result_rows.append(row_dict)
+            elapsed_ms = round((time.perf_counter() - t0) * 1000, 3)
+            conn.close()
+            return {
+                "columns": cols,
+                "rows": result_rows,
+                "row_count": len(result_rows),
+                "execution_ms": elapsed_ms
+            }
+        else:
+            cursor.execute(sql_clean)
+            conn.commit()
+            affected = cursor.rowcount
+            elapsed_ms = round((time.perf_counter() - t0) * 1000, 3)
+            conn.close()
+            return {
+                "columns": ["affected_rows"],
+                "rows": [{"affected_rows": affected}],
+                "row_count": affected,
+                "execution_ms": elapsed_ms
+            }
+
     def get_secrets(self):
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
@@ -1299,6 +1347,12 @@ class SwadeStorageVault:
             else:
                 r["masked_value"] = r["value"]
         return rows
+
+    def get_secret(self, key):
+        conn = sqlite3.connect(self.db_path)
+        row = conn.execute('SELECT value FROM secrets_vault WHERE key = ?', (key,)).fetchone()
+        conn.close()
+        return row[0] if row else None
 
     def set_secret(self, key, value, description=""):
         conn = sqlite3.connect(self.db_path)
@@ -1373,7 +1427,8 @@ class SwadeStorageVault:
                 "l1_reflection_ns": 45.0,
                 "sub_microsecond": True,
                 "memory_architecture": "LPDDR4X @ 1600MHz",
-                "uptime_seconds": int(time.time() - _START_TIME) if '_START_TIME' in globals() else 3600
+                "uptime_seconds": int(time.time() - _START_TIME) if '_START_TIME' in globals() else 3600,
+                "battery": _battery_watcher.get_live_stats() if '_battery_watcher' in globals() else {}
             }
         }
 
@@ -2525,6 +2580,10 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_dashboard_secrets_post()
         elif path in ["/v1/dashboard/roles", "/v1/admin/roles"]:
             self.handle_dashboard_roles_post()
+        elif path in ["/v1/dashboard/webhooks/test", "/v1/admin/webhooks/test"]:
+            self.handle_dashboard_webhook_test()
+        elif path in ["/v1/dashboard/db/sql", "/v1/admin/db/sql"]:
+            self.handle_dashboard_db_sql_post()
         elif parsed.path.startswith("/v1/storage/objects/"):
             raw_key = parsed.path[len("/v1/storage/objects/"):]
             self.handle_storage_put_object(raw_key)
@@ -3902,11 +3961,116 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 _storage_vault.db_delete_row(table, body["pk_col"], body["pk_val"])
             elif action == "insert_row":
                 _storage_vault.db_insert_row(table, body["data"])
+            elif action == "raw_sql":
+                query = body.get("query", "").strip()
+                if not query:
+                    self.send_error(400, "Missing query")
+                    return
+                res = _storage_vault.db_execute_raw_sql(query)
+                _storage_vault.log_audit("developer", "RAW_SQL_EXECUTE", "database", f"query={query[:80]}")
+                resp = json.dumps({"status": "success", "result": res}).encode("utf-8")
+                self.send_response(200)
+                self._send_cors_headers()
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(resp)))
+                self.end_headers()
+                self.wfile.write(resp)
+                return
             else:
                 self.send_error(400, f"Unknown action {action}")
                 return
             _storage_vault.log_audit("admin", "DB_MUTATION", table, f"action={action}")
             resp = json.dumps({"status": "success", "action": action}).encode("utf-8")
+            self.send_response(200)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(resp)))
+            self.end_headers()
+            self.wfile.write(resp)
+        except Exception as e:
+            self.send_error(500, str(e))
+
+    def handle_dashboard_db_sql_post(self):
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            body = json.loads(self.rfile.read(length).decode("utf-8"))
+            query = body.get("query", "").strip()
+            if not query:
+                self.send_error(400, "Missing query")
+                return
+            res = _storage_vault.db_execute_raw_sql(query)
+            _storage_vault.log_audit("developer", "RAW_SQL_EXECUTE", "database", f"query={query[:80]}")
+            resp = json.dumps({"status": "success", "result": res}).encode("utf-8")
+            self.send_response(200)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(resp)))
+            self.end_headers()
+            self.wfile.write(resp)
+        except Exception as e:
+            self.send_response(400)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({"status": "error", "error": str(e)}).encode("utf-8"))
+
+    def handle_dashboard_webhook_test(self):
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            body = json.loads(self.rfile.read(length).decode("utf-8"))
+            target_url = body.get("url")
+            event = body.get("event", "test.ping")
+            payload_data = body.get("payload", {
+                "event": event,
+                "timestamp": int(time.time()),
+                "datacenter": "phone-arm64",
+                "message": "Hardware webhook verification test dispatched from phone datacenter"
+            })
+            if not target_url:
+                self.send_error(400, "Missing webhook target url")
+                return
+
+            payload_bytes = json.dumps(payload_data, sort_keys=True).encode("utf-8")
+            secret = _storage_vault.get_secret("WEBHOOK_SECRET") or "swades_webhook_secret_key"
+            signature = hmac.new(secret.encode("utf-8"), payload_bytes, hashlib.sha256).hexdigest()
+
+            headers = {
+                "Content-Type": "application/json",
+                "User-Agent": "Swades-Cloud-Webhook-Dispatcher/1.0",
+                "X-Swades-Event": event,
+                "X-Swades-Signature": f"sha256={signature}",
+                "X-Swades-Timestamp": str(int(time.time()))
+            }
+
+            t0 = time.perf_counter()
+            req = urllib.request.Request(target_url, data=payload_bytes, headers=headers, method="POST")
+            try:
+                with urllib.request.urlopen(req, timeout=8) as response:
+                    status = response.status
+                    resp_body = response.read(1024).decode("utf-8", errors="ignore")
+                    latency_ms = round((time.perf_counter() - t0) * 1000, 2)
+                    success = (200 <= status < 300)
+            except urllib.error.HTTPError as he:
+                status = he.code
+                resp_body = he.read(1024).decode("utf-8", errors="ignore")
+                latency_ms = round((time.perf_counter() - t0) * 1000, 2)
+                success = False
+            except Exception as ex:
+                status = 502
+                resp_body = str(ex)
+                latency_ms = round((time.perf_counter() - t0) * 1000, 2)
+                success = False
+
+            _storage_vault.log_audit("developer", "WEBHOOK_TEST", target_url, f"status={status} latency={latency_ms}ms")
+            resp = json.dumps({
+                "status": "dispatched",
+                "http_code": status,
+                "success": success,
+                "latency_ms": latency_ms,
+                "signature": f"sha256={signature[:12]}...",
+                "response_preview": resp_body
+            }).encode("utf-8")
+
             self.send_response(200)
             self._send_cors_headers()
             self.send_header("Content-Type", "application/json")

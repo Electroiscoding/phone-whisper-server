@@ -227,6 +227,38 @@
           </div>
         </div>
 
+        <!-- Real-Time Phone Node & Battery Telemetry -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3.5 rounded-lg bg-[#07090d] border border-zinc-800/80 font-mono text-xs">
+          <div class="flex items-center gap-2.5">
+            <span class="text-xl">🔋</span>
+            <div>
+              <div class="text-[10px] text-zinc-500 uppercase">Hardware Power</div>
+              <div id="hw-battery-level" class="font-bold text-emerald-400">37% Discharging</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-2.5">
+            <span class="text-xl">🌡️</span>
+            <div>
+              <div class="text-[10px] text-zinc-500 uppercase">Thermal State</div>
+              <div id="hw-battery-temp" class="font-bold text-cyan-400">33.0°C (Nominal)</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-2.5">
+            <span class="text-xl">⚡</span>
+            <div>
+              <div class="text-[10px] text-zinc-500 uppercase">Bus & Voltage</div>
+              <div id="hw-battery-volt" class="font-bold text-zinc-300">3799 mV</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-2.5">
+            <span class="text-xl">🧠</span>
+            <div>
+              <div class="text-[10px] text-zinc-500 uppercase">RAM Architecture</div>
+              <div class="font-bold text-violet-400">LPDDR4X @ 1600MHz</div>
+            </div>
+          </div>
+        </div>
+
         <!-- Physical Storage Pools Gauges -->
         <div class="p-4 rounded-lg bg-[#07090d] border border-zinc-800/80 space-y-3">
           <div class="flex items-center justify-between">
@@ -516,33 +548,71 @@
           <p class="text-xs text-zinc-400 mt-0.5">Spreadsheet database browser, visual media drive with preview modal, and API credentials hub.</p>
         </div>
 
-        <!-- Visual Database Browser -->
+        <!-- Visual Database Browser & SQL Sandbox -->
         <div class="p-4 rounded-lg bg-[#07090d] border border-zinc-800/80 space-y-3">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-zinc-800/80 pb-3">
             <div class="flex items-center gap-2">
-              <span class="text-sm font-bold text-white space-grotesk">📊 Visual Database Browser</span>
+              <span class="text-sm font-bold text-white space-grotesk">📊 Database Engine</span>
+              <div class="flex rounded bg-black border border-zinc-800 p-0.5 text-xs font-mono">
+                <button onclick="setDbMode('grid')" id="btn-db-tab-grid" class="px-2.5 py-0.5 rounded bg-zinc-800 text-white font-semibold transition-all">Spreadsheet Grid</button>
+                <button onclick="setDbMode('sql')" id="btn-db-tab-sql" class="px-2.5 py-0.5 rounded text-zinc-400 hover:text-white transition-all">SQL Sandbox</button>
+              </div>
+            </div>
+            <div id="db-grid-controls" class="flex items-center gap-2">
               <select id="db-table-select" onchange="loadDbTable()" class="bg-black border border-zinc-800 rounded px-2.5 py-1 text-xs font-mono text-cyan-400 outline-none">
                 <!-- Tables loaded dynamically -->
               </select>
-            </div>
-            <div class="flex items-center gap-2">
               <span id="db-total-rows" class="text-xs font-mono text-zinc-500">-- rows</span>
+              <button onclick="exportTableToCsv()" class="text-xs font-mono px-2.5 py-1 rounded bg-zinc-900 border border-zinc-750 hover:bg-zinc-800 text-zinc-300">⬇️ Export CSV</button>
               <button onclick="openInsertRowModal()" class="text-xs font-mono px-2.5 py-1 rounded bg-cyan-500 hover:bg-cyan-400 text-black font-semibold">+ Insert Row</button>
+            </div>
+            <div id="db-sql-controls" class="hidden flex items-center gap-2">
+              <span id="sql-query-status" class="text-xs font-mono text-zinc-400">Ready</span>
+              <button onclick="exportSqlResultToCsv()" class="text-xs font-mono px-2.5 py-1 rounded bg-zinc-900 border border-zinc-700 hover:bg-zinc-800 text-zinc-300">⬇️ Export Result CSV</button>
+              <button onclick="executeRawSqlQuery()" id="btn-run-sql" class="text-xs font-mono px-3 py-1 rounded bg-cyan-500 hover:bg-cyan-400 text-black font-semibold">⚡ Run Query</button>
             </div>
           </div>
 
-          <div class="overflow-x-auto max-h-96 overflow-y-auto border border-zinc-800/60 rounded">
-            <table class="w-full text-left text-xs font-mono border-collapse" id="db-grid-table">
-              <thead class="sticky top-0 bg-[#0c0f14] z-10 text-zinc-400 border-b border-zinc-800">
-                <tr id="db-grid-headers"></tr>
-              </thead>
-              <tbody id="db-grid-body">
-                <!-- Rows loaded dynamically -->
-              </tbody>
-            </table>
+          <!-- TAB 1: SPREADSHEET GRID -->
+          <div id="db-panel-grid" class="space-y-2">
+            <div class="overflow-x-auto max-h-96 overflow-y-auto border border-zinc-800/60 rounded">
+              <table class="w-full text-left text-xs font-mono border-collapse" id="db-grid-table">
+                <thead class="sticky top-0 bg-[#0c0f14] z-10 text-zinc-400 border-b border-zinc-800">
+                  <tr id="db-grid-headers"></tr>
+                </thead>
+                <tbody id="db-grid-body">
+                  <!-- Rows loaded dynamically -->
+                </tbody>
+              </table>
+            </div>
+            <div class="text-[11px] font-mono text-zinc-500 flex justify-between">
+              <span>💡 Double-click any cell to edit value directly. Passwords & salts are masked for security.</span>
+            </div>
           </div>
-          <div class="text-[11px] font-mono text-zinc-500 flex justify-between">
-            <span>💡 Tip: Double-click any cell to edit value directly. Passwords & salts are masked for security.</span>
+
+          <!-- TAB 2: SQL QUERY SANDBOX -->
+          <div id="db-panel-sql" class="hidden space-y-3">
+            <div class="flex flex-wrap items-center gap-1.5 text-[11px] font-mono">
+              <span class="text-zinc-500">Presets:</span>
+              <button onclick="setSqlQuery('SELECT * FROM users;')" class="px-2 py-0.5 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800">Users</button>
+              <button onclick="setSqlQuery('SELECT * FROM role_permissions;')" class="px-2 py-0.5 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800">Role Permissions</button>
+              <button onclick="setSqlQuery('SELECT * FROM audit_logs ORDER BY timestamp DESC LIMIT 25;')" class="px-2 py-0.5 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800">Recent Audits</button>
+              <button onclick="setSqlQuery('SELECT * FROM feature_flags;')" class="px-2 py-0.5 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800">Flags</button>
+              <button onclick="setSqlQuery('SELECT * FROM performance_logs ORDER BY timestamp DESC LIMIT 20;')" class="px-2 py-0.5 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800">Perf Logs</button>
+            </div>
+
+            <textarea id="sql-query-input" rows="3" class="w-full bg-black/80 border border-zinc-800 rounded p-2.5 font-mono text-xs text-cyan-300 outline-none focus:border-cyan-500 select-text" placeholder="SELECT * FROM table WHERE ...">SELECT * FROM role_permissions;</textarea>
+
+            <div id="sql-result-container" class="hidden overflow-x-auto max-h-80 overflow-y-auto border border-zinc-800/60 rounded">
+              <table class="w-full text-left text-xs font-mono border-collapse" id="sql-grid-table">
+                <thead class="sticky top-0 bg-[#0c0f14] z-10 text-zinc-400 border-b border-zinc-800">
+                  <tr id="sql-grid-headers"></tr>
+                </thead>
+                <tbody id="sql-grid-body">
+                  <!-- Query results loaded dynamically -->
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
 
@@ -601,13 +671,26 @@
             <h1 class="text-xl font-bold tracking-tight text-white space-grotesk">Live Edge & Hardware Log Streamer</h1>
             <p class="text-xs text-zinc-400 mt-0.5">Real-time HTTP requests, status codes, reflection times, and IP inspection.</p>
           </div>
-          <div class="flex items-center gap-2">
+          <div class="flex flex-wrap items-center gap-2">
+            <button onclick="downloadLogsJson()" class="text-xs font-mono px-2.5 py-1 rounded bg-zinc-900 border border-zinc-700 hover:bg-zinc-800 text-zinc-300">⬇️ Download Logs</button>
             <button onclick="toggleLogAutoScroll()" id="btn-autoscroll" class="text-xs font-mono px-2.5 py-1 rounded bg-cyan-950 border border-cyan-800/60 text-cyan-400">Auto-Scroll: ON</button>
             <button onclick="clearLogViewer()" class="text-xs font-mono px-2.5 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300">Clear</button>
           </div>
         </div>
 
-        <div id="log-terminal" class="bg-black/90 border border-zinc-800 rounded-lg p-3 font-mono text-xs h-[500px] overflow-y-auto space-y-1">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2 rounded bg-black/60 border border-zinc-800 text-xs font-mono">
+          <div class="flex items-center gap-1">
+            <span class="text-zinc-500 text-[11px] mr-1">Filter:</span>
+            <button onclick="setLogStatusFilter('all')" id="log-flt-all" class="px-2 py-0.5 rounded bg-zinc-800 text-white font-semibold">ALL</button>
+            <button onclick="setLogStatusFilter('2xx')" id="log-flt-2xx" class="px-2 py-0.5 rounded text-zinc-400 hover:text-emerald-400">2xx OK</button>
+            <button onclick="setLogStatusFilter('4xx')" id="log-flt-4xx" class="px-2 py-0.5 rounded text-zinc-400 hover:text-amber-400">4xx Client</button>
+            <button onclick="setLogStatusFilter('5xx')" id="log-flt-5xx" class="px-2 py-0.5 rounded text-zinc-400 hover:text-rose-400">5xx Server</button>
+            <button onclick="setLogStatusFilter('mut')" id="log-flt-mut" class="px-2 py-0.5 rounded text-zinc-400 hover:text-cyan-400">Mutations</button>
+          </div>
+          <input type="text" id="log-search-input" oninput="applyLogFilters()" placeholder="Filter URL, Method, or IP..." class="bg-zinc-950 border border-zinc-800 rounded px-2.5 py-0.5 text-xs font-mono text-zinc-200 outline-none focus:border-cyan-500 w-52" />
+        </div>
+
+        <div id="log-terminal" class="bg-black/90 border border-zinc-800 rounded-lg p-3 font-mono text-xs h-[480px] overflow-y-auto space-y-1">
           <!-- Log lines rendered here -->
         </div>
       </section>
@@ -622,14 +705,23 @@
         </div>
 
         <div class="p-4 rounded-lg bg-[#07090d] border border-zinc-800/80 space-y-3">
+          <div class="flex flex-wrap items-center gap-1.5 text-[11px] font-mono border-b border-zinc-800/80 pb-2.5">
+            <span class="text-zinc-500">Presets:</span>
+            <button onclick="setPlaygroundPreset('benchmark')" class="px-2 py-0.5 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800">L1 Benchmark</button>
+            <button onclick="setPlaygroundPreset('pools')" class="px-2 py-0.5 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800">Storage Pools</button>
+            <button onclick="setPlaygroundPreset('flags')" class="px-2 py-0.5 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800">Feature Flags</button>
+            <button onclick="setPlaygroundPreset('overview')" class="px-2 py-0.5 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800">Cluster Overview</button>
+            <button onclick="setPlaygroundPreset('tables')" class="px-2 py-0.5 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800">Database Tables</button>
+          </div>
+
           <div class="flex flex-col sm:flex-row gap-2">
-            <select id="pg-method" class="bg-black border border-zinc-800 rounded px-3 py-1.5 text-xs font-mono text-cyan-400 outline-none w-28">
+            <select id="pg-method" onchange="updateCodeSnippet()" class="bg-black border border-zinc-800 rounded px-3 py-1.5 text-xs font-mono text-cyan-400 outline-none w-28">
               <option value="GET">GET</option>
               <option value="POST">POST</option>
               <option value="PUT">PUT</option>
               <option value="DELETE">DELETE</option>
             </select>
-            <input type="text" id="pg-url" value="/v1/storage/benchmark" placeholder="/v1/endpoint" class="flex-1 bg-black border border-zinc-800 rounded px-3 py-1.5 text-xs font-mono text-white focus:border-cyan-500 outline-none" />
+            <input type="text" id="pg-url" oninput="updateCodeSnippet()" value="/v1/storage/benchmark" placeholder="/v1/endpoint" class="flex-1 bg-black border border-zinc-800 rounded px-3 py-1.5 text-xs font-mono text-white focus:border-cyan-500 outline-none" />
             <button onclick="executePlaygroundRequest()" id="btn-pg-send" class="px-5 py-1.5 rounded bg-cyan-500 hover:bg-cyan-400 text-black font-semibold text-xs font-mono transition-colors">
               ▶ Send Request
             </button>
@@ -638,13 +730,13 @@
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label class="text-[11px] font-mono text-zinc-400">Headers (JSON)</label>
-              <textarea id="pg-headers" rows="4" class="w-full bg-black border border-zinc-800 rounded p-2 text-xs font-mono text-zinc-300 outline-none mt-1">{
+              <textarea id="pg-headers" oninput="updateCodeSnippet()" rows="3" class="w-full bg-black border border-zinc-800 rounded p-2 text-xs font-mono text-zinc-300 outline-none mt-1">{
   "Content-Type": "application/json"
 }</textarea>
             </div>
             <div>
               <label class="text-[11px] font-mono text-zinc-400">Request Body (Optional)</label>
-              <textarea id="pg-body" rows="4" placeholder="Payload for POST/PUT..." class="w-full bg-black border border-zinc-800 rounded p-2 text-xs font-mono text-zinc-300 outline-none mt-1"></textarea>
+              <textarea id="pg-body" oninput="updateCodeSnippet()" rows="3" placeholder="Payload for POST/PUT..." class="w-full bg-black border border-zinc-800 rounded p-2 text-xs font-mono text-zinc-300 outline-none mt-1"></textarea>
             </div>
           </div>
 
@@ -654,6 +746,25 @@
               <span id="pg-latency" class="text-cyan-400">-- ms</span>
             </div>
             <pre id="pg-response" class="font-mono text-xs text-zinc-300 overflow-x-auto max-h-72 p-2 bg-zinc-950 rounded select-text">// Press 'Send Request' to view formatted output</pre>
+          </div>
+
+          <!-- Multi-Language Code Snippet Generator -->
+          <div class="p-3.5 rounded bg-black/70 border border-zinc-800 space-y-2">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-zinc-800/80 pb-2">
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-mono font-bold text-white">💻 Code Snippet Generator</span>
+                <div class="flex rounded bg-black border border-zinc-800 p-0.5 text-[11px] font-mono">
+                  <button onclick="setSnippetLang('curl')" id="btn-snip-curl" class="px-2 py-0.5 rounded bg-zinc-800 text-white font-semibold">cURL</button>
+                  <button onclick="setSnippetLang('js')" id="btn-snip-js" class="px-2 py-0.5 rounded text-zinc-400 hover:text-white">JavaScript</button>
+                  <button onclick="setSnippetLang('python')" id="btn-snip-python" class="px-2 py-0.5 rounded text-zinc-400 hover:text-white">Python</button>
+                  <button onclick="setSnippetLang('node')" id="btn-snip-node" class="px-2 py-0.5 rounded text-zinc-400 hover:text-white">Node.js</button>
+                </div>
+              </div>
+              <button onclick="copyCurrentSnippet()" class="text-xs font-mono text-cyan-400 hover:text-cyan-300 flex items-center gap-1">
+                <span>📋</span> Copy Snippet
+              </button>
+            </div>
+            <pre id="pg-snippet-box" class="font-mono text-xs text-emerald-400 overflow-x-auto max-h-48 p-2.5 bg-zinc-950 rounded select-text whitespace-pre"></pre>
           </div>
         </div>
       </section>
@@ -687,6 +798,58 @@
                 <!-- Dynamically Populated -->
               </tbody>
             </table>
+          </div>
+        </div>
+
+        <!-- Live Webhooks Dispatcher & Verification Suite -->
+        <div class="p-4 rounded-lg bg-[#07090d] border border-zinc-800/80 space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-zinc-800/80 pb-3">
+            <div>
+              <h2 class="text-sm font-bold text-white space-grotesk flex items-center gap-2">
+                <span>📡 Hardware Webhook Dispatcher & HMAC Tester</span>
+                <span class="text-[10px] font-mono text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-1.5 py-0.5 rounded">HMAC-SHA256 SIGNED</span>
+              </h2>
+              <p class="text-xs font-mono text-zinc-400 mt-0.5">Test external webhook endpoints with real cryptographically signed payloads dispatched directly from phone hardware.</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div class="space-y-1">
+              <label class="text-[11px] font-mono text-zinc-400">Trigger Event</label>
+              <select id="webhook-event-select" class="w-full bg-black/60 border border-zinc-800 rounded p-2 text-xs font-mono text-zinc-200 outline-none focus:border-cyan-500">
+                <option value="object.uploaded">object.uploaded (Storage Put)</option>
+                <option value="object.deleted">object.deleted (Storage Purge)</option>
+                <option value="user.registered">user.registered (New Account)</option>
+                <option value="threshold.exceeded">threshold.exceeded (Disk/RAM Spillover)</option>
+                <option value="flag.changed">flag.changed (Feature Toggle)</option>
+                <option value="audit.alert">audit.alert (Admin Mutation)</option>
+              </select>
+            </div>
+
+            <div class="md:col-span-2 space-y-1">
+              <label class="text-[11px] font-mono text-zinc-400">Target Webhook URL</label>
+              <div class="flex gap-2">
+                <input type="url" id="webhook-test-url" value="https://api.swades.cloud/events/webhook" placeholder="https://your-api.com/webhook" class="flex-1 bg-black/60 border border-zinc-800 rounded px-3 py-2 text-xs font-mono text-cyan-400 focus:outline-none focus:border-cyan-500" />
+                <button onclick="dispatchWebhookTest()" id="btn-dispatch-webhook" class="px-4 py-2 rounded bg-cyan-500 hover:bg-cyan-400 text-black font-semibold text-xs font-mono whitespace-nowrap transition-all">
+                  🚀 Send Test Ping
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Webhook Dispatch Result Console -->
+          <div id="webhook-result-box" class="hidden p-3.5 rounded bg-black/90 border border-zinc-800 font-mono text-xs space-y-2">
+            <div class="flex items-center justify-between border-b border-zinc-800/80 pb-2">
+              <div class="flex items-center gap-2">
+                <span id="webhook-res-badge" class="px-2 py-0.5 rounded text-[10px] font-bold">200 OK</span>
+                <span class="text-zinc-400 text-[11px]">Latency: <span id="webhook-res-latency" class="text-cyan-400 font-bold">--</span></span>
+              </div>
+              <span class="text-[11px] text-zinc-500 font-mono">HMAC: <span id="webhook-res-sig" class="text-emerald-400">--</span></span>
+            </div>
+            <div>
+              <div class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">Server Response Preview:</div>
+              <pre id="webhook-res-body" class="p-2 rounded bg-zinc-950 text-zinc-300 text-[11px] max-h-32 overflow-auto whitespace-pre-wrap">--</pre>
+            </div>
           </div>
         </div>
       </section>
@@ -981,6 +1144,18 @@
             </div>
           `).join('');
           document.getElementById('hdr-pools-count').innerText = `${data.storage.pools.length} ACTIVE`;
+        }
+
+        // Render Hardware Battery & Thermal Telemetry
+        if (data.system_health && data.system_health.battery) {
+          const b = data.system_health.battery;
+          const statusIcon = b.status === "Charging" ? "⚡" : (b.level > 20 ? "🔋" : "🪫");
+          const levelEl = document.getElementById('hw-battery-level');
+          const tempEl = document.getElementById('hw-battery-temp');
+          const voltEl = document.getElementById('hw-battery-volt');
+          if (levelEl) levelEl.innerText = `${statusIcon} ${b.level}% ${b.status || ''}`;
+          if (tempEl) tempEl.innerText = `${b.temperature || 31.0}°C (${(b.temperature || 31.0) < 38 ? 'Nominal / Cool' : 'Warm'})`;
+          if (voltEl) voltEl.innerText = `${b.voltage_mv || 3800} mV`;
         }
       } catch (err) {
         console.error("Failed to load overview telemetry:", err);
@@ -1283,6 +1458,117 @@
       loadCredentialsTable();
     }
 
+    let currentTableData = null;
+    let lastSqlResult = null;
+
+    function setDbMode(mode) {
+      if (mode === 'grid') {
+        document.getElementById('db-panel-grid').classList.remove('hidden');
+        document.getElementById('db-panel-sql').classList.add('hidden');
+        document.getElementById('db-grid-controls').classList.remove('hidden');
+        document.getElementById('db-sql-controls').classList.add('hidden');
+        document.getElementById('btn-db-tab-grid').className = "px-2.5 py-0.5 rounded bg-zinc-800 text-white font-semibold transition-all";
+        document.getElementById('btn-db-tab-sql').className = "px-2.5 py-0.5 rounded text-zinc-400 hover:text-white transition-all";
+      } else {
+        document.getElementById('db-panel-grid').classList.add('hidden');
+        document.getElementById('db-panel-sql').classList.remove('hidden');
+        document.getElementById('db-grid-controls').classList.add('hidden');
+        document.getElementById('db-sql-controls').classList.remove('hidden');
+        document.getElementById('btn-db-tab-sql').className = "px-2.5 py-0.5 rounded bg-zinc-800 text-white font-semibold transition-all";
+        document.getElementById('btn-db-tab-grid').className = "px-2.5 py-0.5 rounded text-zinc-400 hover:text-white transition-all";
+      }
+    }
+
+    function setSqlQuery(sql) {
+      document.getElementById('sql-query-input').value = sql;
+      executeRawSqlQuery();
+    }
+
+    async function executeRawSqlQuery() {
+      const query = document.getElementById('sql-query-input').value.trim();
+      if (!query) return;
+      const statusEl = document.getElementById('sql-query-status');
+      statusEl.innerText = "Executing on phone SQLite engine...";
+      try {
+        const res = await fetch(`${BASE_URL}/v1/dashboard/db/sql`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query })
+        });
+        const data = await res.json();
+        if (data.status === "error" || data.error) {
+          statusEl.innerHTML = `<span class="text-rose-400">Error: ${data.error}</span>`;
+          return;
+        }
+        lastSqlResult = data.result;
+        statusEl.innerHTML = `<span class="text-emerald-400">Success: ${data.result.row_count} rows in ${data.result.execution_ms}ms</span>`;
+        renderSqlResult(data.result);
+      } catch (err) {
+        statusEl.innerHTML = `<span class="text-rose-400">Error: ${err.message}</span>`;
+      }
+    }
+
+    function renderSqlResult(result) {
+      const container = document.getElementById('sql-result-container');
+      container.classList.remove('hidden');
+      const hdr = document.getElementById('sql-grid-headers');
+      hdr.innerHTML = result.columns.map(c => `<th class="py-2 px-3 whitespace-nowrap">${c}</th>`).join('');
+      const tbody = document.getElementById('sql-grid-body');
+      tbody.innerHTML = result.rows.map(r => `
+        <tr class="border-b border-zinc-800/40 hover:bg-zinc-900/30">
+          ${result.columns.map(c => `<td class="py-2 px-3 whitespace-nowrap text-zinc-300 font-mono">${r[c] !== null ? r[c] : '<span class="text-zinc-600">NULL</span>'}</td>`).join('')}
+        </tr>
+      `).join('');
+    }
+
+    function exportTableToCsv() {
+      if (!currentTableData || !currentTableData.rows || currentTableData.rows.length === 0) {
+        alert("No table data available to export.");
+        return;
+      }
+      const cols = currentTableData.columns.map(c => c.name);
+      let csv = cols.join(",") + "\n";
+      currentTableData.rows.forEach(r => {
+        const row = cols.map(col => {
+          let val = r[col] === null || r[col] === undefined ? "" : String(r[col]);
+          val = val.replace(/"/g, '""');
+          return `"${val}"`;
+        }).join(",");
+        csv += row + "\n";
+      });
+      downloadBlob(csv, `${currentTableData.table}_export_${Date.now()}.csv`, "text/csv;charset=utf-8;");
+    }
+
+    function exportSqlResultToCsv() {
+      if (!lastSqlResult || !lastSqlResult.rows || lastSqlResult.rows.length === 0) {
+        alert("No query results available to export.");
+        return;
+      }
+      const cols = lastSqlResult.columns;
+      let csv = cols.join(",") + "\n";
+      lastSqlResult.rows.forEach(r => {
+        const row = cols.map(col => {
+          let val = r[col] === null || r[col] === undefined ? "" : String(r[col]);
+          val = val.replace(/"/g, '""');
+          return `"${val}"`;
+        }).join(",");
+        csv += row + "\n";
+      });
+      downloadBlob(csv, `sql_result_${Date.now()}.csv`, "text/csv;charset=utf-8;");
+    }
+
+    function downloadBlob(content, filename, contentType) {
+      const blob = new Blob([content], { type: contentType });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
     async function loadDbTable() {
       const table = document.getElementById('db-table-select').value;
       if (!table) return;
@@ -1290,6 +1576,7 @@
         const res = await fetch(`${BASE_URL}/v1/dashboard/db/query?table=${table}`);
         const data = await res.json();
 
+        currentTableData = { table, columns: data.columns, rows: data.rows };
         document.getElementById('db-total-rows').innerText = `${data.total_rows} rows`;
 
         // Headers
@@ -1497,6 +1784,9 @@
 
     // --- LIVE LOG STREAMER ---
     let logPollTimer = null;
+    let cachedLogs = [];
+    let logStatusFilter = 'all';
+
     async function loadLogsView() {
       fetchLogsOnce();
       if (!logPollTimer) {
@@ -1508,24 +1798,65 @@
       try {
         const res = await fetch(`${BASE_URL}/v1/dashboard/logs`);
         const data = await res.json();
-        const term = document.getElementById('log-terminal');
-        term.innerHTML = (data.logs || []).map(l => {
-          const color = l.status_code >= 500 ? 'text-rose-400' : (l.status_code >= 400 ? 'text-amber-400' : 'text-emerald-400');
-          return `
-            <div class="flex items-baseline gap-2 py-0.5 hover:bg-zinc-900/60 px-1 rounded">
-              <span class="text-zinc-600 text-[10px]">${l.time_str}</span>
-              <span class="font-bold text-cyan-400 w-12 text-left">${l.method}</span>
-              <span class="font-bold ${color} w-10">${l.status_code}</span>
-              <span class="text-zinc-200 flex-1 truncate">${l.path}</span>
-              <span class="text-zinc-500 text-[10px]">${l.latency_ms}ms</span>
-            </div>
-          `;
-        }).join('');
-
-        if (autoScrollLogs) {
-          term.scrollTop = term.scrollHeight;
-        }
+        cachedLogs = data.logs || [];
+        applyLogFilters();
       } catch (e) {}
+    }
+
+    function setLogStatusFilter(flt) {
+      logStatusFilter = flt;
+      ['all', '2xx', '4xx', '5xx', 'mut'].forEach(k => {
+        const btn = document.getElementById(`log-flt-${k}`);
+        if (btn) {
+          if (k === flt) {
+            btn.className = "px-2 py-0.5 rounded bg-zinc-800 text-white font-semibold";
+          } else {
+            btn.className = "px-2 py-0.5 rounded text-zinc-400 hover:text-white";
+          }
+        }
+      });
+      applyLogFilters();
+    }
+
+    function applyLogFilters() {
+      const q = (document.getElementById('log-search-input') ? document.getElementById('log-search-input').value : '').toLowerCase();
+      const term = document.getElementById('log-terminal');
+      if (!cachedLogs || cachedLogs.length === 0) return;
+
+      let filtered = cachedLogs.filter(l => {
+        // Status filter
+        if (logStatusFilter === '2xx' && (l.status_code < 200 || l.status_code >= 300)) return false;
+        if (logStatusFilter === '4xx' && (l.status_code < 400 || l.status_code >= 500)) return false;
+        if (logStatusFilter === '5xx' && l.status_code < 500) return false;
+        if (logStatusFilter === 'mut' && !['POST', 'PUT', 'DELETE'].includes(l.method)) return false;
+
+        // Search query
+        if (q) {
+          const match = (l.path && l.path.toLowerCase().includes(q)) ||
+                        (l.method && l.method.toLowerCase().includes(q)) ||
+                        (l.status_code && String(l.status_code).includes(q)) ||
+                        (l.client_ip && l.client_ip.includes(q));
+          if (!match) return false;
+        }
+        return true;
+      });
+
+      term.innerHTML = filtered.map(l => {
+        const color = l.status_code >= 500 ? 'text-rose-400' : (l.status_code >= 400 ? 'text-amber-400' : 'text-emerald-400');
+        return `
+          <div class="flex items-baseline gap-2 py-0.5 hover:bg-zinc-900/60 px-1 rounded">
+            <span class="text-zinc-600 text-[10px]">${l.time_str}</span>
+            <span class="font-bold text-cyan-400 w-12 text-left">${l.method}</span>
+            <span class="font-bold ${color} w-10">${l.status_code}</span>
+            <span class="text-zinc-200 flex-1 truncate">${l.path}</span>
+            <span class="text-zinc-500 text-[10px]">${l.latency_ms}ms</span>
+          </div>
+        `;
+      }).join('');
+
+      if (autoScrollLogs) {
+        term.scrollTop = term.scrollHeight;
+      }
     }
 
     function toggleLogAutoScroll() {
@@ -1537,7 +1868,126 @@
       document.getElementById('log-terminal').innerHTML = '<div class="text-zinc-600">Logs cleared. Waiting for new traffic...</div>';
     }
 
-    // --- API PLAYGROUND ---
+    function downloadLogsJson() {
+      if (!cachedLogs || cachedLogs.length === 0) {
+        alert("No logs to download.");
+        return;
+      }
+      downloadBlob(JSON.stringify(cachedLogs, null, 2), `swades_edge_logs_${Date.now()}.json`, "application/json");
+    }
+
+    // --- API PLAYGROUND & SNIPPET GENERATOR ---
+    let currentSnippetLang = 'curl';
+
+    function setSnippetLang(lang) {
+      currentSnippetLang = lang;
+      ['curl', 'js', 'python', 'node'].forEach(l => {
+        const btn = document.getElementById(`btn-snip-${l}`);
+        if (btn) {
+          if (l === lang) {
+            btn.className = "px-2 py-0.5 rounded bg-zinc-800 text-white font-semibold";
+          } else {
+            btn.className = "px-2 py-0.5 rounded text-zinc-400 hover:text-white";
+          }
+        }
+      });
+      updateCodeSnippet();
+    }
+
+    function updateCodeSnippet() {
+      const method = document.getElementById('pg-method').value || 'GET';
+      const path = document.getElementById('pg-url').value || '/v1/storage/benchmark';
+      const headersStr = document.getElementById('pg-headers').value || '{}';
+      const bodyStr = document.getElementById('pg-body').value || '';
+      const fullUrl = `${BASE_URL}${path}`;
+      const token = activeKey || 'sk_swades_YOUR_API_KEY';
+
+      let snippet = '';
+      if (currentSnippetLang === 'curl') {
+        let lines = [`curl -X ${method} "${fullUrl}"`];
+        lines.push(`  -H "x-api-key: ${token}"`);
+        try {
+          const h = JSON.parse(headersStr);
+          Object.keys(h).forEach(k => {
+            if (k.toLowerCase() !== 'x-api-key') lines.push(`  -H "${k}: ${h[k]}"`);
+          });
+        } catch(e) {}
+        if (['POST', 'PUT'].includes(method) && bodyStr) {
+          lines.push(`  -d '${bodyStr.replace(/'/g, "'\\''")}'`);
+        }
+        snippet = lines.join(' \\\n');
+      } else if (currentSnippetLang === 'js') {
+        snippet = `const response = await fetch("${fullUrl}", {
+  method: "${method}",
+  headers: {
+    "x-api-key": "${token}",
+    "Content-Type": "application/json"
+  }${['POST', 'PUT'].includes(method) && bodyStr ? `,\n  body: JSON.stringify(${bodyStr})` : ''}
+});
+const data = await response.json();
+console.log(data);`;
+      } else if (currentSnippetLang === 'python') {
+        snippet = `import requests
+
+url = "${fullUrl}"
+headers = {
+    "x-api-key": "${token}",
+    "Content-Type": "application/json"
+}
+${['POST', 'PUT'].includes(method) && bodyStr ? `data = ${bodyStr}\nresponse = requests.${method.toLowerCase()}(url, headers=headers, json=data)` : `response = requests.${method.toLowerCase()}(url, headers=headers)`}
+
+print(response.status_code)
+print(response.json())`;
+      } else if (currentSnippetLang === 'node') {
+        snippet = `const axios = require('axios');
+
+axios({
+  method: '${method.toLowerCase()}',
+  url: '${fullUrl}',
+  headers: {
+    'x-api-key': '${token}',
+    'Content-Type': 'application/json'
+  }${['POST', 'PUT'].includes(method) && bodyStr ? `,\n  data: ${bodyStr}` : ''}
+})
+.then(res => console.log(res.data))
+.catch(err => console.error(err.message));`;
+      }
+
+      const box = document.getElementById('pg-snippet-box');
+      if (box) box.innerText = snippet;
+    }
+
+    function copyCurrentSnippet() {
+      const box = document.getElementById('pg-snippet-box');
+      if (box) copyToClipboard(box.innerText);
+    }
+
+    function setPlaygroundPreset(preset) {
+      if (preset === 'benchmark') {
+        document.getElementById('pg-method').value = 'GET';
+        document.getElementById('pg-url').value = '/v1/storage/benchmark';
+        document.getElementById('pg-body').value = '';
+      } else if (preset === 'pools') {
+        document.getElementById('pg-method').value = 'GET';
+        document.getElementById('pg-url').value = '/v1/storage/pools';
+        document.getElementById('pg-body').value = '';
+      } else if (preset === 'flags') {
+        document.getElementById('pg-method').value = 'GET';
+        document.getElementById('pg-url').value = '/v1/dashboard/flags';
+        document.getElementById('pg-body').value = '';
+      } else if (preset === 'overview') {
+        document.getElementById('pg-method').value = 'GET';
+        document.getElementById('pg-url').value = '/v1/dashboard/overview';
+        document.getElementById('pg-body').value = '';
+      } else if (preset === 'tables') {
+        document.getElementById('pg-method').value = 'GET';
+        document.getElementById('pg-url').value = '/v1/dashboard/db/tables';
+        document.getElementById('pg-body').value = '';
+      }
+      updateCodeSnippet();
+      executePlaygroundRequest();
+    }
+
     async function executePlaygroundRequest() {
       const method = document.getElementById('pg-method').value;
       const path = document.getElementById('pg-url').value.trim();
@@ -1570,9 +2020,10 @@
       } catch (err) {
         respEl.innerText = "Error: " + err.message;
       }
+      updateCodeSnippet();
     }
 
-    // --- SECRETS VAULT ---
+    // --- SECRETS & WEBHOOKS ---
     async function loadSecretsView() {
       try {
         const res = await fetch(`${BASE_URL}/v1/dashboard/secrets`);
@@ -1613,6 +2064,44 @@
         body: JSON.stringify({ key, value: val, description: "Custom developer environment variable" })
       });
       loadSecretsView();
+    }
+
+    async function dispatchWebhookTest() {
+      const url = document.getElementById('webhook-test-url').value.trim();
+      const event = document.getElementById('webhook-event-select').value;
+      if (!url) {
+        alert("Please enter a webhook target URL");
+        return;
+      }
+      const btn = document.getElementById('btn-dispatch-webhook');
+      btn.innerText = "Pinging...";
+      btn.disabled = true;
+
+      try {
+        const res = await fetch(`${BASE_URL}/v1/dashboard/webhooks/test`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url, event })
+        });
+        const data = await res.json();
+        const box = document.getElementById('webhook-result-box');
+        box.classList.remove('hidden');
+
+        const badge = document.getElementById('webhook-res-badge');
+        badge.innerText = `${data.http_code} ${data.success ? 'OK' : 'FAIL'}`;
+        badge.className = data.success 
+          ? 'px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-950/80 text-emerald-400 border border-emerald-800'
+          : 'px-2 py-0.5 rounded text-[10px] font-bold bg-rose-950/80 text-rose-400 border border-rose-800';
+
+        document.getElementById('webhook-res-latency').innerText = `${data.latency_ms} ms`;
+        document.getElementById('webhook-res-sig').innerText = data.signature || '--';
+        document.getElementById('webhook-res-body').innerText = data.response_preview || '(No response body)';
+      } catch (err) {
+        alert("Webhook dispatch error: " + err.message);
+      } finally {
+        btn.innerText = "🚀 Send Test Ping";
+        btn.disabled = false;
+      }
     }
 
     function copyToClipboard(txt) {
@@ -1764,6 +2253,7 @@
     window.addEventListener('DOMContentLoaded', () => {
       checkUserSession();
       refreshOverview();
+      updateCodeSnippet();
     });
   </script>
 </body>
