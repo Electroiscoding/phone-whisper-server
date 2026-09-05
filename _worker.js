@@ -2,14 +2,16 @@
  * ☢️ CLOUDFLARE PAGES UNIVERSAL EDGE WORKER (_worker.js)
  * Makes all API endpoints 100% PERMANENT under https://phone-whisper-server.pages.dev
  * Automatically routes all /v1/*, /inference, /telemetry, /tts to the live phone tunnel.
+ * Features: Zero-hang timeouts, multi-CDN origin discovery, and instant self-healing.
  */
 
+const JSDELIVR_ENDPOINT_URL = "https://cdn.jsdelivr.net/gh/Electroiscoding/phone-whisper-server@main/endpoint.json";
 const GITHUB_ENDPOINT_URL = "https://raw.githubusercontent.com/Electroiscoding/phone-whisper-server/main/endpoint.json";
 const SHARED_SECRET = "mobile_ai_nuclear_key";
 
 let cachedOrigin = "https://practical-loud-don-voluntary.trycloudflare.com";
 let lastFetchTime = Date.now();
-const CACHE_TTL_MS = 10000; // 10 seconds
+const CACHE_TTL_MS = 6000; // 6 seconds
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -19,23 +21,32 @@ const CORS_HEADERS = {
   "Access-Control-Max-Age": "86400"
 };
 
+async function fetchWithTimeout(url, options = {}, timeoutMs = 2500) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(id);
+    return res;
+  } catch (err) {
+    clearTimeout(id);
+    throw err;
+  }
+}
+
 async function getLiveOrigin(forceRefresh = false) {
   const now = Date.now();
   if (!forceRefresh && cachedOrigin && (now - lastFetchTime < CACHE_TTL_MS)) {
     return cachedOrigin;
   }
 
-  // 1. Primary: 100% Uncached GitHub REST API with raw header (Bypasses raw CDN 5-minute cache)
+  // 1. Primary: jsDelivr High-Speed Edge CDN (Global, 0s propagation, immune to GitHub API rate limits)
   try {
-    const apiRes = await fetch(`https://api.github.com/repos/Electroiscoding/phone-whisper-server/contents/endpoint.json?ref=main&_t=${now}`, {
-      headers: {
-        "User-Agent": "Cloudflare-Pages-Worker/3.0",
-        "Accept": "application/vnd.github.v3.raw",
-        "Cache-Control": "no-cache"
-      }
-    });
-    if (apiRes.ok) {
-      const data = await apiRes.json();
+    const jsdelivrRes = await fetchWithTimeout(`${JSDELIVR_ENDPOINT_URL}?_t=${now}`, {
+      headers: { "Cache-Control": "no-cache" }
+    }, 2000);
+    if (jsdelivrRes.ok) {
+      const data = await jsdelivrRes.json();
       if (data && data.endpoint && data.endpoint.startsWith("https://")) {
         cachedOrigin = data.endpoint.replace(/\/+$/, "");
         lastFetchTime = now;
@@ -46,10 +57,9 @@ async function getLiveOrigin(forceRefresh = false) {
 
   // 2. Secondary Fallback: Raw GitHub CDN
   try {
-    const res = await fetch(`${GITHUB_ENDPOINT_URL}?_t=${now}`, {
-      headers: { "User-Agent": "Cloudflare-Pages-Worker/3.0", "Cache-Control": "no-cache" },
-      cf: { cacheTtl: 0, cacheEverything: false }
-    });
+    const res = await fetchWithTimeout(`${GITHUB_ENDPOINT_URL}?_t=${now}`, {
+      headers: { "User-Agent": "Cloudflare-Pages-Worker/3.0", "Cache-Control": "no-cache" }
+    }, 2000);
     if (res.ok) {
       const data = await res.json();
       if (data && data.endpoint && data.endpoint.startsWith("https://")) {
@@ -60,7 +70,26 @@ async function getLiveOrigin(forceRefresh = false) {
     }
   } catch (err) {}
 
-  return cachedOrigin;
+  // 3. Tertiary: GitHub REST API
+  try {
+    const apiRes = await fetchWithTimeout(`https://api.github.com/repos/Electroiscoding/phone-whisper-server/contents/endpoint.json?ref=main&_t=${now}`, {
+      headers: {
+        "User-Agent": "Cloudflare-Pages-Worker/3.0",
+        "Accept": "application/vnd.github.v3.raw",
+        "Cache-Control": "no-cache"
+      }
+    }, 2000);
+    if (apiRes.ok) {
+      const data = await apiRes.json();
+      if (data && data.endpoint && data.endpoint.startsWith("https://")) {
+        cachedOrigin = data.endpoint.replace(/\/+$/, "");
+        lastFetchTime = now;
+        return cachedOrigin;
+      }
+    }
+  } catch (err) {}
+
+  return cachedOrigin || "https://practical-loud-don-voluntary.trycloudflare.com";
 }
 
 export default {
@@ -84,9 +113,15 @@ export default {
     if (!isApi && env.ASSETS) {
       const assetRes = await env.ASSETS.fetch(request);
       if (assetRes.status === 404 && !url.pathname.includes(".")) {
+        // Try .html
         const htmlUrl = new URL(url.pathname + ".html", request.url);
         const htmlRes = await env.ASSETS.fetch(new Request(htmlUrl, request));
         if (htmlRes.ok) return htmlRes;
+
+        // Try .md (e.g. /maker -> /maker.md)
+        const mdUrl = new URL(url.pathname + ".md", request.url);
+        const mdRes = await env.ASSETS.fetch(new Request(mdUrl, request));
+        if (mdRes.ok) return mdRes;
       }
       return assetRes;
     }
@@ -121,18 +156,24 @@ export default {
     while (attempt < maxAttempts) {
       attempt++;
       try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 4000);
+
         const proxyReq = new Request(targetUrl, {
           method: request.method,
           headers: request.headers,
           body: ["GET", "HEAD"].includes(request.method) ? undefined : request.body,
-          redirect: "follow"
+          redirect: "follow",
+          signal: controller.signal
         });
 
         response = await fetch(proxyReq);
+        clearTimeout(timeoutId);
 
-        // If origin returned 502, 503, 504, 530, force-refresh endpoint from GitHub and retry
+        // If origin returned 502, 503, 504, 530, invalidate cachedOrigin, force refresh and retry
         if ([502, 503, 504, 530].includes(response.status) && attempt < maxAttempts) {
-          await new Promise(r => setTimeout(r, attempt * 300));
+          cachedOrigin = null;
+          await new Promise(r => setTimeout(r, attempt * 250));
           origin = await getLiveOrigin(true);
           targetUrl = `${origin}${url.pathname}${url.search}`;
           continue;
@@ -141,7 +182,8 @@ export default {
         break;
       } catch (fetchErr) {
         if (attempt < maxAttempts) {
-          await new Promise(r => setTimeout(r, attempt * 400));
+          cachedOrigin = null;
+          await new Promise(r => setTimeout(r, attempt * 300));
           origin = await getLiveOrigin(true);
           targetUrl = `${origin}${url.pathname}${url.search}`;
           continue;

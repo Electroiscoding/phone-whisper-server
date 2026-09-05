@@ -3,6 +3,7 @@
  * Self-Healing Dynamic Failover & Universal Reverse Proxy with GitHub OAuth for Swades Agent
  */
 
+const JSDELIVR_ENDPOINT_URL = "https://cdn.jsdelivr.net/gh/Electroiscoding/phone-whisper-server@main/endpoint.json";
 const GITHUB_ENDPOINT_URL = "https://raw.githubusercontent.com/Electroiscoding/phone-whisper-server/main/endpoint.json";
 const SHARED_SECRET = "mobile_ai_nuclear_key";
 
@@ -13,7 +14,7 @@ const getClientSecret = (env) => (env && env.GITHUB_CLIENT_SECRET) || "";
 // In-Memory Edge Cache for Active Tunnel Target
 let cachedOrigin = "https://practical-loud-don-voluntary.trycloudflare.com";
 let lastFetchTime = Date.now();
-const CACHE_TTL_MS = 8000; // 8 seconds
+const CACHE_TTL_MS = 6000; // 6 seconds
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -23,17 +24,46 @@ const CORS_HEADERS = {
   "Access-Control-Max-Age": "86400"
 };
 
+async function fetchWithTimeout(url, options = {}, timeoutMs = 2500) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(id);
+    return res;
+  } catch (err) {
+    clearTimeout(id);
+    throw err;
+  }
+}
+
 async function getLiveOrigin(forceRefresh = false) {
   const now = Date.now();
   if (!forceRefresh && cachedOrigin && (now - lastFetchTime < CACHE_TTL_MS)) {
     return cachedOrigin;
   }
 
+  // 1. Primary: jsDelivr High-Speed CDN
   try {
-    const res = await fetch(`${GITHUB_ENDPOINT_URL}?_t=${now}`, {
-      headers: { "User-Agent": "Cloudflare-Edge-Worker/2.0" },
+    const jsdelivrRes = await fetchWithTimeout(`${JSDELIVR_ENDPOINT_URL}?_t=${now}`, {
+      headers: { "Cache-Control": "no-cache" }
+    }, 2000);
+    if (jsdelivrRes.ok) {
+      const data = await jsdelivrRes.json();
+      if (data && data.endpoint && data.endpoint.startsWith("https://")) {
+        cachedOrigin = data.endpoint.replace(/\/+$/, "");
+        lastFetchTime = now;
+        return cachedOrigin;
+      }
+    }
+  } catch (err) {}
+
+  // 2. Secondary: Raw GitHub CDN
+  try {
+    const res = await fetchWithTimeout(`${GITHUB_ENDPOINT_URL}?_t=${now}`, {
+      headers: { "User-Agent": "Cloudflare-Edge-Worker/2.0", "Cache-Control": "no-cache" },
       cf: { cacheTtl: 0, cacheEverything: false }
-    });
+    }, 2000);
     if (res.ok) {
       const data = await res.json();
       if (data.endpoint && data.endpoint.startsWith("https://")) {
@@ -42,11 +72,9 @@ async function getLiveOrigin(forceRefresh = false) {
         return cachedOrigin;
       }
     }
-  } catch (err) {
-    console.error("Failed to fetch fresh endpoint.json:", err);
-  }
+  } catch (err) {}
 
-  return cachedOrigin || "https://eau-illustrated-reasonably-regular.trycloudflare.com";
+  return cachedOrigin || "https://practical-loud-don-voluntary.trycloudflare.com";
 }
 
 export default {
@@ -219,21 +247,27 @@ export default {
     let response = null;
     let attempt = 0;
 
-    while (attempt < 2) {
+    while (attempt < 3) {
       attempt++;
       try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 4000);
+
         const proxyReq = new Request(targetUrl, {
           method: request.method,
           headers: request.headers,
           body: ["GET", "HEAD"].includes(request.method) ? undefined : request.body,
-          redirect: "follow"
+          redirect: "follow",
+          signal: controller.signal
         });
 
         response = await fetch(proxyReq);
+        clearTimeout(timeoutId);
 
-        // If origin returned 502, 530, or 504, force-refresh endpoint from GitHub and retry
-        if ([502, 503, 504, 530].includes(response.status) && attempt === 1) {
-          console.warn(`Origin returned ${response.status}. Re-fetching fresh endpoint...`);
+        // If origin returned 502, 503, 504, 530, force-refresh endpoint and retry
+        if ([502, 503, 504, 530].includes(response.status) && attempt < 3) {
+          cachedOrigin = null;
+          await new Promise(r => setTimeout(r, attempt * 250));
           origin = await getLiveOrigin(true);
           targetUrl = `${origin}${url.pathname}${url.search}`;
           continue;
@@ -241,8 +275,9 @@ export default {
 
         break;
       } catch (fetchErr) {
-        console.error(`Fetch attempt ${attempt} failed:`, fetchErr);
-        if (attempt === 1) {
+        if (attempt < 3) {
+          cachedOrigin = null;
+          await new Promise(r => setTimeout(r, attempt * 300));
           origin = await getLiveOrigin(true);
           targetUrl = `${origin}${url.pathname}${url.search}`;
           continue;

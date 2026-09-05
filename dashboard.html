@@ -88,9 +88,9 @@
       <div class="hidden xl:flex items-center gap-1.5 px-2 py-1 rounded bg-zinc-900/80 border border-zinc-800 text-[11px] font-mono">
         <span class="text-zinc-500">HOST:</span>
         <select id="active-host-select" onchange="changeActiveHost(this.value)" class="bg-transparent text-zinc-300 font-semibold focus:outline-none cursor-pointer">
-          <option value="" class="bg-zinc-950 text-white">Auto (Current)</option>
+          <option value="" class="bg-zinc-950 text-white">Auto (Current Edge)</option>
           <option value="http://192.168.29.2:8080" class="bg-zinc-950 text-white">Phone LAN (:8080)</option>
-          <option value="https://grown-prior-generated-victor.trycloudflare.com" class="bg-zinc-950 text-white">Sovereign Tunnel</option>
+          <option value="https://practical-loud-don-voluntary.trycloudflare.com" class="bg-zinc-950 text-white">Live Cloudflare Tunnel</option>
           <option value="https://phone-whisper-server.pages.dev" class="bg-zinc-950 text-white">Cloudflare Pages Edge</option>
         </select>
       </div>
@@ -132,8 +132,73 @@
     <button onclick="setDashboardPersona('developer')" class="text-[10px] text-cyan-400 underline hover:text-white">Switch to Developer</button>
   </div>
 
-  <!-- Main Container with Sidebar + Main Viewport -->
-  <div class="flex-1 flex overflow-hidden">
+  <!-- AUTHENTICATION & ONBOARDING GATEKEEPER (Zero-Leakage Unauthenticated Shield) -->
+  <div id="auth-gatekeeper" class="flex-1 flex flex-col items-center justify-center p-4 sm:p-8 bg-[#07090d] relative overflow-hidden">
+    <div class="absolute w-96 h-96 bg-cyan-500/5 rounded-full blur-3xl pointer-events-none -top-20 -left-20"></div>
+    <div class="absolute w-96 h-96 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none -bottom-20 -right-20"></div>
+
+    <div class="w-full max-w-md bg-[#101217] border border-zinc-800/90 rounded-2xl p-6 sm:p-8 shadow-2xl space-y-6 relative z-10 font-mono">
+      <div class="text-center space-y-2">
+        <div class="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-zinc-900 border border-zinc-700/60 text-cyan-400 text-xl shadow-inner mb-1">
+          ⚡
+        </div>
+        <h1 class="text-xl font-bold tracking-tight text-white space-grotesk">Sovereign Datacenter Console</h1>
+        <p class="text-xs text-zinc-400 leading-relaxed font-sans">
+          Redmi 9i ARM64 micro-datacenter. Sign in with cluster credentials or register an account to access real-time metrics, storage pools, feature flags, and SQLite management.
+        </p>
+      </div>
+
+      <!-- Live Node Status Pill (Zero Auth Public Telemetry) -->
+      <div id="gatekeeper-node-status" class="flex items-center justify-center gap-2 px-3 py-1.5 rounded-full bg-zinc-900/80 border border-zinc-800 text-zinc-400 text-[11px]">
+        <span class="w-1.5 h-1.5 rounded-full bg-zinc-600 animate-pulse"></span>
+        <span>Probing node vitals...</span>
+      </div>
+
+      <!-- Auth Mode Tabs -->
+      <div class="flex border-b border-zinc-800 text-xs">
+        <button id="gatekeeper-tab-login" onclick="setGatekeeperTab('login')" class="flex-1 py-2 border-b-2 border-cyan-400 text-cyan-300 font-bold transition-all">Sign In</button>
+        <button id="gatekeeper-tab-register" onclick="setGatekeeperTab('register')" class="flex-1 py-2 border-b-2 border-transparent text-zinc-500 hover:text-zinc-300 transition-all">Create Account</button>
+      </div>
+
+      <!-- Auth Form -->
+      <form onsubmit="event.preventDefault(); submitGatekeeperAuth();" class="space-y-4">
+        <div>
+          <label class="block text-[11px] uppercase tracking-wider text-zinc-400 mb-1.5">Username</label>
+          <input type="text" id="gatekeeper-user" required autocomplete="username" placeholder="admin" class="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 focus:border-cyan-500 text-white text-xs outline-none transition-all placeholder:text-zinc-600 font-mono" />
+        </div>
+        <div>
+          <label class="block text-[11px] uppercase tracking-wider text-zinc-400 mb-1.5">Password</label>
+          <input type="password" id="gatekeeper-pass" required autocomplete="current-password" placeholder="••••••••" class="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 focus:border-cyan-500 text-white text-xs outline-none transition-all placeholder:text-zinc-600 font-mono" />
+        </div>
+
+        <div id="gatekeeper-error" class="text-rose-400 text-[11px] px-3 py-2 rounded bg-rose-950/30 border border-rose-900/50 hidden"></div>
+
+        <button type="submit" id="btn-gatekeeper-submit" class="w-full py-2.5 rounded-lg bg-gradient-to-r from-cyan-500 to-indigo-500 hover:from-cyan-400 hover:to-indigo-400 text-black font-bold text-xs transition-all shadow-md active:scale-[0.99] cursor-pointer">
+          Sign In to Datacenter →
+        </button>
+      </form>
+
+      <!-- Fast-Track Admin Login -->
+      <div class="pt-2 border-t border-zinc-800/80 text-center">
+        <button onclick="autofillAdminLogin()" class="text-[11px] text-zinc-500 hover:text-cyan-400 transition-colors inline-flex items-center gap-1.5 cursor-pointer">
+          <span>⚡</span>
+          <span>Fast-track with default credentials (<code class="text-zinc-400 font-bold">admin / admin</code>)</span>
+        </button>
+      </div>
+
+      <!-- Reference Links -->
+      <div class="flex items-center justify-center gap-4 text-[10px] text-zinc-500 pt-1">
+        <a href="/docs" class="hover:text-cyan-400 transition-colors">Documentation</a>
+        <span>•</span>
+        <a href="/maker.md" class="hover:text-cyan-400 transition-colors">AI Protocol Spec</a>
+        <span>•</span>
+        <a href="/swades.html" class="hover:text-cyan-400 transition-colors">Swades Agent</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Container with Sidebar + Main Viewport (Authenticated Workspace) -->
+  <div id="dashboard-workspace" class="flex-1 flex overflow-hidden hidden">
     
     <!-- Sidebar Navigation -->
     <aside class="w-64 shrink-0 bg-[#05070a] border-r border-zinc-800/80 flex flex-col justify-between select-none">
@@ -1768,7 +1833,7 @@
       }
 
       try {
-        const res = await fetch(`${BASE_URL}/v1/dashboard/users`, {
+        const res = await apiFetch(`${BASE_URL}/v1/dashboard/users`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ user_id: currentUser.user_id, new_password: newPass })
@@ -1787,6 +1852,11 @@
 
     // --- VIEW SWITCHER ---
     function switchView(viewId) {
+      if (!currentUser) {
+        checkUserSession();
+        return;
+      }
+
       document.querySelectorAll('.view-panel').forEach(el => el.classList.add('hidden'));
       document.querySelectorAll('.nav-btn').forEach(btn => {
         btn.classList.remove('bg-zinc-800/80', 'border-zinc-700/60', 'text-white');
@@ -1812,21 +1882,173 @@
       else if (viewId === 'rbac') loadRbacView();
     }
 
-    // --- AUTHENTICATION ---
+    // --- AUTHENTICATION & GATEKEEPER CONTROLLER ---
+    let gatekeeperMode = 'login';
+
+    function setSyncStatus(state, label) {
+      const envBadge = document.getElementById('env-badge');
+      const envLabel = document.getElementById('env-label');
+      if (!envBadge || !envLabel) return;
+      if (state === 'online') {
+        envBadge.className = "flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-mono bg-emerald-950/50 border border-emerald-800/60 text-emerald-400";
+        envLabel.innerText = "PHONE DATACENTER ONLINE";
+      } else if (state === 'syncing') {
+        envBadge.className = "flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-mono bg-amber-950/50 border border-amber-800/60 text-amber-400";
+        envLabel.innerText = label || "NODE SYNCING...";
+      } else {
+        envBadge.className = "flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-mono bg-rose-950/50 border border-rose-800/60 text-rose-400";
+        envLabel.innerText = label || "NODE STANDBY";
+      }
+    }
+
+    async function apiFetch(path, options = {}, retries = 2) {
+      const url = path.startsWith('http') ? path : `${BASE_URL}${path}`;
+      for (let attempt = 0; attempt <= retries; attempt++) {
+        try {
+          const res = await fetch(url, options);
+          if (res.status === 503 && attempt < retries) {
+            setSyncStatus('syncing', `Self-healing retry (${attempt + 1}/${retries})...`);
+            await new Promise(r => setTimeout(r, (attempt + 1) * 1200));
+            continue;
+          }
+          setSyncStatus('online', 'PHONE DATACENTER ONLINE');
+          return res;
+        } catch (err) {
+          if (attempt < retries) {
+            setSyncStatus('syncing', `Self-healing (${attempt + 1}/${retries})...`);
+            await new Promise(r => setTimeout(r, (attempt + 1) * 1200));
+            continue;
+          }
+          setSyncStatus('standby', 'DISCONNECTED');
+          throw err;
+        }
+      }
+    }
+
+    function setGatekeeperTab(tab) {
+      gatekeeperMode = tab;
+      const tabL = document.getElementById('gatekeeper-tab-login');
+      const tabR = document.getElementById('gatekeeper-tab-register');
+      const btn = document.getElementById('btn-gatekeeper-submit');
+      const err = document.getElementById('gatekeeper-error');
+      if (err) err.classList.add('hidden');
+
+      if (tab === 'login') {
+        tabL.className = "flex-1 py-2 border-b-2 border-cyan-400 text-cyan-300 font-bold transition-all";
+        tabR.className = "flex-1 py-2 border-b-2 border-transparent text-zinc-500 hover:text-zinc-300 transition-all";
+        btn.innerText = "Sign In to Datacenter →";
+      } else {
+        tabR.className = "flex-1 py-2 border-b-2 border-cyan-400 text-cyan-300 font-bold transition-all";
+        tabL.className = "flex-1 py-2 border-b-2 border-transparent text-zinc-500 hover:text-zinc-300 transition-all";
+        btn.innerText = "Create Account & Sign In →";
+      }
+    }
+
+    function autofillAdminLogin() {
+      setGatekeeperTab('login');
+      document.getElementById('gatekeeper-user').value = 'admin';
+      document.getElementById('gatekeeper-pass').value = 'admin';
+      submitGatekeeperAuth();
+    }
+
+    async function probeGuestNodeHealth() {
+      try {
+        const res = await apiFetch(`${BASE_URL}/telemetry`);
+        if (res.ok) {
+          const d = await res.json();
+          const pill = document.getElementById('gatekeeper-node-status');
+          if (pill) {
+            pill.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span class="text-emerald-400 font-semibold">Node Online</span>
+              <span class="text-zinc-500">·</span>
+              <span>Battery ${d.battery?.level ?? '--'}% (${d.battery?.status ?? 'Normal'})</span>
+              <span class="text-zinc-500">·</span>
+              <span>${d.battery?.temperature ?? '--'}°C</span>
+              <span class="text-zinc-500">·</span>
+              <span>Helio G25</span>`;
+            pill.className = "flex items-center justify-center gap-2 px-3 py-1.5 rounded-full bg-emerald-950/40 border border-emerald-800/60 text-zinc-300 text-[11px]";
+          }
+        }
+      } catch (e) {
+        const pill = document.getElementById('gatekeeper-node-status');
+        if (pill) {
+          pill.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+            <span class="text-amber-400">Node Standby</span>
+            <span class="text-zinc-500">·</span>
+            <span>Self-Healing In Progress</span>`;
+          pill.className = "flex items-center justify-center gap-2 px-3 py-1.5 rounded-full bg-amber-950/40 border border-amber-800/60 text-zinc-300 text-[11px]";
+        }
+      }
+    }
+
+    async function submitGatekeeperAuth() {
+      const u = (document.getElementById('gatekeeper-user').value || '').trim();
+      const p = document.getElementById('gatekeeper-pass').value;
+      const err = document.getElementById('gatekeeper-error');
+      const btn = document.getElementById('btn-gatekeeper-submit');
+
+      err.classList.add('hidden');
+      if (!u || !p) {
+        err.innerText = "Please provide both username and password.";
+        err.classList.remove('hidden');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerText = "Authenticating...";
+
+      const endpoint = gatekeeperMode === 'login' ? '/v1/storage/auth/login' : '/v1/storage/auth/register';
+      try {
+        const res = await apiFetch(`${BASE_URL}${endpoint}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: u, password: p })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Authentication failed. Check credentials.");
+
+        currentUser = data;
+        localStorage.setItem('swades_user', JSON.stringify(data));
+        checkUserSession();
+        refreshOverview();
+        loadAnalyticsView();
+        loadConfigView();
+      } catch (e) {
+        err.innerText = e.message || "Failed to authenticate against phone cluster.";
+        err.classList.remove('hidden');
+      } finally {
+        btn.disabled = false;
+        btn.innerText = gatekeeperMode === 'login' ? "Sign In to Datacenter →" : "Create Account & Sign In →";
+      }
+    }
+
     function checkUserSession() {
       const stored = localStorage.getItem('swades_user');
       if (stored) {
         try {
           currentUser = JSON.parse(stored);
           activeKey = currentUser.api_key || (currentUser.api_keys && currentUser.api_keys[0] ? currentUser.api_keys[0].key_id : null);
+          
           document.getElementById('logged-in-box').classList.remove('hidden');
           document.getElementById('logged-out-box').classList.add('hidden');
-          document.getElementById('auth-username').innerText = currentUser.username;
+          document.getElementById('auth-username').innerText = currentUser.username || 'User';
           document.getElementById('auth-role').innerText = currentUser.role || 'DEV';
+
+          document.getElementById('auth-gatekeeper').classList.add('hidden');
+          document.getElementById('dashboard-workspace').classList.remove('hidden');
+          return true;
         } catch (e) {
           localStorage.removeItem('swades_user');
         }
       }
+
+      currentUser = null;
+      document.getElementById('logged-in-box').classList.add('hidden');
+      document.getElementById('logged-out-box').classList.remove('hidden');
+      document.getElementById('auth-gatekeeper').classList.remove('hidden');
+      document.getElementById('dashboard-workspace').classList.add('hidden');
+      probeGuestNodeHealth();
+      return false;
     }
 
     function openAuthModal(tab) {
@@ -1868,7 +2090,7 @@
 
       const endpoint = currentAuthTab === 'login' ? '/v1/storage/auth/login' : '/v1/storage/auth/register';
       try {
-        const res = await fetch(`${BASE_URL}${endpoint}`, {
+        const res = await apiFetch(`${BASE_URL}${endpoint}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username: u, password: p })
@@ -1891,15 +2113,13 @@
       localStorage.removeItem('swades_user');
       currentUser = null;
       activeKey = null;
-      document.getElementById('logged-in-box').classList.add('hidden');
-      document.getElementById('logged-out-box').classList.remove('hidden');
-      refreshOverview();
+      checkUserSession();
     }
 
     // --- OVERVIEW & TELEMETRY ---
     async function refreshOverview() {
       try {
-        const res = await fetch(`${BASE_URL}/v1/dashboard/overview`);
+        const res = await apiFetch(`${BASE_URL}/v1/dashboard/overview`);
         const data = await res.json();
 
         document.getElementById('kpi-users-count').innerText = data.users ? data.users.total : '--';
@@ -1959,7 +2179,7 @@
       btn.disabled = true;
 
       try {
-        const res = await fetch(`${BASE_URL}/v1/storage/benchmark`);
+        const res = await apiFetch(`${BASE_URL}/v1/storage/benchmark`);
         const data = await res.json();
         const r = data.benchmark_results;
 
@@ -1988,7 +2208,7 @@
       }
 
       try {
-        const res = await fetch(`${BASE_URL}/v1/dashboard/system/gc`, {
+        const res = await apiFetch(`${BASE_URL}/v1/dashboard/system/gc`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' }
         });
@@ -2015,7 +2235,7 @@
     async function loadConfigView() {
       // 1. Load Feature Flags
       try {
-        const res = await fetch(`${BASE_URL}/v1/dashboard/flags`);
+        const res = await apiFetch(`${BASE_URL}/v1/dashboard/flags`);
         const data = await res.json();
         const tbody = document.getElementById('flags-table-body');
         tbody.innerHTML = (data.flags || []).map(f => `
@@ -2037,7 +2257,7 @@
 
       // 2. Load Remote Config & Apply Live Preview
       try {
-        const res = await fetch(`${BASE_URL}/v1/dashboard/remote-config`);
+        const res = await apiFetch(`${BASE_URL}/v1/dashboard/remote-config`);
         const data = await res.json();
         const grid = document.getElementById('remote-config-grid');
         grid.innerHTML = (data.configs || []).map(c => `
@@ -2055,7 +2275,7 @@
 
       // 3. Load Experiments
       try {
-        const res = await fetch(`${BASE_URL}/v1/dashboard/experiments`);
+        const res = await apiFetch(`${BASE_URL}/v1/dashboard/experiments`);
         const data = await res.json();
         const list = document.getElementById('experiments-list');
         list.innerHTML = (data.experiments || []).map(exp => {
@@ -2088,7 +2308,7 @@
 
       // 4. Load Performance Logs
       try {
-        const res = await fetch(`${BASE_URL}/v1/dashboard/performance`);
+        const res = await apiFetch(`${BASE_URL}/v1/dashboard/performance`);
         const data = await res.json();
         cachedPerfLogs = data.performance_logs || [];
         const tbody = document.getElementById('perf-logs-body');
@@ -2162,7 +2382,7 @@
       }
 
       try {
-        const res = await fetch(`${BASE_URL}/v1/dashboard/flags/create`, {
+        const res = await apiFetch(`${BASE_URL}/v1/dashboard/flags/create`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ key, name, description, enabled, rollout_pct })
@@ -2178,7 +2398,7 @@
     }
 
     async function toggleFlag(key, newStatus) {
-      await fetch(`${BASE_URL}/v1/dashboard/flags`, {
+      await apiFetch(`${BASE_URL}/v1/dashboard/flags`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key, enabled: Boolean(newStatus) })
@@ -2213,7 +2433,7 @@
       }
 
       try {
-        await fetch(`${BASE_URL}/v1/dashboard/remote-config`, {
+        await apiFetch(`${BASE_URL}/v1/dashboard/remote-config`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ key, value, category, description })
@@ -2230,7 +2450,7 @@
       const inputs = document.querySelectorAll('[id^="rc-input-"]');
       for (const input of inputs) {
         const key = input.id.replace('rc-input-', '');
-        await fetch(`${BASE_URL}/v1/dashboard/remote-config`, {
+        await apiFetch(`${BASE_URL}/v1/dashboard/remote-config`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ key, value: input.value })
@@ -2266,7 +2486,7 @@
       }
 
       try {
-        const res = await fetch(`${BASE_URL}/v1/dashboard/experiments/create`, {
+        const res = await apiFetch(`${BASE_URL}/v1/dashboard/experiments/create`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name, description, variant_a, variant_b, split_pct })
@@ -2315,7 +2535,7 @@ TimeoutError: Latency threshold breached (${l.latency_ms}ms) on ${l.device_info 
     }
 
     async function logSimulatedCrash() {
-      await fetch(`${BASE_URL}/v1/dashboard/performance`, {
+      await apiFetch(`${BASE_URL}/v1/dashboard/performance`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -2336,7 +2556,7 @@ TimeoutError: Latency threshold breached (${l.latency_ms}ms) on ${l.device_info 
     async function loadUsersTable() {
       try {
         const q = document.getElementById('user-search-input') ? document.getElementById('user-search-input').value : '';
-        const res = await fetch(`${BASE_URL}/v1/dashboard/users?search=${encodeURIComponent(q)}`);
+        const res = await apiFetch(`${BASE_URL}/v1/dashboard/users?search=${encodeURIComponent(q)}`);
         const data = await res.json();
         const tbody = document.getElementById('users-table-body');
         tbody.innerHTML = (data.users || []).map(u => {
@@ -2385,7 +2605,7 @@ TimeoutError: Latency threshold breached (${l.latency_ms}ms) on ${l.device_info 
     async function deleteUserAccount(userId, username) {
       if (!confirm(`Permanently delete account "${username}" (${userId})? This will immediately revoke all their API keys and purge their access.`)) return;
       try {
-        const res = await fetch(`${BASE_URL}/v1/dashboard/users`, {
+        const res = await apiFetch(`${BASE_URL}/v1/dashboard/users`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: 'delete_user', user_id: userId })
@@ -2405,7 +2625,7 @@ TimeoutError: Latency threshold breached (${l.latency_ms}ms) on ${l.device_info 
     async function purgeTestAccounts() {
       if (!confirm("Are you sure you want to purge all automated test accounts (dev_alpha_*, dev_bravo_*, test_*)? Real accounts will not be affected.")) return;
       try {
-        const res = await fetch(`${BASE_URL}/v1/dashboard/users`, {
+        const res = await apiFetch(`${BASE_URL}/v1/dashboard/users`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: 'purge_tests' })
@@ -2420,7 +2640,7 @@ TimeoutError: Latency threshold breached (${l.latency_ms}ms) on ${l.device_info 
     }
 
     async function toggleUserEmailVerified(userId, newStatus) {
-      await fetch(`${BASE_URL}/v1/dashboard/users`, {
+      await apiFetch(`${BASE_URL}/v1/dashboard/users`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_id: userId, email_verified: newStatus ? 1 : 0 })
@@ -2429,7 +2649,7 @@ TimeoutError: Latency threshold breached (${l.latency_ms}ms) on ${l.device_info 
     }
 
     async function toggleUserBan(userId, newStatus) {
-      await fetch(`${BASE_URL}/v1/dashboard/users`, {
+      await apiFetch(`${BASE_URL}/v1/dashboard/users`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_id: userId, status: newStatus })
@@ -2462,7 +2682,7 @@ TimeoutError: Latency threshold breached (${l.latency_ms}ms) on ${l.device_info 
       }
 
       try {
-        const res = await fetch(`${BASE_URL}/v1/dashboard/users`, {
+        const res = await apiFetch(`${BASE_URL}/v1/dashboard/users`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ user_id: targetResetUserId, password: pass })
@@ -2531,7 +2751,7 @@ TimeoutError: Latency threshold breached (${l.latency_ms}ms) on ${l.device_info 
       if (!title || !body) return alert("Title and Body are required.");
       if (timing === 'scheduled' && !scheduled_at) return alert("Please select a scheduled delivery date and time.");
 
-      await fetch(`${BASE_URL}/v1/dashboard/notifications`, {
+      await apiFetch(`${BASE_URL}/v1/dashboard/notifications`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title, body, target, type, scheduled_at })
@@ -2543,7 +2763,7 @@ TimeoutError: Latency threshold breached (${l.latency_ms}ms) on ${l.device_info 
 
     async function loadNotificationsHistory() {
       try {
-        const res = await fetch(`${BASE_URL}/v1/dashboard/notifications`);
+        const res = await apiFetch(`${BASE_URL}/v1/dashboard/notifications`);
         const data = await res.json();
         const el = document.getElementById('notif-history-list');
         el.innerHTML = (data.notifications || []).map(n => `
@@ -2579,7 +2799,7 @@ TimeoutError: Latency threshold breached (${l.latency_ms}ms) on ${l.device_info 
 
     async function loadAnalyticsView() {
       try {
-        const res = await fetch(`${BASE_URL}/v1/dashboard/analytics?horizon=${currentAnalyticsHorizon}`);
+        const res = await apiFetch(`${BASE_URL}/v1/dashboard/analytics?horizon=${currentAnalyticsHorizon}`);
         const data = await res.json();
 
         // 1. Live Real-Time Throughput Pulse KPIs
@@ -2678,7 +2898,7 @@ TimeoutError: Latency threshold breached (${l.latency_ms}ms) on ${l.device_info 
     async function loadDataView() {
       // 1. Load Tables for Database Browser
       try {
-        const res = await fetch(`${BASE_URL}/v1/dashboard/db/tables`);
+        const res = await apiFetch(`${BASE_URL}/v1/dashboard/db/tables`);
         const data = await res.json();
         const sel = document.getElementById('db-table-select');
         sel.innerHTML = (data.tables || []).map(t => `<option value="${t}">${t}</option>`).join('');
@@ -2738,7 +2958,7 @@ TimeoutError: Latency threshold breached (${l.latency_ms}ms) on ${l.device_info 
       if (statusEl) statusEl.innerHTML = '<span class="text-amber-400">CHECKING...</span>';
 
       try {
-        const res = await fetch(`${BASE_URL}/v1/dashboard/db/integrity`);
+        const res = await apiFetch(`${BASE_URL}/v1/dashboard/db/integrity`);
         const data = await res.json();
         if (sizeEl) sizeEl.innerText = `${data.db_size_kb || 0} KB`;
         if (walEl) walEl.innerText = `${data.wal_size_kb || 0} KB`;
@@ -2765,7 +2985,7 @@ TimeoutError: Latency threshold breached (${l.latency_ms}ms) on ${l.device_info 
       }
 
       try {
-        const res = await fetch(`${BASE_URL}/v1/dashboard/db/vacuum`, { method: 'POST' });
+        const res = await apiFetch(`${BASE_URL}/v1/dashboard/db/vacuum`, { method: 'POST' });
         const data = await res.json();
         showToast(`VACUUM completed in ${data.vacuum_ms}ms! Freed ${data.freed_bytes} bytes.`);
         runDbIntegrityCheck();
@@ -2784,7 +3004,7 @@ TimeoutError: Latency threshold breached (${l.latency_ms}ms) on ${l.device_info 
       container.innerHTML = '<div class="text-zinc-500 font-mono text-xs">Querying SQLite metadata...</div>';
 
       try {
-        const res = await fetch(`${BASE_URL}/v1/dashboard/db/schema`);
+        const res = await apiFetch(`${BASE_URL}/v1/dashboard/db/schema`);
         const data = await res.json();
         const tables = data.tables || [];
 
@@ -2852,7 +3072,7 @@ TimeoutError: Latency threshold breached (${l.latency_ms}ms) on ${l.device_info 
       const statusEl = document.getElementById('sql-query-status');
       statusEl.innerText = "Executing on phone SQLite engine...";
       try {
-        const res = await fetch(`${BASE_URL}/v1/dashboard/db/sql`, {
+        const res = await apiFetch(`${BASE_URL}/v1/dashboard/db/sql`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ query })
@@ -2935,7 +3155,7 @@ TimeoutError: Latency threshold breached (${l.latency_ms}ms) on ${l.device_info 
       const table = document.getElementById('db-table-select').value;
       if (!table) return;
       try {
-        const res = await fetch(`${BASE_URL}/v1/dashboard/db/query?table=${table}`);
+        const res = await apiFetch(`${BASE_URL}/v1/dashboard/db/query?table=${table}`);
         const data = await res.json();
 
         currentTableData = { table, columns: data.columns, rows: data.rows };
@@ -3002,7 +3222,7 @@ TimeoutError: Latency threshold breached (${l.latency_ms}ms) on ${l.device_info 
       errEl.classList.add('hidden');
 
       try {
-        const res = await fetch(`${BASE_URL}/v1/dashboard/db/query`, {
+        const res = await apiFetch(`${BASE_URL}/v1/dashboard/db/query`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -3028,7 +3248,7 @@ TimeoutError: Latency threshold breached (${l.latency_ms}ms) on ${l.device_info 
       if (newVal === null || newVal === oldVal) return;
 
       try {
-        await fetch(`${BASE_URL}/v1/dashboard/db/query`, {
+        await apiFetch(`${BASE_URL}/v1/dashboard/db/query`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -3048,7 +3268,7 @@ TimeoutError: Latency threshold breached (${l.latency_ms}ms) on ${l.device_info 
 
     async function deleteDbRow(table, pkCol, pkVal) {
       if (!confirm(`Delete row ${pkVal} from ${table}?`)) return;
-      await fetch(`${BASE_URL}/v1/dashboard/db/query`, {
+      await apiFetch(`${BASE_URL}/v1/dashboard/db/query`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -3092,7 +3312,7 @@ TimeoutError: Latency threshold breached (${l.latency_ms}ms) on ${l.device_info 
 
       try {
         const headers = { 'x-api-key': activeKey };
-        const res = await fetch(`${BASE_URL}/v1/storage/objects`, { headers });
+        const res = await apiFetch(`${BASE_URL}/v1/storage/objects`, { headers });
         const data = await res.json();
         cachedMediaFiles = data.objects || [];
         const badge = document.getElementById('media-count-badge');
@@ -3168,7 +3388,7 @@ TimeoutError: Latency threshold breached (${l.latency_ms}ms) on ${l.device_info 
         if (reason === null) return;
       }
       try {
-        await fetch(`${BASE_URL}/v1/dashboard/storage/moderate`, {
+        await apiFetch(`${BASE_URL}/v1/dashboard/storage/moderate`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -3189,7 +3409,7 @@ TimeoutError: Latency threshold breached (${l.latency_ms}ms) on ${l.device_info 
 
       const key = `uploads/${Date.now()}_${file.name}`;
       try {
-        const res = await fetch(`${BASE_URL}/v1/storage/objects/${key}`, {
+        const res = await apiFetch(`${BASE_URL}/v1/storage/objects/${key}`, {
           method: 'PUT',
           headers: {
             'x-api-key': activeKey,
@@ -3206,7 +3426,7 @@ TimeoutError: Latency threshold breached (${l.latency_ms}ms) on ${l.device_info 
 
     async function deleteObject(key) {
       if (!confirm(`Delete object ${key}?`)) return;
-      await fetch(`${BASE_URL}/v1/storage/objects/${key}`, {
+      await apiFetch(`${BASE_URL}/v1/storage/objects/${key}`, {
         method: 'DELETE',
         headers: { 'x-api-key': activeKey }
       });
@@ -3246,7 +3466,7 @@ TimeoutError: Latency threshold breached (${l.latency_ms}ms) on ${l.device_info 
       }
       try {
         const headers = { 'x-api-key': activeKey };
-        const res = await fetch(`${BASE_URL}/v1/storage/auth/keys`, { headers });
+        const res = await apiFetch(`${BASE_URL}/v1/storage/auth/keys`, { headers });
         const data = await res.json();
         const tbody = document.getElementById('keys-table-body');
         const scopeBadges = {
@@ -3311,7 +3531,7 @@ TimeoutError: Latency threshold breached (${l.latency_ms}ms) on ${l.device_info 
       else if (ttl === '1y') expires_in_days = 365;
 
       try {
-        const res = await fetch(`${BASE_URL}/v1/storage/auth/keys`, {
+        const res = await apiFetch(`${BASE_URL}/v1/storage/auth/keys`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -3345,7 +3565,7 @@ TimeoutError: Latency threshold breached (${l.latency_ms}ms) on ${l.device_info 
 
     async function fetchLogsOnce() {
       try {
-        const res = await fetch(`${BASE_URL}/v1/dashboard/logs`);
+        const res = await apiFetch(`${BASE_URL}/v1/dashboard/logs`);
         const data = await res.json();
         cachedLogs = data.logs || [];
         applyLogFilters();
@@ -3635,7 +3855,7 @@ axios({
       respEl.innerText = "Executing...";
       const t0 = performance.now();
       try {
-        const res = await fetch(`${BASE_URL}${path}`, {
+        const res = await apiFetch(`${BASE_URL}${path}`, {
           method,
           headers,
           body: ['POST', 'PUT'].includes(method) && bodyStr ? bodyStr : undefined
@@ -3658,7 +3878,7 @@ axios({
     // --- SECRETS & WEBHOOKS ---
     async function loadSecretsView() {
       try {
-        const res = await fetch(`${BASE_URL}/v1/dashboard/secrets`);
+        const res = await apiFetch(`${BASE_URL}/v1/dashboard/secrets`);
         const data = await res.json();
         const tbody = document.getElementById('secrets-table-body');
         tbody.innerHTML = (data.secrets || []).map(s => `
@@ -3677,7 +3897,7 @@ axios({
     async function editSecret(key) {
       const val = prompt(`Enter new value for secret [${key}]:`);
       if (val === null) return;
-      await fetch(`${BASE_URL}/v1/dashboard/secrets`, {
+      await apiFetch(`${BASE_URL}/v1/dashboard/secrets`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key, value: val })
@@ -3690,7 +3910,7 @@ axios({
       if (!key) return;
       const val = prompt(`Enter value for ${key}:`);
       if (val === null) return;
-      await fetch(`${BASE_URL}/v1/dashboard/secrets`, {
+      await apiFetch(`${BASE_URL}/v1/dashboard/secrets`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key, value: val, description: "Custom developer environment variable" })
@@ -3710,7 +3930,7 @@ axios({
       btn.disabled = true;
 
       try {
-        const res = await fetch(`${BASE_URL}/v1/dashboard/webhooks/test`, {
+        const res = await apiFetch(`${BASE_URL}/v1/dashboard/webhooks/test`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ url, event })
@@ -3749,7 +3969,7 @@ axios({
 
     async function loadRolesView() {
       try {
-        const res = await fetch(`${BASE_URL}/v1/dashboard/roles`);
+        const res = await apiFetch(`${BASE_URL}/v1/dashboard/roles`);
         const data = await res.json();
         const tbody = document.getElementById('roles-matrix-body');
         if (!data.roles || data.roles.length === 0) {
@@ -3804,7 +4024,7 @@ axios({
 
     async function toggleRolePerm(role, field, value) {
       try {
-        await fetch(`${BASE_URL}/v1/dashboard/roles`, {
+        await apiFetch(`${BASE_URL}/v1/dashboard/roles`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ role, field, value: value ? 1 : 0 })
@@ -3818,7 +4038,7 @@ axios({
 
     async function loadAuditView() {
       try {
-        const res = await fetch(`${BASE_URL}/v1/dashboard/audit-logs`);
+        const res = await apiFetch(`${BASE_URL}/v1/dashboard/audit-logs`);
         const data = await res.json();
         cachedAuditLogs = data.audit_logs || [];
         renderAuditLogs(cachedAuditLogs);
@@ -3883,10 +4103,12 @@ axios({
 
     // --- INITIALIZATION ---
     window.addEventListener('DOMContentLoaded', () => {
-      checkUserSession();
-      refreshOverview();
-      loadAnalyticsView();
-      loadConfigView();
+      const isAuth = checkUserSession();
+      if (isAuth) {
+        refreshOverview();
+        loadAnalyticsView();
+        loadConfigView();
+      }
       updateCodeSnippet();
     });
   </script>

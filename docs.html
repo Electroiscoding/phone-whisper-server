@@ -342,6 +342,18 @@
           An industrial-grade, multi-modal AI server, autonomous coding engine, and high-concurrency object storage engine operating on physical smartphone silicon. Powered by a MediaTek Helio G25 octa-core ARM64 SoC running Linux Kernel 4.19, Termux POSIX userland, Alpine Linux PRoot virtualization, and SQLite WAL L1 caching.
         </p>
 
+        <!-- AI AGENT CAPSULE BANNER -->
+        <div class="mt-5">
+          <button onclick="openAgentModal()" class="group inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-gradient-to-r from-cyan-950/70 via-zinc-900 to-purple-950/70 border border-cyan-500/40 hover:border-cyan-400 text-xs text-zinc-200 hover:text-white transition-all shadow-lg hover:shadow-cyan-500/20 active:scale-[0.99] cursor-pointer">
+            <span class="flex h-2 w-2 relative">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+            </span>
+            <span class="font-mono font-semibold tracking-tight">🤖 Instruct your AI Agent to connect to this datacenter</span>
+            <span class="text-cyan-400 group-hover:translate-x-1 transition-transform font-bold">→</span>
+          </button>
+        </div>
+
         <!-- HARDWARE TELEMETRY CARDS -->
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6">
           <div class="bg-cardbg border border-cardborder rounded-lg p-3">
@@ -2855,6 +2867,75 @@ transcribe "sample.wav"</code></pre>
     </div>
   </div>
 
+  <!-- AI AGENT CONNECTIVITY DIRECTIVE MODAL -->
+  <div id="agent-modal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden items-center justify-center p-4 print-hidden">
+    <div class="bg-zinc-950 border border-cyan-500/30 rounded-2xl max-w-2xl w-full flex flex-col shadow-2xl overflow-hidden font-mono text-xs animate-in fade-in zoom-in-95 duration-200">
+      <div class="p-4 border-b border-zinc-800 bg-zinc-900/50 flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <span class="w-3 h-3 rounded-full bg-cyan-500 animate-pulse"></span>
+          <h3 class="text-sm font-bold text-white font-grotesk tracking-wide">🤖 Instruct Your AI Agent</h3>
+          <span class="text-[10px] px-2 py-0.5 rounded bg-cyan-950/80 border border-cyan-500/40 text-cyan-300">v3.2 Spec</span>
+        </div>
+        <button onclick="closeAgentModal()" class="w-7 h-7 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white flex items-center justify-center transition-colors">✕</button>
+      </div>
+
+      <div class="p-6 space-y-5 overflow-y-auto max-h-[75vh]">
+        <div>
+          <p class="text-xs text-zinc-300 leading-relaxed">
+            Copy and paste this directive directly into your AI coding assistant (<span class="text-white font-semibold">Cursor Composer</span>, <span class="text-white font-semibold">Windsurf Cascade</span>, <span class="text-white font-semibold">Claude Code</span>, <span class="text-white font-semibold">Devin</span>, or <span class="text-white font-semibold">Antigravity</span>).
+          </p>
+        </div>
+
+        <!-- Copyable Prompt Box -->
+        <div class="relative bg-black border border-zinc-800 rounded-xl p-4 group">
+          <div class="flex items-center justify-between pb-2 mb-2 border-b border-zinc-800/80">
+            <span class="text-[10px] text-zinc-500 uppercase tracking-wider">AI Agent System Directive</span>
+            <button id="btn-copy-prompt" onclick="copyAgentPrompt()" class="px-2.5 py-1 rounded bg-cyan-950/60 border border-cyan-500/40 text-cyan-300 hover:bg-cyan-900/60 text-[11px] font-medium flex items-center gap-1.5 transition-all">
+              <span id="copy-prompt-icon">📋</span>
+              <span id="copy-prompt-text">Copy Prompt</span>
+            </button>
+          </div>
+          <p id="agent-prompt-text" class="text-[11px] text-cyan-100/90 leading-relaxed select-all">
+You are connected to the Sovereign Phone AI Datacenter (physical Redmi 9i ARM64 micro-datacenter node).
+First, read the comprehensive protocol specification at https://phone-whisper-server.pages.dev/maker.md to understand the exact API contracts, error backoff protocols, and zero-auth public endpoints.
+Key Endpoints:
+- Vitals: GET https://phone-whisper-server.pages.dev/telemetry
+- Speech Transcription: POST https://phone-whisper-server.pages.dev/inference (multipart audio)
+- Neural Voice: POST https://phone-whisper-server.pages.dev/tts (JSON {"text": "..."})
+- Coding Agent Jobs: POST https://phone-whisper-server.pages.dev/v1/agent/submit
+- Documentation: https://phone-whisper-server.pages.dev/docs
+When requests return HTTP 503 ("reconnecting"), do not fail: back off for 2.0s and retry.
+          </p>
+        </div>
+
+        <!-- Quick Access Pills -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+          <a href="/maker.md" target="_blank" class="flex items-center justify-between p-3 rounded-xl bg-zinc-900/60 border border-zinc-800 hover:border-cyan-500/50 transition-all group">
+            <div class="flex items-center gap-2.5">
+              <span class="text-base">📄</span>
+              <div>
+                <div class="text-xs font-bold text-white group-hover:text-cyan-400 transition-colors">maker.md Protocol Spec</div>
+                <div class="text-[10px] text-zinc-400">Complete machine-readable docs</div>
+              </div>
+            </div>
+            <span class="text-zinc-500 group-hover:text-cyan-400 transition-colors">↗</span>
+          </a>
+
+          <a href="/telemetry" target="_blank" class="flex items-center justify-between p-3 rounded-xl bg-zinc-900/60 border border-zinc-800 hover:border-emerald-500/50 transition-all group">
+            <div class="flex items-center gap-2.5">
+              <span class="text-base">📡</span>
+              <div>
+                <div class="text-xs font-bold text-white group-hover:text-emerald-400 transition-colors">Live Telemetry Ping</div>
+                <div class="text-[10px] text-zinc-400">Direct hardware JSON status</div>
+              </div>
+            </div>
+            <span class="text-zinc-500 group-hover:text-emerald-400 transition-colors">↗</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- CLIENT SCRIPTS -->
   <script>
     /* ==========================================================
@@ -4239,6 +4320,32 @@ WAL file size: 1.4 MB • Checkpoint status: PASS (0 uncommitted frames)
       document.getElementById('search-modal').classList.remove('flex');
     }
 
+    function openAgentModal() {
+      const modal = document.getElementById('agent-modal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeAgentModal() {
+      const modal = document.getElementById('agent-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function copyAgentPrompt() {
+      const text = document.getElementById('agent-prompt-text').innerText.trim();
+      navigator.clipboard.writeText(text).then(() => {
+        const textEl = document.getElementById('copy-prompt-text');
+        const iconEl = document.getElementById('copy-prompt-icon');
+        textEl.innerText = "Copied!";
+        iconEl.innerText = "✅";
+        setTimeout(() => {
+          textEl.innerText = "Copy Prompt";
+          iconEl.innerText = "📋";
+        }, 2000);
+      });
+    }
+
     window.addEventListener('keydown', e => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
         e.preventDefault();
@@ -4246,6 +4353,7 @@ WAL file size: 1.4 MB • Checkpoint status: PASS (0 uncommitted frames)
       } else if (e.key === 'Escape') {
         closeSearchModal();
         closeOpenApiModal();
+        closeAgentModal();
       }
     });
 
