@@ -624,13 +624,24 @@
             <!-- TTS PANEL -->
             <div id="pg-panel-tts" class="space-y-4 hidden">
               <div>
-                <label class="block text-xs font-mono text-zinc-400 mb-1">Synthesize Text to Speech (Kokoro-82M)</label>
-                <input type="text" id="tts-input-text" value="PhoneWhisper edge datacenter is operating at sub-millisecond latency on Helio G25 silicon." class="w-full bg-zinc-950 border border-cardborder rounded-lg px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-neoncyan">
+                <div class="flex items-center justify-between mb-1">
+                  <label class="block text-xs font-mono text-zinc-400">Synthesize Text to Speech (Kokoro-82M)</label>
+                  <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-neonemerald/10 border border-neonemerald/30 text-neonemerald">⚡ Hyper-Fast Hot Vault</span>
+                </div>
+                <input type="text" id="tts-input-text" value="Welcome to PhoneWhisper sovereign artificial intelligence datacenter." class="w-full bg-zinc-950 border border-cardborder rounded-lg px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-neoncyan">
+                <!-- Quick Preset Prompts -->
+                <div class="flex flex-wrap gap-1.5 mt-2">
+                  <button type="button" onclick="setTtsPrompt('Welcome to PhoneWhisper sovereign artificial intelligence datacenter.')" class="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white hover:border-zinc-700 transition-all">✨ Datacenter Intro</button>
+                  <button type="button" onclick="setTtsPrompt('Hello world')" class="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white hover:border-zinc-700 transition-all">👋 Hello World</button>
+                  <button type="button" onclick="setTtsPrompt('PhoneWhisper edge datacenter is operating at sub-millisecond latency on Helio G25 silicon.')" class="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white hover:border-zinc-700 transition-all">⚡ Edge Silicon</button>
+                  <button type="button" onclick="setTtsPrompt('The MediaTek Helio G25 octa-core ARM64 processor operates on Android 10 Linux Kernel 4.19.')" class="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white hover:border-zinc-700 transition-all">📱 Helio G25 Spec</button>
+                </div>
               </div>
               <div class="grid grid-cols-2 gap-3">
                 <div>
                   <label class="block text-[11px] font-mono text-zinc-400 mb-1">Voice Embedding</label>
                   <select id="tts-voice-select" class="w-full bg-zinc-950 border border-cardborder rounded-lg px-2 py-1.5 text-xs font-mono text-white focus:outline-none focus:border-neoncyan">
+                    <option value="af_heart" selected>af_heart (American Female - Warm Natural)</option>
                     <option value="af_sarah">af_sarah (American Female - Professional)</option>
                     <option value="af_nicole">af_nicole (American Female - Conversational)</option>
                     <option value="am_adam">am_adam (American Male - Deep Narrator)</option>
@@ -3652,6 +3663,14 @@ When requests return HTTP 503 ("reconnecting"), do not fail: back off for 2.0s a
       }, 300);
     }
 
+    function setTtsPrompt(text) {
+      const input = document.getElementById('tts-input-text');
+      if (input) {
+        input.value = text;
+        showToast('Preset loaded: Ready to synthesize', '🎙️');
+      }
+    }
+
     async function runTtsSynthesis() {
       const text = document.getElementById('tts-input-text').value;
       const voice = document.getElementById('tts-voice-select').value;
@@ -3661,7 +3680,7 @@ When requests return HTTP 503 ("reconnecting"), do not fail: back off for 2.0s a
       const container = document.getElementById('tts-audio-container');
       const latSpan = document.getElementById('tts-latency');
 
-      btn.innerHTML = '<span>⏳</span> Synthesizing on Helio G25...';
+      btn.innerHTML = '<span>⏳</span> Synthesizing Kokoro-82M...';
       btn.disabled = true;
       const t0 = performance.now();
 
@@ -3669,20 +3688,22 @@ When requests return HTTP 503 ("reconnecting"), do not fail: back off for 2.0s a
         const res = await fetch('/v1/audio/speech', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ model: 'kokoro', input: text, voice, speed, response_format: 'mp3' })
+          body: JSON.stringify({ model: 'kokoro', input: text, voice, speed, response_format: 'wav' })
         });
         if (!res.ok) throw new Error('TTS synthesis failed');
+        const engineHeader = res.headers.get('x-tts-engine') || 'Kokoro-82M Neural Engine';
+        const cacheHit = res.headers.get('x-cache') === 'HIT';
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
         player.src = url;
         container.classList.remove('hidden');
         player.play().catch(e => console.warn('Audio autoplay prevented or interrupted:', e));
         const duration = Math.round(performance.now() - t0);
-        latSpan.innerText = `${duration} ms (Neural/On-Device)`;
-        showToast('Speech synthesized successfully!', '🔊');
+        latSpan.innerText = `${duration} ms (${engineHeader}${cacheHit ? ' • Hot Vault ⚡' : ''})`;
+        showToast('Kokoro-82M speech ready!', '🔊');
       } catch (err) {
         const duration = Math.round(performance.now() - t0) + 120;
-        latSpan.innerText = `${duration} ms (Browser Synthesizer Fallback)`;
+        latSpan.innerText = `${duration} ms (Client Synthesizer Fallback)`;
         container.classList.remove('hidden');
         if ('speechSynthesis' in window) {
           const ut = new SpeechSynthesisUtterance(text);
@@ -3691,7 +3712,7 @@ When requests return HTTP 503 ("reconnecting"), do not fail: back off for 2.0s a
         }
         showToast('Synthesized via client fallback', '🔊');
       } finally {
-        btn.innerHTML = '<span>🔊</span> Synthesize Audio (Multi-Tier Engine)';
+        btn.innerHTML = '<span>🔊</span> Synthesize Audio (Kokoro-82M)';
         btn.disabled = false;
       }
     }

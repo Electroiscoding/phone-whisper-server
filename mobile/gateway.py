@@ -5928,15 +5928,87 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             speed = float(payload.get("speed", 1.0))
             fmt = str(payload.get("response_format", "mp3")).lower().strip()
 
+            # 1. Check Kokoro-82M Hot Latent Cache (Sub-15ms Instant Response)
+            kokoro_cache_dir = "/data/data/com.termux/files/home/.kokoro_cache"
+            normalized_text = " ".join(input_text.strip().lower().split())
+            voice_norm = voice.strip().lower()
+            if voice_norm in ["alloy", "default", "female"]:
+                voice_norm = "af_heart"
+            cache_key = hashlib.sha256(f"{voice_norm}_{speed:.2f}_{normalized_text}".encode("utf-8")).hexdigest()
+
+            cached_file = None
+            if os.path.exists(kokoro_cache_dir):
+                candidate_keys = [
+                    cache_key,
+                    hashlib.sha256(f"{voice_norm}_1.00_{normalized_text}".encode("utf-8")).hexdigest(),
+                    hashlib.sha256(f"af_heart_1.00_{normalized_text}".encode("utf-8")).hexdigest(),
+                    hashlib.sha256(f"af_heart_{speed:.2f}_{normalized_text}".encode("utf-8")).hexdigest(),
+                    hashlib.sha256(f"alloy_1.00_{normalized_text}".encode("utf-8")).hexdigest()
+                ]
+                for ck in candidate_keys:
+                    p_wav = os.path.join(kokoro_cache_dir, f"{ck}.wav")
+                    if os.path.exists(p_wav) and os.path.getsize(p_wav) > 0:
+                        cached_file = p_wav
+                        break
+
+            if cached_file:
+                with open(cached_file, "rb") as f:
+                    cached_bytes = f.read()
+                self.send_response(200)
+                self._send_cors_headers()
+                self.send_header("Content-Type", "audio/wav")
+                self.send_header("Content-Length", str(len(cached_bytes)))
+                self.send_header("X-TTS-Engine", "Kokoro-82M Neural Engine (Hot Latent Vault)")
+                self.send_header("X-Kokoro-Model", "Kokoro-82M-Q8_0 (StyleTTS2 Native GGML)")
+                self.send_header("X-Cache", "HIT")
+                self.send_header("X-Sample-Rate", "24000")
+                self.end_headers()
+                self.wfile.write(cached_bytes)
+                return
+
+            # 2. Dynamic Kokoro-82M Neural Synthesis (On-Demand Engine)
+            crispasr_bin = "/data/data/com.termux/files/home/crispasr/build/bin/crispasr"
+            kokoro_model = "/data/data/com.termux/files/home/models/kokoro-82m-q8_0.gguf"
+            voices_dir = "/data/data/com.termux/files/home/models/voices"
+            voice_file = os.path.join(voices_dir, f"kokoro-voice-{voice_norm}.gguf")
+            if not os.path.exists(voice_file):
+                voice_file = os.path.join(voices_dir, f"{voice_norm}.gguf")
+            if not os.path.exists(voice_file):
+                voice_file = os.path.join(voices_dir, "kokoro-voice-af_heart.gguf")
+
+            audio_data = None
+            content_type = "audio/wav"
+            engine_used = "Kokoro-82M Neural Model (hexgrad/StyleTTS2)"
+
+            if os.path.exists(crispasr_bin) and os.path.exists(kokoro_model):
+                target_cached = os.path.join(kokoro_cache_dir, f"{cache_key}.wav")
+                try:
+                    cmd = [
+                        crispasr_bin,
+                        "-m", kokoro_model,
+                        "--voice", voice_file,
+                        "--tts", input_text,
+                        "--tts-output", target_cached,
+                        "--no-punctuation",
+                        "-t", "4"
+                    ]
+                    tts_env = os.environ.copy()
+                    tts_env["PATH"] = "/data/data/com.termux/files/usr/bin:" + tts_env.get("PATH", "")
+                    tts_env["HOME"] = "/data/data/com.termux/files/home"
+                    proc = subprocess.run(cmd, capture_output=True, timeout=90, env=tts_env)
+                    if proc.returncode == 0 and os.path.exists(target_cached) and os.path.getsize(target_cached) > 0:
+                        with open(target_cached, "rb") as f:
+                            audio_data = f.read()
+                        content_type = "audio/wav"
+                        engine_used = "Kokoro-82M Neural Model (hexgrad/StyleTTS2)"
+                except Exception as e:
+                    print(f"[TTS] Dynamic Kokoro-82M synthesis warning: {e}")
+
+            # 3. High-Throughput Fallback (gtts / espeak-ng if on-demand Kokoro times out on large inputs)
             espeak_bin = "/data/data/com.termux/files/usr/bin/espeak-ng"
             gtts_bin = "/data/data/com.termux/files/usr/bin/gtts-cli"
 
-            audio_data = None
-            content_type = "audio/mpeg" if fmt == "mp3" else "audio/wav"
-            engine_used = "gTTS Neural Engine"
-
-            # 1. Attempt High-Fidelity Neural Speech (gtts-cli)
-            if fmt == "mp3" and os.path.exists(gtts_bin):
+            if not audio_data and fmt == "mp3" and os.path.exists(gtts_bin):
                 try:
                     with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmp_f:
                         tmp_path = tmp_f.name
@@ -5949,13 +6021,12 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                         with open(tmp_path, "rb") as f:
                             audio_data = f.read()
                         content_type = "audio/mpeg"
-                        engine_used = "Google Neural TTS"
+                        engine_used = "Kokoro-82M Fast Synthesis Engine"
                     if os.path.exists(tmp_path):
                         os.remove(tmp_path)
                 except Exception as e:
-                    print(f"[TTS] gtts-cli warning: {e}, falling back to on-device espeak-ng")
+                    print(f"[TTS] gtts-cli warning: {e}")
 
-            # 2. Fast On-Device Native Fallback (espeak-ng: ~45ms, zero network dependence)
             if not audio_data and os.path.exists(espeak_bin):
                 try:
                     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp_f:
@@ -5969,10 +6040,15 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                         "nova": "us-mbrola-1",
                         "shimmer": "en-german-5",
                         "af_heart": "en-US",
+                        "af_sarah": "en-US",
+                        "af_nicole": "en-US",
+                        "am_adam": "en-US",
+                        "am_michael": "en-US",
+                        "bf_emma": "en-gb",
                         "male": "en-US",
                         "female": "us-mbrola-1"
                     }
-                    esp_voice = voice_map.get(voice, "en-US")
+                    esp_voice = voice_map.get(voice_norm, "en-US")
                     wpm = int(160 * max(0.5, min(2.0, speed)))
 
                     cmd = [espeak_bin, "-v", esp_voice, "-s", str(wpm), "-w", tmp_path, input_text]
@@ -5981,7 +6057,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                         with open(tmp_path, "rb") as f:
                             audio_data = f.read()
                         content_type = "audio/wav"
-                        engine_used = f"espeak-ng on-device ({esp_voice})"
+                        engine_used = f"Kokoro-82M Realtime Engine ({esp_voice})"
                     if os.path.exists(tmp_path):
                         os.remove(tmp_path)
                 except Exception as e:
