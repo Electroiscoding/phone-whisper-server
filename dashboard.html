@@ -69,7 +69,7 @@
       <!-- Quick Telemetry Ticker -->
       <div class="hidden md:flex items-center gap-4 text-xs font-mono text-zinc-400 border-r border-zinc-800/80 pr-4">
         <div>RAM L1: <span id="hdr-ram-latency" class="text-cyan-400 font-bold">-- ns</span></div>
-        <div>SLA: <span id="hdr-sla" class="text-emerald-400 font-bold">&lt;0.0001ms</span></div>
+        <div>SLA: <span id="hdr-sla" class="text-emerald-400 font-bold">-- ms</span></div>
         <div>POOLS: <span id="hdr-pools-count" class="text-zinc-200 font-bold">-- ACTIVE</span></div>
       </div>
 
@@ -90,7 +90,7 @@
         <select id="active-host-select" onchange="changeActiveHost(this.value)" class="bg-transparent text-zinc-300 font-semibold focus:outline-none cursor-pointer">
           <option value="" class="bg-zinc-950 text-white">Auto (Current Edge)</option>
           <option value="http://192.168.29.2:8080" class="bg-zinc-950 text-white">Phone LAN (:8080)</option>
-          <option value="https://practical-loud-don-voluntary.trycloudflare.com" class="bg-zinc-950 text-white">Live Cloudflare Tunnel</option>
+          <option id="opt-live-tunnel" value="https://interesting-unexpected-interval-bedroom.trycloudflare.com" class="bg-zinc-950 text-white">Live Cloudflare Tunnel</option>
           <option value="https://phone-whisper-server.pages.dev" class="bg-zinc-950 text-white">Cloudflare Pages Edge</option>
         </select>
       </div>
@@ -1987,8 +1987,13 @@
         opts.headers['X-User-Id'] = currentUser.user_id;
       }
       for (let attempt = 0; attempt <= retries; attempt++) {
+        const t0 = performance.now();
         try {
           const res = await fetch(url, opts);
+          const elapsedMs = Math.round(performance.now() - t0);
+          const slaEl = document.getElementById('hdr-sla');
+          if (slaEl) slaEl.innerText = `${elapsedMs}ms`;
+
           if (res.status === 503 && attempt < retries) {
             setSyncStatus('syncing', `Self-healing retry (${attempt + 1}/${retries})...`);
             await new Promise(r => setTimeout(r, (attempt + 1) * 1200));
@@ -2373,10 +2378,10 @@
           switchView(currentActiveView);
         } else {
           const d = await res.json();
-          alert(d.error || "Failed to delete project");
+          showToast(d.error || "Failed to delete project", 'error');
         }
       } catch (e) {
-        alert("Failed to delete project: " + e.message);
+        showToast("Failed to delete project: " + e.message, 'error');
       }
     }
 
@@ -2453,8 +2458,9 @@
         document.getElementById('bench-del').innerText = `${r.delete_reflection_avg_ns} ns`;
         document.getElementById('bench-put').innerText = `${r.put_reflection_avg_ns} ns`;
         document.getElementById('hdr-ram-latency').innerText = `${r.head_reflection_avg_ns} ns`;
+        showToast("Silicon benchmark completed!", "success", "⚡");
       } catch (err) {
-        alert("Benchmark error: " + err.message);
+        showToast("Benchmark error: " + err.message, "error");
       } finally {
         btn.innerText = "⚡ Execute 50-Op Burst Benchmark";
         btn.disabled = false;
@@ -2480,11 +2486,12 @@
         if (data.status === 'ok') {
           if (banner) banner.classList.remove('hidden');
           if (text) text.innerText = `Cleaned ${data.collected_objects} memory objects. Freed ${(data.reclaimed_bytes / 1024).toFixed(1)} KB RAM in ${data.gc_elapsed_ms}ms. L1 Cache active.`;
+          showToast(`Freed ${(data.reclaimed_bytes / 1024).toFixed(1)} KB RAM in ${data.gc_elapsed_ms}ms!`, 'success', '🧹');
           refreshOverview();
           setTimeout(() => { if (banner) banner.classList.add('hidden'); }, 8000);
         }
       } catch (err) {
-        alert("GC error: " + err.message);
+        showToast("GC error: " + err.message, 'error');
       } finally {
         if (btn) {
           btn.disabled = false;
@@ -2720,7 +2727,7 @@
           body: JSON.stringify({ key, value: input.value })
         });
       }
-      alert("Remote config updated live!");
+      showToast("Remote config updated live!", 'success');
     }
 
     function openCreateExperimentModal() {
@@ -2879,10 +2886,10 @@ TimeoutError: Latency threshold breached (${l.latency_ms}ms) on ${l.device_info 
           loadUsersTable();
           refreshOverview();
         } else {
-          alert("Failed to delete user: " + (data.error || "Unknown error"));
+          showToast("Failed to delete user: " + (data.error || "Unknown error"), 'error');
         }
       } catch (err) {
-        alert("Delete failed: " + err.message);
+        showToast("Delete failed: " + err.message, 'error');
       }
     }
 
@@ -2895,11 +2902,11 @@ TimeoutError: Latency threshold breached (${l.latency_ms}ms) on ${l.device_info 
           body: JSON.stringify({ action: 'purge_tests' })
         });
         const data = await res.json();
-        alert(`Successfully purged ${data.deleted_count || 0} test accounts.`);
+        showToast(`Successfully purged ${data.deleted_count || 0} test accounts.`, 'success');
         loadUsersTable();
         refreshOverview();
       } catch (err) {
-        alert("Purge failed: " + err.message);
+        showToast("Purge failed: " + err.message, 'error');
       }
     }
 
@@ -2955,7 +2962,7 @@ TimeoutError: Latency threshold breached (${l.latency_ms}ms) on ${l.device_info 
         if (data.status === 'error') throw new Error(data.error);
 
         closeResetPwdModal();
-        alert("Password updated successfully!");
+        showToast("Password updated successfully!", 'success');
         loadUsersTable();
       } catch (err) {
         errEl.innerText = err.message;
@@ -3012,8 +3019,8 @@ TimeoutError: Latency threshold breached (${l.latency_ms}ms) on ${l.device_info 
       const timing = document.getElementById('notif-timing-select').value;
       const scheduled_at = timing === 'scheduled' ? document.getElementById('notif-schedule-input').value : null;
 
-      if (!title || !body) return alert("Title and Body are required.");
-      if (timing === 'scheduled' && !scheduled_at) return alert("Please select a scheduled delivery date and time.");
+      if (!title || !body) return showToast("Title and Body are required.", 'error');
+      if (timing === 'scheduled' && !scheduled_at) return showToast("Please select a scheduled delivery date and time.", 'error');
 
       await apiFetch(`${BASE_URL}/v1/dashboard/notifications`, {
         method: 'POST',
@@ -3021,7 +3028,7 @@ TimeoutError: Latency threshold breached (${l.latency_ms}ms) on ${l.device_info 
         body: JSON.stringify({ title, body, target, type, scheduled_at })
       });
 
-      alert(timing === 'scheduled' ? `Notification scheduled for ${scheduled_at}!` : "Notification broadcasted successfully!");
+      showToast(timing === 'scheduled' ? `Notification scheduled for ${scheduled_at}!` : "Notification broadcasted successfully!", 'success');
       loadNotificationsHistory();
     }
 
@@ -3369,7 +3376,7 @@ TimeoutError: Latency threshold breached (${l.latency_ms}ms) on ${l.device_info 
 
     function exportTableToCsv() {
       if (!currentTableData || !currentTableData.rows || currentTableData.rows.length === 0) {
-        alert("No table data available to export.");
+        showToast("No table data available to export.", 'error');
         return;
       }
       const cols = currentTableData.columns.map(c => c.name);
@@ -3383,11 +3390,12 @@ TimeoutError: Latency threshold breached (${l.latency_ms}ms) on ${l.device_info 
         csv += row + "\n";
       });
       downloadBlob(csv, `${currentTableData.table}_export_${Date.now()}.csv`, "text/csv;charset=utf-8;");
+      showToast("Exported table to CSV", "success", "📥");
     }
 
     function exportSqlResultToCsv() {
       if (!lastSqlResult || !lastSqlResult.rows || lastSqlResult.rows.length === 0) {
-        alert("No query results available to export.");
+        showToast("No query results available to export.", 'error');
         return;
       }
       const cols = lastSqlResult.columns;
@@ -3453,7 +3461,7 @@ TimeoutError: Latency threshold breached (${l.latency_ms}ms) on ${l.device_info 
     }
 
     function openInsertRowModal() {
-      if (!currentTableData || !currentTableData.columns) return alert("Select a table first.");
+      if (!currentTableData || !currentTableData.columns) return showToast("Select a table first.", 'error');
       const fieldsContainer = document.getElementById('insert-row-fields');
       fieldsContainer.innerHTML = currentTableData.columns.map(c => `
         <div>
@@ -3499,6 +3507,7 @@ TimeoutError: Latency threshold breached (${l.latency_ms}ms) on ${l.device_info 
         if (data.status === 'error' || data.error) throw new Error(data.error || "Insert failed");
 
         closeInsertRowModal();
+        showToast("Row inserted successfully!", "success");
         loadDbTable();
       } catch (err) {
         errEl.innerText = err.message;
@@ -3524,9 +3533,10 @@ TimeoutError: Latency threshold breached (${l.latency_ms}ms) on ${l.device_info 
             new_val: newVal
           })
         });
+        showToast("Cell updated live", "success");
         loadDbTable();
       } catch (err) {
-        alert(err.message);
+        showToast(err.message, 'error');
       }
     }
 
@@ -3660,16 +3670,17 @@ TimeoutError: Latency threshold breached (${l.latency_ms}ms) on ${l.device_info 
           },
           body: JSON.stringify({ key, status, reason })
         });
+        showToast(`Media status updated to ${status}`, 'success');
         loadMediaFiles();
       } catch (err) {
-        alert("Moderation update failed: " + err.message);
+        showToast("Moderation update failed: " + err.message, 'error');
       }
     }
 
     async function uploadMediaFile(e) {
       const file = e.target.files[0];
       if (!file) return;
-      if (!activeKey) return alert("Please sign in or select an active API key to upload files.");
+      if (!activeKey) return showToast("Please sign in or select an active API key to upload files.", 'error');
 
       const key = `uploads/${Date.now()}_${file.name}`;
       try {
@@ -3682,9 +3693,10 @@ TimeoutError: Latency threshold breached (${l.latency_ms}ms) on ${l.device_info 
           body: file
         });
         if (!res.ok) throw new Error("Upload failed");
+        showToast(`Uploaded ${file.name} successfully!`, 'success', '📁');
         loadMediaFiles();
       } catch (err) {
-        alert(err.message);
+        showToast(err.message, 'error');
       }
     }
 
@@ -3807,7 +3819,8 @@ TimeoutError: Latency threshold breached (${l.latency_ms}ms) on ${l.device_info 
         if (!res.ok) throw new Error(data.error || "Failed to generate key");
 
         closeKeyModal();
-        alert(`New Scoped API Key Created:\n\nScope: ${restrictions.toUpperCase()}\nExpires: ${data.expires_at || 'Never'}\n\nToken:\n${data.api_key}\n\nPlease copy and store this token safely!`);
+        try { navigator.clipboard.writeText(data.api_key); } catch (e) {}
+        showToast(`New Scoped API Key created & copied to clipboard!`, 'success', '🔑');
         loadCredentialsTable();
       } catch (err) {
         errEl.innerText = err.message;
@@ -3903,10 +3916,11 @@ TimeoutError: Latency threshold breached (${l.latency_ms}ms) on ${l.device_info 
 
     function downloadLogsJson() {
       if (!cachedLogs || cachedLogs.length === 0) {
-        alert("No logs to download.");
+        showToast("No logs to download.", 'error');
         return;
       }
       downloadBlob(JSON.stringify(cachedLogs, null, 2), `swades_edge_logs_${Date.now()}.json`, "application/json");
+      showToast("Downloaded logs JSON", "success", "📄");
     }
 
     // --- API PLAYGROUND & SNIPPET GENERATOR ---
@@ -4113,7 +4127,7 @@ axios({
       const latEl = document.getElementById('pg-latency');
 
       let headers = {};
-      try { if (headersStr) headers = JSON.parse(headersStr); } catch (e) { return alert("Invalid JSON in headers"); }
+      try { if (headersStr) headers = JSON.parse(headersStr); } catch (e) { return showToast("Invalid JSON in headers", 'error'); }
       if (activeKey && !headers['x-api-key']) headers['x-api-key'] = activeKey;
 
       respEl.innerText = "Executing...";
@@ -4166,6 +4180,7 @@ axios({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key, value: val })
       });
+      showToast(`Secret ${key} updated`, 'success');
       loadSecretsView();
     }
 
@@ -4179,6 +4194,7 @@ axios({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key, value: val, description: "Custom developer environment variable" })
       });
+      showToast(`Secret ${key} created`, 'success');
       loadSecretsView();
     }
 
@@ -4186,7 +4202,7 @@ axios({
       const url = document.getElementById('webhook-test-url').value.trim();
       const event = document.getElementById('webhook-event-select').value;
       if (!url) {
-        alert("Please enter a webhook target URL");
+        showToast("Please enter a webhook target URL", 'error');
         return;
       }
       const btn = document.getElementById('btn-dispatch-webhook');
@@ -4212,8 +4228,9 @@ axios({
         document.getElementById('webhook-res-latency').innerText = `${data.latency_ms} ms`;
         document.getElementById('webhook-res-sig').innerText = data.signature || '--';
         document.getElementById('webhook-res-body').innerText = data.response_preview || '(No response body)';
+        showToast("Webhook test executed", 'success', '🚀');
       } catch (err) {
-        alert("Webhook dispatch error: " + err.message);
+        showToast("Webhook dispatch error: " + err.message, 'error');
       } finally {
         btn.innerText = "🚀 Send Test Ping";
         btn.disabled = false;
@@ -4221,7 +4238,7 @@ axios({
     }
 
     function copyToClipboard(txt) {
-      navigator.clipboard.writeText(txt).then(() => alert("Copied to clipboard:\n" + txt));
+      navigator.clipboard.writeText(txt).then(() => showToast("Copied to clipboard!", 'success', '📋'));
     }
 
     // --- REVIEWER RBAC & AUDIT TRAIL ---
@@ -4295,7 +4312,7 @@ axios({
         });
         loadAuditView();
       } catch (e) {
-        alert("Failed to update role permission: " + e.message);
+        showToast("Failed to update role permission: " + e.message, 'error');
         loadRolesView();
       }
     }
@@ -4365,6 +4382,34 @@ axios({
       renderAuditLogs(filtered);
     }
 
+    // --- GLOBAL TOAST SYSTEM ---
+    function showToast(msg, type = 'info', icon = '⚡') {
+      const toast = document.getElementById('dashboard-toast');
+      const toastMsg = document.getElementById('dashboard-toast-msg');
+      const toastIcon = document.getElementById('dashboard-toast-icon');
+      if (!toast || !toastMsg) {
+        console.log(`[TOAST] ${msg}`);
+        return;
+      }
+      toastMsg.innerText = msg;
+      if (type === 'error') {
+        toastIcon.innerText = icon === '⚡' ? '❌' : icon;
+        toast.className = "fixed bottom-6 right-6 z-[9999] flex items-center gap-2.5 px-4 py-3 rounded-lg bg-rose-950/95 border border-rose-700/80 shadow-2xl text-xs font-mono text-rose-200 transition-all duration-300 transform translate-y-0 opacity-100";
+      } else if (type === 'success') {
+        toastIcon.innerText = icon === '⚡' ? '✅' : icon;
+        toast.className = "fixed bottom-6 right-6 z-[9999] flex items-center gap-2.5 px-4 py-3 rounded-lg bg-emerald-950/95 border border-emerald-700/80 shadow-2xl text-xs font-mono text-emerald-200 transition-all duration-300 transform translate-y-0 opacity-100";
+      } else {
+        toastIcon.innerText = icon;
+        toast.className = "fixed bottom-6 right-6 z-[9999] flex items-center gap-2.5 px-4 py-3 rounded-lg bg-zinc-900/95 border border-zinc-700 shadow-2xl text-xs font-mono text-white transition-all duration-300 transform translate-y-0 opacity-100";
+      }
+
+      if (window._toastTimeout) clearTimeout(window._toastTimeout);
+      window._toastTimeout = setTimeout(() => {
+        toast.classList.remove('translate-y-0', 'opacity-100');
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 2800);
+    }
+
     // --- INITIALIZATION ---
     window.addEventListener('DOMContentLoaded', () => {
       const isAuth = checkUserSession();
@@ -4374,7 +4419,27 @@ axios({
         loadConfigView();
       }
       updateCodeSnippet();
+
+      // Dynamic Active Cloudflare Tunnel Discovery
+      fetch('/endpoint.json')
+        .then(r => r.json())
+        .then(ep => {
+          if (ep && ep.endpoint) {
+            const opt = document.getElementById('opt-live-tunnel');
+            if (opt) {
+              opt.value = ep.endpoint;
+              opt.innerText = `Live Tunnel (${ep.endpoint.replace('https://', '').slice(0, 16)}...)`;
+            }
+          }
+        })
+        .catch(() => {});
     });
   </script>
+
+  <!-- Global Floating Toast Alert Notification -->
+  <div id="dashboard-toast" class="fixed bottom-6 right-6 z-[9999] flex items-center gap-2.5 px-4 py-3 rounded-lg bg-zinc-900/95 border border-zinc-700 shadow-2xl text-xs font-mono text-white transition-all duration-300 transform translate-y-20 opacity-0 pointer-events-none">
+    <span id="dashboard-toast-icon" class="text-base">⚡</span>
+    <span id="dashboard-toast-msg" class="font-medium">Ready</span>
+  </div>
 </body>
 </html>

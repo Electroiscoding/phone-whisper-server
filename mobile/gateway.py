@@ -929,42 +929,44 @@ class SwadeStorageVault:
                 updated_at TEXT
             )''')
 
+            init_now_str = time.strftime("%Y-%m-%d %H:%M:%S")
+
             # Seed default flags if empty
             if conn.execute('SELECT COUNT(*) FROM feature_flags').fetchone()[0] == 0:
                 defaults = [
-                    ("flag_01", "dark_mode_v3", "Pure Obsidian Dark Theme", "Forces ultra-high contrast dark UI globally", 1, 100, "2026-09-04 12:00:00"),
-                    ("flag_02", "fast_l1_cache", "Sub-Microsecond L1 RAM Engine", "Bypasses kernel disk I/O with 45ns memory reflection", 1, 100, "2026-09-04 12:00:00"),
-                    ("flag_03", "public_cdn_edge", "Worldwide Public CDN Permalinks", "Enables Cloudflare Anycast CDN caching on /s/* routes", 1, 100, "2026-09-04 12:00:00"),
-                    ("flag_04", "ai_voice_streaming", "Kokoro TTS Live Stream", "Real-time chunked audio streaming for Kokoro voice", 1, 100, "2026-09-04 12:00:00"),
-                    ("flag_05", "whisper_vad", "Voice Activity Detection (VAD)", "Auto-trims silence on input audio before Whisper inference", 0, 40, "2026-09-04 12:00:00"),
-                    ("flag_06", "s3_xml_compat", "AWS S3 XML Compatibility", "Emulates S3 REST API XML envelopes for rclone & aws-cli", 0, 20, "2026-09-04 12:00:00"),
+                    ("flag_01", "dark_mode_v3", "Pure Obsidian Dark Theme", "Forces ultra-high contrast dark UI globally", 1, 100, init_now_str),
+                    ("flag_02", "fast_l1_cache", "Sub-Microsecond L1 RAM Engine", "Bypasses kernel disk I/O with 45ns memory reflection", 1, 100, init_now_str),
+                    ("flag_03", "public_cdn_edge", "Worldwide Public CDN Permalinks", "Enables Cloudflare Anycast CDN caching on /s/* routes", 1, 100, init_now_str),
+                    ("flag_04", "ai_voice_streaming", "Kokoro TTS Live Stream", "Real-time chunked audio streaming for Kokoro voice", 1, 100, init_now_str),
+                    ("flag_05", "whisper_vad", "Voice Activity Detection (VAD)", "Auto-trims silence on input audio before Whisper inference", 0, 40, init_now_str),
+                    ("flag_06", "s3_xml_compat", "AWS S3 XML Compatibility", "Emulates S3 REST API XML envelopes for rclone & aws-cli", 0, 20, init_now_str),
                 ]
                 conn.executemany('INSERT INTO feature_flags VALUES (?,?,?,?,?,?,?)', defaults)
 
             # Seed default remote config if empty
             if conn.execute('SELECT COUNT(*) FROM remote_config').fetchone()[0] == 0:
                 rc_defaults = [
-                    ("rc_01", "banner_announcement", "🚀 Phone AI Datacenter v3.4 Active: Sub-microsecond reflection enabled across 3 storage pools.", "text", "Top global alert banner text", "2026-09-04 12:00:00"),
-                    ("rc_02", "primary_accent_color", "#38bdf8", "styling", "Hex color code for primary buttons and borders", "2026-09-04 12:00:00"),
-                    ("rc_03", "hero_headline", "Self-Hosted Enterprise Cloud on Android", "text", "Homepage main hero text headline", "2026-09-04 12:00:00"),
-                    ("rc_04", "cdn_edge_ttl_seconds", "86400", "performance", "Cache-Control max-age header for public CDN blobs", "2026-09-04 12:00:00"),
-                    ("rc_05", "maintenance_mode", "false", "system", "Global maintenance killswitch toggle", "2026-09-04 12:00:00"),
+                    ("rc_01", "banner_announcement", "🚀 Phone AI Datacenter Active: Sub-microsecond reflection enabled across 3 storage pools.", "text", "Top global alert banner text", init_now_str),
+                    ("rc_02", "primary_accent_color", "#38bdf8", "styling", "Hex color code for primary buttons and borders", init_now_str),
+                    ("rc_03", "hero_headline", "Self-Hosted Enterprise Cloud on Android", "text", "Homepage main hero text headline", init_now_str),
+                    ("rc_04", "cdn_edge_ttl_seconds", "86400", "performance", "Cache-Control max-age header for public CDN blobs", init_now_str),
+                    ("rc_05", "maintenance_mode", "false", "system", "Global maintenance killswitch toggle", init_now_str),
                 ]
                 conn.executemany('INSERT INTO remote_config VALUES (?,?,?,?,?,?)', rc_defaults)
 
             # Seed default experiments if empty
             if conn.execute('SELECT COUNT(*) FROM experiments').fetchone()[0] == 0:
                 exp_defaults = [
-                    ("exp_onboarding", "Onboarding Flow Variant", "Compare Two-Step Quick Start vs Interactive Terminal for new users", "Two-Step Quickstart", "Interactive CLI Terminal", 50, 1420, 412, 1385, 524, "active", "2026-09-04 12:00:00"),
-                    ("exp_cta_copy", "Homepage Primary CTA", "Test 'Deploy Free' vs 'Start Building' on conversion rates", "Deploy Free", "Start Building", 50, 2840, 812, 2910, 945, "active", "2026-09-04 12:00:00"),
+                    ("exp_onboarding", "Onboarding Flow Variant", "Compare Two-Step Quick Start vs Interactive Terminal for new users", "Two-Step Quickstart", "Interactive CLI Terminal", 50, 1420, 412, 1385, 524, "active", init_now_str),
+                    ("exp_cta_copy", "Homepage Primary CTA", "Test 'Deploy Free' vs 'Start Building' on conversion rates", "Deploy Free", "Start Building", 50, 2840, 812, 2910, 945, "active", init_now_str),
                 ]
                 conn.executemany('INSERT INTO experiments VALUES (?,?,?,?,?,?,?,?,?,?,?,?)', exp_defaults)
 
             # Seed default notifications if empty
             if conn.execute('SELECT COUNT(*) FROM notifications').fetchone()[0] == 0:
                 notif_defaults = [
-                    ("notif_01", "Storage Datacenter Live", "All physical drives (internal NVMe, shared /sdcard, external USB OTG) are online.", "push", "all", "sent", "2026-09-04 12:00:00"),
-                    ("notif_02", "Zero-Tassel Isolation Enforced", "Cryptographic namespacing and zero-knowledge 404 security active.", "banner", "all", "sent", "2026-09-04 13:00:00"),
+                    ("notif_01", "Storage Datacenter Live", "All physical drives (internal NVMe, shared /sdcard, external USB OTG) are online.", "push", "all", "sent", init_now_str),
+                    ("notif_02", "Zero-Tassel Isolation Enforced", "Cryptographic namespacing and zero-knowledge 404 security active.", "banner", "all", "sent", init_now_str),
                 ]
                 conn.executemany('INSERT INTO notifications VALUES (?,?,?,?,?,?,?)', notif_defaults)
 
@@ -980,10 +982,10 @@ class SwadeStorageVault:
             # Seed default secrets if empty
             if conn.execute('SELECT COUNT(*) FROM secrets_vault').fetchone()[0] == 0:
                 sec_defaults = [
-                    ("STORAGE_DEFAULT_QUOTA_BYTES", "2147483648", "Default 2GB quota for newly registered accounts", 0, "2026-09-04 12:00:00"),
-                    ("AI_MODEL_OVERRIDE", "Qwen/Qwen2.5-0.5B-Instruct-GGUF", "Default fast LLM model for edge inference", 0, "2026-09-04 12:00:00"),
-                    ("EDGE_WEBHOOK_URL", "https://api.swades.cloud/events/webhook", "Webhook dispatch target for lifecycle events", 1, "2026-09-04 12:00:00"),
-                    ("SPILLOVER_THRESHOLD_PCT", "90", "Drive percentage threshold triggering auto JBOD spillover", 0, "2026-09-04 12:00:00"),
+                    ("STORAGE_DEFAULT_QUOTA_BYTES", "2147483648", "Default 2GB quota for newly registered accounts", 0, init_now_str),
+                    ("AI_MODEL_OVERRIDE", "Qwen/Qwen2.5-0.5B-Instruct-GGUF", "Default fast LLM model for edge inference", 0, init_now_str),
+                    ("EDGE_WEBHOOK_URL", "https://api.swades.cloud/events/webhook", "Webhook dispatch target for lifecycle events", 1, init_now_str),
+                    ("SPILLOVER_THRESHOLD_PCT", "90", "Drive percentage threshold triggering auto JBOD spillover", 0, init_now_str),
                 ]
             # 7. Reviewer Role Permissions Matrix (RBAC)
             conn.execute('''CREATE TABLE IF NOT EXISTS role_permissions (
@@ -1593,34 +1595,38 @@ class SwadeStorageVault:
         return os.path.join(p_dir, "data.db")
 
     def _get_project_conn(self, project_id: str = None):
-        if not project_id or project_id in ["default_system", "system", "auth"]:
+        if project_id in ["default_system", "system_internal", "auth"]:
             return self._get_conn()
         
-        db_path = self.get_project_db_path(project_id)
+        safe_id = re.sub(r'[^a-zA-Z0-9_\-]', '', str(project_id)) if project_id and project_id not in ["null", "undefined"] else "sandbox"
+        db_path = self.get_project_db_path(safe_id)
+        is_new = not os.path.exists(db_path)
         conn = sqlite3.connect(db_path, timeout=5.0)
         conn.execute("PRAGMA journal_mode=WAL;")
         conn.execute("PRAGMA synchronous=NORMAL;")
         conn.execute("PRAGMA temp_store=MEMORY;")
         conn.execute("PRAGMA busy_timeout=5000;")
+        if is_new:
+            try:
+                conn.execute('''CREATE TABLE IF NOT EXISTS items (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    title TEXT NOT NULL,
+                    description TEXT,
+                    price REAL DEFAULT 0.0,
+                    status TEXT DEFAULT 'active',
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )''')
+                if conn.execute('SELECT COUNT(*) FROM items').fetchone()[0] == 0:
+                    conn.execute('''INSERT INTO items (title, description, price, status) VALUES 
+                        ('Welcome Item', 'Starter record in your dedicated project database', 19.99, 'active')''')
+                conn.commit()
+            except Exception:
+                pass
         return conn
 
     def _init_project_db(self, project_id: str):
         conn = self._get_project_conn(project_id)
-        try:
-            conn.execute('''CREATE TABLE IF NOT EXISTS items (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                title TEXT NOT NULL,
-                description TEXT,
-                price REAL DEFAULT 0.0,
-                status TEXT DEFAULT 'active',
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )''')
-            if conn.execute('SELECT COUNT(*) FROM items').fetchone()[0] == 0:
-                conn.execute('''INSERT INTO items (title, description, price, status) VALUES 
-                    ('Welcome Item', 'Starter record in your dedicated project database', 19.99, 'active')''')
-            conn.commit()
-        finally:
-            conn.close()
+        conn.close()
 
     def create_project(self, owner_id: str, name: str, description: str = ""):
         if not name or not name.strip():
@@ -4941,12 +4947,18 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
 
     def _extract_project_id(self, parsed=None):
         proj = self.headers.get("X-Project-Id")
-        if proj: return proj.strip()
+        if proj and proj not in ["null", "undefined", ""]:
+            return proj.strip()
         if parsed and parsed.query:
             qs = urllib.parse.parse_qs(parsed.query)
-            if "project_id" in qs and qs["project_id"]:
+            if "project_id" in qs and qs["project_id"] and qs["project_id"][0] not in ["null", "undefined", ""]:
                 return qs["project_id"][0].strip()
-        return None
+        uid = self.headers.get("X-User-Id")
+        if uid:
+            user_projs = _storage_vault.list_projects(owner_id=uid)
+            if user_projs:
+                return user_projs[0]["project_id"]
+        return "sandbox"
 
     def _get_authenticated_user(self, parsed=None):
         key_rec = self._authenticate_storage_request()
