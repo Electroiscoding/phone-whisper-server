@@ -43,7 +43,26 @@ async function getLiveOrigin(forceRefresh = false) {
     return cachedOrigin;
   }
 
-  // 1. Primary: Raw GitHub CDN (Real-time, instant commit sync)
+  // 1. Primary: GitHub REST API (Instant, bypasses CDN edge cache)
+  try {
+    const apiRes = await fetchWithTimeout(`https://api.github.com/repos/Electroiscoding/phone-whisper-server/contents/endpoint.json?ref=main&_t=${now}`, {
+      headers: {
+        "User-Agent": "Cloudflare-Edge-Worker/2.0",
+        "Accept": "application/vnd.github.v3.raw",
+        "Cache-Control": "no-cache, no-store"
+      }
+    }, 2500);
+    if (apiRes.ok) {
+      const data = await apiRes.json();
+      if (data && data.endpoint && data.endpoint.startsWith("https://")) {
+        cachedOrigin = data.endpoint.replace(/\/+$/, "");
+        lastFetchTime = now;
+        return cachedOrigin;
+      }
+    }
+  } catch (err) {}
+
+  // 2. Secondary: Raw GitHub CDN
   try {
     const res = await fetchWithTimeout(`${GITHUB_ENDPOINT_URL}?_t=${now}`, {
       headers: { "User-Agent": "Cloudflare-Edge-Worker/2.0", "Cache-Control": "no-cache, no-store, must-revalidate" },
@@ -59,7 +78,7 @@ async function getLiveOrigin(forceRefresh = false) {
     }
   } catch (err) {}
 
-  // 2. Secondary: jsDelivr Edge CDN
+  // 3. Tertiary: jsDelivr Edge CDN
   try {
     const jsdelivrRes = await fetchWithTimeout(`${JSDELIVR_ENDPOINT_URL}?_t=${now}`, {
       headers: { "Cache-Control": "no-cache, no-store" }
@@ -74,7 +93,7 @@ async function getLiveOrigin(forceRefresh = false) {
     }
   } catch (err) {}
 
-  return cachedOrigin || "https://interesting-unexpected-interval-bedroom.trycloudflare.com";
+  return cachedOrigin || "https://ocean-color-referrals-reg.trycloudflare.com";
 }
 
 export default {

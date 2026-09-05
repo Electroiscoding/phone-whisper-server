@@ -40,22 +40,7 @@ async function getLiveOrigin(forceRefresh = false) {
     return cachedOrigin;
   }
 
-  // 1. Primary: Raw GitHub CDN (Real-time, instant commit sync)
-  try {
-    const res = await fetchWithTimeout(`${GITHUB_ENDPOINT_URL}?_t=${now}`, {
-      headers: { "User-Agent": "Cloudflare-Pages-Worker/3.0", "Cache-Control": "no-cache, no-store, must-revalidate" }
-    }, 2500);
-    if (res.ok) {
-      const data = await res.json();
-      if (data && data.endpoint && data.endpoint.startsWith("https://")) {
-        cachedOrigin = data.endpoint.replace(/\/+$/, "");
-        lastFetchTime = now;
-        return cachedOrigin;
-      }
-    }
-  } catch (err) {}
-
-  // 2. Secondary: GitHub REST API
+  // 1. Primary: GitHub REST API (Instant, bypasses CDN edge cache)
   try {
     const apiRes = await fetchWithTimeout(`https://api.github.com/repos/Electroiscoding/phone-whisper-server/contents/endpoint.json?ref=main&_t=${now}`, {
       headers: {
@@ -66,6 +51,21 @@ async function getLiveOrigin(forceRefresh = false) {
     }, 2500);
     if (apiRes.ok) {
       const data = await apiRes.json();
+      if (data && data.endpoint && data.endpoint.startsWith("https://")) {
+        cachedOrigin = data.endpoint.replace(/\/+$/, "");
+        lastFetchTime = now;
+        return cachedOrigin;
+      }
+    }
+  } catch (err) {}
+
+  // 2. Secondary: Raw GitHub CDN
+  try {
+    const res = await fetchWithTimeout(`${GITHUB_ENDPOINT_URL}?_t=${now}`, {
+      headers: { "User-Agent": "Cloudflare-Pages-Worker/3.0", "Cache-Control": "no-cache, no-store, must-revalidate" }
+    }, 2500);
+    if (res.ok) {
+      const data = await res.json();
       if (data && data.endpoint && data.endpoint.startsWith("https://")) {
         cachedOrigin = data.endpoint.replace(/\/+$/, "");
         lastFetchTime = now;
@@ -89,7 +89,7 @@ async function getLiveOrigin(forceRefresh = false) {
     }
   } catch (err) {}
 
-  return cachedOrigin || "https://interesting-unexpected-interval-bedroom.trycloudflare.com";
+  return cachedOrigin || "https://ocean-color-referrals-reg.trycloudflare.com";
 }
 
 export default {
