@@ -1,9 +1,5 @@
 {
-  "endpoint": "https://grown-prior-generated-victor.trycloudflare.com",
-  "inference": "https://grown-prior-generated-victor.trycloudflare.com/inference",
-  "telemetry": "https://grown-prior-generated-victor.trycloudflare.com/telemetry",
-  "phone_lan_ip": "http://192.168.29.2:8080",
-  "mode": "dual_worldwide_and_local",
-  "port": 8080,
-  "updated_at": "2026-09-04T09:42:00Z"
+  "endpoint": "https://practical-loud-don-voluntary.trycloudflare.com",
+  "inference": "https://practical-loud-don-voluntary.trycloudflare.com/inference",
+  "telemetry": "https://practical-loud-don-voluntary.trycloudflare.com/telemetry"
 }
