@@ -12,7 +12,7 @@ const getClientId = (env) => (env && env.GITHUB_CLIENT_ID) || "";
 const getClientSecret = (env) => (env && env.GITHUB_CLIENT_SECRET) || "";
 
 // In-Memory Edge Cache for Active Tunnel Target
-let cachedOrigin = "https://oldest-flower-christ-organize.trycloudflare.com";
+let cachedOrigin = "https://ocean-color-referrals-reg.trycloudflare.com";
 let lastFetchTime = Date.now();
 const CACHE_TTL_MS = 60000; // 60 seconds
 

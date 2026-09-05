@@ -3208,7 +3208,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_dashboard_analytics_get(parsed)
         elif path in ["/v1/dashboard/db/tables", "/v1/admin/db/tables", "/v1/db/tables"]:
             self.handle_dashboard_db_tables(parsed)
-        elif path in ["/v1/dashboard/db/query", "/v1/admin/db/query"]:
+        elif path in ["/v1/dashboard/db/query", "/v1/admin/db/query", "/v1/db/query"]:
             self.handle_dashboard_db_query(parsed)
         elif path in ["/v1/dashboard/logs", "/v1/admin/logs"]:
             self.handle_dashboard_logs()

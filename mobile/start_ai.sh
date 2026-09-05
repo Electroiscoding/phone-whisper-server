@@ -29,7 +29,8 @@ if ! pgrep -f "cloudflared tunnel" > /dev/null; then
 fi
 
 SYNCED_URL=""
-LAST_PROBE_TIME=0
+LAST_PROBE_TIME=$(date +%s)
+FAIL_COUNT=0
 
 while true; do
   NOW=$(date +%s)
@@ -55,14 +56,21 @@ while true; do
     IS_TUNNEL_DEAD=1
   fi
 
-  # D. Active Tunnel Health Probe (Runs every 20 seconds on current URL)
-  CURRENT_ACTIVE_URL=$(grep -oE "https://[a-zA-Z0-9.-]+\.trycloudflare\.com" $HOME/cf_tunnel.log 2>/dev/null | tail -n 1)
-  if [ -n "$CURRENT_ACTIVE_URL" ] && [ $((NOW - LAST_PROBE_TIME)) -ge 20 ]; then
+  # D. Active Tunnel Health Probe (Runs every 25 seconds on current URL)
+  CURRENT_ACTIVE_URL=$(grep -oE "https://[a-zA-Z0-9-]+\.trycloudflare\.com" $HOME/cf_tunnel.log 2>/dev/null | grep -v "api.trycloudflare.com" | tail -n 1)
+  if [ -n "$CURRENT_ACTIVE_URL" ] && [ $((NOW - LAST_PROBE_TIME)) -ge 25 ]; then
     LAST_PROBE_TIME=$NOW
-    PROBE_STATUS=$(curl -s -m 5 -o /dev/null -w "%{http_code}" "$CURRENT_ACTIVE_URL/telemetry" 2>/dev/null || echo "000")
-    if [ "$PROBE_STATUS" != "200" ]; then
-      echo "$(date): [HEALTH PROBE FAILED] Status $PROBE_STATUS on $CURRENT_ACTIVE_URL. Re-spawning tunnel..." >> $HOME/nuclear_supervisor.log
-      IS_TUNNEL_DEAD=1
+    PROBE_STATUS=$(curl -s -m 6 -o /dev/null -w "%{http_code}" "$CURRENT_ACTIVE_URL/telemetry" 2>/dev/null || echo "000")
+    if [ "$PROBE_STATUS" = "200" ]; then
+      FAIL_COUNT=0
+    else
+      FAIL_COUNT=$((FAIL_COUNT + 1))
+      echo "$(date): [HEALTH PROBE WARN] Status $PROBE_STATUS on $CURRENT_ACTIVE_URL (fail count: $FAIL_COUNT/3)" >> $HOME/nuclear_supervisor.log
+      if [ "$FAIL_COUNT" -ge 3 ]; then
+        echo "$(date): [CRITICAL] 3 consecutive probe failures. Re-spawning tunnel..." >> $HOME/nuclear_supervisor.log
+        IS_TUNNEL_DEAD=1
+        FAIL_COUNT=0
+      fi
     fi
   fi
 
@@ -70,11 +78,13 @@ while true; do
     echo "$(date): [CRITICAL] Tunnel dead/stalled. Re-spawning cloudflared..." >> $HOME/nuclear_supervisor.log
     killall -9 cloudflared 2>/dev/null || true
     cloudflared tunnel --url http://127.0.0.1:8080 --protocol http2 --edge-ip-version 4 --no-autoupdate > $HOME/cf_tunnel.log 2>&1 &
+    LAST_PROBE_TIME=$(date +%s)
+    FAIL_COUNT=0
     sleep 4
   fi
 
   # E. Broadcaster: Sync New Tunnel URL to Cloudflare Pages and GitHub
-  URL=$(grep -oE "https://[a-zA-Z0-9.-]+\.trycloudflare\.com" $HOME/cf_tunnel.log 2>/dev/null | tail -n 1)
+  URL=$(grep -oE "https://[a-zA-Z0-9-]+\.trycloudflare\.com" $HOME/cf_tunnel.log 2>/dev/null | grep -v "api.trycloudflare.com" | tail -n 1)
   if [ -n "$URL" ] && [ "$URL" != "$SYNCED_URL" ]; then
     echo "$URL" > $HOME/current_url.txt
 
