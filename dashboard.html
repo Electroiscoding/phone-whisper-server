@@ -1219,11 +1219,9 @@ print("CDN URL:", res["object"]["url"])</pre>
       if (!currentTableData || !currentTableData.rows) return;
       const cols = currentTableData.columns;
       const rows = currentTableData.rows;
-      let csv = cols.join(',') + '
-';
+      let csv = cols.join(',') + '\n';
       rows.forEach(r => {
-        csv += cols.map(c => `"${String(r[c] ?? '').replace(/"/g, '""')}"`).join(',') + '
-';
+        csv += cols.map(c => '"' + String(r[c] ?? '').replace(/"/g, '""') + '"').join(',') + '\n';
       });
       const blob = new Blob([csv], { type: 'text/csv' });
       const a = document.createElement('a');
@@ -1236,11 +1234,9 @@ print("CDN URL:", res["object"]["url"])</pre>
       if (!lastSqlResult || !lastSqlResult.rows) return;
       const cols = lastSqlResult.columns;
       const rows = lastSqlResult.rows;
-      let csv = cols.join(',') + '
-';
+      let csv = cols.join(',') + '\n';
       rows.forEach(r => {
-        csv += cols.map(c => `"${String(r[c] ?? '').replace(/"/g, '""')}"`).join(',') + '
-';
+        csv += cols.map(c => '"' + String(r[c] ?? '').replace(/"/g, '""') + '"').join(',') + '\n';
       });
       const blob = new Blob([csv], { type: 'text/csv' });
       const a = document.createElement('a');
