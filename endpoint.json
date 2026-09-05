@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://ocean-color-referrals-reg.trycloudflare.com",
-  "inference": "https://ocean-color-referrals-reg.trycloudflare.com/inference",
-  "telemetry": "https://ocean-color-referrals-reg.trycloudflare.com/telemetry",
+  "endpoint": "https://characteristics-permissions-clerk-under.trycloudflare.com",
+  "inference": "https://characteristics-permissions-clerk-under.trycloudflare.com/inference",
+  "telemetry": "https://characteristics-permissions-clerk-under.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-09-05T14:43:05Z"
+  "updated_at": "2026-09-05T17:02:19Z"
 }
