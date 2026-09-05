@@ -14,7 +14,7 @@ const getClientSecret = (env) => (env && env.GITHUB_CLIENT_SECRET) || "";
 // In-Memory Edge Cache for Active Tunnel Target
 let cachedOrigin = "https://interesting-unexpected-interval-bedroom.trycloudflare.com";
 let lastFetchTime = Date.now();
-const CACHE_TTL_MS = 6000; // 6 seconds
+const CACHE_TTL_MS = 60000; // 60 seconds
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -24,7 +24,7 @@ const CORS_HEADERS = {
   "Access-Control-Max-Age": "86400"
 };
 
-async function fetchWithTimeout(url, options = {}, timeoutMs = 2500) {
+async function fetchWithTimeout(url, options = {}, timeoutMs = 3000) {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -48,7 +48,7 @@ async function getLiveOrigin(forceRefresh = false) {
     const res = await fetchWithTimeout(`${GITHUB_ENDPOINT_URL}?_t=${now}`, {
       headers: { "User-Agent": "Cloudflare-Edge-Worker/2.0", "Cache-Control": "no-cache, no-store, must-revalidate" },
       cf: { cacheTtl: 0, cacheEverything: false }
-    }, 2000);
+    }, 2500);
     if (res.ok) {
       const data = await res.json();
       if (data.endpoint && data.endpoint.startsWith("https://")) {
@@ -63,7 +63,7 @@ async function getLiveOrigin(forceRefresh = false) {
   try {
     const jsdelivrRes = await fetchWithTimeout(`${JSDELIVR_ENDPOINT_URL}?_t=${now}`, {
       headers: { "Cache-Control": "no-cache, no-store" }
-    }, 2000);
+    }, 2500);
     if (jsdelivrRes.ok) {
       const data = await jsdelivrRes.json();
       if (data && data.endpoint && data.endpoint.startsWith("https://")) {
@@ -247,11 +247,18 @@ export default {
     let response = null;
     let attempt = 0;
 
+    const isLongRunning = url.pathname.includes("/speech") || 
+                          url.pathname.includes("/transcriptions") || 
+                          url.pathname.includes("/chat") || 
+                          url.pathname.includes("/agent") ||
+                          url.pathname.includes("/inference");
+    const timeoutMs = isLongRunning ? 30000 : 8000;
+
     while (attempt < 3) {
       attempt++;
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 4000);
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
         const proxyReq = new Request(targetUrl, {
           method: request.method,

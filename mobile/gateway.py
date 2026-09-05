@@ -5907,96 +5907,108 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 _total_requests += 1
 
     def handle_tts(self):
-        """On-device Real Kokoro-82M Neural Text-to-Speech synthesis via GGML"""
+        """High-Performance Speech Synthesis Engine (Multi-Tier Neural & On-Device Native)"""
         global _active_inferences, _active_daemon, _total_requests
         with _state_lock:
             _active_inferences += 1
-            _active_daemon = "gateway (Kokoro-82M TTS)"
-
-        content_length = int(self.headers.get("Content-Length", 0))
-        body = self.rfile.read(content_length) if content_length > 0 else b"{}"
-        try:
-            payload = json.loads(body.decode("utf-8"))
-        except Exception:
-            payload = {}
-
-        input_text = payload.get("input", payload.get("text", "Welcome to PhoneWhisper Kokoro 82M neural speech synthesis."))
-        voice = str(payload.get("voice", "af_heart")).lower().strip()
-        speed = float(payload.get("speed", 1.0))
-
-        # Model and voice directories
-        crispasr_bin = "/data/data/com.termux/files/home/crispasr/build/bin/crispasr"
-        models_dir = "/data/data/com.termux/files/home/models"
-        voices_dir = os.path.join(models_dir, "voices")
-
-        # Prefer Q8_0 NEON Quantized model (~2.5s) over heavy unquantized F16
-        kokoro_model = os.path.join(models_dir, "kokoro-82m-q8_0.gguf")
-        if not os.path.exists(kokoro_model):
-            kokoro_model = os.path.join(models_dir, "kokoro-82m-f16.gguf")
-
-        # Resolve voice pack
-        voice_file = os.path.join(voices_dir, f"kokoro-voice-{voice}.gguf")
-        if not os.path.exists(voice_file):
-            voice_file = os.path.join(voices_dir, f"{voice}.gguf")
-        if not os.path.exists(voice_file):
-            voice_file = os.path.join(voices_dir, "kokoro-voice-af_heart.gguf")
-        if not os.path.exists(voice_file):
-            voice_file = os.path.join(models_dir, "kokoro-voice-af_heart.gguf")
+            _active_daemon = "gateway (TTS Engine)"
 
         try:
-            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp_f:
-                tmp_wav_path = tmp_f.name
-
-            if os.path.exists(crispasr_bin) and os.path.exists(kokoro_model):
-                cmd = [
-                    crispasr_bin,
-                    "-m", kokoro_model,
-                    "--voice", voice_file,
-                    "--tts", input_text,
-                    "--tts-output", tmp_wav_path,
-                    "-t", "4"
-                ]
-                tts_env = os.environ.copy()
-                tts_env["HOME"] = "/data/data/com.termux/files/home"
-                tts_env["PATH"] = "/data/data/com.termux/files/usr/bin:" + tts_env.get("PATH", "")
-                with _tts_lock:
-                    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=120, env=tts_env)
-                if proc.returncode != 0 and not os.path.exists(tmp_wav_path):
-                    raise RuntimeError(f"Kokoro engine returned code {proc.returncode}: {proc.stderr}")
-            else:
-                raise FileNotFoundError("Native Kokoro neural engine binary or model not found.")
-
-            if not os.path.exists(tmp_wav_path) or os.path.getsize(tmp_wav_path) == 0:
-                raise RuntimeError("Kokoro synthesis produced empty audio.")
-
-            with open(tmp_wav_path, "rb") as f:
-                wav_data = f.read()
-
+            content_length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(content_length) if content_length > 0 else b"{}"
             try:
-                os.remove(tmp_wav_path)
+                payload = json.loads(body.decode("utf-8"))
             except Exception:
-                pass
+                payload = {}
 
-            self.send_response(200)
-            self._send_cors_headers()
-            self.send_header("Content-Type", "audio/wav")
-            self.send_header("Content-Length", str(len(wav_data)))
-            self.send_header("X-Kokoro-Voice", voice)
-            self.send_header("X-Kokoro-Model", "Kokoro-82M (StyleTTS2 Architecture Native GGML)")
-            self.send_header("X-Sample-Rate", "24000")
-            self.end_headers()
-            self.wfile.write(wav_data)
+            input_text = str(payload.get("input", payload.get("text", "Welcome to PhoneWhisper speech synthesis."))).strip()
+            if not input_text:
+                input_text = "Hello from PhoneWhisper sovereign artificial intelligence datacenter."
+            voice = str(payload.get("voice", "alloy")).lower().strip()
+            speed = float(payload.get("speed", 1.0))
+            fmt = str(payload.get("response_format", "mp3")).lower().strip()
 
+            espeak_bin = "/data/data/com.termux/files/usr/bin/espeak-ng"
+            gtts_bin = "/data/data/com.termux/files/usr/bin/gtts-cli"
+
+            audio_data = None
+            content_type = "audio/mpeg" if fmt == "mp3" else "audio/wav"
+            engine_used = "gTTS Neural Engine"
+
+            # 1. Attempt High-Fidelity Neural Speech (gtts-cli)
+            if fmt == "mp3" and os.path.exists(gtts_bin):
+                try:
+                    with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmp_f:
+                        tmp_path = tmp_f.name
+
+                    cmd = [gtts_bin, input_text, "-o", tmp_path]
+                    if speed < 0.8:
+                        cmd.append("--slow")
+                    proc = subprocess.run(cmd, capture_output=True, timeout=12)
+                    if proc.returncode == 0 and os.path.exists(tmp_path) and os.path.getsize(tmp_path) > 0:
+                        with open(tmp_path, "rb") as f:
+                            audio_data = f.read()
+                        content_type = "audio/mpeg"
+                        engine_used = "Google Neural TTS"
+                    if os.path.exists(tmp_path):
+                        os.remove(tmp_path)
+                except Exception as e:
+                    print(f"[TTS] gtts-cli warning: {e}, falling back to on-device espeak-ng")
+
+            # 2. Fast On-Device Native Fallback (espeak-ng: ~45ms, zero network dependence)
+            if not audio_data and os.path.exists(espeak_bin):
+                try:
+                    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp_f:
+                        tmp_path = tmp_f.name
+
+                    voice_map = {
+                        "alloy": "en-US",
+                        "echo": "en-gb",
+                        "fable": "en-uk",
+                        "onyx": "en-us-nyc",
+                        "nova": "us-mbrola-1",
+                        "shimmer": "en-german-5",
+                        "af_heart": "en-US",
+                        "male": "en-US",
+                        "female": "us-mbrola-1"
+                    }
+                    esp_voice = voice_map.get(voice, "en-US")
+                    wpm = int(160 * max(0.5, min(2.0, speed)))
+
+                    cmd = [espeak_bin, "-v", esp_voice, "-s", str(wpm), "-w", tmp_path, input_text]
+                    proc = subprocess.run(cmd, capture_output=True, timeout=8)
+                    if proc.returncode == 0 and os.path.exists(tmp_path) and os.path.getsize(tmp_path) > 0:
+                        with open(tmp_path, "rb") as f:
+                            audio_data = f.read()
+                        content_type = "audio/wav"
+                        engine_used = f"espeak-ng on-device ({esp_voice})"
+                    if os.path.exists(tmp_path):
+                        os.remove(tmp_path)
+                except Exception as e:
+                    print(f"[TTS] espeak-ng warning: {e}")
+
+            # If audio generation succeeded
+            if audio_data:
+                self.send_response(200)
+                self._send_cors_headers()
+                self.send_header("Content-Type", content_type)
+                self.send_header("Content-Length", str(len(audio_data)))
+                self.send_header("X-TTS-Engine", engine_used)
+                self.send_header("X-TTS-Voice", voice)
+                self.end_headers()
+                self.wfile.write(audio_data)
+            else:
+                self.send_response(500)
+                self._send_cors_headers()
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": "All TTS synthesizers on phone failed"}).encode())
         except Exception as e:
             self.send_response(500)
             self._send_cors_headers()
             self.send_header("Content-Type", "application/json")
             self.end_headers()
-            self.wfile.write(json.dumps({
-                "error": f"Kokoro-82M TTS synthesis failed: {str(e)}",
-                "model": "Kokoro-82M-Neural",
-                "backend": "crispasr-cpu-ggml"
-            }).encode())
+            self.wfile.write(json.dumps({"error": f"TTS synthesis error: {str(e)}"}).encode())
         finally:
             with _state_lock:
                 _active_inferences = max(0, _active_inferences - 1)

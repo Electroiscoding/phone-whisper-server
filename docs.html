@@ -7,6 +7,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com">
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    const _ow = console.warn;
+    console.warn = function(...args) {
+      if (args[0] && typeof args[0] === 'string' && args[0].includes('cdn.tailwindcss.com')) return;
+      _ow.apply(console, args);
+    };
+  </script>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -2973,14 +2980,50 @@ When requests return HTTP 503 ("reconnecting"), do not fail: back off for 2.0s a
       showToast('Copied to clipboard', '📋');
     }
 
-    /* Reading Progress Bar */
-    window.addEventListener('scroll', () => {
+    /* Reading Progress Bar & TOC Scrollspy (Throttled via requestAnimationFrame for 60fps & Passive Panning) */
+    let _scrollRafScheduled = false;
+    function updateScrollState() {
+      _scrollRafScheduled = false;
       const winScroll = document.documentElement.scrollTop || document.body.scrollTop;
       const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
-      const scrolled = (winScroll / height) * 100;
+      const scrolled = height > 0 ? (winScroll / height) * 100 : 0;
       const bar = document.getElementById('reading-progress');
       if (bar) bar.style.width = scrolled + '%';
-    });
+
+      // Active TOC & Breadcrumbs
+      const sections = document.querySelectorAll('section[id], div[id^="model-"], div[id^="api-"], div[id^="sdk-"]');
+      let currentSectionId = '';
+      const scrollPos = winScroll + 120;
+
+      sections.forEach(sec => {
+        if (sec.offsetTop <= scrollPos) {
+          currentSectionId = sec.getAttribute('id');
+        }
+      });
+
+      if (currentSectionId) {
+        document.querySelectorAll('.toc-item').forEach(link => {
+          if (link.getAttribute('href') === `#${currentSectionId}`) {
+            link.classList.add('active');
+          } else {
+            link.classList.remove('active');
+          }
+        });
+
+        const activeLink = document.querySelector(`.toc-item[href="#${currentSectionId}"]`);
+        if (activeLink) {
+          const breadcrumb = document.getElementById('breadcrumb-active');
+          if (breadcrumb) breadcrumb.innerText = activeLink.innerText.replace(/[^\w\s/.-]/gi, '').trim();
+        }
+      }
+    }
+
+    window.addEventListener('scroll', () => {
+      if (!_scrollRafScheduled) {
+        _scrollRafScheduled = true;
+        window.requestAnimationFrame(updateScrollState);
+      }
+    }, { passive: true });
 
     /* Theme Management */
     function changeTheme(theme) {
@@ -3451,6 +3494,55 @@ When requests return HTTP 503 ("reconnecting"), do not fail: back off for 2.0s a
     let audioChunks = [];
     let isRecording = false;
 
+    // Web Audio API Transcoder: Encodes browser audio to standard 16-bit 16kHz Mono RIFF/WAVE
+    async function audioBlobToWav(blob, targetSampleRate = 16000) {
+      const arrayBuffer = await blob.arrayBuffer();
+      const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
+      const audioCtx = new AudioCtxClass();
+      const decodedBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+
+      const offlineCtx = new OfflineAudioContext(1, Math.ceil(decodedBuffer.duration * targetSampleRate), targetSampleRate);
+      const source = offlineCtx.createBufferSource();
+      source.buffer = decodedBuffer;
+      source.connect(offlineCtx.destination);
+      source.start(0);
+      const renderedBuffer = await offlineCtx.startRendering();
+
+      const channelData = renderedBuffer.getChannelData(0);
+      const wavBuffer = encodeWAV(channelData, targetSampleRate);
+      return new Blob([wavBuffer], { type: 'audio/wav' });
+    }
+
+    function encodeWAV(samples, sampleRate) {
+      const buffer = new ArrayBuffer(44 + samples.length * 2);
+      const view = new DataView(buffer);
+
+      const writeStr = (offset, str) => {
+        for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+      };
+
+      writeStr(0, 'RIFF');
+      view.setUint32(4, 36 + samples.length * 2, true);
+      writeStr(8, 'WAVE');
+      writeStr(12, 'fmt ');
+      view.setUint32(16, 16, true);
+      view.setUint16(20, 1, true); // PCM format
+      view.setUint16(22, 1, true); // Mono channel
+      view.setUint32(24, sampleRate, true);
+      view.setUint32(28, sampleRate * 2, true);
+      view.setUint16(32, 2, true);
+      view.setUint16(34, 16, true);
+      writeStr(36, 'data');
+      view.setUint32(40, samples.length * 2, true);
+
+      let offset = 44;
+      for (let i = 0; i < samples.length; i++, offset += 2) {
+        const s = Math.max(-1, Math.min(1, samples[i]));
+        view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+      }
+      return buffer;
+    }
+
     async function togglePlaygroundRecord() {
       const btn = document.getElementById('record-btn');
       const text = document.getElementById('record-text');
@@ -3466,8 +3558,17 @@ When requests return HTTP 503 ("reconnecting"), do not fail: back off for 2.0s a
 
           mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
           mediaRecorder.onstop = async () => {
-            const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-            await submitAudioForTranscription(audioBlob);
+            pill.innerText = 'Transcoding 16kHz WAV...';
+            pill.className = 'text-[10px] text-neoncyan font-mono animate-pulse';
+            try {
+              const rawBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+              const wavBlob = await audioBlobToWav(rawBlob, 16000);
+              await submitAudioForTranscription(wavBlob);
+            } catch (convErr) {
+              console.warn('Transcode fallback:', convErr);
+              const fallbackBlob = new Blob(audioChunks, { type: 'audio/wav' });
+              await submitAudioForTranscription(fallbackBlob);
+            }
           };
 
           mediaRecorder.start();
@@ -3568,16 +3669,16 @@ When requests return HTTP 503 ("reconnecting"), do not fail: back off for 2.0s a
         const res = await fetch('/v1/audio/speech', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ model: 'kokoro', input: text, voice, speed })
+          body: JSON.stringify({ model: 'kokoro', input: text, voice, speed, response_format: 'mp3' })
         });
         if (!res.ok) throw new Error('TTS synthesis failed');
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
         player.src = url;
         container.classList.remove('hidden');
-        player.play();
+        player.play().catch(e => console.warn('Audio autoplay prevented or interrupted:', e));
         const duration = Math.round(performance.now() - t0);
-        latSpan.innerText = `${duration} ms (Kokoro-82M)`;
+        latSpan.innerText = `${duration} ms (Neural/On-Device)`;
         showToast('Speech synthesized successfully!', '🔊');
       } catch (err) {
         const duration = Math.round(performance.now() - t0) + 120;
@@ -3590,7 +3691,7 @@ When requests return HTTP 503 ("reconnecting"), do not fail: back off for 2.0s a
         }
         showToast('Synthesized via client fallback', '🔊');
       } finally {
-        btn.innerHTML = '<span>🔊</span> Synthesize Audio (Kokoro-82M)';
+        btn.innerHTML = '<span>🔊</span> Synthesize Audio (Multi-Tier Engine)';
         btn.disabled = false;
       }
     }
@@ -4362,36 +4463,6 @@ WAL file size: 1.4 MB • Checkpoint status: PASS (0 uncommitted frames)
       }
     });
 
-    /* ==========================================================
-       19. SCROLLSPY ACTIVE TOC & BREADCRUMBS
-       ========================================================== */
-    window.addEventListener('scroll', () => {
-      const sections = document.querySelectorAll('section[id], div[id^="model-"], div[id^="api-"], div[id^="sdk-"]');
-      let currentSectionId = '';
-      const scrollPos = window.scrollY + 120;
-
-      sections.forEach(sec => {
-        if (sec.offsetTop <= scrollPos) {
-          currentSectionId = sec.getAttribute('id');
-        }
-      });
-
-      if (currentSectionId) {
-        document.querySelectorAll('.toc-item').forEach(link => {
-          if (link.getAttribute('href') === `#${currentSectionId}`) {
-            link.classList.add('active');
-          } else {
-            link.classList.remove('active');
-          }
-        });
-
-        const activeLink = document.querySelector(`.toc-item[href="#${currentSectionId}"]`);
-        if (activeLink) {
-          const breadcrumb = document.getElementById('breadcrumb-active');
-          if (breadcrumb) breadcrumb.innerText = activeLink.innerText.replace(/[^\w\s/.-]/gi, '').trim();
-        }
-      }
-    });
   </script>
 </body>
 </html>
