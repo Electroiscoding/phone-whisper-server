@@ -385,3 +385,46 @@ When you receive an instruction to integrate with this datacenter:
 1. Verify connectivity: `curl -s https://phone-whisper-server.pages.dev/telemetry`.
 2. Ensure you handle `503 reconnecting` gracefully with exponential backoff.
 3. Keep this directive (`maker.md`) in your system prompt or tool context to invoke endpoints accurately.
+
+---
+
+## 11. Sovereign Cloud Database, Storage & 1-Line SDK (Firebase Alternative)
+
+The phone datacenter operates as a high-speed sovereign cloud backend alternative to Google Firebase / Supabase:
+
+### 11.1 Relational Database Engine (Firestore Alternative)
+- **100% Isolated SQLite WAL per Project**: Scoped in `projects/<project_id>/data.db`.
+- **Query Endpoint**: `POST /v1/db/sql` or `POST /v1/db/query`
+  - Headers: `x-api-key: <KEY>`, `x-project-id: <PROJECT_ID>`
+  - Body: `{"query": "SELECT * FROM items;"}`
+- **Mutation Endpoint**: `POST /v1/db/mutate`
+  - Body: `{"action": "insert_row", "table": "items", "data": {"title": "Product", "price": 19.99}}`
+  - Body: `{"action": "delete_row", "table": "items", "pk_col": "id", "pk_val": 1}`
+  - Body: `{"action": "update_cell", "table": "items", "pk_col": "id", "pk_val": 1, "column": "price", "new_val": 24.99}`
+
+### 11.2 S3-Compatible Object Storage (Firebase Storage Alternative)
+- **Upload Endpoint**: `PUT /v1/storage/objects/<key>`
+  - Headers: `x-api-key: <KEY>`, `x-project-id: <PROJECT_ID>`, `Content-Type: <MIME>`
+  - Body: Raw binary bytes
+- **Public CDN Permalink**: `GET /s/<project_id>/<key>` (Instant edge CDN permalink)
+- **List Objects**: `GET /v1/storage/objects`
+- **Delete Object**: `DELETE /v1/storage/objects/<key>`
+
+### 11.3 Instant 1-Line Client SDK
+Include the client SDK in any web project:
+```html
+<script src="https://phone-whisper-server.pages.dev/swades.js"></script>
+```
+Execute queries, uploads, and auth in 1 line:
+```javascript
+const db = Swades.init({ apiKey: 'YOUR_KEY', project: 'YOUR_PROJECT' });
+
+// 1-line SQL query
+const items = await db.query("SELECT * FROM items;");
+
+// 1-line insert
+await db.insert("items", { title: "Phone Case", price: 12.50 });
+
+// 1-line file upload to S3 CDN
+const { url } = await db.storage.upload(file);
+```

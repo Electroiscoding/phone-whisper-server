@@ -3206,7 +3206,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_dashboard_notifications_get()
         elif path in ["/v1/dashboard/analytics", "/v1/admin/analytics"]:
             self.handle_dashboard_analytics_get(parsed)
-        elif path in ["/v1/dashboard/db/tables", "/v1/admin/db/tables"]:
+        elif path in ["/v1/dashboard/db/tables", "/v1/admin/db/tables", "/v1/db/tables"]:
             self.handle_dashboard_db_tables(parsed)
         elif path in ["/v1/dashboard/db/query", "/v1/admin/db/query"]:
             self.handle_dashboard_db_query(parsed)
@@ -3218,7 +3218,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_dashboard_roles_get()
         elif path in ["/v1/dashboard/audit-logs", "/v1/admin/audit-logs"]:
             self.handle_dashboard_audit_logs_get()
-        elif path in ["/v1/dashboard/db/schema", "/v1/admin/db/schema"]:
+        elif path in ["/v1/dashboard/db/schema", "/v1/admin/db/schema", "/v1/db/schema"]:
             self.handle_dashboard_db_schema(parsed)
         elif path in ["/v1/dashboard/db/integrity", "/v1/admin/db/integrity"]:
             self.handle_dashboard_db_integrity()
@@ -3309,7 +3309,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_dashboard_users_post()
         elif path in ["/v1/dashboard/notifications", "/v1/admin/notifications"]:
             self.handle_dashboard_notifications_post()
-        elif path in ["/v1/dashboard/db/query", "/v1/admin/db/query"]:
+        elif path in ["/v1/dashboard/db/query", "/v1/admin/db/query", "/v1/db/mutate", "/v1/db/post"]:
             self.handle_dashboard_db_post()
         elif path in ["/v1/dashboard/storage/moderate", "/v1/admin/storage/moderate"]:
             self.handle_dashboard_storage_moderate()
@@ -3321,7 +3321,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_dashboard_roles_post()
         elif path in ["/v1/dashboard/webhooks/test", "/v1/admin/webhooks/test"]:
             self.handle_dashboard_webhook_test()
-        elif path in ["/v1/dashboard/db/sql", "/v1/admin/db/sql"]:
+        elif path in ["/v1/dashboard/db/sql", "/v1/admin/db/sql", "/v1/db/sql", "/v1/db/query"]:
             self.handle_dashboard_db_sql_post()
         elif path in ["/v1/dashboard/db/vacuum", "/v1/admin/db/vacuum"]:
             self.handle_dashboard_db_vacuum()
@@ -5182,10 +5182,10 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         try:
             length = int(self.headers.get("Content-Length", 0))
             body = json.loads(self.rfile.read(length).decode("utf-8"))
-            query = body.get("query", "").strip()
+            query = (body.get("query") or body.get("sql") or "").strip()
             project_id = self.headers.get("X-Project-Id") or body.get("project_id")
             if not query:
-                self.send_error(400, "Missing query")
+                self.send_error(400, "Missing query or sql field")
                 return
             res = _storage_vault.db_execute_raw_sql(query, project_id=project_id)
             _storage_vault.log_audit("developer", "RAW_SQL_EXECUTE", f"{project_id or 'system'}:database", f"query={query[:80]}")
