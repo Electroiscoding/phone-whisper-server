@@ -2935,7 +2935,7 @@ if (res.hands && res.hands[0]) {
             <span class="telemetry-badge live-glow">8x ARMv8 Cores</span>
           </div>
           <div class="telemetry-big-val">
-            <span id="cpuUsageVal">0.4</span> <span class="telemetry-unit">% CPU</span>
+            <span id="cpuUsageVal">--</span> <span class="telemetry-unit">% CPU</span>
           </div>
           <div class="graph-container">
             <canvas id="cpuGraphCanvas" class="graph-canvas"></canvas>
@@ -2953,7 +2953,7 @@ if (res.hands && res.hands[0]) {
             <span class="telemetry-badge success">QUIC / Anycast</span>
           </div>
           <div class="telemetry-big-val">
-            <span id="pingVal">38</span> <span class="telemetry-unit">ms RTT</span>
+            <span id="pingVal">--</span> <span class="telemetry-unit">ms RTT</span>
           </div>
           <div class="graph-container">
             <canvas id="pingGraphCanvas" class="graph-canvas"></canvas>
@@ -4435,7 +4435,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
     const pingGraphCtx = pingGraphCanvas.getContext("2d");
 
     const GRAPH_POINTS = 30;
-    let cpuHistory = Array(GRAPH_POINTS).fill(0.3);
+    let cpuHistory = Array(GRAPH_POINTS).fill(4.5);
     let pingHistory = Array(GRAPH_POINTS).fill(38);
 
     const BAR_COUNT = 52;
@@ -4924,11 +4924,12 @@ python3 mobile/nuclear_watchdog.py</code></pre>
 
     // Redraw canvases from historical telemetry buffer
     function redrawDashboardCanvases() {
+      const maxCpu = Math.max(...cpuHistory, 15);
       drawGraph(
         cpuGraphCanvas,
         cpuGraphCtx,
         cpuHistory,
-        100,
+        Math.min(100, Math.max(20, maxCpu * 1.25)),
         ['rgba(56, 189, 248, 0.35)', 'rgba(56, 189, 248, 0.0)'],
         '#38bdf8'
       );
