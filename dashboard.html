@@ -233,53 +233,38 @@
           </div>
         </div>
 
-        <div class="text-[11px] font-mono text-zinc-500 uppercase tracking-wider px-2 py-1">Views & Control</div>
+        <div class="text-[10px] font-mono text-zinc-500 uppercase tracking-wider px-2 py-1.5 font-bold">Core Cloud Services</div>
 
-        <button onclick="switchView('overview')" id="nav-overview" class="nav-btn w-full text-left px-3 py-2 rounded text-xs font-mono flex items-center gap-2.5 text-white bg-zinc-800/80 border border-zinc-700/60 transition-all">
-          <span class="text-base">⚡</span>
-          <span class="font-medium">Overview & HUD</span>
+        <button onclick="switchView('db')" id="nav-db" class="nav-btn w-full text-left px-3 py-2.5 rounded-lg text-xs font-mono flex items-center gap-3 text-white bg-zinc-800/80 border border-zinc-700/60 transition-all">
+          <span class="text-lg">🗄️</span>
+          <div class="flex flex-col min-w-0">
+            <span class="font-bold text-zinc-100 truncate">SQL Database</span>
+            <span class="text-[10px] text-cyan-400 font-medium truncate">Tables, Grid & Query</span>
+          </div>
         </button>
 
-        <button onclick="switchView('config')" id="nav-config" class="nav-btn w-full text-left px-3 py-2 rounded text-xs font-mono flex items-center gap-2.5 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60 border border-transparent transition-all">
-          <span class="text-base">🎛️</span>
-          <span class="font-medium">Config & Testing</span>
+        <button onclick="switchView('storage')" id="nav-storage" class="nav-btn w-full text-left px-3 py-2.5 rounded-lg text-xs font-mono flex items-center gap-3 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60 border border-transparent transition-all">
+          <span class="text-lg">📁</span>
+          <div class="flex flex-col min-w-0">
+            <span class="font-bold text-zinc-100 truncate">Storage & Assets</span>
+            <span class="text-[10px] text-emerald-400 font-medium truncate">Files, CDN & Uploads</span>
+          </div>
         </button>
 
-        <button onclick="switchView('users')" id="nav-users" class="nav-btn w-full text-left px-3 py-2 rounded text-xs font-mono flex items-center gap-2.5 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60 border border-transparent transition-all">
-          <span class="text-base">👥</span>
-          <span class="font-medium">User Management</span>
+        <button onclick="switchView('connect')" id="nav-connect" class="nav-btn w-full text-left px-3 py-2.5 rounded-lg text-xs font-mono flex items-center gap-3 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60 border border-transparent transition-all">
+          <span class="text-lg">🔑</span>
+          <div class="flex flex-col min-w-0">
+            <span class="font-bold text-zinc-100 truncate">API Keys & Connect</span>
+            <span class="text-[10px] text-amber-400 font-medium truncate">Tokens & SDK Snippets</span>
+          </div>
         </button>
 
-        <button onclick="switchView('analytics')" id="nav-analytics" class="nav-btn w-full text-left px-3 py-2 rounded text-xs font-mono flex items-center gap-2.5 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60 border border-transparent transition-all">
-          <span class="text-base">📈</span>
-          <span class="font-medium">Live Analytics</span>
-        </button>
-
-        <button onclick="switchView('data')" id="nav-data" class="nav-btn w-full text-left px-3 py-2 rounded text-xs font-mono flex items-center gap-2.5 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60 border border-transparent transition-all">
-          <span class="text-base">🗄️</span>
-          <span class="font-medium">Data & Storage</span>
-        </button>
-
-        <div class="text-[11px] font-mono text-zinc-500 uppercase tracking-wider px-2 pt-4 pb-1">Developer Tools</div>
-
-        <button onclick="switchView('logs')" id="nav-logs" class="nav-btn w-full text-left px-3 py-2 rounded text-xs font-mono flex items-center gap-2.5 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60 border border-transparent transition-all">
-          <span class="text-base">🪵</span>
-          <span class="font-medium">Live Log Streamer</span>
-        </button>
-
-        <button onclick="switchView('playground')" id="nav-playground" class="nav-btn w-full text-left px-3 py-2 rounded text-xs font-mono flex items-center gap-2.5 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60 border border-transparent transition-all">
-          <span class="text-base">🧪</span>
-          <span class="font-medium">API Playground</span>
-        </button>
-
-        <button onclick="switchView('secrets')" id="nav-secrets" class="nav-btn w-full text-left px-3 py-2 rounded text-xs font-mono flex items-center gap-2.5 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60 border border-transparent transition-all">
-          <span class="text-base">⚙️</span>
-          <span class="font-medium">Secrets & Webhooks</span>
-        </button>
-
-        <button onclick="switchView('rbac')" id="nav-rbac" class="nav-btn w-full text-left px-3 py-2 rounded text-xs font-mono flex items-center gap-2.5 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60 border border-transparent transition-all">
-          <span class="text-base">🛡️</span>
-          <span class="font-medium">Reviewer RBAC & Audit</span>
+        <button onclick="switchView('overview')" id="nav-overview" class="nav-btn w-full text-left px-3 py-2.5 rounded-lg text-xs font-mono flex items-center gap-3 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60 border border-transparent transition-all">
+          <span class="text-lg">⚡</span>
+          <div class="flex flex-col min-w-0">
+            <span class="font-bold text-zinc-100 truncate">Node Telemetry</span>
+            <span class="text-[10px] text-zinc-500 font-medium truncate">Phone CPU, RAM & Battery</span>
+          </div>
         </button>
       </div>
 
@@ -862,12 +847,22 @@
       </section>
 
       <!-- =================================================================== -->
-      <!-- VIEW 5: DATA & STORAGE VIEW (Database Browser, Media Drive, Credentials) -->
       <!-- =================================================================== -->
-      <section id="view-data" class="view-panel hidden space-y-6">
-        <div class="border-b border-zinc-800/80 pb-3">
-          <h1 class="text-xl font-bold tracking-tight text-white space-grotesk">Data & Storage View</h1>
-          <p class="text-xs text-zinc-400 mt-0.5">Spreadsheet database browser, visual media drive with preview modal, and API credentials hub.</p>
+      <!-- VIEW: SQL RELATIONAL DATABASE -->
+      <!-- =================================================================== -->
+      <section id="view-db" class="view-panel space-y-6">
+        <div class="border-b border-zinc-800/80 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <div class="flex items-center gap-2.5">
+              <h1 class="text-xl font-bold tracking-tight text-white space-grotesk">SQL Database</h1>
+              <span class="text-[10px] font-mono font-bold text-cyan-400 bg-cyan-950/80 border border-cyan-800/60 px-2 py-0.5 rounded">Relational (SQLite WAL Engine)</span>
+            </div>
+            <p class="text-xs text-zinc-400 mt-0.5">Isolated relational SQL database. Browse tables, edit rows in grid, execute SQL queries, and inspect schemas.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="setDbMode('grid')" class="text-xs font-mono px-3 py-1.5 rounded bg-zinc-900 border border-zinc-700 text-zinc-200 hover:text-white">Grid View</button>
+            <button onclick="setDbMode('sql')" class="text-xs font-mono px-3 py-1.5 rounded bg-cyan-950/80 border border-cyan-800 text-cyan-300 hover:text-cyan-200">⚡ SQL Query</button>
+          </div>
         </div>
 
         <!-- Visual Database Browser & SQL Sandbox -->
@@ -912,7 +907,7 @@
               </table>
             </div>
             <div class="text-[11px] font-mono text-zinc-500 flex justify-between">
-              <span>💡 Double-click any cell to edit value directly. Passwords & salts are masked for security.</span>
+              <span>💡 Double-click any cell to edit value directly. Standard SQL table columns.</span>
             </div>
           </div>
 
@@ -920,15 +915,13 @@
           <div id="db-panel-sql" class="hidden space-y-3">
             <div class="flex flex-wrap items-center gap-1.5 text-[11px] font-mono">
               <span class="text-zinc-500">Presets:</span>
-              <button onclick="setSqlQuery('SELECT * FROM users;')" class="px-2 py-0.5 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800">Users</button>
-              <button onclick="setSqlQuery('SELECT * FROM role_permissions;')" class="px-2 py-0.5 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800">Role Permissions</button>
-              <button onclick="setSqlQuery('SELECT * FROM audit_logs ORDER BY timestamp DESC LIMIT 25;')" class="px-2 py-0.5 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800">Recent Audits</button>
-              <button onclick="setSqlQuery('SELECT * FROM feature_flags;')" class="px-2 py-0.5 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800">Flags</button>
-              <button onclick="setSqlQuery('SELECT * FROM file_moderation;')" class="px-2 py-0.5 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800">Moderations</button>
-              <button onclick="setSqlQuery('SELECT * FROM performance_logs ORDER BY timestamp DESC LIMIT 20;')" class="px-2 py-0.5 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800">Perf Logs</button>
+              <button onclick="setSqlQuery('SELECT * FROM items;')" class="px-2 py-0.5 rounded bg-zinc-900 hover:bg-zinc-800 text-cyan-300 border border-zinc-800">items</button>
+              <button onclick="setSqlQuery('SELECT id, title, price, status FROM items WHERE price > 0;')" class="px-2 py-0.5 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800">active items</button>
+              <button onclick="setSqlQuery('SELECT sqlite_version();')" class="px-2 py-0.5 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800">SQLite Version</button>
+              <button onclick="setSqlQuery('SELECT name, type FROM sqlite_master WHERE type=\'table\';')" class="px-2 py-0.5 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800">List Tables</button>
             </div>
 
-            <textarea id="sql-query-input" rows="3" class="w-full bg-black/80 border border-zinc-800 rounded p-2.5 font-mono text-xs text-cyan-300 outline-none focus:border-cyan-500 select-text" placeholder="SELECT * FROM table WHERE ...">SELECT * FROM role_permissions;</textarea>
+            <textarea id="sql-query-input" rows="3" class="w-full bg-black/80 border border-zinc-800 rounded p-2.5 font-mono text-xs text-cyan-300 outline-none focus:border-cyan-500 select-text" placeholder="SELECT * FROM table WHERE ...">SELECT * FROM items;</textarea>
 
             <div id="sql-result-container" class="hidden overflow-x-auto max-h-80 overflow-y-auto border border-zinc-800/60 rounded">
               <table class="w-full text-left text-xs font-mono border-collapse" id="sql-grid-table">
@@ -973,24 +966,43 @@
             </div>
           </div>
         </div>
+      </section>
+
+      <!-- =================================================================== -->
+      <!-- VIEW: STORAGE & ASSETS (S3-Compatible Object Store) -->
+      <!-- =================================================================== -->
+      <section id="view-storage" class="view-panel hidden space-y-6">
+        <div class="border-b border-zinc-800/80 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <div class="flex items-center gap-2.5">
+              <h1 class="text-xl font-bold tracking-tight text-white space-grotesk">Storage & Assets</h1>
+              <span class="text-[10px] font-mono font-bold text-emerald-400 bg-emerald-950/80 border border-emerald-800/60 px-2 py-0.5 rounded">S3-Compatible Object Store</span>
+            </div>
+            <p class="text-xs text-zinc-400 mt-0.5">Upload images, audio, videos, and documents with instant public CDN links hosted on phone storage.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <input type="file" id="media-upload-input" onchange="uploadMediaFile(event)" class="hidden" />
+            <button onclick="document.getElementById('media-upload-input').click()" class="text-xs font-mono px-3.5 py-1.5 rounded bg-emerald-500 hover:bg-emerald-400 text-black font-bold flex items-center gap-1.5 shadow-lg shadow-emerald-950/50 transition-all">
+              <span>📤</span> Upload File / Asset
+            </button>
+          </div>
+        </div>
 
         <!-- Media Storage Drive & Explorer with Moderation -->
         <div class="p-4 rounded-lg bg-[#07090d] border border-zinc-800/80 space-y-3">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
               <h2 class="text-sm font-bold text-white space-grotesk flex items-center gap-2">
-                <span>📁 Media & Document Storage Drive</span>
-                <span class="text-[10px] font-mono text-zinc-500">(Zero-Tassel User Silo)</span>
+                <span>📁 Uploaded Media & Documents</span>
               </h2>
               <div class="flex items-center gap-2 text-[11px] font-mono text-zinc-400 mt-0.5">
-                <span>Path: <span class="text-cyan-400">/root/SwadesCloud/tenants</span></span>
+                <span>Objects: <span id="media-count-badge" class="text-emerald-400 font-bold">-- objects</span></span>
                 <span class="text-zinc-600">|</span>
-                <span id="media-count-badge" class="text-emerald-400">-- objects</span>
+                <span>CDN Scope: <span class="text-cyan-400">/s/{project_id}/{key}</span></span>
               </div>
             </div>
 
             <div class="flex flex-wrap items-center gap-2">
-              <!-- Moderation status filter buttons -->
               <div class="flex rounded bg-black border border-zinc-800 p-0.5 text-xs font-mono">
                 <button onclick="setMediaModFilter('all')" id="media-flt-all" class="px-2 py-0.5 rounded bg-zinc-800 text-white font-semibold">ALL</button>
                 <button onclick="setMediaModFilter('approved')" id="media-flt-approved" class="px-2 py-0.5 rounded text-zinc-400 hover:text-emerald-400">APPROVED</button>
@@ -998,9 +1010,8 @@
                 <button onclick="setMediaModFilter('quarantined')" id="media-flt-quarantined" class="px-2 py-0.5 rounded text-zinc-400 hover:text-rose-400">QUARANTINED</button>
               </div>
 
-              <input type="file" id="media-upload-input" onchange="uploadMediaFile(event)" class="hidden" />
               <button onclick="document.getElementById('media-upload-input').click()" class="text-xs font-mono px-3 py-1.5 rounded bg-zinc-800 hover:bg-zinc-700 text-white font-semibold flex items-center gap-1.5">
-                <span>📤</span> Upload File / Media
+                <span>📤</span> Upload
               </button>
             </div>
           </div>
@@ -1009,16 +1020,28 @@
             <!-- Dynamically populated files -->
           </div>
         </div>
+      </section>
+
+      <!-- =================================================================== -->
+      <!-- VIEW: API KEYS & CONNECT -->
+      <!-- =================================================================== -->
+      <section id="view-connect" class="view-panel hidden space-y-6">
+        <div class="border-b border-zinc-800/80 pb-3">
+          <div class="flex items-center gap-2.5">
+            <h1 class="text-xl font-bold tracking-tight text-white space-grotesk">API Keys & Connect</h1>
+            <span class="text-[10px] font-mono font-bold text-amber-400 bg-amber-950/80 border border-amber-800/60 px-2 py-0.5 rounded">Tokens & SDK Snippets</span>
+          </div>
+          <p class="text-xs text-zinc-400 mt-0.5">Generate access keys and copy ready-to-run code snippets to connect your web, mobile, or backend application.</p>
+        </div>
 
         <!-- API Credentials Hub with Scopes & Expiration -->
         <div class="p-4 rounded-lg bg-[#07090d] border border-zinc-800/80 space-y-3">
           <div class="flex items-center justify-between">
             <div>
               <h2 class="text-sm font-bold text-white space-grotesk flex items-center gap-2">
-                <span>🔑 API Credentials Hub (Scoped & Expiring Tokens)</span>
-                <span class="text-[10px] font-mono text-cyan-400 bg-cyan-950/60 border border-cyan-800/40 px-1.5 py-0.5 rounded">RESTRICTED SCOPES</span>
+                <span>🔑 Scoped API Access Tokens</span>
               </h2>
-              <p class="text-xs text-zinc-400">Generate, restrict scopes (read-only, write-only), and set TTL expiration on cloud access tokens.</p>
+              <p class="text-xs text-zinc-400">Generate and manage scoped API tokens (full access, read-only, write-only) to authenticate app requests.</p>
             </div>
             <button onclick="openCreateKeyModal()" class="text-xs font-mono px-3 py-1.5 rounded bg-cyan-500 hover:bg-cyan-400 text-black font-semibold">+ Generate Scoped Key</button>
           </div>
@@ -1039,6 +1062,51 @@
                 <!-- Dynamically populated keys -->
               </tbody>
             </table>
+          </div>
+        </div>
+
+        <!-- Quickstart Connection Snippets -->
+        <div class="p-4 rounded-lg bg-[#07090d] border border-zinc-800/80 space-y-4 font-mono text-xs">
+          <div class="flex items-center justify-between border-b border-zinc-800 pb-2">
+            <span class="font-bold text-white text-sm">🚀 Ready-to-Run Code Snippets</span>
+            <span class="text-zinc-500 text-[11px]">Copy and paste into your project</span>
+          </div>
+
+          <div class="space-y-2">
+            <div class="text-cyan-400 font-bold">1. Query SQL Database via cURL</div>
+            <pre class="bg-black/90 p-3 rounded border border-zinc-800 text-zinc-300 overflow-x-auto select-text">curl -X POST "https://phone-whisper-server.pages.dev/v1/dashboard/db/sql" \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: YOUR_API_KEY" \
+  -d '{"query": "SELECT * FROM items LIMIT 10;"}'</pre>
+          </div>
+
+          <div class="space-y-2">
+            <div class="text-emerald-400 font-bold">2. Upload File to Storage via JavaScript / Fetch</div>
+            <pre class="bg-black/90 p-3 rounded border border-zinc-800 text-zinc-300 overflow-x-auto select-text">const file = document.querySelector('input[type="file"]').files[0];
+
+const res = await fetch(`https://phone-whisper-server.pages.dev/v1/storage/objects/avatars/${file.name}`, {
+  method: 'PUT',
+  headers: {
+    'x-api-key': 'YOUR_API_KEY',
+    'Content-Type': file.type
+  },
+  body: file
+});
+
+const data = await res.json();
+console.log('Public CDN Link:', data.object.url);</pre>
+          </div>
+
+          <div class="space-y-2">
+            <div class="text-amber-400 font-bold">3. Query SQL Database via Python</div>
+            <pre class="bg-black/90 p-3 rounded border border-zinc-800 text-zinc-300 overflow-x-auto select-text">import requests
+
+url = "https://phone-whisper-server.pages.dev/v1/dashboard/db/sql"
+headers = {"x-api-key": "YOUR_API_KEY", "Content-Type": "application/json"}
+payload = {"query": "SELECT * FROM items WHERE status = 'active';"}
+
+resp = requests.post(url, json=payload, headers=headers)
+print(resp.json())</pre>
           </div>
         </div>
       </section>
@@ -1787,7 +1855,7 @@
     let currentPersona = 'developer';
     let userProjects = [];
     let activeProjectId = localStorage.getItem('active_project_id') || null;
-    let currentActiveView = 'overview';
+    let currentActiveView = 'db';
 
     // --- PERSONA & REVIEWER PERMISSIONS CONTROLLER ---
     function setDashboardPersona(persona) {
@@ -1944,11 +2012,14 @@
       }
 
       // Load view data
-      if (viewId === 'overview') refreshOverview();
+      if (viewId === 'db') loadDatabaseView();
+      else if (viewId === 'storage') loadStorageView();
+      else if (viewId === 'connect') loadCredentialsTable();
+      else if (viewId === 'overview') refreshOverview();
+      else if (viewId === 'data') loadDataView();
       else if (viewId === 'config') loadConfigView();
       else if (viewId === 'users') loadUsersTable();
       else if (viewId === 'analytics') loadAnalyticsView();
-      else if (viewId === 'data') loadDataView();
       else if (viewId === 'logs') loadLogsView();
       else if (viewId === 'secrets') loadSecretsView();
       else if (viewId === 'rbac') loadRbacView();
@@ -3177,21 +3248,26 @@ TimeoutError: Latency threshold breached (${l.latency_ms}ms) on ${l.device_info 
       }
     }
 
-    // --- DATA & STORAGE VIEW ---
-    async function loadDataView() {
-      // 1. Load Tables for Database Browser
+    // --- DATABASE & STORAGE VIEWS ---
+    async function loadDatabaseView() {
       try {
         const res = await apiFetch(`${BASE_URL}/v1/dashboard/db/tables`);
         const data = await res.json();
         const sel = document.getElementById('db-table-select');
-        sel.innerHTML = (data.tables || []).map(t => `<option value="${t}">${t}</option>`).join('');
-        loadDbTable();
+        if (sel) {
+          sel.innerHTML = (data.tables || []).map(t => `<option value="${t}">${t}</option>`).join('');
+          loadDbTable();
+        }
       } catch (e) {}
+    }
 
-      // 2. Load Media Files
+    async function loadStorageView() {
       loadMediaFiles();
+    }
 
-      // 3. Load Scoped Keys
+    async function loadDataView() {
+      loadDatabaseView();
+      loadStorageView();
       loadCredentialsTable();
     }
 
@@ -3617,7 +3693,16 @@ TimeoutError: Latency threshold breached (${l.latency_ms}ms) on ${l.device_info 
       }
 
       if (filtered.length === 0) {
-        grid.innerHTML = `<div class="col-span-full text-center text-xs font-mono text-zinc-500 py-6">No files matching filter [${currentMediaFilter.toUpperCase()}].</div>`;
+        grid.innerHTML = `
+          <div class="col-span-full text-center py-10 space-y-3 font-mono">
+            <div class="text-4xl">📁</div>
+            <div class="text-sm font-semibold text-white">No Assets Uploaded Yet</div>
+            <p class="text-xs text-zinc-400 max-w-sm mx-auto">Upload images, documents, audio, or video files to get instant public CDN links hosted on phone storage.</p>
+            <button onclick="document.getElementById('media-upload-input').click()" class="px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs transition-all">
+              📤 Upload Your First File / Asset
+            </button>
+          </div>
+        `;
         return;
       }
 
