@@ -190,6 +190,128 @@
     .btn-send-chat:active {
       transform: scale(0.98);
     }
+    /* Queued Messages Component (Image 2 Matching) */
+    .queued-messages-container {
+      background: #111317;
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      border-radius: 12px;
+      padding: 10px 14px;
+      margin-bottom: 8px;
+      box-shadow: 0 4px 18px -2px rgba(0, 0, 0, 0.45);
+      animation: queueFadeIn 180ms ease-out;
+    }
+    @keyframes queueFadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .queued-messages-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      user-select: none;
+    }
+    .queued-header-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .queued-title {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #e4e4e7;
+      letter-spacing: -0.01em;
+    }
+    .queued-count-badge {
+      background: #27272a;
+      color: #d4d4d8;
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 1px 7px;
+      border-radius: 9999px;
+      font-family: 'JetBrains Mono', monospace;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+    .queued-hint {
+      font-size: 0.75rem;
+      color: #71717a;
+      letter-spacing: -0.01em;
+    }
+    .btn-queue-toggle {
+      background: transparent;
+      border: none;
+      color: #71717a;
+      cursor: pointer;
+      font-size: 0.85rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+      transition: color 150ms ease;
+    }
+    .btn-queue-toggle:hover {
+      color: #e4e4e7;
+    }
+    .queued-messages-list {
+      margin-top: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .queued-msg-item {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 6px 0;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .queued-msg-item:first-child {
+      border-top: none;
+      padding-top: 2px;
+    }
+    .queued-msg-text {
+      color: #d4d4d8;
+      font-size: 0.84rem;
+      line-height: 1.45;
+      word-break: break-word;
+      flex: 1;
+      font-family: inherit;
+    }
+    .queued-msg-actions {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+      opacity: 0.8;
+      transition: opacity 150ms ease;
+    }
+    .queued-msg-item:hover .queued-msg-actions {
+      opacity: 1;
+    }
+    .btn-queue-action {
+      background: #181b22;
+      border: 1px solid #272a34;
+      color: #a1a1aa;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      width: 26px;
+      height: 26px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 120ms ease;
+    }
+    .btn-queue-action:hover {
+      background: #272a34;
+      color: #ffffff;
+      border-color: #3f4454;
+    }
+    .btn-queue-action.delete:hover {
+      background: rgba(244, 63, 94, 0.15);
+      color: #f43f5e;
+      border-color: rgba(244, 63, 94, 0.3);
+    }
     .btn-action {
       background: rgba(255, 255, 255, 0.04);
       border: 1px solid var(--card-border);
@@ -1785,6 +1907,24 @@
             👋 Hello! I am Qwen 2.5 running directly inside Termux on your phone. Ask me anything, generate code, or test my reasoning!
           </div>
         </div>
+
+        <!-- QUEUED MESSAGES WIDGET (Image 2 Matching) -->
+        <div id="queuedMessagesBox" class="queued-messages-container" style="display: none;">
+          <div class="queued-messages-header" onclick="toggleQueueCollapse()">
+            <div class="queued-header-left">
+              <span class="queued-title">Queued Messages</span>
+              <span class="queued-count-badge" id="queuedCountBadge">0</span>
+              <span class="queued-hint">Sends after agent finishes working</span>
+            </div>
+            <div class="queued-header-right">
+              <button type="button" class="btn-queue-toggle" id="btnQueueToggle" title="Collapse / Expand" onclick="event.stopPropagation(); toggleQueueCollapse();">
+                <span id="queueToggleIcon">⌵</span>
+              </button>
+            </div>
+          </div>
+          <div class="queued-messages-list" id="queuedMessagesList"></div>
+        </div>
+
         <div class="chat-input-row">
           <input type="text" id="chatInput" class="chat-input" placeholder="Type a prompt for on-device Qwen 2.5..." onkeydown="if(event.key==='Enter') sendChatPrompt();" />
           <button class="btn-send-chat" id="sendChatBtn" onclick="sendChatPrompt()">
@@ -3696,8 +3836,110 @@ python3 mobile/nuclear_watchdog.py</code></pre>
     }
 
     // =========================================================================
-    // 💬 QWEN 2.5 SLM CHAT HANDLER
+    // 💬 QWEN 2.5 SLM CHAT HANDLER & DYNAMIC MESSAGE QUEUE
     // =========================================================================
+    let chatQueue = [];
+    let isQueueCollapsed = false;
+
+    function escapeHtml(str) {
+      if (!str) return "";
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function renderChatQueue() {
+      const box = document.getElementById("queuedMessagesBox");
+      const list = document.getElementById("queuedMessagesList");
+      const countBadge = document.getElementById("queuedCountBadge");
+      const toggleIcon = document.getElementById("queueToggleIcon");
+
+      if (!box || !list || !countBadge) return;
+
+      if (!chatQueue || chatQueue.length === 0) {
+        box.style.display = "none";
+        list.innerHTML = "";
+        countBadge.textContent = "0";
+        return;
+      }
+
+      box.style.display = "block";
+      countBadge.textContent = String(chatQueue.length);
+
+      if (isQueueCollapsed) {
+        list.style.display = "none";
+        if (toggleIcon) toggleIcon.textContent = "⌃";
+      } else {
+        list.style.display = "flex";
+        if (toggleIcon) toggleIcon.textContent = "⌵";
+
+        list.innerHTML = chatQueue.map((item) => `
+          <div class="queued-msg-item" data-id="${item.id}">
+            <div class="queued-msg-text">${escapeHtml(item.text)}</div>
+            <div class="queued-msg-actions">
+              <button type="button" class="btn-queue-action" title="Send next (promote to top)" onclick="promoteQueuedMessage('${item.id}')">
+                <span>→</span>
+              </button>
+              <button type="button" class="btn-queue-action" title="Edit message" onclick="editQueuedMessage('${item.id}')">
+                <span>✏️</span>
+              </button>
+              <button type="button" class="btn-queue-action delete" title="Delete message" onclick="deleteQueuedMessage('${item.id}')">
+                <span>🗑️</span>
+              </button>
+            </div>
+          </div>
+        `).join("");
+      }
+    }
+
+    function toggleQueueCollapse() {
+      isQueueCollapsed = !isQueueCollapsed;
+      renderChatQueue();
+    }
+
+    function enqueueMessage(text) {
+      if (!text || !text.trim()) return;
+      const id = 'qm_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+      chatQueue.push({ id, text: text.trim() });
+      renderChatQueue();
+    }
+
+    function deleteQueuedMessage(id) {
+      chatQueue = chatQueue.filter(item => item.id !== id);
+      renderChatQueue();
+    }
+
+    function editQueuedMessage(id) {
+      const index = chatQueue.findIndex(item => item.id === id);
+      if (index === -1) return;
+      const [item] = chatQueue.splice(index, 1);
+      renderChatQueue();
+      const inputEl = document.getElementById("chatInput");
+      if (inputEl) {
+        inputEl.value = item.text;
+        inputEl.focus();
+      }
+    }
+
+    function promoteQueuedMessage(id) {
+      const index = chatQueue.findIndex(item => item.id === id);
+      if (index > 0) {
+        const [promoted] = chatQueue.splice(index, 1);
+        chatQueue.unshift(promoted);
+        renderChatQueue();
+      }
+    }
+
+    window.toggleQueueCollapse = toggleQueueCollapse;
+    window.enqueueMessage = enqueueMessage;
+    window.deleteQueuedMessage = deleteQueuedMessage;
+    window.editQueuedMessage = editQueuedMessage;
+    window.promoteQueuedMessage = promoteQueuedMessage;
+    window.renderChatQueue = renderChatQueue;
+
     function setPrompt(text) {
       const inputEl = document.getElementById("chatInput");
       if (inputEl) {
@@ -3716,6 +3958,8 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       qwenSessionMemory = [
         { role: "system", content: "You are an intelligent, ultra-fast on-device AI assistant hosted locally on a smartphone." }
       ];
+      chatQueue = [];
+      renderChatQueue();
       const chatBox = document.getElementById("chatBoxArea");
       if (chatBox) {
         chatBox.innerHTML = `
@@ -3729,10 +3973,18 @@ python3 mobile/nuclear_watchdog.py</code></pre>
     }
     window.clearQwenChatMemory = clearQwenChatMemory;
 
-    async function sendChatPrompt() {
+    async function sendChatPrompt(overrideText = null) {
       const inputEl = document.getElementById("chatInput");
-      const text = inputEl ? inputEl.value.trim() : "";
-      if (!text || isInferencing) return;
+      const text = (overrideText !== null ? overrideText : (inputEl ? inputEl.value : "")).trim();
+      if (!text) return;
+
+      if (isInferencing) {
+        enqueueMessage(text);
+        if (inputEl && overrideText === null) inputEl.value = "";
+        return;
+      }
+
+      if (inputEl && overrideText === null) inputEl.value = "";
 
       const chatBox = document.getElementById("chatBoxArea");
       
@@ -3741,7 +3993,6 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       userBubble.className = "chat-bubble user";
       userBubble.innerText = text;
       chatBox.appendChild(userBubble);
-      inputEl.value = "";
 
       // Append user prompt to in-memory temporary history
       qwenSessionMemory.push({ role: "user", content: text });
@@ -3757,9 +4008,6 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       aiBubble.appendChild(cursorSpan);
       chatBox.appendChild(aiBubble);
       chatBox.scrollTop = chatBox.scrollHeight;
-
-      const btn = document.getElementById("sendChatBtn");
-      if (btn) btn.disabled = true;
 
       let fullText = "";
       let tokenCount = 0;
@@ -3851,8 +4099,16 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       } finally {
         isInferencing = false;
         activeDaemon = null;
-        if (btn) btn.disabled = false;
         chatBox.scrollTop = chatBox.scrollHeight;
+
+        // Auto-dispatch next queued message if present
+        if (chatQueue.length > 0) {
+          const nextItem = chatQueue.shift();
+          renderChatQueue();
+          setTimeout(() => {
+            sendChatPrompt(nextItem.text);
+          }, 350);
+        }
       }
     }
     window.sendChatPrompt = sendChatPrompt;
