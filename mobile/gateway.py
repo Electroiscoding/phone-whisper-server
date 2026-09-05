@@ -209,24 +209,30 @@ def get_real_process_rss_mb(pid):
         return "0 MB (Evicted)"
 
 
-def get_real_hardware_cpu():
-    """Extracts live CPU utilization across all 8 cores."""
-    with _state_lock:
-        is_active = (_active_inferences > 0)
+_prev_cpu_stat = None
 
-    if is_active:
-        try:
-            out = subprocess.check_output(["top", "-n", "1", "-b"], stderr=subprocess.DEVNULL).decode("utf-8")
-            for line in out.splitlines():
-                if "%cpu" in line:
-                    u_m = re.search(r"(\d+)%user", line)
-                    s_m = re.search(r"(\d+)%sys", line)
-                    u = int(u_m.group(1)) if u_m else 0
-                    s = int(s_m.group(1)) if s_m else 0
-                    usage = round((u + s) / 8.0, 1)
-                    return max(45.0, usage)
-        except Exception:
-            return 50.0
+def get_real_hardware_cpu():
+    """Extracts 100% genuine hardware CPU utilization directly from Linux kernel /proc/stat."""
+    global _prev_cpu_stat
+    try:
+        with open("/proc/stat", "r") as f:
+            line = f.readline()
+        if line.startswith("cpu "):
+            parts = [float(x) for x in line.strip().split()[1:8]]
+            busy = parts[0] + parts[1] + parts[2] + parts[4] + parts[5] + parts[6]
+            total = busy + parts[3]
+
+            if _prev_cpu_stat is not None:
+                prev_busy, prev_total = _prev_cpu_stat
+                delta_busy = max(0.0, busy - prev_busy)
+                delta_total = max(0.0001, total - prev_total)
+                _prev_cpu_stat = (busy, total)
+                usage = round((delta_busy / delta_total) * 100.0, 1)
+                return min(100.0, max(0.0, usage))
+            
+            _prev_cpu_stat = (busy, total)
+    except Exception:
+        pass
 
     try:
         out = subprocess.check_output(["top", "-n", "1", "-b"], stderr=subprocess.DEVNULL).decode("utf-8")
@@ -236,11 +242,10 @@ def get_real_hardware_cpu():
                 s_m = re.search(r"(\d+)%sys", line)
                 u = int(u_m.group(1)) if u_m else 0
                 s = int(s_m.group(1)) if s_m else 0
-                usage = round((u + s) / 8.0, 1)
-                return max(0.4, usage)
+                return round((u + s) / 8.0, 1)
     except Exception:
         pass
-    return 0.8
+    return 0.5
 
 
 
@@ -957,8 +962,8 @@ class SwadeStorageVault:
             # Seed default experiments if empty
             if conn.execute('SELECT COUNT(*) FROM experiments').fetchone()[0] == 0:
                 exp_defaults = [
-                    ("exp_onboarding", "Onboarding Flow Variant", "Compare Two-Step Quick Start vs Interactive Terminal for new users", "Two-Step Quickstart", "Interactive CLI Terminal", 50, 1420, 412, 1385, 524, "active", init_now_str),
-                    ("exp_cta_copy", "Homepage Primary CTA", "Test 'Deploy Free' vs 'Start Building' on conversion rates", "Deploy Free", "Start Building", 50, 2840, 812, 2910, 945, "active", init_now_str),
+                    ("exp_onboarding", "Onboarding Flow Variant", "Compare Two-Step Quick Start vs Interactive Terminal for new users", "Two-Step Quickstart", "Interactive CLI Terminal", 50, 0, 0, 0, 0, "active", init_now_str),
+                    ("exp_cta_copy", "Homepage Primary CTA", "Test 'Deploy Free' vs 'Start Building' on conversion rates", "Deploy Free", "Start Building", 50, 0, 0, 0, 0, "active", init_now_str),
                 ]
                 conn.executemany('INSERT INTO experiments VALUES (?,?,?,?,?,?,?,?,?,?,?,?)', exp_defaults)
 
@@ -970,14 +975,7 @@ class SwadeStorageVault:
                 ]
                 conn.executemany('INSERT INTO notifications VALUES (?,?,?,?,?,?,?)', notif_defaults)
 
-            # Seed default performance logs if empty
-            if conn.execute('SELECT COUNT(*) FROM performance_logs').fetchone()[0] == 0:
-                perf_defaults = [
-                    ("perf_01", int(time.time()) - 180, "benchmark", "/v1/storage/benchmark", 0.045, 200, "HEAD reflection sub-microsecond pass", "Xiaomi Redmi 9i (Helio G25)"),
-                    ("perf_02", int(time.time()) - 120, "request", "/v1/storage/objects/docs/welcome.txt", 1.42, 201, "PUT object async flush", "ARM Cortex-A53 LPDDR4X"),
-                    ("perf_03", int(time.time()) - 60, "cdn_stream", "/s/usr_6f7c83ea0fcb/docs/welcome.txt", 0.85, 200, "Worldwide CDN edge hit", "Cloudflare Anycast PoP"),
-                ]
-                conn.executemany('INSERT INTO performance_logs VALUES (?,?,?,?,?,?,?,?)', perf_defaults)
+            # Real performance logs are recorded dynamically on live requests
 
             # Seed default secrets if empty
             if conn.execute('SELECT COUNT(*) FROM secrets_vault').fetchone()[0] == 0:
@@ -2010,6 +2008,11 @@ class SwadeStorageVault:
         total_objects = proj_info.get("object_count", 0) if proj_info else (sum(_object_store._tenant_object_count.values()) if '_object_store' in globals() else 0)
         table_count = proj_info.get("table_count", 0) if proj_info else len(self.db_list_tables(project_id=project_id))
 
+        t_probe0 = time.perf_counter_ns()
+        _ = self._key_cache.get("__probe__")
+        t_probe1 = time.perf_counter_ns()
+        l1_reflection_ns = max(1.0, float(t_probe1 - t_probe0))
+
         return {
             "status": "OPERATIONAL",
             "users": {"total": total_users, "active": active_users},
@@ -2027,7 +2030,7 @@ class SwadeStorageVault:
             },
             "feature_flags": {"total": total_flags, "active": active_flags},
             "system_health": {
-                "l1_reflection_ns": 45.0,
+                "l1_reflection_ns": l1_reflection_ns,
                 "sub_microsecond": True,
                 "memory_architecture": "LPDDR4X @ 1600MHz",
                 "uptime_seconds": int(time.time() - _START_TIME) if '_START_TIME' in globals() else 3600,
@@ -2043,9 +2046,9 @@ class SwadeStorageVault:
         all_reqs = list(REQUEST_LOG_BUFFER)
         active_set = [r for r in all_reqs if r.get("timestamp", 0) >= cutoff]
         if not active_set and all_reqs:
-            active_set = all_reqs[-50:]
+            active_set = all_reqs[-20:]
 
-        unique_ips = set(r.get("ip", "") for r in active_set if r.get("ip"))
+        unique_ips = set(r.get("ip") for r in active_set if r.get("ip"))
         active_visitors = max(1, len(unique_ips)) if active_set else 1
         elapsed_sec = max(1.0, min(h_seconds, now - _START_TIME))
         rps = round(len(active_set) / elapsed_sec, 2)
@@ -2064,7 +2067,7 @@ class SwadeStorageVault:
             conn.close()
 
         total_objects = sum(_object_store._tenant_object_count.values()) if '_object_store' in globals() else 0
-        base_visitors = max(_total_landing_views, total_users * 3, total_keys * 2, total_objects + 5, 25)
+        base_visitors = max(_total_landing_views, total_users, total_keys, total_objects, 1)
         total_cdn = max(_total_cdn_stream_hits, 0)
 
         pct_users = min(100.0, round((total_users / base_visitors) * 100, 1))
@@ -4490,28 +4493,28 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         for k in probe_keys:
             _object_store.head_object(b_tenant, k)
         t1 = time.perf_counter_ns()
-        head_avg_ns = max(45.0, round((t1 - t0 - cal_overhead) / 50, 1))
+        head_avg_ns = max(1.0, round((t1 - t0) / 50, 1))
 
         # 2. GET Cached (Hot RAM Blob LRU)
         t0 = time.perf_counter_ns()
         for k in probe_keys:
             _object_store.get_object(b_tenant, k)
         t1 = time.perf_counter_ns()
-        get_avg_ns = max(65.0, round((t1 - t0 - cal_overhead) / 50, 1))
+        get_avg_ns = max(1.0, round((t1 - t0) / 50, 1))
 
         # 3. DELETE (Instant L1 RAM Purge)
         t0 = time.perf_counter_ns()
         for k in probe_keys:
             _object_store.delete_object(b_tenant, k)
         t1 = time.perf_counter_ns()
-        del_avg_ns = max(55.0, round((t1 - t0 - cal_overhead) / 50, 1))
+        del_avg_ns = max(1.0, round((t1 - t0) / 50, 1))
 
         # 4. PUT Reflection (Instant RAM Indexing before async flush)
         t0 = time.perf_counter_ns()
         for k in probe_keys:
             _object_store.put_object(b_tenant, k, bench_data, is_public=False)
         t1 = time.perf_counter_ns()
-        put_avg_ns = max(95.0, round((t1 - t0 - cal_overhead) / 50, 1))
+        put_avg_ns = max(1.0, round((t1 - t0) / 50, 1))
 
         # Clean up probe items
         for k in probe_keys:
@@ -5764,7 +5767,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         for _ in range(50):
             _ = _object_store.head_object("system", "bench_probe")
         t1 = time.perf_counter_ns()
-        cache_us = round(max(0.45, (t1 - t0) / (50 * 1000.0)), 2)
+        cache_us = round(max(0.01, (t1 - t0) / (50 * 1000.0)), 3)
 
         # Real hardware telemetry
         bat = _battery_watcher.get_live_stats()
@@ -5792,7 +5795,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             },
             "summary": {
                 "cache_read_latency_us": cache_us,
-                "tensor_core_saturation_pct": max(95.0, round(cpu_usage, 1)),
+                "tensor_core_saturation_pct": round(cpu_usage, 1),
                 "sqlite_wal_flush_ms": sql_flush_ms,
                 "thermal_celsius": bat.get("temperature", 33.5),
                 "battery_pct": bat.get("level", 82),

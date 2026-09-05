@@ -64,13 +64,13 @@ Always route through the Edge Base URL first. If you experience an edge disrupti
 ### Dynamic Endpoint Schema (`endpoint.json`):
 ```json
 {
-  "endpoint": "https://practical-loud-don-voluntary.trycloudflare.com",
-  "inference": "https://practical-loud-don-voluntary.trycloudflare.com/inference",
-  "telemetry": "https://practical-loud-don-voluntary.trycloudflare.com/telemetry",
+  "endpoint": "https://interesting-unexpected-interval-bedroom.trycloudflare.com",
+  "inference": "https://interesting-unexpected-interval-bedroom.trycloudflare.com/inference",
+  "telemetry": "https://interesting-unexpected-interval-bedroom.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-09-05T05:27:00Z"
+  "updated_at": "2026-09-05T05:40:45Z"
 }
 ```
 

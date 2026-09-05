@@ -89,8 +89,8 @@
         <span class="text-zinc-500">HOST:</span>
         <select id="active-host-select" onchange="changeActiveHost(this.value)" class="bg-transparent text-zinc-300 font-semibold focus:outline-none cursor-pointer">
           <option value="" class="bg-zinc-950 text-white">Auto (Current Edge)</option>
-          <option value="http://192.168.29.2:8080" class="bg-zinc-950 text-white">Phone LAN (:8080)</option>
-          <option id="opt-live-tunnel" value="https://interesting-unexpected-interval-bedroom.trycloudflare.com" class="bg-zinc-950 text-white">Live Cloudflare Tunnel</option>
+          <option id="opt-lan-host" value="http://192.168.29.2:8080" class="bg-zinc-950 text-white">Phone LAN (:8080)</option>
+          <option id="opt-live-tunnel" value="" class="bg-zinc-950 text-white">Discovering Live Tunnel...</option>
           <option value="https://phone-whisper-server.pages.dev" class="bg-zinc-950 text-white">Cloudflare Pages Edge</option>
         </select>
       </div>
@@ -4420,7 +4420,7 @@ axios({
       }
       updateCodeSnippet();
 
-      // Dynamic Active Cloudflare Tunnel Discovery
+      // Dynamic Active Cloudflare Tunnel & LAN Discovery
       fetch('/endpoint.json')
         .then(r => r.json())
         .then(ep => {
@@ -4429,6 +4429,13 @@ axios({
             if (opt) {
               opt.value = ep.endpoint;
               opt.innerText = `Live Tunnel (${ep.endpoint.replace('https://', '').slice(0, 16)}...)`;
+            }
+          }
+          if (ep && ep.phone_lan_ip) {
+            const optLan = document.getElementById('opt-lan-host');
+            if (optLan) {
+              optLan.value = ep.phone_lan_ip;
+              optLan.innerText = `Phone LAN (${ep.phone_lan_ip.replace('http://', '')})`;
             }
           }
         })

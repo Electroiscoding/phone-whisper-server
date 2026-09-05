@@ -4047,7 +4047,7 @@ Available commands:
           outTable += "| all-minilm-l6-v2    | Embeddings | 45 MB     | 384d Dense Vectors |\n";
           outTable += "| bge-reranker-base   | Reranker   | 110 MB    | Cross-Encoder      |\n";
           outTable += "+---------------------+------------+-----------+--------------------+\n";
-          outTable += `Active In-Memory: [${active.length > 0 ? active.join(', ') : 'None (RAM Saved)'}]\n`;
+          outTable += `Active In-Memory: [${active.length > 0 ? active.map(m => typeof m === 'string' ? m : (m.name || m.key)).join(', ') : 'None (RAM Saved)'}]\n`;
           outTable += `Evicted/Standby:  [${evicted.join(', ')}]\n`;
           outTable += `Governor Policy:  ${gov.governor_policy || 'dynamic_elastic_jit'} (Idle timeout: ${gov.idle_timeout_sec || 75}s)`;
           screen.innerHTML += `<div class="text-emerald-400 pl-4 whitespace-pre">${outTable}</div>`;
@@ -4463,8 +4463,8 @@ WAL file size: 1.4 MB • Checkpoint status: PASS (0 uncommitted frames)
         description: "Autonomous phone datacenter running on MediaTek Helio G25 ARM64 silicon."
       },
       servers: [
-        { url: "https://phone-whisper-server.pages.dev", description: "Cloudflare Edge Gateway" },
-        { url: "http://192.168.29.2:8080", description: "Direct Local Phone Node" }
+        { url: "https://phone-whisper-server.pages.dev", description: "Cloudflare Edge Gateway (Permanent Global Base)" },
+        { url: window.location.origin, description: "Active Host Origin" }
       ],
       paths: {
         "/v1/audio/transcriptions": {

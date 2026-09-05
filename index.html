@@ -2391,7 +2391,7 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
             <span class="base-url-pill" style="background: #10b981; color: #000; font-weight: 800; font-size: 0.75rem; padding: 0.25rem 0.6rem; border-radius: 6px; letter-spacing: 0.05em;">🏠 LOCAL WI-FI LAN URL</span>
             <span id="cheatsheetLanUrl" style="font-family: monospace; font-size: 0.95rem; color: #a7f3d0; word-break: break-all;">http://192.168.29.2:8080</span>
           </div>
-          <button class="btn-action" onclick="copyText('http://192.168.29.2:8080')">📋 Copy LAN URL</button>
+          <button class="btn-action" onclick="copyText(document.getElementById('cheatsheetLanUrl').innerText)">📋 Copy LAN URL</button>
         </div>
       </div>
 
@@ -2535,14 +2535,14 @@ console.log("Public CDN permalink:", object.url);</code></pre>
                 <button class="docs-tab" onclick="switchSnippetTab(this, 'snip-chat-js')">JavaScript / React</button>
               </div>
               <div id="snip-chat-curl" class="snippet-pane active">
-                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>curl -N -X POST "http://192.168.29.2:8080/v1/chat/completions" \
+                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>curl -N -X POST "https://phone-whisper-server.pages.dev/v1/chat/completions" \
   -H "Content-Type: application/json" \
   -d '{"messages": [{"role": "user", "content": "Explain relativity in 10 words"}], "stream": true}'</code></pre>
               </div>
               <div id="snip-chat-py" class="snippet-pane" style="display: none;">
                 <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>import requests, json
 
-url = "http://192.168.29.2:8080/v1/chat/completions"
+url = "https://phone-whisper-server.pages.dev/v1/chat/completions"
 payload = {"messages": [{"role": "user", "content": "Hello Qwen!"}], "stream": True}
 res = requests.post(url, json=payload, stream=True)
 
@@ -2552,7 +2552,7 @@ for line in res.iter_lines(decode_unicode=True):
         print(chunk["choices"][0]["delta"].get("content", ""), end="", flush=True)</code></pre>
               </div>
               <div id="snip-chat-js" class="snippet-pane" style="display: none;">
-                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>const res = await fetch("http://192.168.29.2:8080/v1/chat/completions", {
+                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>const res = await fetch("https://phone-whisper-server.pages.dev/v1/chat/completions", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({ messages: [{ role: "user", content: "Hello!" }], stream: true })
@@ -2618,14 +2618,14 @@ while (true) {
                 <button class="docs-tab" onclick="switchSnippetTab(this, 'snip-stt-js')">JavaScript / Browser</button>
               </div>
               <div id="snip-stt-curl" class="snippet-pane active">
-                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>curl -X POST "http://192.168.29.2:8080/inference" \
+                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>curl -X POST "https://phone-whisper-server.pages.dev/inference" \
   -F "file=@recording.wav" \
   -F "temperature=0.0"</code></pre>
               </div>
               <div id="snip-stt-py" class="snippet-pane" style="display: none;">
                 <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>import requests
 
-url = "http://192.168.29.2:8080/inference"
+url = "https://phone-whisper-server.pages.dev/inference"
 with open("speech.wav", "rb") as f:
     res = requests.post(url, files={"file": f}, data={"response_format": "json"})
 print("Transcription:", res.json()["text"])</code></pre>
@@ -2634,7 +2634,7 @@ print("Transcription:", res.json()["text"])</code></pre>
                 <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>const formData = new FormData();
 formData.append("file", audioBlob, "audio.wav");
 
-const res = await fetch("http://192.168.29.2:8080/inference", {
+const res = await fetch("https://phone-whisper-server.pages.dev/inference", {
   method: "POST",
   body: formData
 });
@@ -2687,7 +2687,7 @@ console.log("Transcribed Text:", data.text);</code></pre>
                 <button class="docs-tab" onclick="switchSnippetTab(this, 'snip-tts-js')">JavaScript</button>
               </div>
               <div id="snip-tts-curl" class="snippet-pane active">
-                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>curl -X POST "http://192.168.29.2:8080/v1/audio/speech" \
+                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>curl -X POST "https://phone-whisper-server.pages.dev/v1/audio/speech" \
   -H "Content-Type: application/json" \
   -d '{"input": "Hello world from Kokoro neural speech", "voice": "af_heart"}' \
   --output speech.wav</code></pre>
@@ -2695,13 +2695,13 @@ console.log("Transcribed Text:", data.text);</code></pre>
               <div id="snip-tts-py" class="snippet-pane" style="display: none;">
                 <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>import requests
 
-url = "http://192.168.29.2:8080/v1/audio/speech"
+url = "https://phone-whisper-server.pages.dev/v1/audio/speech"
 res = requests.post(url, json={"input": "Welcome to Kokoro neural speech!", "voice": "af_heart"})
 with open("output.wav", "wb") as f:
     f.write(res.content)</code></pre>
               </div>
               <div id="snip-tts-js" class="snippet-pane" style="display: none;">
-                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>const res = await fetch("http://192.168.29.2:8080/v1/audio/speech", {
+                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>const res = await fetch("https://phone-whisper-server.pages.dev/v1/audio/speech", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({ input: "Hello from Kokoro TTS!", voice: "af_heart" })
@@ -2735,7 +2735,7 @@ new Audio(audioUrl).play();</code></pre>
               </p>
             </div>
 
-            <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>curl -X POST "http://192.168.29.2:8080/v1/embeddings" \
+            <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>curl -X POST "https://phone-whisper-server.pages.dev/v1/embeddings" \
   -H "Content-Type: application/json" \
   -d '{"input": "Semantic vector search with mobile AI"}'</code></pre>
           </div>
@@ -2762,7 +2762,7 @@ new Audio(audioUrl).play();</code></pre>
               </p>
             </div>
 
-            <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>curl -X POST "http://192.168.29.2:8080/v1/rerank" \
+            <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>curl -X POST "https://phone-whisper-server.pages.dev/v1/rerank" \
   -H "Content-Type: application/json" \
   -d '{
     "query": "The company approved the investment proposal.",
@@ -2809,13 +2809,13 @@ new Audio(audioUrl).play();</code></pre>
                 <button class="docs-tab" onclick="switchSnippetTab(this, 'snip-vis-cam')">🔴 Live WebCam Frame</button>
               </div>
               <div id="snip-vis-img" class="snippet-pane active">
-                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>curl -X POST "http://192.168.29.2:8080/v1/vision/face-detection" \
+                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>curl -X POST "https://phone-whisper-server.pages.dev/v1/vision/face-detection" \
   -H "Content-Type: application/json" \
   -d '{"task": "face_detection", "image_base64": "data:image/jpeg;base64,..."}'</code></pre>
               </div>
               <div id="snip-vis-vid" class="snippet-pane" style="display: none;">
                 <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code># Video Keyframe Sequence Analysis (33-Point Pose Tracking)
-curl -X POST "http://192.168.29.2:8080/v1/vision/pose-landmarks" \
+curl -X POST "https://phone-whisper-server.pages.dev/v1/vision/pose-landmarks" \
   -H "Content-Type: application/json" \
   -d '{
     "task": "pose_landmarks",
@@ -2826,7 +2826,7 @@ curl -X POST "http://192.168.29.2:8080/v1/vision/pose-landmarks" \
               <div id="snip-vis-cam" class="snippet-pane" style="display: none;">
                 <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>// Real-Time Live WebCam Frame Stream (JavaScript)
 const frameB64 = canvasElement.toDataURL("image/jpeg", 0.65);
-const res = await fetch("http://192.168.29.2:8080/v1/vision/face-mesh", {
+const res = await fetch("https://phone-whisper-server.pages.dev/v1/vision/face-mesh", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({ task: "face_mesh", image_base64: frameB64, is_live_stream: true })
@@ -2859,7 +2859,7 @@ console.log(`Live 468-pt Mesh computed in ${data.inference_time_ms}ms`);</code><
               </p>
             </div>
 
-            <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>curl -s "http://192.168.29.2:8080/telemetry"</code></pre>
+            <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>curl -s "https://phone-whisper-server.pages.dev/telemetry"</code></pre>
           </div>
         </div>
 
@@ -3026,14 +3026,14 @@ if (res.hands && res.hands[0]) {
             <span class="telemetry-badge">Tiny.en</span>
           </div>
           <div class="telemetry-big-val">
-            <span id="speedVal">32.4</span> <span class="telemetry-unit">tok/sec</span>
+            <span id="speedVal">--</span> <span class="telemetry-unit">tok/sec</span>
           </div>
           <div class="progress-bar-bg">
-            <div class="progress-bar-fill" style="width: 82%; background: linear-gradient(90deg, #6366f1, #38bdf8);"></div>
+            <div id="speedProgressFill" class="progress-bar-fill" style="width: 0%; background: linear-gradient(90deg, #6366f1, #38bdf8); transition: width 0.3s ease;"></div>
           </div>
           <div class="telemetry-footer-stats">
-            <span>Inferences: <strong id="totalInferencesVal">152</strong></span>
-            <span>Avg RT: ~1.14s</span>
+            <span>Inferences: <strong id="totalInferencesVal">0</strong></span>
+            <span id="avgRtVal">Avg RT: --</span>
           </div>
         </div>
 
@@ -3151,7 +3151,7 @@ if (res.hands && res.hands[0]) {
             </div>
             <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>import requests, json, base64
 
-BASE_URL = "http://192.168.29.2:8080"
+BASE_URL = "https://phone-whisper-server.pages.dev"
 
 # ==========================================
 # 1. 💬 Qwen 2.5 SLM Streaming Chat
@@ -3238,7 +3238,7 @@ if __name__ == "__main__":
             <div style="background: rgba(168, 85, 247, 0.08); border-left: 3px solid var(--secondary); padding: 0.75rem 1rem; border-radius: 0 8px 8px 0; margin-bottom: 1rem; font-size: 0.85rem; color: var(--text-muted);">
               <strong>🌐 Zero-Dependency Web & Node.js:</strong> Compatible with browser native Fetch, Node.js v18+, Next.js App Router, Vue, React Native, and Electron.
             </div>
-            <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>const BASE_URL = "http://192.168.29.2:8080";
+            <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>const BASE_URL = "https://phone-whisper-server.pages.dev";
 
 // 1. 💬 Token-by-Token Streaming Chat (Qwen 2.5 SLM)
 export async function streamChat(prompt, onToken, systemPrompt = "You are a helpful AI.") {
@@ -3341,38 +3341,38 @@ export async function getTelemetry() {
               <strong>💻 Terminal & CI/CD Pipelines:</strong> Ready-to-run shell one-liners for GitHub Actions, cron jobs, and bash scripts.
             </div>
             <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code># 1. Chat Completion (SSE Real-Time Stream)
-curl -N -X POST "http://192.168.29.2:8080/v1/chat/completions" \
+curl -N -X POST "https://phone-whisper-server.pages.dev/v1/chat/completions" \
   -H "Content-Type: application/json" \
   -d '{"messages": [{"role": "user", "content": "Explain relativity in 10 words"}], "stream": true}'
 
 # 2. Audio Transcription (Whisper Base.en)
-curl -X POST "http://192.168.29.2:8080/inference" \
+curl -X POST "https://phone-whisper-server.pages.dev/inference" \
   -F "file=@audio.wav" \
   -F "temperature=0.0"
 
 # 3. Text-to-Speech (Neural Voice Synthesis)
-curl -X POST "http://192.168.29.2:8080/v1/audio/speech" \
+curl -X POST "https://phone-whisper-server.pages.dev/v1/audio/speech" \
   -H "Content-Type: application/json" \
   -d '{"input": "Hello from autonomous phone AI datacenter"}' \
   --output speech.wav
 
 # 4. Dense Vector Embeddings (896 Dimensions)
-curl -X POST "http://192.168.29.2:8080/v1/embeddings" \
+curl -X POST "https://phone-whisper-server.pages.dev/v1/embeddings" \
   -H "Content-Type: application/json" \
   -d '{"input": "Semantic vector search on mobile AI"}'
 
 # 5. Deep Cross-Attention Semantic Reranker
-curl -X POST "http://192.168.29.2:8080/v1/rerank" \
+curl -X POST "https://phone-whisper-server.pages.dev/v1/rerank" \
   -H "Content-Type: application/json" \
   -d '{"query": "The company approved funding.", "documents": ["The venture received investment.", "The engine is made of steel."]}'
 
 # 6. MediaPipe Vision: Face & Landmark Detection
-curl -X POST "http://192.168.29.2:8080/v1/vision/face-detection" \
+curl -X POST "https://phone-whisper-server.pages.dev/v1/vision/face-detection" \
   -H "Content-Type: application/json" \
   -d '{"task": "face_detection", "image_base64": "data:image/jpeg;base64,..."}'
 
 # 7. Real Battery & Kernel Telemetry (Real-Time Metrics)
-curl -s "http://192.168.29.2:8080/telemetry" | jq .battery</code></pre>
+curl -s "https://phone-whisper-server.pages.dev/telemetry" | jq .battery</code></pre>
           </div>
 
           <!-- 4. FLUTTER / DART TAB -->
@@ -3385,7 +3385,7 @@ import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 
 class PhoneAIClient {
-  static const String baseUrl = "http://192.168.29.2:8080";
+  static const String baseUrl = "https://phone-whisper-server.pages.dev";
 
   // 1. 💬 Qwen 2.5 SLM Chat (Streaming & Full)
   static Future&lt;String&gt; chat(String prompt, {String systemPrompt = "You are a helpful AI assistant."}) async {
@@ -3477,7 +3477,7 @@ class PhoneAIClient {
 use serde_json::json;
 use futures_util::StreamExt;
 
-const BASE_URL: &str = "http://192.168.29.2:8080";
+const BASE_URL: &str = "https://phone-whisper-server.pages.dev";
 
 #[tokio::main]
 async fn main() -> Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
@@ -3524,7 +3524,7 @@ import (
 	"net/http"
 )
 
-const BaseURL = "http://192.168.29.2:8080"
+const BaseURL = "https://phone-whisper-server.pages.dev"
 
 // 1. StreamChat streams tokens live from phone CPU
 func StreamChat(prompt string) error {
@@ -3666,6 +3666,23 @@ python3 mobile/nuclear_watchdog.py</code></pre>
     document.addEventListener("DOMContentLoaded", () => {
       updateConnectionHUD("online", isDirectHosted ? "Direct LAN :8080" : "Gateway Connected");
       if (typeof initStorageEngine === "function") initStorageEngine();
+
+      // Dynamically discover LAN IP from endpoint.json
+      fetch("/endpoint.json").then(r => r.json()).then(ep => {
+        if (ep.phone_lan_ip) {
+          const lanEl = document.getElementById("cheatsheetLanUrl");
+          if (lanEl) lanEl.innerText = ep.phone_lan_ip;
+        }
+      }).catch(() => {});
+
+      // If viewing directly on LAN, adapt snippets to current host
+      if (isDirectHosted && window.location.origin) {
+        document.querySelectorAll(".snippet-pane code, pre code").forEach(el => {
+          if (el.innerText.includes("https://phone-whisper-server.pages.dev")) {
+            el.innerText = el.innerText.replaceAll("https://phone-whisper-server.pages.dev", window.location.origin);
+          }
+        });
+      }
     });
 
     async function probeOriginHealth(origin) {
@@ -4365,7 +4382,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
     let rawPcmChunks = [];
     let animFrameId = null;
     let isRecording = false;
-    let totalInferences = 152;
+    let totalInferences = 0;
     let isInferencing = false;
     let recordStartTime = 0;
     let timerInterval = null;
@@ -4750,10 +4767,20 @@ python3 mobile/nuclear_watchdog.py</code></pre>
         }
 
         totalInferences++;
-        totalInferencesVal.innerText = totalInferences;
+        if (totalInferencesVal) totalInferencesVal.innerText = totalInferences;
         outputContentArea.innerText = result || "(No speech recognized in audio)";
         charCountLabel.innerText = `${result.length} characters`;
         latencyBadge.innerText = `Transcribed in ${elapsed}s ⚡`;
+
+        // Update velocity & RT card dynamically
+        const estTokens = Math.max(1, Math.round(result.length / 4));
+        const elapsedSec = Math.max(0.1, parseFloat(elapsed));
+        const tokPerSec = (estTokens / elapsedSec).toFixed(1);
+        if (speedVal) speedVal.innerText = tokPerSec;
+        const speedFill = document.getElementById("speedProgressFill");
+        if (speedFill) speedFill.style.width = `${Math.min(100, Math.round((parseFloat(tokPerSec) / 60) * 100))}%`;
+        const avgRtEl = document.getElementById("avgRtVal");
+        if (avgRtEl) avgRtEl.innerText = `Avg RT: ~${elapsed}s`;
 
         addTerminalLog("SUCCESS", `[INFERENCE DONE] In-memory decode completed in ${elapsed}s • ${result.length} chars generated`);
 
@@ -5023,6 +5050,11 @@ python3 mobile/nuclear_watchdog.py</code></pre>
             }
           }
 
+          if (typeof data.total_requests === "number") {
+            totalInferences = data.total_requests;
+            if (totalInferencesVal) totalInferencesVal.innerText = totalInferences;
+          }
+
           pingVal.innerText = pingMs;
           pingHistory.shift();
           pingHistory.push(pingMs);
@@ -5031,10 +5063,9 @@ python3 mobile/nuclear_watchdog.py</code></pre>
         }
       } catch (err) {
         recoverFromNetworkOutage();
-        const pingMs = Math.round(35 + Math.random() * 8);
-        pingVal.innerText = pingMs;
+        if (pingVal) pingVal.innerText = "--";
         pingHistory.shift();
-        pingHistory.push(pingMs);
+        pingHistory.push(0);
         redrawDashboardCanvases();
       }
     }
