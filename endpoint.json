@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://oldest-flower-christ-organize.trycloudflare.com",
-  "inference": "https://oldest-flower-christ-organize.trycloudflare.com/inference",
-  "telemetry": "https://oldest-flower-christ-organize.trycloudflare.com/telemetry",
+  "endpoint": "https://marker-demonstrated-votes-streets.trycloudflare.com",
+  "inference": "https://marker-demonstrated-votes-streets.trycloudflare.com/inference",
+  "telemetry": "https://marker-demonstrated-votes-streets.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-09-05T14:40:47Z"
+  "updated_at": "2026-09-05T14:41:51Z"
 }
