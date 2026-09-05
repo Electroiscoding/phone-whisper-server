@@ -225,7 +225,7 @@ def get_real_hardware_cpu():
             if _prev_cpu_stat is not None:
                 prev_busy, prev_total = _prev_cpu_stat
                 delta_busy = max(0.0, busy - prev_busy)
-                delta_total = max(0.0001, total - prev_total)
+                delta_total = max(1e-9, total - prev_total)
                 _prev_cpu_stat = (busy, total)
                 usage = round((delta_busy / delta_total) * 100.0, 1)
                 return min(100.0, max(0.0, usage))
@@ -1206,7 +1206,7 @@ class SwadeStorageVault:
         }
 
         with self.lock:
-            # ⚡ Nanosecond RAM reflection (<0.0001ms)
+            # ⚡ Nanosecond RAM reflection
             self._key_cache[key_hash] = record
             if tenant_id not in self._tenant_quotas:
                 self._tenant_quotas[tenant_id] = quota_bytes
@@ -2309,7 +2309,7 @@ class SwadeObjectStore:
         return full_path, pname
 
     def put_object(self, tenant_id: str, raw_key: str, data: bytes, content_type=None, is_public=True, pool="auto"):
-        """⚡ Immediate Sub-Microsecond RAM Reflection (<0.0001ms) + Async Non-blocking Disk Flush"""
+        """⚡ Immediate Sub-Microsecond RAM Reflection + Async Non-blocking Disk Flush"""
         clean_key = self._sanitize_key(raw_key)
         size = len(data)
 
@@ -2361,7 +2361,7 @@ class SwadeObjectStore:
         return meta
 
     def head_object(self, tenant_id: str, raw_key: str):
-        """⚡ Pure RAM Metadata Reflection in <0.0001ms (~40-80ns)"""
+        """⚡ Pure RAM Metadata Reflection"""
         t_dict = self._meta_index.get(tenant_id)
         if not t_dict or not raw_key:
             return None
@@ -2391,7 +2391,7 @@ class SwadeObjectStore:
         return None, None
 
     def delete_object(self, tenant_id: str, raw_key: str):
-        """⚡ Microsecond RAM Index Purge (<0.0001ms) + Background File Unlink"""
+        """⚡ Microsecond RAM Index Purge + Background File Unlink"""
         if not raw_key:
             return False
         clean_key = raw_key if (not raw_key.startswith("/") and "\\" not in raw_key) else raw_key.replace("\\", "/").strip("/ ")
@@ -3902,7 +3902,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
     # =========================================================================
 
     def _authenticate_storage_request(self):
-        """Extracts and verifies API key for Cloud Storage requests (<0.0001ms RAM lookup)"""
+        """Extracts and verifies API key for Cloud Storage requests (in-memory RAM lookup)"""
         auth_header = self.headers.get("Authorization", "")
         api_key = None
         if auth_header.startswith("Bearer "):
@@ -4461,7 +4461,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         self.wfile.write(resp)
 
     def handle_storage_benchmark(self):
-        """Live Hardware In-Memory CRUD Benchmark (<0.0001ms target SLA)"""
+        """Live Hardware In-Memory CRUD Benchmark"""
         tenant = self._authenticate_storage_request()
         b_tenant = tenant["tenant_id"] if tenant else "bench_ephemeral"
         bench_data = b"Swades Phone Datacenter Sub-Microsecond Reflection Payload"
@@ -4522,7 +4522,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
 
         result = {
             "status": "PASS",
-            "target_sla": "< 0.0001 ms (< 100 ns)",
+            "target_sla": "Sub-Microsecond L1 Cache",
             "benchmark_results": {
                 "head_reflection_avg_ns": head_avg_ns,
                 "head_reflection_avg_ms": round(head_avg_ns / 1_000_000, 7),
@@ -5711,7 +5711,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         t0 = time.perf_counter()
         for _ in range(iterations):
             _ = sum(a * b for a, b in zip(v1, v2))
-        t_vec = max(0.0001, time.perf_counter() - t0)
+        t_vec = max(1e-9, time.perf_counter() - t0)
         vec_ms_per_embed = round((t_vec / iterations) * 1000.0, 3)
 
         # 3. Kokoro-82M RTF (Real-Time Factor)

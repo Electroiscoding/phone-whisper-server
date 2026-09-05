@@ -2178,7 +2178,7 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
         </span>
         <h2 class="section-title">Phone AI Datacenter Cloud Storage & CDN</h2>
         <p class="section-desc">
-          Hyper-speed object & blob storage powered directly by the phone's 28+ GB internal storage. Sub-microsecond reflection (&lt;0.0001ms) via in-memory L1 index, zero-tassel multi-tenant isolation, and instant worldwide public CDN links.
+          Hyper-speed object & blob storage powered directly by the phone's internal flash storage. Sub-microsecond reflection via in-memory L1 index, zero-tassel multi-tenant isolation, and instant worldwide public CDN links.
         </p>
       </div>
 
@@ -2187,7 +2187,7 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
           <div style="background: rgba(0,0,0,0.4); border: 1px solid var(--card-border); border-radius: 12px; padding: 1rem;">
             <div style="font-size: 0.75rem; color: var(--text-subtle); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.3rem;">Phone Free Flash Storage</div>
-            <div id="storageDeviceFree" style="font-size: 1.5rem; font-weight: 800; color: #10b981; font-family: 'JetBrains Mono', monospace;">28+ GB</div>
+            <div id="storageDeviceFree" style="font-size: 1.5rem; font-weight: 800; color: #10b981; font-family: 'JetBrains Mono', monospace;">--</div>
             <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.2rem;">Physical eMMC/UFS Flash</div>
           </div>
           <div style="background: rgba(0,0,0,0.4); border: 1px solid var(--card-border); border-radius: 12px; padding: 1rem;">
@@ -2199,8 +2199,8 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
           </div>
           <div style="background: rgba(0,0,0,0.4); border: 1px solid var(--card-border); border-radius: 12px; padding: 1rem;">
             <div style="font-size: 0.75rem; color: var(--text-subtle); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.3rem;">CRUD Speed Benchmark</div>
-            <div style="font-size: 1.5rem; font-weight: 800; color: #a855f7; font-family: 'JetBrains Mono', monospace;">&lt; 0.0001 ms</div>
-            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.2rem;">L1 Pure RAM Index Reflection</div>
+            <div id="storageCrudBenchmarkVal" style="font-size: 1.5rem; font-weight: 800; color: #a855f7; font-family: 'JetBrains Mono', monospace;">--</div>
+            <div id="storageCrudBenchmarkSub" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.2rem;">L1 Pure RAM Index Reflection</div>
           </div>
           <div style="background: rgba(0,0,0,0.4); border: 1px solid var(--card-border); border-radius: 12px; padding: 1rem;">
             <div style="font-size: 0.75rem; color: var(--text-subtle); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.3rem;">Multi-Tenancy Isolation</div>
@@ -2419,8 +2419,8 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
               <span>/v1/storage/objects/* &amp; /s/*</span>
             </div>
             <div class="feature-tags-row" style="margin: 0;">
-              <span class="feature-tag">☁️ 28+ GB Phone NVMe/Flash</span>
-              <span class="feature-tag">⚡ &lt;0.0001ms Pure RAM Reflection</span>
+              <span class="feature-tag">☁️ Phone NVMe/Flash Storage</span>
+              <span class="feature-tag">⚡ Pure RAM L1 Reflection</span>
               <span class="feature-tag">🔒 Zero-Tassel Multi-Tenancy</span>
               <span class="feature-tag">🌐 Direct Public CDN Stream</span>
             </div>
@@ -2429,7 +2429,7 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
             <div style="background: rgba(56, 189, 248, 0.08); border-left: 3px solid var(--primary); padding: 0.75rem 1rem; border-radius: 0 8px 8px 0; margin-bottom: 1rem;">
               <strong style="color: #38bdf8;">💡 Newbie 101: What is this?</strong>
               <p style="margin: 0.25rem 0 0; font-size: 0.88rem; color: var(--text-muted); line-height: 1.4;">
-                This endpoint turns the phone into an S3-compatible, hyper-fast object storage datacenter! Upload images, models, binaries, and documents with sub-microsecond in-memory metadata reflection (&lt;0.0001ms) and instant worldwide CDN permalinks at <code>/s/&lt;tenant_id&gt;/&lt;file&gt;</code>. Multi-tenancy is completely isolated with zero data cross-contamination.
+                This endpoint turns the phone into an S3-compatible, hyper-fast object storage datacenter! Upload images, models, binaries, and documents with sub-microsecond in-memory metadata reflection and instant worldwide CDN permalinks at <code>/s/&lt;tenant_id&gt;/&lt;file&gt;</code>. Multi-tenancy is completely isolated with zero data cross-contamination.
               </p>
             </div>
 
@@ -2440,7 +2440,7 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
                 <tbody>
                   <tr><td><code>PUT</code></td><td><code>/v1/storage/objects/&lt;key&gt;</code></td><td><strong style="color: #38bdf8;">x-api-key</strong></td><td>Stream upload object to phone storage. Returns ETag &amp; CDN URL.</td></tr>
                   <tr><td><code>GET</code></td><td><code>/v1/storage/objects/&lt;key&gt;</code></td><td><strong style="color: #38bdf8;">x-api-key</strong></td><td>Download object from authenticated tenant bucket.</td></tr>
-                  <tr><td><code>HEAD</code></td><td><code>/v1/storage/objects/&lt;key&gt;</code></td><td><strong style="color: #38bdf8;">x-api-key</strong></td><td>Check file existence &amp; metadata in pure RAM (&lt;0.0001ms).</td></tr>
+                  <tr><td><code>HEAD</code></td><td><code>/v1/storage/objects/&lt;key&gt;</code></td><td><strong style="color: #38bdf8;">x-api-key</strong></td><td>Check file existence &amp; metadata in pure RAM.</td></tr>
                   <tr><td><code>DELETE</code></td><td><code>/v1/storage/objects/&lt;key&gt;</code></td><td><strong style="color: #38bdf8;">x-api-key</strong></td><td>Instantly evict object from RAM index and delete from flash.</td></tr>
                   <tr><td><code>GET</code></td><td><code>/v1/storage/objects</code></td><td><strong style="color: #38bdf8;">x-api-key</strong></td><td>List all objects and CDN URLs in tenant's bucket.</td></tr>
                   <tr><td><code>GET</code></td><td><code>/s/&lt;tenant_id&gt;/&lt;key&gt;</code></td><td><strong style="color: #10b981;">Public (Zero Auth)</strong></td><td>Worldwide public CDN stream with caching &amp; ETag headers.</td></tr>
@@ -5743,6 +5743,29 @@ python3 mobile/nuclear_watchdog.py</code></pre>
         showLoggedOutState();
       }
       updateSnippetCode();
+
+      // Hydrate genuine hardware benchmarks & free storage dynamically
+      nuclearFetch(`${BASE_ENDPOINT}/v1/storage/benchmark`)
+        .then(r => r.json())
+        .then(data => {
+          if (data && data.benchmark_results) {
+            const crudEl = document.getElementById("storageCrudBenchmarkVal");
+            if (crudEl && data.benchmark_results.head_reflection_avg_ms !== undefined) {
+              crudEl.innerText = `${data.benchmark_results.head_reflection_avg_ms} ms`;
+            }
+          }
+        })
+        .catch(() => {});
+
+      nuclearFetch(`${BASE_ENDPOINT}/telemetry`)
+        .then(r => r.json())
+        .then(data => {
+          if (data && data.storage && data.storage.free_gb) {
+            const freeEl = document.getElementById("storageDeviceFree");
+            if (freeEl) freeEl.innerText = `${data.storage.free_gb} GB`;
+          }
+        })
+        .catch(() => {});
     }
     window.initStorageEngine = initStorageEngine;
 
@@ -5994,13 +6017,17 @@ python3 mobile/nuclear_watchdog.py</code></pre>
           const data = await res.json();
           const r = data.benchmark_results || {};
           const msg = `⚡ Live Phone Hardware CRUD Benchmark:
-• HEAD Reflection: ${r.head_reflection_avg_ns} ns (${r.head_reflection_avg_ms} ms) -> SLA Target: < 0.0001 ms (< 100 ns)
+• HEAD Reflection: ${r.head_reflection_avg_ns} ns (${r.head_reflection_avg_ms} ms)
 • Hot RAM GET: ${r.get_cached_avg_ns || 250} ns
 • DELETE Purge: ${r.delete_reflection_avg_ns} ns (${r.delete_reflection_avg_ms} ms)
 • PUT Reflection: ${r.put_reflection_avg_ns} ns (${r.put_reflection_avg_ms} ms)
 
 Status: ${data.status} (Sub-Microsecond Reflection Achieved: ${r.sub_microsecond_achieved ? 'YES' : 'PENDING'})`;
           alert(msg);
+          const crudEl = document.getElementById("storageCrudBenchmarkVal");
+          if (crudEl && r.head_reflection_avg_ms) {
+            crudEl.innerText = `${r.head_reflection_avg_ms} ms`;
+          }
           if (statusEl) {
             statusEl.innerHTML = `<span style="color: #a855f7;">⚡ Benchmark Complete: HEAD Reflection = <strong>${r.head_reflection_avg_ns} ns</strong> | DELETE = <strong>${r.delete_reflection_avg_ns} ns</strong> (${r.sub_microsecond_achieved ? '✅ Target SLA Met' : ''})</span>`;
           }
@@ -6223,7 +6250,7 @@ Status: ${data.status} (Sub-Microsecond Reflection Achieved: ${r.sub_microsecond
         if (res.ok) {
           const data = await res.json();
           if (progText) {
-            progText.innerHTML = `✅ <span style="color: #10b981;">Uploaded in ${elapsed}ms! L1 RAM reflection: &lt;0.0001ms.</span> CDN: <a href="${BASE_ENDPOINT}${data.object.url}" target="_blank" style="color: #38bdf8;">${data.object.url}</a>`;
+            progText.innerHTML = `✅ <span style="color: #10b981;">Uploaded in ${elapsed}ms! Live RAM reflection complete.</span> CDN: <a href="${BASE_ENDPOINT}${data.object.url}" target="_blank" style="color: #38bdf8;">${data.object.url}</a>`;
           }
           selectedStorageFile = null;
           if (customKeyInput) customKeyInput.value = "";
@@ -6246,7 +6273,7 @@ Status: ${data.status} (Sub-Microsecond Reflection Achieved: ${r.sub_microsecond
     window.uploadSelectedStorageFile = uploadSelectedStorageFile;
 
     async function deleteStorageObject(key) {
-      if (!confirm(`Are you sure you want to delete "${key}"? This will immediately purge it from RAM index (<0.0001ms) and disk.`)) {
+      if (!confirm(`Are you sure you want to delete "${key}"? This will immediately purge it from RAM index and disk.`)) {
         return;
       }
 
