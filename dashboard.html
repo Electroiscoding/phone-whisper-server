@@ -210,7 +210,7 @@
               <span class="text-zinc-500">Presets:</span>
               <button onclick="setSqlQuery('SELECT * FROM items;')" class="px-2 py-0.5 rounded bg-zinc-900 hover:bg-zinc-800 text-cyan-300 border border-zinc-800">items</button>
               <button onclick="setSqlQuery('SELECT sqlite_version();')" class="px-2 py-0.5 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800">SQLite Version</button>
-              <button onclick="setSqlQuery('SELECT name, type FROM sqlite_master WHERE type='table';')" class="px-2 py-0.5 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800">List Tables</button>
+              <button onclick="setSqlQuery(&quot;SELECT name, type FROM sqlite_master WHERE type='table';&quot;)" class="px-2 py-0.5 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800">List Tables</button>
             </div>
 
             <textarea id="sql-query-input" rows="3" class="w-full bg-black/80 border border-zinc-800 rounded p-2.5 font-mono text-xs text-cyan-300 outline-none focus:border-cyan-500 select-text" placeholder="SELECT * FROM table WHERE ...">SELECT * FROM items;</textarea>
