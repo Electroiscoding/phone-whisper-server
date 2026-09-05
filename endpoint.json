@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://immigration-reserves-wendy-phi.trycloudflare.com",
-  "inference": "https://immigration-reserves-wendy-phi.trycloudflare.com/inference",
-  "telemetry": "https://immigration-reserves-wendy-phi.trycloudflare.com/telemetry",
+  "endpoint": "https://valves-sharing-associates-clarity.trycloudflare.com",
+  "inference": "https://valves-sharing-associates-clarity.trycloudflare.com/inference",
+  "telemetry": "https://valves-sharing-associates-clarity.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-09-05T18:14:26Z"
+  "updated_at": "2026-09-05T18:41:41Z"
 }
