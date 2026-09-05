@@ -195,6 +195,44 @@
     <!-- Sidebar Navigation -->
     <aside class="w-64 shrink-0 bg-[#05070a] border-r border-zinc-800/80 flex flex-col justify-between select-none">
       <div class="p-3 flex flex-col gap-1 overflow-y-auto">
+        <!-- Project Selector Section (Firebase-style Multi-Project Isolation) -->
+        <div class="mb-3 px-1">
+          <div class="flex items-center justify-between text-[10px] font-mono text-zinc-500 uppercase tracking-wider mb-1.5 px-0.5">
+            <span>Active Project</span>
+            <button onclick="openNewProjectModal()" class="text-cyan-400 hover:text-cyan-300 transition-colors flex items-center gap-1 text-[10px] font-mono font-medium hover:underline cursor-pointer" title="Create New Isolated Project">
+              <span>+ New</span>
+            </button>
+          </div>
+          
+          <div class="relative">
+            <button id="current-project-btn" onclick="toggleProjectDropdown()" class="w-full flex items-center justify-between px-2.5 py-2 rounded-lg bg-zinc-900/90 hover:bg-zinc-800/80 border border-zinc-800 hover:border-zinc-700 text-left transition-all cursor-pointer group">
+              <div class="flex items-center gap-2 min-w-0">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 shrink-0 ring-2 ring-emerald-950"></span>
+                <div class="truncate">
+                  <div id="current-project-name" class="text-xs font-semibold text-zinc-100 truncate group-hover:text-cyan-300 transition-colors font-mono">Default Project</div>
+                  <div id="current-project-id" class="text-[10px] font-mono text-zinc-500 truncate">proj_default</div>
+                </div>
+              </div>
+              <svg class="w-3.5 h-3.5 text-zinc-500 group-hover:text-zinc-300 shrink-0 transition-transform" id="project-dropdown-arrow" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            <!-- Dropdown Menu -->
+            <div id="project-dropdown-menu" class="absolute top-full left-0 right-0 mt-1.5 py-1.5 bg-[#090d14] border border-zinc-700/80 rounded-lg shadow-2xl z-50 hidden max-h-64 overflow-y-auto">
+              <div id="project-list-container" class="space-y-0.5 px-1">
+                <!-- Dynamically populated project items -->
+              </div>
+              <div class="border-t border-zinc-800/80 mt-1.5 pt-1.5 px-1">
+                <button onclick="openNewProjectModal()" class="w-full flex items-center gap-2 px-2 py-1.5 rounded text-xs font-mono text-cyan-400 hover:text-cyan-300 hover:bg-cyan-950/40 transition-colors text-left cursor-pointer">
+                  <span class="text-sm font-bold">+</span>
+                  <span>Create New Project</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="text-[11px] font-mono text-zinc-500 uppercase tracking-wider px-2 py-1">Views & Control</div>
 
         <button onclick="switchView('overview')" id="nav-overview" class="nav-btn w-full text-left px-3 py-2 rounded text-xs font-mono flex items-center gap-2.5 text-white bg-zinc-800/80 border border-zinc-700/60 transition-all">
@@ -1434,6 +1472,47 @@
         <button onclick="logoutUser(); closeAccountModal();" class="text-rose-400 hover:underline">Sign Out</button>
       </div>
     </div>
+  <!-- =================================================================== -->
+  <!-- CREATE PROJECT MODAL (Firebase-style Isolated Project) -->
+  <!-- =================================================================== -->
+  <div id="new-project-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="w-full max-w-md bg-[#090b10] border border-zinc-800 rounded-xl p-5 shadow-2xl space-y-4 font-mono text-xs">
+      <div class="flex items-center justify-between border-b border-zinc-800 pb-3">
+        <div class="flex items-center gap-2">
+          <div class="w-7 h-7 rounded bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-sm font-bold text-cyan-400">⚡</div>
+          <div>
+            <div class="font-bold text-white text-sm space-grotesk">Create Sovereign Project</div>
+            <div class="text-[10px] text-zinc-500">Dedicated isolated SQLite DB & object storage namespace</div>
+          </div>
+        </div>
+        <button onclick="closeNewProjectModal()" class="text-zinc-500 hover:text-white text-base cursor-pointer">✕</button>
+      </div>
+
+      <form onsubmit="event.preventDefault(); submitCreateProject();" class="space-y-3.5">
+        <div>
+          <label class="block text-[11px] uppercase tracking-wider text-zinc-400 mb-1.5 font-medium">Project Name</label>
+          <input type="text" id="new-project-name" required placeholder="e.g. My NextGen App" class="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 focus:border-cyan-500 text-white text-xs outline-none transition-all placeholder:text-zinc-600 font-mono" />
+        </div>
+        <div>
+          <label class="block text-[11px] uppercase tracking-wider text-zinc-400 mb-1.5 font-medium">Description (Optional)</label>
+          <textarea id="new-project-desc" rows="2" placeholder="e.g. Production backend for mobile clients" class="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 focus:border-cyan-500 text-white text-xs outline-none transition-all placeholder:text-zinc-600 font-mono resize-none"></textarea>
+        </div>
+
+        <div class="p-3 rounded bg-black/60 border border-zinc-800/80 space-y-1 text-[11px] text-zinc-400">
+          <div class="flex items-center gap-1.5 text-cyan-400 font-semibold">
+            <span>🔒 Complete Physical Isolation</span>
+          </div>
+          <div>Creates an independent <code class="text-zinc-300">data.db</code> SQLite file, dedicated tables, and private object bucket. Other projects cannot access its schema or data.</div>
+        </div>
+
+        <div id="new-project-error" class="text-rose-400 text-[11px] px-3 py-2 rounded bg-rose-950/30 border border-rose-900/50 hidden"></div>
+
+        <div class="flex items-center justify-end gap-2 pt-2 border-t border-zinc-800">
+          <button type="button" onclick="closeNewProjectModal()" class="px-3 py-2 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs transition-colors cursor-pointer">Cancel</button>
+          <button type="submit" id="btn-submit-new-project" class="px-4 py-2 rounded bg-gradient-to-r from-cyan-500 to-indigo-500 hover:from-cyan-400 hover:to-indigo-400 text-black font-bold text-xs transition-all cursor-pointer shadow">Create Project →</button>
+        </div>
+      </form>
+    </div>
   </div>
 
   <!-- =================================================================== -->
@@ -1709,6 +1788,9 @@
     let currentAuthTab = 'login';
     let autoScrollLogs = true;
     let currentPersona = 'developer';
+    let userProjects = [];
+    let activeProjectId = localStorage.getItem('active_project_id') || null;
+    let currentActiveView = 'overview';
 
     // --- PERSONA & REVIEWER PERMISSIONS CONTROLLER ---
     function setDashboardPersona(persona) {
@@ -1848,6 +1930,7 @@
         checkUserSession();
         return;
       }
+      currentActiveView = viewId;
 
       document.querySelectorAll('.view-panel').forEach(el => el.classList.add('hidden'));
       document.querySelectorAll('.nav-btn').forEach(btn => {
@@ -1895,9 +1978,17 @@
 
     async function apiFetch(path, options = {}, retries = 2) {
       const url = path.startsWith('http') ? path : `${BASE_URL}${path}`;
+      const opts = { ...options };
+      opts.headers = { ...(opts.headers || {}) };
+      if (activeProjectId) {
+        opts.headers['X-Project-Id'] = activeProjectId;
+      }
+      if (currentUser && currentUser.user_id) {
+        opts.headers['X-User-Id'] = currentUser.user_id;
+      }
       for (let attempt = 0; attempt <= retries; attempt++) {
         try {
-          const res = await fetch(url, options);
+          const res = await fetch(url, opts);
           if (res.status === 503 && attempt < retries) {
             setSyncStatus('syncing', `Self-healing retry (${attempt + 1}/${retries})...`);
             await new Promise(r => setTimeout(r, (attempt + 1) * 1200));
@@ -2021,6 +2112,7 @@
 
           document.getElementById('auth-gatekeeper').classList.add('hidden');
           document.getElementById('dashboard-workspace').classList.remove('hidden');
+          loadUserProjects();
           return true;
         } catch (e) {
           localStorage.removeItem('swades_user');
@@ -2028,6 +2120,8 @@
       }
 
       currentUser = null;
+      activeProjectId = null;
+      userProjects = [];
       document.getElementById('logged-in-box').classList.add('hidden');
       document.getElementById('logged-out-box').classList.remove('hidden');
       document.getElementById('auth-gatekeeper').classList.remove('hidden');
@@ -2096,9 +2190,194 @@
 
     function logoutUser() {
       localStorage.removeItem('swades_user');
+      localStorage.removeItem('active_project_id');
       currentUser = null;
       activeKey = null;
+      activeProjectId = null;
+      userProjects = [];
       checkUserSession();
+    }
+
+    // --- MULTI-PROJECT CONTROLLER (Firebase-Style Isolation) ---
+    function toggleProjectDropdown(force) {
+      const menu = document.getElementById('project-dropdown-menu');
+      const arrow = document.getElementById('project-dropdown-arrow');
+      if (!menu) return;
+      const isHidden = typeof force === 'boolean' ? !force : menu.classList.contains('hidden');
+      if (isHidden) {
+        menu.classList.remove('hidden');
+        if (arrow) arrow.style.transform = 'rotate(180deg)';
+      } else {
+        menu.classList.add('hidden');
+        if (arrow) arrow.style.transform = 'rotate(0deg)';
+      }
+    }
+
+    // Close dropdown on click outside
+    document.addEventListener('click', (e) => {
+      const btn = document.getElementById('current-project-btn');
+      const menu = document.getElementById('project-dropdown-menu');
+      if (btn && menu && !btn.contains(e.target) && !menu.contains(e.target)) {
+        menu.classList.add('hidden');
+        const arrow = document.getElementById('project-dropdown-arrow');
+        if (arrow) arrow.style.transform = 'rotate(0deg)';
+      }
+    });
+
+    async function loadUserProjects() {
+      if (!currentUser) return;
+      try {
+        const res = await apiFetch(`${BASE_URL}/v1/projects`);
+        if (res.ok) {
+          const data = await res.json();
+          userProjects = data.projects || [];
+          if (userProjects.length > 0) {
+            // If activeProjectId is not set or not in list, fallback to first project
+            if (!activeProjectId || !userProjects.some(p => p.project_id === activeProjectId)) {
+              activeProjectId = userProjects[0].project_id;
+              localStorage.setItem('active_project_id', activeProjectId);
+            }
+          }
+          renderProjectSelector();
+        }
+      } catch (e) {
+        console.warn("[PROJECTS] Failed to load projects list:", e);
+      }
+    }
+
+    function renderProjectSelector() {
+      const nameEl = document.getElementById('current-project-name');
+      const idEl = document.getElementById('current-project-id');
+      const listContainer = document.getElementById('project-list-container');
+      if (!nameEl || !idEl || !listContainer) return;
+
+      const activeProj = userProjects.find(p => p.project_id === activeProjectId) || userProjects[0];
+      if (activeProj) {
+        nameEl.innerText = activeProj.name || 'Default Project';
+        idEl.innerText = activeProj.project_id;
+      }
+
+      listContainer.innerHTML = userProjects.map(p => {
+        const isCurrent = p.project_id === activeProjectId;
+        return `
+          <div onclick="switchActiveProject('${p.project_id}')" class="flex items-center justify-between px-2.5 py-2 rounded cursor-pointer transition-colors ${isCurrent ? 'bg-cyan-950/50 border border-cyan-800/60 text-cyan-200' : 'hover:bg-zinc-800/60 text-zinc-300'}">
+            <div class="min-w-0 pr-2">
+              <div class="text-xs font-medium font-mono truncate flex items-center gap-1.5">
+                <span>${p.name}</span>
+                ${isCurrent ? '<span class="text-[10px] text-cyan-400 font-bold">✓</span>' : ''}
+              </div>
+              <div class="text-[10px] font-mono text-zinc-500 truncate flex items-center gap-2 mt-0.5">
+                <span>${p.project_id}</span>
+                <span>•</span>
+                <span>${p.table_count ?? 0} tbls</span>
+                <span>•</span>
+                <span>${p.storage_kb ?? 0} KB</span>
+              </div>
+            </div>
+            ${!isCurrent && userProjects.length > 1 ? `
+              <button onclick="event.stopPropagation(); deleteProjectConfirm('${p.project_id}', '${(p.name || '').replace(/'/g, "\\'")}')" class="text-zinc-600 hover:text-rose-400 p-1 text-xs transition-colors" title="Delete Project">✕</button>
+            ` : ''}
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function switchActiveProject(projectId) {
+      if (projectId === activeProjectId) {
+        toggleProjectDropdown(false);
+        return;
+      }
+      activeProjectId = projectId;
+      localStorage.setItem('active_project_id', activeProjectId);
+      toggleProjectDropdown(false);
+      renderProjectSelector();
+
+      // Refresh current active view with newly scoped project data
+      switchView(currentActiveView);
+    }
+
+    function openNewProjectModal() {
+      toggleProjectDropdown(false);
+      const modal = document.getElementById('new-project-modal');
+      const err = document.getElementById('new-project-error');
+      const nameInput = document.getElementById('new-project-name');
+      const descInput = document.getElementById('new-project-desc');
+      if (err) err.classList.add('hidden');
+      if (nameInput) nameInput.value = '';
+      if (descInput) descInput.value = '';
+      if (modal) modal.classList.remove('hidden');
+    }
+
+    function closeNewProjectModal() {
+      const modal = document.getElementById('new-project-modal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    async function submitCreateProject() {
+      const name = (document.getElementById('new-project-name').value || '').trim();
+      const desc = (document.getElementById('new-project-desc').value || '').trim();
+      const err = document.getElementById('new-project-error');
+      const btn = document.getElementById('btn-submit-new-project');
+
+      if (err) err.classList.add('hidden');
+      if (!name) {
+        if (err) {
+          err.innerText = "Please enter a valid project name.";
+          err.classList.remove('hidden');
+        }
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerText = "Creating...";
+
+      try {
+        const res = await apiFetch(`${BASE_URL}/v1/projects`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: name, description: desc })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed to create project");
+
+        closeNewProjectModal();
+        await loadUserProjects();
+        if (data.project && data.project.project_id) {
+          await switchActiveProject(data.project.project_id);
+        }
+      } catch (e) {
+        if (err) {
+          err.innerText = e.message || "Network or database error creating project.";
+          err.classList.remove('hidden');
+        }
+      } finally {
+        btn.disabled = false;
+        btn.innerText = "Create Project →";
+      }
+    }
+
+    async function deleteProjectConfirm(projectId, projectName) {
+      if (!confirm(`Are you sure you want to delete project "${projectName}" (${projectId})?\n\nThis will mark the project as inactive.`)) {
+        return;
+      }
+      try {
+        const res = await apiFetch(`${BASE_URL}/v1/projects/${projectId}`, {
+          method: 'DELETE'
+        });
+        if (res.ok) {
+          if (activeProjectId === projectId) {
+            activeProjectId = null;
+            localStorage.removeItem('active_project_id');
+          }
+          await loadUserProjects();
+          switchView(currentActiveView);
+        } else {
+          const d = await res.json();
+          alert(d.error || "Failed to delete project");
+        }
+      } catch (e) {
+        alert("Failed to delete project: " + e.message);
+      }
     }
 
     // --- OVERVIEW & TELEMETRY ---
@@ -3326,7 +3605,7 @@ TimeoutError: Latency threshold breached (${l.latency_ms}ms) on ${l.device_info 
         const isVid = ['mp4', 'webm', 'mov'].includes(ext);
         const isAud = ['mp3', 'wav', 'ogg'].includes(ext);
         const icon = isImg ? '🖼️' : (isVid ? '🎬' : (isAud ? '🎵' : '📄'));
-        const cdnUrl = f.cdn_url || `${BASE_URL}/s/default/${f.key}`;
+        const cdnUrl = f.cdn_url || (f.url ? `${BASE_URL}${f.url}` : `${BASE_URL}/s/${activeProjectId || 'default'}/${f.key}`);
         const modStatus = f.moderation_status || 'approved';
 
         const modBadges = {

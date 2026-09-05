@@ -831,6 +831,26 @@ class SwadeStorageVault:
             try: conn.execute('ALTER TABLE notifications ADD COLUMN scheduled_at TEXT DEFAULT NULL')
             except Exception: pass
 
+            # Multi-Tenant Projects Master Table
+            conn.execute('''CREATE TABLE IF NOT EXISTS projects (
+                project_id TEXT PRIMARY KEY,
+                owner_id TEXT NOT NULL,
+                name TEXT NOT NULL,
+                slug TEXT NOT NULL,
+                description TEXT DEFAULT '',
+                quota_bytes INTEGER DEFAULT 2147483648,
+                created_at TEXT NOT NULL,
+                is_active INTEGER DEFAULT 1
+            )''')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_projects_owner ON projects(owner_id)')
+
+            try: conn.execute('ALTER TABLE api_keys ADD COLUMN project_id TEXT DEFAULT NULL')
+            except Exception: pass
+            try: conn.execute('ALTER TABLE feature_flags ADD COLUMN project_id TEXT DEFAULT "default"')
+            except Exception: pass
+            try: conn.execute('ALTER TABLE remote_config ADD COLUMN project_id TEXT DEFAULT "default"')
+            except Exception: pass
+
             # File Moderation table
             conn.execute('''CREATE TABLE IF NOT EXISTS file_moderation (
                 key TEXT PRIMARY KEY,
@@ -1088,13 +1108,22 @@ class SwadeStorageVault:
                 print(f"[SWADES STORAGE] DB persist user error: {e}")
         threading.Thread(target=_persist_user, daemon=True).start()
 
+        # Automatically provision user's Default Project
+        projects = []
+        try:
+            default_proj = self.create_project(owner_id=user_id, name="Default Project", description="Primary sovereign workspace")
+            projects = [default_proj]
+        except Exception as e:
+            print(f"[SWADES STORAGE] default project creation notice: {e}")
+
         return {
             "user_id": user_id,
             "username": uname,
             "api_key": primary_key["api_key"],
             "key_id": primary_key["key_id"],
             "quota_bytes": quota_bytes,
-            "created_at": now
+            "created_at": now,
+            "projects": projects
         }
 
     def login_user(self, username: str, password: str):
@@ -1119,16 +1148,32 @@ class SwadeStorageVault:
             new_key_token = created["api_key"]
             keys = self.list_keys(tenant_id=user_id)
 
+        # Ensure user has a project workspace
+        projects = self.list_projects(owner_id=user_id)
+
         return {
             "user_id": user_id,
             "username": user_rec["username"],
             "quota_bytes": user_rec["quota_bytes"],
             "keys": keys,
-            "new_api_key": new_key_token
+            "new_api_key": new_key_token,
+            "projects": projects
         }
 
-    def create_key(self, name="Default Key", tenant_id=None, quota_bytes=2147483648, restrictions="full", expires_in_days=None):
-        """Generates a secure API key: sk_swades_<hex24> bound to tenant/user_id"""
+    def get_user_by_id(self, user_id: str):
+        conn = self._get_conn()
+        conn.row_factory = sqlite3.Row
+        try:
+            row = conn.execute("SELECT user_id, username, role, quota_bytes, is_active FROM users WHERE user_id = ? AND is_active = 1", (user_id,)).fetchone()
+            if row:
+                return dict(row)
+            row2 = conn.execute("SELECT user_id, username, role, quota_bytes, is_active FROM users WHERE username = ? AND is_active = 1", (user_id.lower(),)).fetchone()
+            return dict(row2) if row2 else None
+        finally:
+            conn.close()
+
+    def create_key(self, name="Default Key", tenant_id=None, quota_bytes=2147483648, restrictions="full", expires_in_days=None, project_id=None):
+        """Generates a secure API key: sk_swades_<hex24> bound to tenant/user_id and optional project_id"""
         if not tenant_id:
             tenant_id = f"tnt_{secrets.token_hex(6)}"
         
@@ -1150,6 +1195,7 @@ class SwadeStorageVault:
             "key_id": key_id,
             "key_hash": key_hash,
             "tenant_id": tenant_id,
+            "project_id": project_id,
             "name": name,
             "quota_bytes": quota_bytes,
             "used_bytes": 0,
@@ -1169,9 +1215,9 @@ class SwadeStorageVault:
             try:
                 conn = self._get_conn()
                 conn.execute('''INSERT OR REPLACE INTO api_keys 
-                                (key_id, key_hash, tenant_id, name, quota_bytes, used_bytes, created_at, is_active, restrictions, expires_at)
-                                VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?)''',
-                             (key_id, key_hash, tenant_id, name, quota_bytes, 0, now, restrictions or "full", expires_at))
+                                (key_id, key_hash, tenant_id, name, quota_bytes, used_bytes, created_at, is_active, restrictions, expires_at, project_id)
+                                VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)''',
+                             (key_id, key_hash, tenant_id, name, quota_bytes, 0, now, restrictions or "full", expires_at, project_id))
                 conn.commit()
                 conn.close()
             except Exception as e:
@@ -1182,6 +1228,7 @@ class SwadeStorageVault:
             "key_id": key_id,
             "api_key": raw_token,
             "tenant_id": tenant_id,
+            "project_id": project_id,
             "name": name,
             "quota_bytes": quota_bytes,
             "restrictions": restrictions or "full",
@@ -1190,11 +1237,23 @@ class SwadeStorageVault:
         }
 
     def verify_key(self, raw_key: str):
-        """⚡ Pure RAM Key Verification in ~40 nanoseconds (<0.0001ms)"""
+        """⚡ Pure RAM Key Verification with Resilient DB Fallback"""
         if not raw_key or not isinstance(raw_key, str):
             return None
         kh = self._hash_key(raw_key)
         rec = self._key_cache.get(kh)
+        if not rec:
+            conn = self._get_conn()
+            conn.row_factory = sqlite3.Row
+            try:
+                row = conn.execute("SELECT * FROM api_keys WHERE key_hash = ?", (kh,)).fetchone()
+                if row:
+                    rec = dict(row)
+                    self._key_cache[kh] = rec
+            except Exception:
+                pass
+            finally:
+                conn.close()
         if rec and rec.get("is_active"):
             exp = rec.get("expires_at")
             if exp:
@@ -1518,10 +1577,193 @@ class SwadeStorageVault:
         except Exception:
             return {}
 
-    def db_get_schema(self, table_name=""):
+    # =========================================================================
+    # 📁 MULTI-TENANT PROJECT MANAGEMENT & ISOLATED DATABASE ENGINES
+    # =========================================================================
+
+    def get_project_dir(self, project_id: str) -> str:
+        safe_id = re.sub(r'[^a-zA-Z0-9_\-]', '', str(project_id)) if project_id else "default"
+        p_dir = os.path.join(self.storage_dir, "projects", safe_id)
+        os.makedirs(p_dir, exist_ok=True)
+        os.makedirs(os.path.join(p_dir, "blobs"), exist_ok=True)
+        return p_dir
+
+    def get_project_db_path(self, project_id: str) -> str:
+        p_dir = self.get_project_dir(project_id)
+        return os.path.join(p_dir, "data.db")
+
+    def _get_project_conn(self, project_id: str = None):
+        if not project_id or project_id in ["default_system", "system", "auth"]:
+            return self._get_conn()
+        
+        db_path = self.get_project_db_path(project_id)
+        conn = sqlite3.connect(db_path, timeout=5.0)
+        conn.execute("PRAGMA journal_mode=WAL;")
+        conn.execute("PRAGMA synchronous=NORMAL;")
+        conn.execute("PRAGMA temp_store=MEMORY;")
+        conn.execute("PRAGMA busy_timeout=5000;")
+        return conn
+
+    def _init_project_db(self, project_id: str):
+        conn = self._get_project_conn(project_id)
+        try:
+            conn.execute('''CREATE TABLE IF NOT EXISTS items (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                description TEXT,
+                price REAL DEFAULT 0.0,
+                status TEXT DEFAULT 'active',
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )''')
+            if conn.execute('SELECT COUNT(*) FROM items').fetchone()[0] == 0:
+                conn.execute('''INSERT INTO items (title, description, price, status) VALUES 
+                    ('Welcome Item', 'Starter record in your dedicated project database', 19.99, 'active')''')
+            conn.commit()
+        finally:
+            conn.close()
+
+    def create_project(self, owner_id: str, name: str, description: str = ""):
+        if not name or not name.strip():
+            raise ValueError("Project name cannot be empty.")
+        clean_name = name.strip()[:64]
+        slug = re.sub(r'[^a-z0-9_\-]+', '-', clean_name.lower()).strip('-') or "proj"
+        project_id = f"proj_{slug[:16]}_{secrets.token_hex(4)}"
+        now = datetime.now(timezone.utc).isoformat()
+
+        conn = self._get_conn()
+        try:
+            conn.execute(
+                "INSERT INTO projects (project_id, owner_id, name, slug, description, created_at, is_active) VALUES (?, ?, ?, ?, ?, ?, 1)",
+                (project_id, owner_id, clean_name, slug, description.strip()[:256], now)
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+        # Initialize dedicated project workspace and database
+        self.get_project_dir(project_id)
+        self._init_project_db(project_id)
+        self.log_audit(owner_id, "PROJECT_CREATE", project_id, f"name={clean_name}")
+
+        return {
+            "project_id": project_id,
+            "owner_id": owner_id,
+            "name": clean_name,
+            "slug": slug,
+            "description": description.strip()[:256],
+            "created_at": now,
+            "is_active": 1
+        }
+
+    def list_projects(self, owner_id: str):
         conn = self._get_conn()
         conn.row_factory = sqlite3.Row
-        tables = self.db_list_tables()
+        try:
+            rows = conn.execute(
+                "SELECT * FROM projects WHERE owner_id = ? AND is_active = 1 ORDER BY created_at ASC",
+                (owner_id,)
+            ).fetchall()
+            projects = [dict(r) for r in rows]
+        finally:
+            conn.close()
+
+        # Auto-create Default Project if user has none
+        if not projects:
+            default_p = self.create_project(owner_id, "Default Project", "Default sovereign workspace")
+            projects = [default_p]
+
+        # Annotate with live project metrics (tables count, db size, blob count, etc.)
+        for p in projects:
+            pid = p["project_id"]
+            db_path = self.get_project_db_path(pid)
+            p["db_size_bytes"] = os.path.getsize(db_path) if os.path.exists(db_path) else 0
+            p["db_size_kb"] = round(p["db_size_bytes"] / 1024, 2)
+            
+            try:
+                p_conn = self._get_project_conn(pid)
+                tables = [r[0] for r in p_conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").fetchall()]
+                p["table_count"] = len(tables)
+                p_conn.close()
+            except Exception:
+                p["table_count"] = 0
+
+            if '_object_store' in globals() and pid in _object_store._tenant_used_bytes:
+                p["object_count"] = _object_store._tenant_object_count[pid]
+                p["storage_bytes"] = _object_store._tenant_used_bytes[pid]
+            else:
+                blobs_dir = os.path.join(self.storage_dir, "tenants", pid, "objects")
+                if not os.path.exists(blobs_dir):
+                    blobs_dir = os.path.join(self.storage_dir, "projects", pid, "blobs")
+                blob_files = [f for f in os.listdir(blobs_dir) if os.path.isfile(os.path.join(blobs_dir, f))] if os.path.exists(blobs_dir) else []
+                p["object_count"] = len(blob_files)
+                p["storage_bytes"] = sum(os.path.getsize(os.path.join(blobs_dir, f)) for f in blob_files)
+            p["storage_kb"] = round(p["storage_bytes"] / 1024, 2)
+
+        return projects
+
+    def get_project(self, project_id: str, owner_id: str = None):
+        conn = self._get_conn()
+        conn.row_factory = sqlite3.Row
+        try:
+            if owner_id:
+                row = conn.execute("SELECT * FROM projects WHERE project_id = ? AND owner_id = ? AND is_active = 1", (project_id, owner_id)).fetchone()
+            else:
+                row = conn.execute("SELECT * FROM projects WHERE project_id = ? AND is_active = 1", (project_id,)).fetchone()
+            if not row:
+                return None
+            p = dict(row)
+        finally:
+            conn.close()
+
+        pid = p["project_id"]
+        db_path = self.get_project_db_path(pid)
+        p["db_size_bytes"] = os.path.getsize(db_path) if os.path.exists(db_path) else 0
+        p["db_size_kb"] = round(p["db_size_bytes"] / 1024, 2)
+        try:
+            p_conn = self._get_project_conn(pid)
+            tables = [r[0] for r in p_conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").fetchall()]
+            p["table_count"] = len(tables)
+            p_conn.close()
+        except Exception:
+            p["table_count"] = 0
+        if '_object_store' in globals() and pid in _object_store._tenant_used_bytes:
+            p["object_count"] = _object_store._tenant_object_count[pid]
+            p["storage_bytes"] = _object_store._tenant_used_bytes[pid]
+        else:
+            blobs_dir = os.path.join(self.storage_dir, "tenants", pid, "objects")
+            if not os.path.exists(blobs_dir):
+                blobs_dir = os.path.join(self.storage_dir, "projects", pid, "blobs")
+            blob_files = [f for f in os.listdir(blobs_dir) if os.path.isfile(os.path.join(blobs_dir, f))] if os.path.exists(blobs_dir) else []
+            p["object_count"] = len(blob_files)
+            p["storage_bytes"] = sum(os.path.getsize(os.path.join(blobs_dir, f)) for f in blob_files)
+        p["storage_kb"] = round(p["storage_bytes"] / 1024, 2)
+        return p
+
+    def delete_project(self, project_id: str, owner_id: str = None):
+        conn = self._get_conn()
+        try:
+            if owner_id:
+                res = conn.execute("UPDATE projects SET is_active = 0 WHERE project_id = ? AND owner_id = ?", (project_id, owner_id))
+            else:
+                res = conn.execute("UPDATE projects SET is_active = 0 WHERE project_id = ?", (project_id,))
+            conn.commit()
+            affected = res.rowcount
+        finally:
+            conn.close()
+
+        if affected > 0:
+            self.log_audit(owner_id or "system", "PROJECT_DELETE", project_id, "Deactivated project")
+            return True
+        return False
+
+    # =========================================================================
+    # 🗄️ PROJECT-AWARE DATABASE BROWSER & SQL ENGINE
+    # =========================================================================
+
+    def db_get_schema(self, table_name="", project_id=None):
+        conn = self._get_project_conn(project_id)
+        conn.row_factory = sqlite3.Row
+        tables = self.db_list_tables(project_id=project_id)
         if table_name and table_name in tables:
             tables = [table_name]
         
@@ -1539,20 +1781,20 @@ class SwadeStorageVault:
         conn.close()
         return result
 
-    def db_list_tables(self):
-        conn = self._get_conn()
+    def db_list_tables(self, project_id=None):
+        conn = self._get_project_conn(project_id)
         cursor = conn.cursor()
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name")
         tables = [row[0] for row in cursor.fetchall()]
         conn.close()
         return tables
 
-    def db_query_table(self, table_name: str, limit=50, offset=0, search=""):
-        allowed_tables = self.db_list_tables()
+    def db_query_table(self, table_name: str, limit=50, offset=0, search="", project_id=None):
+        allowed_tables = self.db_list_tables(project_id=project_id)
         if table_name not in allowed_tables:
-            raise ValueError(f"Table '{table_name}' does not exist or access is restricted.")
+            raise ValueError(f"Table '{table_name}' does not exist or access is restricted in this project.")
         
-        conn = self._get_conn()
+        conn = self._get_project_conn(project_id)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
 
@@ -1579,17 +1821,18 @@ class SwadeStorageVault:
             "total_rows": total_rows,
             "limit": limit,
             "offset": offset,
-            "rows": rows
+            "rows": rows,
+            "project_id": project_id
         }
 
-    def db_update_cell(self, table_name: str, pk_col: str, pk_val: str, column: str, new_val):
-        allowed_tables = self.db_list_tables()
+    def db_update_cell(self, table_name: str, pk_col: str, pk_val: str, column: str, new_val, project_id=None):
+        allowed_tables = self.db_list_tables(project_id=project_id)
         if table_name not in allowed_tables:
-            raise ValueError(f"Table '{table_name}' does not exist.")
+            raise ValueError(f"Table '{table_name}' does not exist in this project.")
         if column in ["password_hash", "salt"]:
             raise ValueError("Direct editing of cryptographic hashes is prohibited.")
 
-        conn = self._get_conn()
+        conn = self._get_project_conn(project_id)
         cursor = conn.cursor()
         cursor.execute(f"PRAGMA table_info({table_name})")
         cols = [r[1] for r in cursor.fetchall()]
@@ -1602,21 +1845,21 @@ class SwadeStorageVault:
         conn.close()
         return True
 
-    def db_delete_row(self, table_name: str, pk_col: str, pk_val: str):
-        allowed_tables = self.db_list_tables()
+    def db_delete_row(self, table_name: str, pk_col: str, pk_val: str, project_id=None):
+        allowed_tables = self.db_list_tables(project_id=project_id)
         if table_name not in allowed_tables:
-            raise ValueError("Invalid table.")
-        conn = self._get_conn()
+            raise ValueError("Invalid table in this project.")
+        conn = self._get_project_conn(project_id)
         conn.execute(f"DELETE FROM {table_name} WHERE {pk_col} = ?", (pk_val,))
         conn.commit()
         conn.close()
         return True
 
-    def db_insert_row(self, table_name: str, data: dict):
-        allowed_tables = self.db_list_tables()
+    def db_insert_row(self, table_name: str, data: dict, project_id=None):
+        allowed_tables = self.db_list_tables(project_id=project_id)
         if table_name not in allowed_tables:
-            raise ValueError("Invalid table.")
-        conn = self._get_conn()
+            raise ValueError("Invalid table in this project.")
+        conn = self._get_project_conn(project_id)
         cols = list(data.keys())
         placeholders = ", ".join(["?"] * len(cols))
         col_names = ", ".join(cols)
@@ -1625,7 +1868,7 @@ class SwadeStorageVault:
         conn.close()
         return True
 
-    def db_execute_raw_sql(self, sql_query):
+    def db_execute_raw_sql(self, sql_query, project_id=None):
         sql_clean = sql_query.strip()
         forbidden = ["ATTACH", "DETACH", "PRAGMA WRITABLE_SCHEMA", "DROP DATABASE"]
         for f in forbidden:
@@ -1633,7 +1876,7 @@ class SwadeStorageVault:
                 raise ValueError(f"Forbidden SQL operation: {f}")
         
         t0 = time.perf_counter()
-        conn = self._get_conn()
+        conn = self._get_project_conn(project_id)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         
@@ -1658,7 +1901,8 @@ class SwadeStorageVault:
                 "columns": cols,
                 "rows": result_rows,
                 "row_count": len(result_rows),
-                "execution_ms": elapsed_ms
+                "execution_ms": elapsed_ms,
+                "project_id": project_id
             }
         else:
             cursor.execute(sql_clean)
@@ -1670,7 +1914,8 @@ class SwadeStorageVault:
                 "columns": ["affected_rows"],
                 "rows": [{"affected_rows": affected}],
                 "row_count": affected,
-                "execution_ms": elapsed_ms
+                "execution_ms": elapsed_ms,
+                "project_id": project_id
             }
 
     def get_secrets(self):
@@ -1740,7 +1985,7 @@ class SwadeStorageVault:
         return rows
 
 
-    def get_dashboard_overview(self):
+    def get_dashboard_overview(self, project_id=None):
         conn = self._get_conn()
         cursor = conn.cursor()
         total_users = cursor.execute('SELECT COUNT(*) FROM users').fetchone()[0]
@@ -1748,20 +1993,31 @@ class SwadeStorageVault:
         total_keys = cursor.execute('SELECT COUNT(*) FROM api_keys WHERE is_active = 1').fetchone()[0]
         total_flags = cursor.execute('SELECT COUNT(*) FROM feature_flags').fetchone()[0]
         active_flags = cursor.execute('SELECT COUNT(*) FROM feature_flags WHERE enabled = 1').fetchone()[0]
+        total_projects = cursor.execute('SELECT COUNT(*) FROM projects WHERE is_active = 1').fetchone()[0]
         conn.close()
 
-        total_stored_bytes = sum(_object_store._tenant_used_bytes.values()) if '_object_store' in globals() else 0
-        total_objects = sum(_object_store._tenant_object_count.values()) if '_object_store' in globals() else 0
+        proj_info = None
+        if project_id and project_id not in ["default_system", "system", "auth"]:
+            proj_info = self.get_project(project_id)
+
+        total_stored_bytes = proj_info.get("storage_bytes", 0) if proj_info else (sum(_object_store._tenant_used_bytes.values()) if '_object_store' in globals() else 0)
+        total_objects = proj_info.get("object_count", 0) if proj_info else (sum(_object_store._tenant_object_count.values()) if '_object_store' in globals() else 0)
+        table_count = proj_info.get("table_count", 0) if proj_info else len(self.db_list_tables(project_id=project_id))
 
         return {
             "status": "OPERATIONAL",
             "users": {"total": total_users, "active": active_users},
             "keys": {"total_active": total_keys},
+            "projects": {"total": total_projects, "active_project": proj_info},
             "storage": {
                 "total_bytes": total_stored_bytes,
                 "total_mb": round(total_stored_bytes / (1024*1024), 2),
                 "total_objects": total_objects,
                 "pools": _get_storage_pools()
+            },
+            "database": {
+                "table_count": table_count,
+                "project_id": project_id
             },
             "feature_flags": {"total": total_flags, "active": active_flags},
             "system_health": {
@@ -2912,6 +3168,11 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_storage_benchmark()
         elif path in ["/v1/storage/auth/keys", "/v1/storage/keys"]:
             self.handle_storage_list_keys()
+        elif path == "/v1/projects":
+            self.handle_projects_list(parsed)
+        elif path.startswith("/v1/projects/"):
+            project_id = path.split("/")[3]
+            self.handle_project_get(project_id)
         elif path in ["/dashboard", "/dashboard.html"]:
             self.handle_dashboard_html()
         elif path in ["/docs", "/docs.html"]:
@@ -2919,7 +3180,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         elif path in ["/maker", "/maker.md"]:
             self.handle_maker_md()
         elif path in ["/v1/dashboard/overview", "/v1/admin/overview"]:
-            self.handle_dashboard_overview()
+            self.handle_dashboard_overview(parsed)
         elif path in ["/v1/dashboard/flags", "/v1/admin/flags"]:
             self.handle_dashboard_flags_get()
         elif path in ["/v1/dashboard/remote-config", "/v1/admin/remote-config"]:
@@ -2935,7 +3196,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         elif path in ["/v1/dashboard/analytics", "/v1/admin/analytics"]:
             self.handle_dashboard_analytics_get(parsed)
         elif path in ["/v1/dashboard/db/tables", "/v1/admin/db/tables"]:
-            self.handle_dashboard_db_tables()
+            self.handle_dashboard_db_tables(parsed)
         elif path in ["/v1/dashboard/db/query", "/v1/admin/db/query"]:
             self.handle_dashboard_db_query(parsed)
         elif path in ["/v1/dashboard/logs", "/v1/admin/logs"]:
@@ -3000,6 +3261,9 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         elif parsed.path.startswith("/v1/storage/keys/"):
             key_id = parsed.path[len("/v1/storage/keys/"):].rstrip("/")
             self.handle_storage_revoke_key(key_id)
+        elif path.startswith("/v1/projects/"):
+            project_id = path.split("/")[3]
+            self.handle_project_delete(project_id)
         elif path.startswith('/v1/agent/task/') or path.startswith('/v1/agent/job/'):
             job_id = path.split('/')[-1]
             self.handle_agent_delete_job(job_id)
@@ -3010,7 +3274,9 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path.rstrip("/")
 
-        if path in ["/v1/storage/auth/register", "/v1/storage/register"]:
+        if path in ["/v1/projects", "/v1/projects/create"]:
+            self.handle_project_create()
+        elif path in ["/v1/storage/auth/register", "/v1/storage/register"]:
             self.handle_storage_register()
         elif path in ["/v1/storage/auth/login", "/v1/storage/login"]:
             self.handle_storage_login()
@@ -3886,17 +4152,20 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.wfile.write(err)
             return
 
+        parsed = urllib.parse.urlparse(self.path)
+        scope_id = self._extract_project_id(parsed) or tenant.get("project_id") or tenant["tenant_id"]
+
         try:
             content_length = int(self.headers.get("Content-Length", 0))
             content_type = self.headers.get("Content-Type")
             data = self.rfile.read(content_length) if content_length > 0 else b""
-            meta = _object_store.put_object(tenant["tenant_id"], raw_key, data, content_type=content_type)
-            meta["url"] = f"/s/{tenant['tenant_id']}/{meta['key']}"
+            meta = _object_store.put_object(scope_id, raw_key, data, content_type=content_type)
+            meta["url"] = f"/s/{scope_id}/{meta['key']}"
             t_ns = time.perf_counter_ns() - t0
             t_ms = round(t_ns / 1_000_000, 6)
             meta["reflection_time_ns"] = t_ns
             meta["reflection_time_ms"] = t_ms
-            resp = json.dumps({"success": True, "object": meta}).encode("utf-8")
+            resp = json.dumps({"success": True, "object": meta, "project_id": scope_id}).encode("utf-8")
             self.send_response(201)
             self._send_cors_headers()
             self.send_header("Content-Type", "application/json")
@@ -3929,7 +4198,10 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.end_headers()
             return
 
-        meta = _object_store.head_object(tenant["tenant_id"], raw_key)
+        parsed = urllib.parse.urlparse(self.path)
+        scope_id = self._extract_project_id(parsed) or tenant.get("project_id") or tenant["tenant_id"]
+
+        meta = _object_store.head_object(scope_id, raw_key)
         if not meta:
             self.send_response(404)
             self._send_cors_headers()
@@ -3980,7 +4252,10 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.wfile.write(err)
             return
 
-        data, meta = _object_store.get_object(tenant["tenant_id"], raw_key)
+        parsed = urllib.parse.urlparse(self.path)
+        scope_id = self._extract_project_id(parsed) or tenant.get("project_id") or tenant["tenant_id"]
+
+        data, meta = _object_store.get_object(scope_id, raw_key)
         if not meta or data is None:
             err = json.dumps({"error": "Object not found"}).encode("utf-8")
             self.send_response(404)
@@ -4037,11 +4312,14 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.wfile.write(err)
             return
 
-        success = _object_store.delete_object(tenant["tenant_id"], raw_key)
+        parsed = urllib.parse.urlparse(self.path)
+        scope_id = self._extract_project_id(parsed) or tenant.get("project_id") or tenant["tenant_id"]
+
+        success = _object_store.delete_object(scope_id, raw_key)
         t_ns = time.perf_counter_ns() - t0
         t_ms = round(t_ns / 1_000_000, 6)
         if success:
-            resp = json.dumps({"success": True, "deleted": raw_key, "reflection_time_ns": t_ns, "reflection_time_ms": t_ms}).encode("utf-8")
+            resp = json.dumps({"success": True, "deleted": raw_key, "project_id": scope_id, "reflection_time_ns": t_ns, "reflection_time_ms": t_ms}).encode("utf-8")
             self.send_response(200)
         else:
             resp = json.dumps({"error": "Object not found", "key": raw_key}).encode("utf-8")
@@ -4086,13 +4364,14 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             return
 
         parsed = urllib.parse.urlparse(self.path)
+        scope_id = self._extract_project_id(parsed) or tenant.get("project_id") or tenant["tenant_id"]
         qs = urllib.parse.parse_qs(parsed.query)
         prefix = qs.get("prefix", [None])[0]
         limit = int(qs.get("limit", ["100"])[0])
 
-        objects, total = _object_store.list_objects(tenant["tenant_id"], prefix=prefix, limit=limit)
+        objects, total = _object_store.list_objects(scope_id, prefix=prefix, limit=limit)
         for o in objects:
-            o["url"] = f"/s/{tenant['tenant_id']}/{o['key']}"
+            o["url"] = f"/s/{scope_id}/{o['key']}"
 
         t_ns = time.perf_counter_ns() - t0
         t_ms = round(t_ns / 1_000_000, 6)
@@ -4101,6 +4380,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             "objects": objects,
             "total": total,
             "tenant_id": tenant["tenant_id"],
+            "project_id": scope_id,
             "limit": limit,
             "reflection_time_ns": t_ns,
             "reflection_time_ms": t_ms
@@ -4126,10 +4406,13 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.wfile.write(err)
             return
 
-        usage = _object_store.get_usage(tenant["tenant_id"])
+        parsed = urllib.parse.urlparse(self.path)
+        scope_id = self._extract_project_id(parsed) or tenant.get("project_id") or tenant["tenant_id"]
+        usage = _object_store.get_usage(scope_id)
         usage["quota_bytes"] = tenant.get("quota_bytes", 2147483648)
         usage["quota_mb"] = round(tenant.get("quota_bytes", 2147483648) / (1024*1024), 2)
         usage["tenant_id"] = tenant["tenant_id"]
+        usage["project_id"] = scope_id
         usage["pools"] = _get_storage_pools()
         try:
             home_dir = os.environ.get("HOME", "/data/data/com.termux/files/home")
@@ -4333,8 +4616,9 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 return
         self.send_error(404, "maker.md not found on server")
 
-    def handle_dashboard_overview(self):
-        data = _storage_vault.get_dashboard_overview()
+    def handle_dashboard_overview(self, parsed=None):
+        project_id = self._extract_project_id(parsed)
+        data = _storage_vault.get_dashboard_overview(project_id=project_id)
         resp = json.dumps(data).encode("utf-8")
         self.send_response(200)
         self._send_cors_headers()
@@ -4649,13 +4933,106 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         except Exception as e:
             self.send_error(500, str(e))
 
+    def _extract_project_id(self, parsed=None):
+        proj = self.headers.get("X-Project-Id")
+        if proj: return proj.strip()
+        if parsed and parsed.query:
+            qs = urllib.parse.parse_qs(parsed.query)
+            if "project_id" in qs and qs["project_id"]:
+                return qs["project_id"][0].strip()
+        return None
+
+    def _get_authenticated_user(self, parsed=None):
+        key_rec = self._authenticate_storage_request()
+        if key_rec and isinstance(key_rec, dict) and not key_rec.get("expired"):
+            tenant_id = key_rec.get("tenant_id")
+            return {"user_id": tenant_id, "username": tenant_id, "role": "developer"}
+        
+        uid = self.headers.get("X-User-Id")
+        if uid:
+            user = _storage_vault.get_user_by_id(uid)
+            if user: return user
+
+        if parsed and parsed.query:
+            qs = urllib.parse.parse_qs(parsed.query)
+            if "user_id" in qs and qs["user_id"]:
+                uid = qs["user_id"][0].strip()
+                user = _storage_vault.get_user_by_id(uid)
+                if user: return user
+
+        return {"user_id": "usr_admin", "username": "admin", "role": "admin"}
+
+    def handle_projects_list(self, parsed=None):
+        user = self._get_authenticated_user(parsed)
+        owner_id = user.get("user_id", "admin")
+        projects = _storage_vault.list_projects(owner_id)
+        resp = json.dumps({"status": "success", "projects": projects}).encode("utf-8")
+        self.send_response(200)
+        self._send_cors_headers()
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(resp)))
+        self.end_headers()
+        self.wfile.write(resp)
+
+    def handle_project_create(self):
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            body = json.loads(self.rfile.read(length).decode("utf-8")) if length > 0 else {}
+            name = body.get("name", "").strip()
+            desc = body.get("description", "").strip()
+            user = self._get_authenticated_user()
+            owner_id = user.get("user_id", "admin")
+            
+            project = _storage_vault.create_project(owner_id, name, desc)
+            resp = json.dumps({"status": "created", "project": project}).encode("utf-8")
+            self.send_response(201)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(resp)))
+            self.end_headers()
+            self.wfile.write(resp)
+        except Exception as e:
+            err = json.dumps({"error": str(e)}).encode("utf-8")
+            self.send_response(400)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(err)))
+            self.end_headers()
+            self.wfile.write(err)
+
+    def handle_project_get(self, project_id):
+        project = _storage_vault.get_project(project_id)
+        if not project:
+            self.send_error(404, "Project not found")
+            return
+        resp = json.dumps({"status": "success", "project": project}).encode("utf-8")
+        self.send_response(200)
+        self._send_cors_headers()
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(resp)))
+        self.end_headers()
+        self.wfile.write(resp)
+
+    def handle_project_delete(self, project_id):
+        user = self._get_authenticated_user()
+        owner_id = user.get("user_id", "admin")
+        ok = _storage_vault.delete_project(project_id, owner_id)
+        resp = json.dumps({"status": "deleted" if ok else "not_found", "project_id": project_id}).encode("utf-8")
+        self.send_response(200 if ok else 404)
+        self._send_cors_headers()
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(resp)))
+        self.end_headers()
+        self.wfile.write(resp)
+
     def handle_dashboard_db_schema(self, parsed):
         try:
+            project_id = self._extract_project_id(parsed)
             qs = urllib.parse.parse_qs(parsed.query)
             table_name = qs.get("table", [""])[0].strip()
-            schema_info = _storage_vault.db_get_schema(table_name)
+            schema_info = _storage_vault.db_get_schema(table_name, project_id=project_id)
             tables_list = [{"name": k, "columns": v["columns"], "sql": v.get("ddl", ""), "row_count": v.get("row_count", 0)} for k, v in schema_info.items()]
-            resp = json.dumps({"schema": schema_info, "tables": tables_list}).encode("utf-8")
+            resp = json.dumps({"schema": schema_info, "tables": tables_list, "project_id": project_id}).encode("utf-8")
             self.send_response(200)
             self._send_cors_headers()
             self.send_header("Content-Type", "application/json")
@@ -4712,9 +5089,10 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(resp)
 
-    def handle_dashboard_db_tables(self):
-        tables = _storage_vault.db_list_tables()
-        resp = json.dumps({"tables": tables}).encode("utf-8")
+    def handle_dashboard_db_tables(self, parsed=None):
+        project_id = self._extract_project_id(parsed)
+        tables = _storage_vault.db_list_tables(project_id=project_id)
+        resp = json.dumps({"tables": tables, "project_id": project_id}).encode("utf-8")
         self.send_response(200)
         self._send_cors_headers()
         self.send_header("Content-Type", "application/json")
@@ -4724,12 +5102,13 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
 
     def handle_dashboard_db_query(self, parsed):
         try:
+            project_id = self._extract_project_id(parsed)
             qs = urllib.parse.parse_qs(parsed.query)
-            table = qs.get("table", ["users"])[0]
+            table = qs.get("table", ["users" if not project_id else "items"])[0]
             limit = int(qs.get("limit", [50])[0])
             offset = int(qs.get("offset", [0])[0])
             search = qs.get("search", [""])[0]
-            result = _storage_vault.db_query_table(table, limit, offset, search)
+            result = _storage_vault.db_query_table(table, limit, offset, search, project_id=project_id)
             resp = json.dumps(result).encode("utf-8")
             self.send_response(200)
             self._send_cors_headers()
@@ -4746,20 +5125,21 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             body = json.loads(self.rfile.read(length).decode("utf-8"))
             action = body.get("action")
             table = body.get("table")
+            project_id = self.headers.get("X-Project-Id") or body.get("project_id")
             if action == "update_cell":
-                _storage_vault.db_update_cell(table, body["pk_col"], body["pk_val"], body["column"], body["new_val"])
+                _storage_vault.db_update_cell(table, body["pk_col"], body["pk_val"], body["column"], body["new_val"], project_id=project_id)
             elif action == "delete_row":
-                _storage_vault.db_delete_row(table, body["pk_col"], body["pk_val"])
+                _storage_vault.db_delete_row(table, body["pk_col"], body["pk_val"], project_id=project_id)
             elif action == "insert_row":
-                _storage_vault.db_insert_row(table, body["data"])
+                _storage_vault.db_insert_row(table, body["data"], project_id=project_id)
             elif action == "raw_sql":
                 query = body.get("query", "").strip()
                 if not query:
                     self.send_error(400, "Missing query")
                     return
-                res = _storage_vault.db_execute_raw_sql(query)
-                _storage_vault.log_audit("developer", "RAW_SQL_EXECUTE", "database", f"query={query[:80]}")
-                resp = json.dumps({"status": "success", "result": res}).encode("utf-8")
+                res = _storage_vault.db_execute_raw_sql(query, project_id=project_id)
+                _storage_vault.log_audit("developer", "RAW_SQL_EXECUTE", f"{project_id or 'system'}:{table or 'db'}", f"query={query[:80]}")
+                resp = json.dumps({"status": "success", "result": res, "project_id": project_id}).encode("utf-8")
                 self.send_response(200)
                 self._send_cors_headers()
                 self.send_header("Content-Type", "application/json")
@@ -4770,8 +5150,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             else:
                 self.send_error(400, f"Unknown action {action}")
                 return
-            _storage_vault.log_audit("admin", "DB_MUTATION", table, f"action={action}")
-            resp = json.dumps({"status": "success", "action": action}).encode("utf-8")
+            _storage_vault.log_audit("admin", "DB_MUTATION", f"{project_id or 'system'}:{table}", f"action={action}")
+            resp = json.dumps({"status": "success", "action": action, "project_id": project_id}).encode("utf-8")
             self.send_response(200)
             self._send_cors_headers()
             self.send_header("Content-Type", "application/json")
@@ -4786,12 +5166,13 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             length = int(self.headers.get("Content-Length", 0))
             body = json.loads(self.rfile.read(length).decode("utf-8"))
             query = body.get("query", "").strip()
+            project_id = self.headers.get("X-Project-Id") or body.get("project_id")
             if not query:
                 self.send_error(400, "Missing query")
                 return
-            res = _storage_vault.db_execute_raw_sql(query)
-            _storage_vault.log_audit("developer", "RAW_SQL_EXECUTE", "database", f"query={query[:80]}")
-            resp = json.dumps({"status": "success", "result": res}).encode("utf-8")
+            res = _storage_vault.db_execute_raw_sql(query, project_id=project_id)
+            _storage_vault.log_audit("developer", "RAW_SQL_EXECUTE", f"{project_id or 'system'}:database", f"query={query[:80]}")
+            resp = json.dumps({"status": "success", "result": res, "project_id": project_id}).encode("utf-8")
             self.send_response(200)
             self._send_cors_headers()
             self.send_header("Content-Type", "application/json")

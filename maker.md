@@ -268,8 +268,25 @@ For persistent storage, key management, and relational data operations:
     1. `Internal Flash (NVMe/eMMC)` — High-speed primary.
     2. `Public Shared Storage (/sdcard)` — Accessible via Android file system.
     3. `External Drive / SD / USB OTG` — Removable mass storage.
-- **Upload Object**: `POST /v1/storage/upload` (multipart with `file` and optional `destination_pool`).
-- **Retrieve Object**: `GET /s/{short_code}` or `GET /v1/storage/download/{object_id}`.
+- **Upload Object**: `PUT /v1/storage/objects/{key}` with binary body.
+- **Retrieve Object**: `GET /s/{project_id}/{key}` or `GET /v1/storage/objects/{key}`.
+
+### 6.5 Sovereign Multi-Project Architecture (Firebase-Style Data Isolation)
+
+Developers and applications are 100% physically isolated from each other. Rather than storing tables and blobs in a shared global pool, each project operates as a completely sovereign sandbox:
+
+- **Isolated Physical Database**: Every project receives its own dedicated SQLite database file located at `.swades_storage/projects/<project_id>/data.db`. Tables created in Project A (e.g. `users`, `orders`) are completely invisible and inaccessible to Project B.
+- **Dedicated Object Store Bucket**: Uploaded media and objects are isolated per project namespace (`.swades_storage/projects/<project_id>/blobs/` and memory index).
+- **Request Scoping Header**: Autonomous agents and apps scope any API call to an individual project by passing the `X-Project-Id: <project_id>` HTTP header or `?project_id=<id>` query parameter.
+- **Default Fallback**: If `X-Project-Id` is omitted, requests safely default to the user's primary workspace.
+
+#### Multi-Project Management Endpoints:
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/v1/projects` | List all active projects owned by authenticated user with table count, disk size, and storage metrics. |
+| `POST` | `/v1/projects` | Create a new isolated project (`{"name": "...", "description": "..."}`). Automatically provisions `data.db` and starter schema. |
+| `GET` | `/v1/projects/{id}` | Inspect a specific project's live database size, table count, and blob metrics. |
+| `DELETE` | `/v1/projects/{id}` | Deactivate an isolated project. |
 
 ---
 

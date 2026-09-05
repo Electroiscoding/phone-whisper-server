@@ -1986,12 +1986,17 @@ proot-distro login alpine -- node /root/Swades-Agent/worker.js --job job_a9f8224
             </div>
           </div>
 
-          <!-- Multi-Tenancy -->
+          <!-- Multi-Tenancy & Firebase-Style Multi-Project Architecture -->
           <div id="storage-multitenancy" class="bg-cardbg border border-cardborder rounded-lg p-4">
-            <div class="text-neonemerald font-bold mb-2">Zero-Tassel Multi-Tenant Isolation</div>
+            <div class="text-neonemerald font-bold mb-2">Firebase-Style Sovereign Multi-Project Isolation</div>
             <p class="text-zinc-400 text-[11px] leading-relaxed mb-3">
-              Storage objects are indexed via compound keys: <code class="text-neonemerald">bucket_name / object_key</code>. Tenant namespaces are partitioned with cryptographic owner tokens, preventing data leaks across different users.
+              Each developer project operates as an autonomous sovereign sandbox. Rather than pooling data into a shared database, every project receives a physically distinct SQLite database (<code class="text-neonemerald">.swades_storage/projects/&lt;project_id&gt;/data.db</code>) and isolated object store bucket. Developers can create separate projects for individual apps, clients, and staging environments with zero cross-tenant visibility.
             </p>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[10px] text-zinc-400">
+              <div class="bg-zinc-950 p-2 rounded border border-cardborder">Physical DB: Dedicated data.db</div>
+              <div class="bg-zinc-950 p-2 rounded border border-cardborder">Scoping: X-Project-Id Header</div>
+              <div class="bg-zinc-950 p-2 rounded border border-cardborder">API: /v1/projects CRUD</div>
+            </div>
           </div>
 
           <!-- Anycast CDN -->
