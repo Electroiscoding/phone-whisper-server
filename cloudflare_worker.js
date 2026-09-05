@@ -43,25 +43,10 @@ async function getLiveOrigin(forceRefresh = false) {
     return cachedOrigin;
   }
 
-  // 1. Primary: jsDelivr High-Speed CDN
-  try {
-    const jsdelivrRes = await fetchWithTimeout(`${JSDELIVR_ENDPOINT_URL}?_t=${now}`, {
-      headers: { "Cache-Control": "no-cache" }
-    }, 2000);
-    if (jsdelivrRes.ok) {
-      const data = await jsdelivrRes.json();
-      if (data && data.endpoint && data.endpoint.startsWith("https://")) {
-        cachedOrigin = data.endpoint.replace(/\/+$/, "");
-        lastFetchTime = now;
-        return cachedOrigin;
-      }
-    }
-  } catch (err) {}
-
-  // 2. Secondary: Raw GitHub CDN
+  // 1. Primary: Raw GitHub CDN (Real-time, instant commit sync)
   try {
     const res = await fetchWithTimeout(`${GITHUB_ENDPOINT_URL}?_t=${now}`, {
-      headers: { "User-Agent": "Cloudflare-Edge-Worker/2.0", "Cache-Control": "no-cache" },
+      headers: { "User-Agent": "Cloudflare-Edge-Worker/2.0", "Cache-Control": "no-cache, no-store, must-revalidate" },
       cf: { cacheTtl: 0, cacheEverything: false }
     }, 2000);
     if (res.ok) {
@@ -74,7 +59,22 @@ async function getLiveOrigin(forceRefresh = false) {
     }
   } catch (err) {}
 
-  return cachedOrigin || "https://practical-loud-don-voluntary.trycloudflare.com";
+  // 2. Secondary: jsDelivr Edge CDN
+  try {
+    const jsdelivrRes = await fetchWithTimeout(`${JSDELIVR_ENDPOINT_URL}?_t=${now}`, {
+      headers: { "Cache-Control": "no-cache, no-store" }
+    }, 2000);
+    if (jsdelivrRes.ok) {
+      const data = await jsdelivrRes.json();
+      if (data && data.endpoint && data.endpoint.startsWith("https://")) {
+        cachedOrigin = data.endpoint.replace(/\/+$/, "");
+        lastFetchTime = now;
+        return cachedOrigin;
+      }
+    }
+  } catch (err) {}
+
+  return cachedOrigin || "https://interesting-unexpected-interval-bedroom.trycloudflare.com";
 }
 
 export default {

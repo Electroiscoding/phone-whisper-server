@@ -40,25 +40,10 @@ async function getLiveOrigin(forceRefresh = false) {
     return cachedOrigin;
   }
 
-  // 1. Primary: jsDelivr High-Speed Edge CDN (Global, 0s propagation, immune to GitHub API rate limits)
-  try {
-    const jsdelivrRes = await fetchWithTimeout(`${JSDELIVR_ENDPOINT_URL}?_t=${now}`, {
-      headers: { "Cache-Control": "no-cache" }
-    }, 2000);
-    if (jsdelivrRes.ok) {
-      const data = await jsdelivrRes.json();
-      if (data && data.endpoint && data.endpoint.startsWith("https://")) {
-        cachedOrigin = data.endpoint.replace(/\/+$/, "");
-        lastFetchTime = now;
-        return cachedOrigin;
-      }
-    }
-  } catch (err) {}
-
-  // 2. Secondary Fallback: Raw GitHub CDN
+  // 1. Primary: Raw GitHub CDN (Real-time, instant commit sync)
   try {
     const res = await fetchWithTimeout(`${GITHUB_ENDPOINT_URL}?_t=${now}`, {
-      headers: { "User-Agent": "Cloudflare-Pages-Worker/3.0", "Cache-Control": "no-cache" }
+      headers: { "User-Agent": "Cloudflare-Pages-Worker/3.0", "Cache-Control": "no-cache, no-store, must-revalidate" }
     }, 2000);
     if (res.ok) {
       const data = await res.json();
@@ -70,13 +55,13 @@ async function getLiveOrigin(forceRefresh = false) {
     }
   } catch (err) {}
 
-  // 3. Tertiary: GitHub REST API
+  // 2. Secondary: GitHub REST API
   try {
     const apiRes = await fetchWithTimeout(`https://api.github.com/repos/Electroiscoding/phone-whisper-server/contents/endpoint.json?ref=main&_t=${now}`, {
       headers: {
         "User-Agent": "Cloudflare-Pages-Worker/3.0",
         "Accept": "application/vnd.github.v3.raw",
-        "Cache-Control": "no-cache"
+        "Cache-Control": "no-cache, no-store"
       }
     }, 2000);
     if (apiRes.ok) {
@@ -89,7 +74,22 @@ async function getLiveOrigin(forceRefresh = false) {
     }
   } catch (err) {}
 
-  return cachedOrigin || "https://practical-loud-don-voluntary.trycloudflare.com";
+  // 3. Tertiary: jsDelivr Edge CDN
+  try {
+    const jsdelivrRes = await fetchWithTimeout(`${JSDELIVR_ENDPOINT_URL}?_t=${now}`, {
+      headers: { "Cache-Control": "no-cache, no-store" }
+    }, 2000);
+    if (jsdelivrRes.ok) {
+      const data = await jsdelivrRes.json();
+      if (data && data.endpoint && data.endpoint.startsWith("https://")) {
+        cachedOrigin = data.endpoint.replace(/\/+$/, "");
+        lastFetchTime = now;
+        return cachedOrigin;
+      }
+    }
+  } catch (err) {}
+
+  return cachedOrigin || "https://interesting-unexpected-interval-bedroom.trycloudflare.com";
 }
 
 export default {

@@ -164,7 +164,7 @@
       <form onsubmit="event.preventDefault(); submitGatekeeperAuth();" class="space-y-4">
         <div>
           <label class="block text-[11px] uppercase tracking-wider text-zinc-400 mb-1.5">Username</label>
-          <input type="text" id="gatekeeper-user" required autocomplete="username" placeholder="admin" class="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 focus:border-cyan-500 text-white text-xs outline-none transition-all placeholder:text-zinc-600 font-mono" />
+          <input type="text" id="gatekeeper-user" required autocomplete="username" placeholder="Enter username" class="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 focus:border-cyan-500 text-white text-xs outline-none transition-all placeholder:text-zinc-600 font-mono" />
         </div>
         <div>
           <label class="block text-[11px] uppercase tracking-wider text-zinc-400 mb-1.5">Password</label>
@@ -177,14 +177,6 @@
           Sign In to Datacenter →
         </button>
       </form>
-
-      <!-- Fast-Track Admin Login -->
-      <div class="pt-2 border-t border-zinc-800/80 text-center">
-        <button onclick="autofillAdminLogin()" class="text-[11px] text-zinc-500 hover:text-cyan-400 transition-colors inline-flex items-center gap-1.5 cursor-pointer">
-          <span>⚡</span>
-          <span>Fast-track with default credentials (<code class="text-zinc-400 font-bold">admin / admin</code>)</span>
-        </button>
-      </div>
 
       <!-- Reference Links -->
       <div class="flex items-center justify-center gap-4 text-[10px] text-zinc-500 pt-1">
@@ -1942,13 +1934,6 @@
         tabL.className = "flex-1 py-2 border-b-2 border-transparent text-zinc-500 hover:text-zinc-300 transition-all";
         btn.innerText = "Create Account & Sign In →";
       }
-    }
-
-    function autofillAdminLogin() {
-      setGatekeeperTab('login');
-      document.getElementById('gatekeeper-user').value = 'admin';
-      document.getElementById('gatekeeper-pass').value = 'admin';
-      submitGatekeeperAuth();
     }
 
     async function probeGuestNodeHealth() {
