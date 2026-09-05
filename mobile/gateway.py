@@ -967,13 +967,7 @@ class SwadeStorageVault:
                 ]
                 conn.executemany('INSERT INTO experiments VALUES (?,?,?,?,?,?,?,?,?,?,?,?)', exp_defaults)
 
-            # Seed default notifications if empty
-            if conn.execute('SELECT COUNT(*) FROM notifications').fetchone()[0] == 0:
-                notif_defaults = [
-                    ("notif_01", "Storage Datacenter Live", "All physical drives (internal NVMe, shared /sdcard, external USB OTG) are online.", "push", "all", "sent", init_now_str),
-                    ("notif_02", "Zero-Tassel Isolation Enforced", "Cryptographic namespacing and zero-knowledge 404 security active.", "banner", "all", "sent", init_now_str),
-                ]
-                conn.executemany('INSERT INTO notifications VALUES (?,?,?,?,?,?,?)', notif_defaults)
+            # Notifications are generated on live user broadcasts
 
             # Real performance logs are recorded dynamically on live requests
 
@@ -2032,6 +2026,8 @@ class SwadeStorageVault:
             "system_health": {
                 "l1_reflection_ns": l1_reflection_ns,
                 "sub_microsecond": True,
+                "device_model": "Xiaomi Redmi 9i (Phone Node)",
+                "cpu_architecture": "ARM64 Cortex-A53 (8 cores)",
                 "memory_architecture": "LPDDR4X @ 1600MHz",
                 "uptime_seconds": int(time.time() - _START_TIME) if '_START_TIME' in globals() else 3600,
                 "battery": _battery_watcher.get_live_stats() if '_battery_watcher' in globals() else {}
@@ -3087,7 +3083,12 @@ def _telemetry_background_loop():
                 "storage": {
                     "free_gb": round(shutil.disk_usage(os.environ.get("HOME", "/data/data/com.termux/files/home")).free / (1024**3), 2),
                     "total_gb": round(shutil.disk_usage(os.environ.get("HOME", "/data/data/com.termux/files/home")).total / (1024**3), 2),
-                    "managed_tenants": len(_storage_vault._key_cache),
+                    "managed_tenants": len(_storage_vault._key_cache)
+                },
+                "device": {
+                    "model": "Xiaomi Redmi 9i (Phone Node)",
+                    "arch": "ARM64 (8x Cortex-A53)",
+                    "ram": f"{round(total_mb / 1024, 1)}GB LPDDR4X"
                 },
                 "process_matrix": process_table,
                 "total_requests": req_cnt,

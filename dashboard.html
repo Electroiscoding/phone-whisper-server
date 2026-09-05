@@ -287,15 +287,15 @@
       <div class="p-3 border-t border-zinc-800/80 bg-black/40 text-[11px] font-mono text-zinc-400 flex flex-col gap-1.5">
         <div class="flex justify-between items-center">
           <span class="text-zinc-500">Device</span>
-          <span class="text-zinc-300 font-semibold">Xiaomi Redmi 9i</span>
+          <span id="sidebar-device-model" class="text-zinc-300 font-semibold">Xiaomi Redmi 9i</span>
         </div>
         <div class="flex justify-between items-center">
           <span class="text-zinc-500">Architecture</span>
-          <span class="text-zinc-300">ARM64 Cortex-A53</span>
+          <span id="sidebar-device-arch" class="text-zinc-300">ARM64 Cortex-A53</span>
         </div>
         <div class="flex justify-between items-center">
           <span class="text-zinc-500">RAM Bus</span>
-          <span class="text-cyan-400">LPDDR4X 1600MHz</span>
+          <span id="sidebar-device-ram" class="text-cyan-400">LPDDR4X 1600MHz</span>
         </div>
       </div>
     </aside>
@@ -580,9 +580,6 @@
             <div class="flex items-center gap-2">
               <input type="text" id="user-search-input" onkeyup="filterUsersTable()" placeholder="Search username, email, or user_id..." class="bg-black border border-zinc-800 rounded px-2.5 py-1 text-xs font-mono text-white focus:border-cyan-500 outline-none w-56" />
               <button onclick="loadUsersTable()" class="text-xs font-mono px-2.5 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300">Search</button>
-              <button onclick="purgeTestAccounts()" title="Purge automated test accounts created during automated stress tests" class="text-xs font-mono px-2.5 py-1 rounded bg-rose-950/60 border border-rose-800 hover:bg-rose-900 text-rose-300 flex items-center gap-1 transition-colors">
-                <span>🧹</span> Purge Test Accounts
-              </button>
             </div>
           </div>
 
@@ -666,12 +663,12 @@
 
               <div>
                 <label class="text-[11px] font-mono text-zinc-400">Notification Title</label>
-                <input type="text" id="notif-title" oninput="updateLiveMockupPreview()" placeholder="e.g. Scheduled Cloud Maintenance Window" value="⚡ Storage Engine Update Live" class="w-full bg-black border border-zinc-800 rounded px-3 py-1.5 text-xs font-mono text-white focus:border-cyan-500 outline-none mt-1" />
+                <input type="text" id="notif-title" oninput="updateLiveMockupPreview()" placeholder="e.g. Scheduled Cloud Maintenance Window" value="" class="w-full bg-black border border-zinc-800 rounded px-3 py-1.5 text-xs font-mono text-white focus:border-cyan-500 outline-none mt-1" />
               </div>
 
               <div>
                 <label class="text-[11px] font-mono text-zinc-400">Message Body (Supports plain text & emojis)</label>
-                <textarea id="notif-body" oninput="updateLiveMockupPreview()" rows="3" placeholder="Enter message text..." class="w-full bg-black border border-zinc-800 rounded px-3 py-1.5 text-xs font-mono text-white focus:border-cyan-500 outline-none mt-1">Sub-microsecond L1 cache reflection and scoped token restrictions are now active worldwide.</textarea>
+                <textarea id="notif-body" oninput="updateLiveMockupPreview()" rows="3" placeholder="Enter notification message body..." class="w-full bg-black border border-zinc-800 rounded px-3 py-1.5 text-xs font-mono text-white focus:border-cyan-500 outline-none mt-1"></textarea>
               </div>
 
               <button onclick="broadcastNotification()" id="btn-broadcast" class="w-full py-2.5 rounded bg-cyan-500 hover:bg-cyan-400 text-black font-semibold text-xs font-mono transition-all">
@@ -698,15 +695,15 @@
                       </div>
                       <span class="text-[10px] text-zinc-500">Just now</span>
                     </div>
-                    <div id="mockup-title-text" class="text-xs font-bold text-white">⚡ Storage Engine Update Live</div>
-                    <div id="mockup-body-text" class="text-[11px] text-zinc-300 leading-snug">Sub-microsecond L1 cache reflection and scoped token restrictions are now active worldwide.</div>
+                    <div id="mockup-title-text" class="text-xs font-bold text-white">New Announcement</div>
+                    <div id="mockup-body-text" class="text-[11px] text-zinc-300 leading-snug">Notification preview will appear here as you type...</div>
                   </div>
 
                   <!-- Type 2: In-App Modal Banner Mockup -->
                   <div id="mockup-banner" class="hidden w-full max-w-sm p-4 rounded-xl bg-[#090c12] border border-cyan-800/80 shadow-2xl space-y-2.5 text-center">
                     <div class="w-8 h-8 rounded-full bg-cyan-500/20 border border-cyan-500/50 flex items-center justify-center mx-auto text-cyan-400">📢</div>
-                    <div id="mockup-banner-title" class="text-sm font-bold text-white">⚡ Storage Engine Update Live</div>
-                    <div id="mockup-banner-body" class="text-xs text-zinc-400">Sub-microsecond L1 cache reflection and scoped token restrictions are now active worldwide.</div>
+                    <div id="mockup-banner-title" class="text-sm font-bold text-white">New Announcement</div>
+                    <div id="mockup-banner-body" class="text-xs text-zinc-400">Notification preview will appear here as you type...</div>
                     <button class="w-full py-1.5 rounded bg-cyan-500 text-black font-bold text-xs">Acknowledge</button>
                   </div>
 
@@ -714,7 +711,7 @@
                   <div id="mockup-toast" class="hidden w-full max-w-sm p-2.5 rounded-full bg-zinc-900 border border-zinc-700 shadow-2xl flex items-center justify-between px-4 text-xs">
                     <div class="flex items-center gap-2 text-zinc-200">
                       <span>⚡</span>
-                      <span id="mockup-toast-text" class="font-medium">Storage Engine Update Live</span>
+                      <span id="mockup-toast-text" class="font-medium">New Announcement</span>
                     </div>
                     <span class="text-cyan-400 text-[10px] font-bold">VIEW</span>
                   </div>
@@ -2430,12 +2427,23 @@
           if (voltEl) voltEl.innerText = `${b.voltage_mv || 3800} mV`;
         }
 
-        if (data.system_health && data.system_health.l1_reflection_ns) {
-          const ns = data.system_health.l1_reflection_ns;
-          const hdrRef = document.getElementById('hdr-ram-latency');
-          if (hdrRef) hdrRef.innerText = `${ns} ns`;
-          const kpiRef = document.getElementById('kpi-reflection');
-          if (kpiRef) kpiRef.innerText = `${ns} ns`;
+        if (data.system_health) {
+          if (data.system_health.l1_reflection_ns) {
+            const ns = data.system_health.l1_reflection_ns;
+            const hdrRef = document.getElementById('hdr-ram-latency');
+            if (hdrRef) hdrRef.innerText = `${ns} ns`;
+            const kpiRef = document.getElementById('kpi-reflection');
+            if (kpiRef) kpiRef.innerText = `${ns} ns`;
+          }
+          if (data.system_health.device_model && document.getElementById('sidebar-device-model')) {
+            document.getElementById('sidebar-device-model').innerText = data.system_health.device_model;
+          }
+          if (data.system_health.cpu_architecture && document.getElementById('sidebar-device-arch')) {
+            document.getElementById('sidebar-device-arch').innerText = data.system_health.cpu_architecture;
+          }
+          if (data.system_health.memory_architecture && document.getElementById('sidebar-device-ram')) {
+            document.getElementById('sidebar-device-ram').innerText = data.system_health.memory_architecture;
+          }
         }
       } catch (err) {
         console.error("Failed to load overview telemetry:", err);
@@ -2973,8 +2981,8 @@ TimeoutError: Latency threshold breached (${l.latency_ms}ms) on ${l.device_info 
     // --- NOTIFICATION COMPOSER & REALISTIC MOCKUP PREVIEWS ---
     function updateLiveMockupPreview() {
       const type = document.getElementById('notif-type-select').value;
-      const title = document.getElementById('notif-title').value || '⚡ Storage Engine Update Live';
-      const body = document.getElementById('notif-body').value || 'Sub-microsecond L1 cache reflection and scoped token restrictions are now active worldwide.';
+      const title = document.getElementById('notif-title').value || 'New Announcement';
+      const body = document.getElementById('notif-body').value || 'Notification preview will appear here as you type...';
 
       const pushBox = document.getElementById('mockup-push');
       const bannerBox = document.getElementById('mockup-banner');
@@ -3037,7 +3045,11 @@ TimeoutError: Latency threshold breached (${l.latency_ms}ms) on ${l.device_info 
         const res = await apiFetch(`${BASE_URL}/v1/dashboard/notifications`);
         const data = await res.json();
         const el = document.getElementById('notif-history-list');
-        el.innerHTML = (data.notifications || []).map(n => `
+        if (!data.notifications || data.notifications.length === 0) {
+          el.innerHTML = '<div class="text-zinc-600 text-[11px] font-mono p-3 text-center">No broadcast notifications sent yet.</div>';
+          return;
+        }
+        el.innerHTML = data.notifications.map(n => `
           <div class="p-2 rounded bg-zinc-950 border border-zinc-800 font-mono text-[11px] space-y-0.5">
             <div class="flex justify-between text-zinc-400 font-bold">
               <span class="text-white">${n.title}</span>
