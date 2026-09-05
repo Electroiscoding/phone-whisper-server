@@ -52,22 +52,22 @@
 <body class="bg-[#030507] text-zinc-200 min-h-screen flex flex-col antialiased select-none">
 
   <!-- Top Global Brutalist Header -->
-  <header class="sticky top-0 z-40 bg-[#06080c]/90 backdrop-blur-md border-b border-zinc-800/80 px-4 py-2.5 flex items-center justify-between">
-    <div class="flex items-center gap-3">
-      <a href="/" class="flex items-center gap-2 hover:opacity-80 transition-opacity">
+  <header class="sticky top-0 z-40 bg-[#06080c]/90 backdrop-blur-md border-b border-zinc-800/80 px-4 py-2 flex items-center justify-between gap-2 overflow-hidden">
+    <div class="flex items-center gap-2.5 shrink-0">
+      <a href="/" class="flex items-center gap-2 hover:opacity-80 transition-opacity shrink-0">
         <span class="w-6 h-6 rounded bg-gradient-to-tr from-cyan-500 to-indigo-500 flex items-center justify-center text-xs font-black text-black">⚡</span>
-        <span class="font-bold tracking-tight text-white space-grotesk text-base">SWADES <span class="text-cyan-400 font-normal text-xs uppercase tracking-widest ml-1 px-1.5 py-0.5 rounded bg-cyan-950/60 border border-cyan-800/60">Cloud Console</span></span>
+        <span class="font-bold tracking-tight text-white space-grotesk text-base whitespace-nowrap">SWADES <span class="text-cyan-400 font-normal text-xs uppercase tracking-widest ml-1 px-1.5 py-0.5 rounded bg-cyan-950/60 border border-cyan-800/60 hidden sm:inline">Console</span></span>
       </a>
-      <span class="text-zinc-600">/</span>
-      <div id="env-badge" class="flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-mono bg-emerald-950/50 border border-emerald-800/60 text-emerald-400">
+      <span class="text-zinc-600 hidden sm:inline">/</span>
+      <div id="env-badge" class="flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-mono bg-emerald-950/50 border border-emerald-800/60 text-emerald-400 whitespace-nowrap shrink-0">
         <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-        <span id="env-label">PHONE DATACENTER ONLINE</span>
+        <span id="env-label">ONLINE</span>
       </div>
     </div>
 
-    <div class="flex items-center gap-3">
+    <div class="flex items-center gap-2 shrink-0">
       <!-- Quick Telemetry Ticker -->
-      <div class="hidden md:flex items-center gap-4 text-xs font-mono text-zinc-400 border-r border-zinc-800/80 pr-4">
+      <div class="hidden 2xl:flex items-center gap-4 text-xs font-mono text-zinc-400 border-r border-zinc-800/80 pr-4 whitespace-nowrap shrink-0">
         <div>RAM L1: <span id="hdr-ram-latency" class="text-cyan-400 font-bold">-- ns</span></div>
         <div>SLA: <span id="hdr-sla" class="text-emerald-400 font-bold">-- ms</span></div>
         <div>POOLS: <span id="hdr-pools-count" class="text-zinc-200 font-bold">-- ACTIVE</span></div>
@@ -493,7 +493,7 @@
               <span class="text-[10px] text-cyan-400 bg-cyan-950/60 px-1.5 py-0.5 rounded border border-cyan-800/40">WYSIWYG CLIENT SIMULATION</span>
             </div>
             <div id="preview-banner-box" class="p-2 rounded text-center text-xs font-semibold bg-indigo-950/80 text-indigo-300 border border-indigo-800/60 transition-all">
-              <span id="prev-banner-text">🚀 Swades Cloud 2.0 is live worldwide! Sub-microsecond RAM speed.</span>
+              <span id="prev-banner-text">Loading remote announcement...</span>
             </div>
             <div class="p-3 bg-[#06080c] rounded border border-zinc-800/60 flex items-center justify-between">
               <div class="flex items-center gap-2">
@@ -2606,14 +2606,14 @@
     }
 
     function updateStylingPreview() {
-      const bannerInput = document.getElementById('rc-input-announcement_banner_text') || document.getElementById('rc-input-hero_banner_text');
-      const accentInput = document.getElementById('rc-input-theme_accent_color');
-      const headlineInput = document.getElementById('rc-input-app_hero_title');
+      const bannerInput = document.getElementById('rc-input-banner_announcement') || document.getElementById('rc-input-announcement_banner_text') || document.getElementById('rc-input-hero_banner_text');
+      const accentInput = document.getElementById('rc-input-primary_accent_color') || document.getElementById('rc-input-theme_accent_color');
+      const headlineInput = document.getElementById('rc-input-hero_headline') || document.getElementById('rc-input-app_hero_title');
 
-      if (bannerInput && document.getElementById('prev-banner-text')) {
+      if (bannerInput && document.getElementById('prev-banner-text') && bannerInput.value) {
         document.getElementById('prev-banner-text').innerText = bannerInput.value;
       }
-      if (headlineInput && document.getElementById('prev-headline')) {
+      if (headlineInput && document.getElementById('prev-headline') && headlineInput.value) {
         document.getElementById('prev-headline').innerText = headlineInput.value;
       }
       if (accentInput) {
