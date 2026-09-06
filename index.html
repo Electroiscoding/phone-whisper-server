@@ -4176,7 +4176,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
 
       if (btn) {
         btn.disabled = true;
-        btn.innerHTML = "<span>⏳ Synthesizing Audio...</span>";
+        btn.innerHTML = '<span><i class="fa-solid fa-spinner fa-spin mr-1.5"></i> Synthesizing Audio...</span>';
       }
 
       try {
@@ -4229,7 +4229,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
         activeDaemon = null;
         if (btn) {
           btn.disabled = false;
-          btn.innerHTML = "<i class="fa-solid fa-volume-high mr-1.5"></i> <span>Generate & Speak</span>";
+          btn.innerHTML = '<i class="fa-solid fa-volume-high mr-1.5"></i> <span>Generate & Speak</span>';
         }
       }
     }
@@ -4343,7 +4343,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       if (documents.length === 0) return;
 
       btn.disabled = true;
-      btn.innerHTML = "<span>⏳ Computing Deep Cross-Attention...</span>";
+      btn.innerHTML = '<span><i class="fa-solid fa-spinner fa-spin mr-1.5"></i> Computing Deep Cross-Attention...</span>';
       resultsContainer.innerHTML = `<div style="color: var(--primary); font-size: 0.9rem; padding: 1rem; text-align: center;"><i class="fa-solid fa-bolt mr-1"></i> Evaluating joint transformer self-attention across ${documents.length} candidates on phone CPU...</div>`;
 
       try {
@@ -4416,7 +4416,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
         resultsContainer.innerHTML = `<div style="color: var(--danger); padding: 1rem;">Error: ${err.message}</div>`;
       } finally {
         btn.disabled = false;
-        btn.innerHTML = "<i class="fa-solid fa-bullseye mr-1.5"></i> <span>Execute Deep Cross-Attention Reranking</span>";
+        btn.innerHTML = '<i class="fa-solid fa-bullseye mr-1.5"></i> <span>Execute Deep Cross-Attention Reranking</span>';
       }
     }
     window.executeRerankerPlayground = executeRerankerPlayground;
@@ -4785,7 +4785,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       isInferencing = true;
       latencyBadge.innerText = "Processing on phone MediaTek CPU...";
       outputContentArea.classList.remove("placeholder-mode");
-      outputContentArea.innerText = "⏳ Phone AI model is executing Whisper neural decode...";
+      outputContentArea.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1.5"></i> Phone AI model is executing Whisper neural decode...';
 
       addTerminalLog("INFO", `[HTTP POST] Dispatching ${(selectedWavBlob.size / 1024).toFixed(1)}KB payload to phone gateway...`);
 
@@ -5364,7 +5364,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       if (btn) {
         btn.style.background = "rgba(255,255,255,0.08)";
         btn.style.color = "var(--text-muted)";
-        btn.innerText = "<i class="fa-solid fa-video mr-1"></i> Start Live WebCam";
+        btn.innerHTML = '<i class="fa-solid fa-video mr-1"></i> Start Live WebCam';
       }
       if (nameEl) nameEl.innerText = "Camera stopped";
     }
@@ -5448,7 +5448,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
 
       if (btn) {
         btn.disabled = true;
-        btn.innerHTML = "<span>⏳ Processing on Phone ARM...</span>";
+        btn.innerHTML = '<span><i class="fa-solid fa-spinner fa-spin mr-1.5"></i> Processing on Phone ARM...</span>';
       }
       if (latencyLabel) latencyLabel.innerText = "Inferencing...";
 
@@ -5499,7 +5499,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
         activeDaemon = null;
         if (btn) {
           btn.disabled = false;
-          btn.innerHTML = "<i class="fa-solid fa-bolt mr-1.5"></i> <span>Run Vision Task</span>";
+          btn.innerHTML = '<i class="fa-solid fa-bolt mr-1.5"></i> <span>Run Vision Task</span>';
         }
       }
     }
@@ -5702,7 +5702,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       const out = document.getElementById("sdkTestOutput");
       if (btn) {
         btn.disabled = true;
-        btn.innerHTML = "<span>⏳ Testing all 6 modalities...</span>";
+        btn.innerHTML = '<span><i class="fa-solid fa-spinner fa-spin mr-1.5"></i> Testing all 6 modalities...</span>';
       }
       if (out) {
         out.style.display = "block";
@@ -5848,7 +5848,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       const statusEl = document.getElementById("storageKeyStatusMsg");
       if (!u || !p) return;
 
-      if (statusEl) statusEl.innerHTML = `<span style="color: #38bdf8;">⏳ Creating account and provisioning isolated vault on phone...</span>`;
+      if (statusEl) statusEl.innerHTML = '<span style="color: #38bdf8;"><i class="fa-solid fa-spinner fa-spin mr-1.5"></i> Creating account and provisioning isolated vault on phone...</span>';
 
       try {
         const res = await nuclearFetch(`${BASE_ENDPOINT}/v1/storage/auth/register`, {
@@ -5895,7 +5895,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       const statusEl = document.getElementById("storageKeyStatusMsg");
       if (!u || !p) return;
 
-      if (statusEl) statusEl.innerHTML = `<span style="color: #38bdf8;">⏳ Authenticating with phone vault...</span>`;
+      if (statusEl) statusEl.innerHTML = '<span style="color: #38bdf8;"><i class="fa-solid fa-spinner fa-spin mr-1.5"></i> Authenticating with phone vault...</span>';
 
       try {
         const res = await nuclearFetch(`${BASE_ENDPOINT}/v1/storage/auth/login`, {
@@ -6023,7 +6023,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       if (!keyName) return;
 
       const statusEl = document.getElementById("storageKeyStatusMsg");
-      if (statusEl) statusEl.innerHTML = `<span style="color: #38bdf8;">⏳ Generating new key for account ${currentAccount.username}...</span>`;
+      if (statusEl) statusEl.innerHTML = `<span style="color: #38bdf8;"><i class="fa-solid fa-spinner fa-spin mr-1.5"></i> Generating new key for account ${currentAccount.username}...</span>`;
 
       try {
         const res = await nuclearFetch(`${BASE_ENDPOINT}/v1/storage/auth/keys`, {
