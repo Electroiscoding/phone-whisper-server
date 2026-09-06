@@ -178,11 +178,87 @@ The following endpoints do NOT require an `Authorization` header or API key:
   }
   ```
 
-### 4.5 Neural Text-to-Speech (`piper-tts`)
-- **Path**: `POST /tts`
-- **Content-Type**: `application/json`
-- **Body**: `{"text": "Datacenter online. Battery at 86 percent."}`
-- **Response**: `audio/wav` binary stream.
+### 4.5 Kokoro-82M Neural Text-to-Speech (`/v1/audio/speech` & `/v1/audio/voices`)
+
+The datacenter exposes an OpenAI-compatible speech synthesis endpoint backed by the **Kokoro-82M StyleTTS2** neural model, an ultra-fast **Hot Latent Cache Vault (<15ms)**, and multi-lingual native fallback (<40ms).
+
+#### 4.5.1 Synthesize Speech (`POST /v1/audio/speech`)
+- **Aliases**: `POST /tts`, `POST /v1/tts`, `POST /speech`
+- **Request Headers**: `Content-Type: application/json`
+- **Payload Schema**:
+  ```json
+  {
+    "input": "Welcome to earth!",
+    "voice": "dm_martin",
+    "speed": 1.0,
+    "quality": "auto",
+    "response_format": "wav"
+  }
+  ```
+- **Response Headers**:
+  - `Content-Type: audio/wav`
+  - `X-TTS-Engine: Kokoro-82M Neural Engine (Hot Latent Vault)`
+  - `X-TTS-Voice: dm_martin`
+  - `X-Cache: HIT` (or `MISS`)
+- **Binary Output**: 24,000 Hz broadcast-quality WAV audio stream.
+
+#### 4.5.2 Voice Catalogue (`GET /v1/audio/voices`)
+Exposes all 7 active Kokoro neural voices on the device:
+
+| Voice ID | Name & Description | Language | Gender | Accent | Engine Model |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `af_heart` | American Female (Warm) | `en-US` | Female | American | `kokoro-82m-q8_0.gguf` |
+| `df_eva` | German Female (Articulated) | `de-DE` | Female | German | `kokoro-voice-df_eva.gguf` |
+| `df_victoria` | German Female (Studio) | `de-DE` | Female | German | `kokoro-voice-df_victoria.gguf` |
+| `dm_bernd` | German Male (Conversational) | `de-DE` | Male | German | `kokoro-voice-dm_bernd.gguf` |
+| `dm_martin` | German Male (Deep Resonance) | `de-DE` | Male | German | `kokoro-voice-dm_martin.gguf` |
+| `ef_dora` | Spanish Female (Expressive) | `es-ES` | Female | Castilian | `kokoro-voice-ef_dora.gguf` |
+| `ff_siwis` | French Female (Parisian) | `fr-FR` | Female | Parisian | `kokoro-voice-ff_siwis.gguf` |
+
+*OpenAI Voice Aliases Supported*: `alloy` -> `af_heart`, `echo` -> `am_adam`, `fable` -> `bf_emma`, `onyx` -> `dm_martin`, `nova` -> `df_eva`, `shimmer` -> `ef_dora`.
+
+#### 4.5.3 Multi-Tier Latency Architecture
+1. **Tier 1: Hot Latent Vault (HIT)**: **<15ms** instant response for pre-warmed phrases. Strict per-voice hash isolation.
+2. **Tier 2: Realtime Native (MISS)**: **<40ms** instant speech respecting the exact language (`de`, `es`, `fr`, `en`), gender, and formants, while dispatching a background thread to compute full Kokoro neural audio.
+3. **Tier 3: On-Demand Neural (`quality: "neural"`)**: Full StyleTTS2 82M forward-pass on 8x Cortex-A53 cores.
+
+#### 4.5.4 1-Line Developer SDK Usage
+
+##### JavaScript (`swades.js`):
+```javascript
+import { Swades } from './swades.js';
+const client = Swades.init();
+
+// 1-line speech synthesis
+const audio = await client.speak("Welcome to earth!", { voice: "dm_martin" });
+audio.play();
+
+// List voices
+const voices = await client.voices();
+```
+
+##### Python (`swades.py`):
+```python
+from swades import Swades
+client = Swades()
+
+# 1-line speech synthesis
+audio_bytes = client.tts("Welcome to earth!", voice="dm_martin", speed=1.0)
+
+# Save directly to disk
+client.tts_to_file("Welcome to earth!", "speech.wav", voice="dm_martin")
+
+# List voices
+voices = client.voices()
+```
+
+##### cURL:
+```bash
+curl -s -X POST https://phone-whisper-server.pages.dev/v1/audio/speech \
+  -H "Content-Type: application/json" \
+  -d '{"input": "Welcome to earth!", "voice": "dm_martin"}' \
+  --output speech.wav
+```
 
 ---
 

@@ -201,6 +201,57 @@ class SwadesClient {
       return await res.json();
     }
   };
+
+  // --- KOKORO-82M SPEECH SYNTHESIS (TTS) ---
+  tts = {
+    // 1-line speech synthesis
+    speak: async (text, options = {}) => {
+      const voice = options.voice || 'af_heart';
+      const speed = options.speed || 1.0;
+      const format = options.format || 'wav';
+      const quality = options.quality || 'auto';
+
+      const res = await fetch(`${this.endpoint}/v1/audio/speech`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(this.apiKey ? { 'x-api-key': this.apiKey } : {}),
+          ...(this.projectId ? { 'x-project-id': this.projectId } : {})
+        },
+        body: JSON.stringify({ input: text, voice, speed, response_format: format, quality })
+      });
+      if (!res.ok) throw new Error(`Speech synthesis failed: HTTP ${res.status}`);
+      const blob = await res.blob();
+      return {
+        blob,
+        url: typeof URL !== 'undefined' ? URL.createObjectURL(blob) : null,
+        engine: res.headers.get('x-tts-engine') || 'Kokoro-82M',
+        voice: res.headers.get('x-tts-voice') || voice,
+        cached: res.headers.get('x-cache') === 'HIT',
+        play: () => {
+          if (typeof Audio !== 'undefined') {
+            const a = new Audio(URL.createObjectURL(blob));
+            return a.play();
+          }
+        }
+      };
+    },
+
+    // List all supported Kokoro neural voices
+    voices: async () => {
+      const res = await fetch(`${this.endpoint}/v1/audio/voices`);
+      const data = await res.json();
+      return data.voices || [];
+    }
+  };
+
+  // Top-level convenience helpers
+  async speak(text, options) {
+    return this.tts.speak(text, options);
+  }
+  async voices() {
+    return this.tts.voices();
+  }
 }
 
 const Swades = {

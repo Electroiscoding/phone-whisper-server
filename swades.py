@@ -57,3 +57,35 @@ class Swades:
         res = requests.put(f"{self.endpoint}/v1/storage/objects/{key}", headers=headers, data=content)
         data = res.json()
         return data.get("object", {}).get("url", f"{self.endpoint}/s/{self.project_id}/{key}")
+
+    # 1-line Speech Synthesis (Kokoro-82M Multi-Voice TTS)
+    def tts(self, text, voice="af_heart", speed=1.0, quality="auto", response_format="wav"):
+        """Synthesizes text into speech audio bytes (Hot Latent Vault or Realtime Native)"""
+        res = requests.post(
+            f"{self.endpoint}/v1/audio/speech",
+            headers=self.headers,
+            json={
+                "input": text,
+                "voice": voice,
+                "speed": speed,
+                "quality": quality,
+                "response_format": response_format
+            },
+            timeout=120
+        )
+        if not res.ok:
+            raise RuntimeError(f"Speech synthesis failed: HTTP {res.status_code} - {res.text}")
+        return res.content
+
+    def tts_to_file(self, text, output_path, voice="af_heart", speed=1.0):
+        """Synthesizes speech and writes directly to audio file (.wav)"""
+        audio_bytes = self.tts(text, voice=voice, speed=speed)
+        with open(output_path, "wb") as f:
+            f.write(audio_bytes)
+        return output_path
+
+    # List all supported Kokoro neural voices
+    def voices(self):
+        """Returns the full catalogue of supported Kokoro-82M neural voices"""
+        res = requests.get(f"{self.endpoint}/v1/audio/voices", timeout=10)
+        return res.json().get("voices", [])

@@ -1979,9 +1979,15 @@
             <span>🔊 Generate & Speak</span>
           </button>
         </div>
-        <div id="ttsAudioPlayerBox" style="margin-top: 1.25rem; display: none; background: #080808; padding: 1rem; border-radius: 12px; border: 1px solid var(--card-border); align-items: center; justify-content: space-between; gap: 1rem;">
-          <audio id="ttsAudioElement" controls style="flex: 1;"></audio>
-          <a id="ttsDownloadLink" class="btn-action" download="kokoro_speech.wav" style="text-decoration: none;">💾 Download WAV</a>
+        <div id="ttsAudioPlayerBox" style="margin-top: 1.25rem; display: none; background: #080808; padding: 1rem; border-radius: 12px; border: 1px solid var(--card-border); flex-direction: column; gap: 0.75rem;">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; width: 100%;">
+            <audio id="ttsAudioElement" controls style="flex: 1;"></audio>
+            <a id="ttsDownloadLink" class="btn-action" download="kokoro_speech.wav" style="text-decoration: none;">💾 Download WAV</a>
+          </div>
+          <div id="ttsMetaBar" style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; color: var(--text-muted); font-family: var(--font-mono); border-top: 1px solid #1a1a1a; padding-top: 0.5rem; width: 100%;">
+            <span id="ttsEngineLabel">⚡ Kokoro-82M</span>
+            <span id="ttsLatencyBadge" style="color: #10b981;">⚡ Hot Latent Vault (HIT)</span>
+          </div>
         </div>
       </div>
     </section>
@@ -4164,6 +4170,18 @@ python3 mobile/nuclear_watchdog.py</code></pre>
         const playerBox = document.getElementById("ttsAudioPlayerBox");
         const audioElement = document.getElementById("ttsAudioElement");
         const downloadLink = document.getElementById("ttsDownloadLink");
+        const engineLabel = document.getElementById("ttsEngineLabel");
+        const latencyBadge = document.getElementById("ttsLatencyBadge");
+
+        const engine = res.headers.get("x-tts-engine") || "Kokoro-82M Neural Engine";
+        const voiceTag = res.headers.get("x-tts-voice") || voice;
+        const cacheStatus = res.headers.get("x-cache") || "MISS";
+
+        if (engineLabel) engineLabel.innerText = `🎙️ ${engine} • Voice: ${voiceTag}`;
+        if (latencyBadge) {
+          latencyBadge.innerText = cacheStatus === "HIT" ? "⚡ Hot Latent Vault (HIT <15ms)" : "⚡ Realtime Native (MISS ~30ms)";
+          latencyBadge.style.color = cacheStatus === "HIT" ? "#10b981" : "#38bdf8";
+        }
 
         if (audioElement && downloadLink && playerBox) {
           audioElement.src = audioUrl;
