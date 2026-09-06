@@ -5,6 +5,7 @@
 import requests
 import json
 import os
+import time
 
 class Swades:
     def __init__(self, api_key="", project_id="default", endpoint="https://phone-whisper-server.pages.dev"):
@@ -17,10 +18,28 @@ class Swades:
             "Content-Type": "application/json"
         }
 
+    def _req(self, method, path, **kwargs):
+        """Auto-recovering request helper with exponential backoff on edge tunnel reconnection"""
+        url = f"{self.endpoint}{path}" if path.startswith("/") else f"{self.endpoint}/{path}"
+        timeout = kwargs.pop("timeout", 30)
+        for attempt in range(3):
+            try:
+                res = requests.request(method, url, timeout=timeout, **kwargs)
+                if res.status_code == 503 and "reconnecting" in res.text and attempt < 2:
+                    time.sleep(1.5 * (attempt + 1))
+                    continue
+                return res
+            except Exception as e:
+                if attempt < 2:
+                    time.sleep(1.5 * (attempt + 1))
+                    continue
+                raise e
+
     # 1-line SQL query
     def query(self, sql_query, **kwargs):
-        res = requests.post(
-            f"{self.endpoint}/v1/dashboard/db/sql",
+        res = self._req(
+            "POST",
+            "/v1/dashboard/db/sql",
             headers=self.headers,
             json={"query": sql_query, "project_id": self.project_id, **kwargs}
         )
@@ -61,8 +80,9 @@ class Swades:
     # 1-line Speech Synthesis (Kokoro-82M Multi-Voice TTS)
     def tts(self, text, voice="af_heart", speed=1.0, quality="auto", response_format="wav"):
         """Synthesizes text into speech audio bytes (Hot Latent Vault or Realtime Native)"""
-        res = requests.post(
-            f"{self.endpoint}/v1/audio/speech",
+        res = self._req(
+            "POST",
+            "/v1/audio/speech",
             headers=self.headers,
             json={
                 "input": text,
@@ -87,5 +107,5 @@ class Swades:
     # List all supported Kokoro neural voices
     def voices(self):
         """Returns the full catalogue of supported Kokoro-82M neural voices"""
-        res = requests.get(f"{self.endpoint}/v1/audio/voices", timeout=10)
+        res = self._req("GET", "/v1/audio/voices", timeout=10)
         return res.json().get("voices", [])
