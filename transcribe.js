@@ -101,10 +101,10 @@ async function chat(prompt, options = {}) {
 const _ttsCache = new Map();
 
 /**
- * Synthesizes text to speech audio bytes on-device with multi-voice support.
+ * Synthesizes text to speech audio bytes on-device via Piper VITS.
  */
 async function tts(text, options = {}) {
-  const voice = (options.voice || "af_heart").trim().toLowerCase();
+  const voice = (options.voice || "amy").trim().toLowerCase();
   const speed = parseFloat(options.speed || 1.0);
   const cacheKey = `${voice}:${speed.toFixed(2)}:${text.trim().toLowerCase()}`;
 
@@ -128,7 +128,7 @@ async function tts(text, options = {}) {
 }
 
 /**
- * Lists all active Kokoro-82M neural voices.
+ * Lists all active Piper VITS neural voices.
  */
 async function voices() {
   const endpoint = `${getBaseEndpoint().replace(/\/+$/, "")}/v1/audio/voices`;

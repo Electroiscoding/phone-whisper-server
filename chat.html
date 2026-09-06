@@ -9,8 +9,8 @@
   <title>MobileAI — Multi-Modal Autonomous Conversational Studio</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <style>
     :root {
       --bg-color: #050609;
@@ -792,7 +792,7 @@
         if (res.ok) {
           const data = await res.json();
           if (data.endpoint && data.endpoint.startsWith("https://")) {
-            console.log("⚡ [Verified Active Phone Origin]:", data.endpoint);
+            console.log("[Verified Active Phone Origin]:", data.endpoint);
           }
         }
       } catch (err) {
@@ -994,7 +994,7 @@
             <span>Read Aloud</span>
           </button>
           <span style="font-size: 0.75rem; color: var(--text-subtle); margin-left: auto; font-family: monospace; padding: 0.2rem 0.5rem; background: rgba(255,255,255,0.04); border-radius: 4px;">
-            ⚡ ${estimatedTokens} tokens in ${elapsed}s (~${tokPerSec} tok/sec) • Context: ${turnCount} turns
+            <i class="fa-solid fa-bolt" style="color:#eab308;"></i> ${estimatedTokens} tokens in ${elapsed}s (~${tokPerSec} tok/sec) • Context: ${turnCount} turns
           </span>
         `;
         aiRow.appendChild(actionBar);
@@ -1110,7 +1110,7 @@
     }
 
     // =========================================================================
-    // 🎙️ SPEECH-TO-TEXT (WHISPER BASE.EN) IN THE INPUT BAR
+    // SPEECH-TO-TEXT (WHISPER BASE.EN) IN THE INPUT BAR
     // =========================================================================
     // -------------------------------------------------------------
     // 16kHz PCM WAV Encoder for Whisper STT Backend
@@ -1217,7 +1217,7 @@
       if (pcmMicStream) pcmMicStream.getTracks().forEach(t => t.stop());
 
       const input = document.getElementById("mainChatInput");
-      input.placeholder = "🧠 Transcribing audio with OpenAI Whisper Base.en...";
+      input.placeholder = "Transcribing audio with OpenAI Whisper Base.en...";
 
       try {
         let totalLength = 0;
@@ -1263,7 +1263,7 @@
     }
 
     // =========================================================================
-    // 🔘 PURE VOICE CHAT MODE (WHISPER -> QWEN -> TTS AUDIO LOOP)
+    // PURE VOICE CHAT MODE (WHISPER -> QWEN -> TTS AUDIO LOOP)
     // =========================================================================
     let activeVoiceCutFn = null;
 

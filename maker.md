@@ -178,9 +178,9 @@ The following endpoints do NOT require an `Authorization` header or API key:
   }
   ```
 
-### 4.5 Kokoro-82M Neural Text-to-Speech (`/v1/audio/speech` & `/v1/audio/voices`)
+### 4.5 Piper-VITS Neural Text-to-Speech (`/v1/audio/speech` & `/v1/audio/voices`)
 
-The datacenter exposes an OpenAI-compatible speech synthesis endpoint backed by the **Kokoro-82M StyleTTS2** neural model, multi-tier caching (Client, Cloudflare Global Edge, and On-Device Hot Latent Vault), and multi-lingual native fallback.
+The datacenter exposes an OpenAI-compatible speech synthesis endpoint backed by the **Piper VITS (Variational Inference with Monotonic Alignment Search)** neural engine, specifically engineered for low-power ARM Cortex cores. It features multi-tier caching (Client, Cloudflare Global Edge, and On-Device Gateway RAM/Disk Cache).
 
 #### 4.5.1 Synthesize Speech (`POST` & `GET /v1/audio/speech`)
 - **Paths**: `/v1/audio/speech`, `/speech`, `/tts`, `/v1/tts`
@@ -191,42 +191,45 @@ The datacenter exposes an OpenAI-compatible speech synthesis endpoint backed by 
   | Parameter | Type | Default | Description |
   | :--- | :--- | :--- | :--- |
   | `input` / `text` | string | *required* | The text prompt to synthesize into speech. |
-  | `voice` | string | `"af_heart"` | Kokoro voice persona (e.g. `dm_martin`, `af_heart`, `df_eva`, `ef_dora`, `ff_siwis`). |
+  | `voice` | string | `"amy"` | Piper VITS voice persona: `amy` (Female) or `lessac` (Male). |
   | `speed` | float | `1.0` | Playback speed multiplier (`0.5` to `2.0`). |
-  | `response_format` | string | `"wav"` | Output audio container format. |
-  | `quality` | string | `"auto"` | `"auto"` (multi-tier cache/realtime) or `"neural"` (on-demand forward pass). |
+  | `response_format` | string | `"wav"` | Output audio container format (`wav`). |
+  | `quality` | string | `"auto"` | `"auto"` (multi-tier cache/realtime) or `"neural"` (live VITS synthesis). |
 
 - **Response Headers**:
   - `Content-Type: audio/wav`
   - `Cache-Control: public, max-age=86400, s-maxage=604800, immutable`
   - `ETag: "<sha256_hash>"`
   - `Accept-Ranges: bytes`
-  - `X-TTS-Engine: Kokoro-82M Neural Engine (Hot Latent Vault)`
-  - `X-TTS-Voice: dm_martin`
-  - `X-Cache: HIT` (or `MISS`)
+  - `X-TTS-Engine: Piper-VITS Neural Engine`
+  - `X-TTS-Model: Piper VITS (en_US-{voice}-medium)`
+  - `X-TTS-Voice: amy` (or `lessac`)
+  - `X-Sample-Rate: 22050`
+  - `X-Cache: HIT (RAM)` (or `HIT (Disk)`, `MISS (Live Synthesis)`)
   - `X-Edge-Cache: HIT` (when served from Cloudflare's 300+ global edge locations)
 - **HTTP 304 Support**: Pass `If-None-Match: "<sha256_hash>"` for instant 304 Not Modified verification (<1ms, 0 byte transfer).
-- **Binary Output**: 24,000 Hz broadcast-quality WAV audio stream.
+- **Binary Output**: 22,050 Hz broadcast-quality WAV audio stream.
 
 #### 4.5.2 Voice Catalogue (`GET /v1/audio/voices`)
-Exposes the 2 pure American English Kokoro neural voices on the device (equivalent to Big Tech flagship assistant personas):
+Exposes the supported Piper VITS neural voices on the device:
 
-| Voice ID | Name & Description | Language | Gender | Accent | Engine Model | Big Tech Persona Equivalent |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `af_heart` | Heart (American English Female) | `en-US` | Female | American | `kokoro-82m-q8_0.gguf` | Siri / OpenAI Alloy & Sky (Warm & Articulate) |
-| `am_adam` | Adam (American English Male) | `en-US` | Male | American | `kokoro-82m-q8_0.gguf` | Jarvis / OpenAI Echo & Onyx (Resonant & Crisp) |
+| Voice ID | Name & Description | Language | Gender | Architecture | Characteristics |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `amy` | Amy (English Female • Natural VITS) | `en-US` | Female | VITS (61 MB ONNX) | Warm, articulate, high naturalness |
+| `lessac` | Lessac (English Male • Resonant VITS) | `en-US` | Male | VITS (61 MB ONNX) | Crisp, deep, authoritative narration |
 
-*Full Voice Aliasing*: Any female alias (`alloy`, `sky`, `nova`, `female`, `woman`, `heart`) maps to `af_heart`. Any male alias (`echo`, `onyx`, `male`, `man`, `adam`, `michael`) maps to `am_adam`. Zero foreign accent bleed.
+*Full Voice Aliasing*: Any female alias (`female`, `woman`, `heart`, `alloy`, `sky`, `nova`) maps to `amy`. Any male alias (`male`, `man`, `adam`, `echo`, `onyx`, `michael`) maps to `lessac`.
 
 #### 4.5.3 4-Tier Latency & Caching Architecture
-To guarantee maximum speed without ever encountering browser timeouts:
+To guarantee maximum speed:
 
 | Tier | Layer | Latency | Description |
 | :--- | :--- | :--- | :--- |
 | **Tier 0** | Client Memory & Disk | **0.01ms** | In-browser `Map` (`swades.js`) and local disk cache in `~/.swades/tts_cache/` (`swades.py`). |
 | **Tier 1** | Cloudflare Edge Cache | **<5ms** | Global edge caching across 300+ datacenters via `caches.default` in `_worker.js`. |
-| **Tier 2** | On-Device Hot Latent Vault | **<15ms** | Pre-warmed full Kokoro neural audio files stored on the phone in `.kokoro_cache/`. |
-| **Tier 3** | Realtime Multi-Lingual Native | **<40ms** | Instant native formant engine with precise language and pitch matching + async neural pre-warmer. |
+| **Tier 2** | On-Device Gateway RAM Cache | **<15ms** | In-memory RAM audio buffer stored on the phone (`_PIPER_MEM_CACHE`). |
+| **Tier 3** | On-Device Disk Cache | **~20ms** | On-device persistent cache in `~/.piper_cache/`. |
+| **Tier 4** | Live Piper VITS Synthesis | **~0.75-0.88x RTF** | Faster-than-real-time native ARM VITS neural inference on Cortex-A53 CPU. |
 
 #### 4.5.4 Developer SDK Usage
 
@@ -236,11 +239,11 @@ import { Swades } from './swades.js';
 const client = Swades.init();
 
 // 1. Synthesize speech (Cached in client memory & Cloudflare edge)
-const audio = await client.speak("Welcome to earth!", { voice: "dm_martin" });
+const audio = await client.speak("Welcome to earth!", { voice: "amy" });
 audio.play();
 
 // 2. Direct cacheable URL for <audio src="..."> HTML elements
-const audioUrl = client.getAudioUrl("Welcome to earth!", { voice: "dm_martin" });
+const audioUrl = client.getAudioUrl("Welcome to earth!", { voice: "amy" });
 document.getElementById("myAudio").src = audioUrl;
 
 // 3. List available voices
@@ -253,13 +256,13 @@ from swades import Swades
 client = Swades()
 
 # 1. Synthesize audio bytes (Automatic local memory + disk caching in ~/.swades/tts_cache/)
-audio_bytes = client.tts("Welcome to earth!", voice="dm_martin", speed=1.0)
+audio_bytes = client.tts("Welcome to earth!", voice="amy", speed=1.0)
 
 # 2. Save directly to file
-client.tts_to_file("Welcome to earth!", "speech.wav", voice="dm_martin")
+client.tts_to_file("Welcome to earth!", "speech.wav", voice="lessac")
 
 # 3. Direct edge-cacheable URL
-url = client.get_audio_url("Welcome to earth!", voice="dm_martin")
+url = client.get_audio_url("Welcome to earth!", voice="amy")
 
 # 4. List available voices
 voices = client.voices()
@@ -267,14 +270,20 @@ voices = client.voices()
 
 ##### cURL Examples:
 ```bash
-# POST Synthesis
+# POST Synthesis (Amy - Female)
 curl -s -X POST https://phone-whisper-server.pages.dev/v1/audio/speech \
   -H "Content-Type: application/json" \
-  -d '{"input": "Welcome to earth!", "voice": "dm_martin"}' \
-  --output speech.wav
+  -d '{"input": "Welcome to earth!", "voice": "amy"}' \
+  --output speech_female.wav
+
+# POST Synthesis (Lessac - Male)
+curl -s -X POST https://phone-whisper-server.pages.dev/v1/audio/speech \
+  -H "Content-Type: application/json" \
+  -d '{"input": "Welcome to earth!", "voice": "lessac"}' \
+  --output speech_male.wav
 
 # GET Direct Streaming (Edge Cacheable)
-curl -s "https://phone-whisper-server.pages.dev/v1/audio/speech?input=Welcome+to+earth!&voice=dm_martin" \
+curl -s "https://phone-whisper-server.pages.dev/v1/audio/speech?input=Welcome+to+earth!&voice=amy" \
   --output speech_get.wav
 ```
 

@@ -85,10 +85,10 @@ class Swades:
         data = res.json()
         return data.get("object", {}).get("url", f"{self.endpoint}/s/{self.project_id}/{key}")
 
-    # 1-line Speech Synthesis (Kokoro-82M Multi-Voice TTS with Hyper-Speed Caching)
-    def tts(self, text, voice="af_heart", speed=1.0, quality="auto", response_format="wav", use_cache=True):
-        """Synthesizes text into speech audio bytes (Tier 0 Local Cache -> Tier 1 Cloudflare Edge -> Tier 2 Hot Vault)"""
-        norm_voice = (voice or "af_heart").strip().lower()
+    # 1-line Speech Synthesis (Piper VITS Multi-Voice TTS with Hyper-Speed Caching)
+    def tts(self, text, voice="amy", speed=1.0, quality="auto", response_format="wav", use_cache=True):
+        """Synthesizes text into speech audio bytes (Tier 0 Local Cache -> Tier 1 Cloudflare Edge -> Tier 2 Gateway RAM -> Tier 3 Piper VITS)"""
+        norm_voice = (voice or "amy").strip().lower()
         norm_speed = float(speed or 1.0)
         norm_text = " ".join(str(text).strip().lower().split())
         cache_key = hashlib.sha256(f"{norm_voice}_{norm_speed:.2f}_{norm_text}".encode("utf-8")).hexdigest()
@@ -108,7 +108,7 @@ class Swades:
             except Exception:
                 pass
 
-        # Network Request (Edge Cache <5ms -> Hot Vault <15ms -> Native <40ms)
+        # Network Request (Edge Cache <5ms -> RAM Cache <15ms -> Piper VITS Live)
         res = self._req(
             "POST",
             "/v1/audio/speech",
@@ -138,22 +138,22 @@ class Swades:
 
         return audio_bytes
 
-    def speak(self, text, voice="af_heart", speed=1.0, quality="auto", response_format="wav", use_cache=True):
+    def speak(self, text, voice="amy", speed=1.0, quality="auto", response_format="wav", use_cache=True):
         """Convenience alias for tts()"""
         return self.tts(text, voice=voice, speed=speed, quality=quality, response_format=response_format, use_cache=use_cache)
 
-    def tts_to_file(self, text, output_path, voice="af_heart", speed=1.0, use_cache=True):
+    def tts_to_file(self, text, output_path, voice="amy", speed=1.0, use_cache=True):
         """Synthesizes speech and writes directly to audio file (.wav)"""
         audio_bytes = self.tts(text, voice=voice, speed=speed, use_cache=use_cache)
         with open(output_path, "wb") as f:
             f.write(audio_bytes)
         return output_path
 
-    def get_audio_url(self, text, voice="af_heart", speed=1.0, response_format="wav"):
+    def get_audio_url(self, text, voice="amy", speed=1.0, response_format="wav"):
         """Generates an edge-cacheable GET URL for direct streaming or embedding in web apps"""
         q = urllib.parse.urlencode({
             "input": text,
-            "voice": (voice or "af_heart").strip().lower(),
+            "voice": (voice or "amy").strip().lower(),
             "speed": f"{float(speed or 1.0):.2f}",
             "response_format": response_format
         })
@@ -169,8 +169,8 @@ class Swades:
                 except Exception:
                     pass
 
-    # List all supported Kokoro neural voices
+    # List all supported Piper VITS neural voices
     def voices(self):
-        """Returns the full catalogue of supported Kokoro-82M neural voices"""
+        """Returns the full catalogue of supported Piper VITS neural voices"""
         res = self._req("GET", "/v1/audio/voices", timeout=10)
         return res.json().get("voices", [])

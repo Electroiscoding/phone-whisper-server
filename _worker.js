@@ -160,7 +160,7 @@ export default {
     const isVoices = ["/v1/audio/voices", "/v1/voices", "/voices"].includes(url.pathname);
 
     let edgeCacheKey = null;
-    let ttsVoice = "af_heart";
+    let ttsVoice = "amy";
     let reqBodyText = null;
 
     if (isVoices && request.method === "GET") {
@@ -180,14 +180,14 @@ export default {
       let ttsSpeed = "1.0";
       if (request.method === "GET") {
         ttsInput = url.searchParams.get("input") || url.searchParams.get("text") || "";
-        ttsVoice = (url.searchParams.get("voice") || "af_heart").trim().toLowerCase();
+        ttsVoice = (url.searchParams.get("voice") || "amy").trim().toLowerCase();
         ttsSpeed = url.searchParams.get("speed") || "1.0";
       } else if (request.method === "POST") {
         try {
           reqBodyText = await request.text();
           const parsedBody = JSON.parse(reqBodyText);
           ttsInput = parsedBody.input || parsedBody.text || "";
-          ttsVoice = (parsedBody.voice || "af_heart").trim().toLowerCase();
+          ttsVoice = (parsedBody.voice || "amy").trim().toLowerCase();
           ttsSpeed = String(parsedBody.speed || 1.0);
         } catch (err) {}
       }

@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <style>
 
@@ -437,7 +438,7 @@
     }
 
     
-    /* 🛡️ Connection Guardian Live Status HUD */
+    /* Connection Guardian Live Status HUD */
     .connection-guardian-pill {
       display: inline-flex;
       align-items: center;
@@ -1707,7 +1708,7 @@
   <nav>
     <div style="display: flex; align-items: center;">
       <a href="#" class="brand">
-        <div class="brand-badge">🎙️</div>
+        <div class="brand-badge"><i class="fa-solid fa-microphone"></i></div>
         <span>PhoneWhisper<span style="color: var(--primary)">AI</span></span>
       </a>
       <div id="connectionGuardianHUD" class="connection-guardian-pill" title="Autonomous Connection Guardian Active">
@@ -1719,11 +1720,11 @@
     <!-- Desktop Navigation Links -->
     <div class="nav-links-desktop">
       <a href="/chat.html" class="nav-btn" style="background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(129, 140, 248, 0.2)); border-color: var(--primary); color: #fff; font-weight: 700; display: inline-flex; align-items: center; gap: 0.4rem;">
-        <span>🤖</span> <span>Demo</span>
+        <i class="fa-solid fa-robot mr-1.5 text-cyan-400"></i> <span>Demo</span>
       </a>
       <a href="#studio" class="nav-link">Studio</a>
-      <a href="#cloud-storage" class="nav-link" style="color: #38bdf8; font-weight: 700;">Cloud Storage ☁️</a>
-      <a href="/dashboard.html" class="nav-link" style="color: #a855f7; font-weight: 700;">Console 🎛️</a>
+      <a href="#cloud-storage" class="nav-link" style="color: #38bdf8; font-weight: 700;">Cloud Storage <i class="fa-solid fa-cloud text-xs ml-1"></i></a>
+      <a href="/dashboard.html" class="nav-link" style="color: #a855f7; font-weight: 700;">Console <i class="fa-solid fa-sliders text-xs ml-1"></i></a>
       <a href="#cheatsheet" class="nav-link">API Cheatsheet</a>
       <a href="#telemetry" class="nav-link">Telemetry</a>
       <a href="#how-it-works" class="nav-link">Architecture</a>
@@ -1736,7 +1737,7 @@
 
     <!-- Mobile Hamburger Toggle -->
     <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Open Navigation Menu">
-      ☰
+      <i class="fa-solid fa-bars"></i>
     </button>
   </nav>
 
@@ -1745,39 +1746,39 @@
   <div class="mobile-drawer" id="mobileDrawer">
     <div class="mobile-drawer-header">
       <div class="brand">
-        <div class="brand-badge">🎙️</div>
+        <div class="brand-badge"><i class="fa-solid fa-microphone"></i></div>
         <span>PhoneWhisper</span>
       </div>
-      <button class="mobile-close-btn" id="mobileCloseBtn">✕</button>
+      <button class="mobile-close-btn" id="mobileCloseBtn"><i class="fa-solid fa-xmark"></i></button>
     </div>
 
     <div class="mobile-nav-links">
       <a href="/chat.html" class="mobile-nav-item" onclick="closeMobileDrawer()" style="background: rgba(56, 189, 248, 0.12); border-color: var(--primary); color: #fff; font-weight: 700;">
-        <span>🤖</span> <span>Live Demo</span>
+        <i class="fa-solid fa-robot"></i> <span>Live Demo</span>
       </a>
       <a href="#studio" class="mobile-nav-item" onclick="closeMobileDrawer()">
-        <span>🎙️</span> <span>Voice Studio</span>
+        <i class="fa-solid fa-microphone mr-2 text-cyan-400"></i> <span>Voice Studio</span>
       </a>
       <a href="#cloud-storage" class="mobile-nav-item" onclick="closeMobileDrawer()" style="color: #38bdf8;">
-        <span>☁️</span> <span>Cloud Storage & CDN</span>
+        <i class="fa-solid fa-cloud mr-2 text-sky-400"></i> <span>Cloud Storage & CDN</span>
       </a>
       <a href="/dashboard.html" class="mobile-nav-item" onclick="closeMobileDrawer()" style="color: #c084fc;">
-        <span>🎛️</span> <span>Cloud Console</span>
+        <i class="fa-solid fa-sliders mr-2 text-purple-400"></i> <span>Cloud Console</span>
       </a>
       <a href="#cheatsheet" class="mobile-nav-item" onclick="closeMobileDrawer()">
-        <span>⚡</span> <span>API Cheatsheet</span>
+        <i class="fa-solid fa-bolt mr-2 text-amber-400"></i> <span>API Cheatsheet</span>
       </a>
       <a href="#telemetry" class="mobile-nav-item" onclick="closeMobileDrawer()">
-        <span>📊</span> <span>Live Telemetry</span>
+        <i class="fa-solid fa-chart-line mr-2 text-emerald-400"></i> <span>Live Telemetry</span>
       </a>
       <a href="#how-it-works" class="mobile-nav-item" onclick="closeMobileDrawer()">
-        <span>🏗️</span> <span>Architecture</span>
+        <i class="fa-solid fa-layer-group mr-2 text-zinc-400"></i> <span>Architecture</span>
       </a>
       <a href="/docs" class="mobile-nav-item" onclick="closeMobileDrawer()">
-        <span>📖</span> <span>Developer Docs</span>
+        <i class="fa-solid fa-book mr-2 text-indigo-400"></i> <span>Developer Docs</span>
       </a>
       <a href="https://github.com/Electroiscoding/phone-whisper-server" target="_blank" class="mobile-nav-item" style="border-color: rgba(56, 189, 248, 0.3); color: var(--primary);">
-        <span>⭐</span> <span>GitHub Repository</span>
+        <i class="fa-solid fa-star mr-2 text-yellow-400"></i> <span>GitHub Repository</span>
       </a>
     </div>
   </div>
@@ -1798,16 +1799,16 @@
 
       <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; justify-content: center; align-items: center; margin-bottom: 0.5rem;">
         <a href="#studio" class="btn-action" style="padding: 0.55rem 1.15rem; font-size: 0.85rem; font-weight: 600; background: rgba(56, 189, 248, 0.1); border-color: rgba(56, 189, 248, 0.3); color: #38bdf8;">
-          <span>🎙️</span> <span>Speech Studio</span>
+          <i class="fa-solid fa-microphone mr-2 text-cyan-400"></i> <span>Speech Studio</span>
         </a>
         <a href="#cloud-storage" class="btn-action" style="padding: 0.55rem 1.15rem; font-size: 0.85rem; font-weight: 600; background: rgba(56, 189, 248, 0.06); border-color: rgba(56, 189, 248, 0.2); color: #93c5fd;">
-          <span>☁️</span> <span>Edge Storage</span>
+          <i class="fa-solid fa-cloud mr-2 text-sky-400"></i> <span>Edge Storage</span>
         </a>
         <a href="/dashboard.html" class="btn-action" style="padding: 0.55rem 1.15rem; font-size: 0.85rem; font-weight: 600; background: rgba(168, 85, 247, 0.1); border-color: rgba(168, 85, 247, 0.3); color: #c084fc;">
-          <span>🎛️</span> <span>Console</span>
+          <i class="fa-solid fa-sliders mr-2 text-purple-400"></i> <span>Console</span>
         </a>
         <a href="#cheatsheet" class="btn-action" style="padding: 0.55rem 1.15rem; font-size: 0.85rem; font-weight: 600;">
-          <span>⚡</span> <span>API Cheatsheet</span>
+          <i class="fa-solid fa-bolt mr-2 text-amber-400"></i> <span>API Cheatsheet</span>
         </a>
       </div>
     </section>
@@ -1816,7 +1817,7 @@
     <section id="studio" style="margin-top: 1rem;">
       <div class="section-head">
         <span class="section-tag">
-          <span>🎙️</span>
+          <i class="fa-solid fa-microphone"></i>
           <span>Mode 1: Speech-to-Text (Whisper Base.en)</span>
         </span>
         <h2 class="section-title">On-Device Speech-to-Text Studio</h2>
@@ -1831,7 +1832,7 @@
           </div>
 
           <div class="file-ready-badge" id="fileReadyBadge">
-            <span>🎵</span>
+            <i class="fa-solid fa-music"></i>
             <span id="fileReadyName">audio.wav</span>
           </div>
 
@@ -1840,9 +1841,9 @@
           </div>
 
           <div class="pill-actions">
-            <button class="btn-discard" id="discardBtn" title="Discard recording">✕</button>
+            <button class="btn-discard" id="discardBtn" title="Discard recording"><i class="fa-solid fa-xmark"></i></button>
             <button class="btn-capsule-mic" id="recordToggleBtn" title="Click to Record / Pause">
-              <span id="micBtnIcon">🎙️</span>
+              <span id="micBtnIcon"><i class="fa-solid fa-microphone"></i></span>
             </button>
             <button class="btn-send-transcribe" id="sendTranscribeBtn" disabled title="Send & Transcribe Audio">
               <svg viewBox="0 0 24 24"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>
@@ -1852,10 +1853,10 @@
 
         <div class="studio-subcontrols">
           <label class="upload-trigger" for="fileUploadInput">
-            <span>📁 Upload Audio File</span>
+            <i class="fa-solid fa-folder-open mr-1.5"></i> <span>Upload Audio File</span>
             <input type="file" id="fileUploadInput" accept="audio/*,video/*" style="display: none;">
           </label>
-          <span id="audioStatusText" style="font-size: 0.8rem; color: var(--text-subtle); text-align: center;">Click 🎙️ to record, or upload audio</span>
+          <span id="audioStatusText" style="font-size: 0.8rem; color: var(--text-subtle); text-align: center;">Click mic button to record, or upload audio</span>
           <select id="responseFormatSelect" class="format-pill-select">
             <option value="json">Format: JSON</option>
             <option value="text">Format: Text</option>
@@ -1870,14 +1871,14 @@
         <div class="output-card">
           <div class="output-header">
             <span class="output-label">
-              <span>⚡</span> <span>Live Transcription Output</span>
+              <i class="fa-solid fa-bolt text-emerald-400 mr-1.5"></i> <span>Live Transcription Output</span>
             </span>
             <div class="output-actions">
-              <button class="btn-action" id="copyOutputBtn">📋 Copy</button>
-              <button class="btn-action" id="downloadOutputBtn">💾 Download</button>
+              <button class="btn-action" id="copyOutputBtn"><i class="fa-solid fa-copy mr-1"></i> Copy</button>
+              <button class="btn-action" id="downloadOutputBtn"><i class="fa-solid fa-download mr-1"></i> Download</button>
             </div>
           </div>
-          <div class="output-text-area placeholder-mode" id="outputContentArea">Click 🎙️ on the capsule to speak, or upload an audio file, then click the blue [↑] button to transcribe...</div>
+          <div class="output-text-area placeholder-mode" id="outputContentArea">Click microphone on the capsule to speak, or upload an audio file, then click the blue [↑] button to transcribe...</div>
           <div class="output-meta-bar">
             <span id="charCountLabel">0 characters</span>
             <span id="latencyBadge" style="color: var(--success); font-weight: 600;">Server Ready</span>
@@ -1890,7 +1891,7 @@
     <section id="slm-chat" style="margin-top: 2rem;">
       <div class="section-head">
         <span class="section-tag">
-          <span>💬</span>
+          <i class="fa-solid fa-comments"></i>
           <span>Mode 2: Small Language Model (SLM)</span>
         </span>
         <h2 class="section-title">On-Device SLM Chat (Qwen 2.5 0.5B)</h2>
@@ -1899,12 +1900,12 @@
 
       <div class="chat-container-card">
         <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 1rem; border-bottom: 1px solid var(--card-border); font-size: 0.8rem;">
-          <span id="qwenMemoryBadge" style="color: var(--primary); font-weight: 600;">🧠 Hyper-Temporary In-Memory Context: Active</span>
-          <button class="btn-action" style="padding: 0.25rem 0.65rem; font-size: 0.75rem;" onclick="clearQwenChatMemory()">🧹 Clear Memory</button>
+          <span id="qwenMemoryBadge" style="color: var(--primary); font-weight: 600;"><i class="fa-solid fa-brain mr-1.5"></i> Hyper-Temporary In-Memory Context: Active</span>
+          <button class="btn-action" style="padding: 0.25rem 0.65rem; font-size: 0.75rem;" onclick="clearQwenChatMemory()"><i class="fa-solid fa-broom mr-1"></i> Clear Memory</button>
         </div>
         <div class="chat-box-area" id="chatBoxArea">
           <div class="chat-bubble ai">
-            👋 Hello! I am Qwen 2.5 running directly inside Termux on your phone. Ask me anything, generate code, or test my reasoning!
+            Hello! I am Qwen 2.5 running directly inside Termux on your phone. Ask me anything, generate code, or test my reasoning!
           </div>
         </div>
 
@@ -1928,27 +1929,27 @@
         <div class="chat-input-row">
           <input type="text" id="chatInput" class="chat-input" placeholder="Type a prompt for on-device Qwen 2.5..." onkeydown="if(event.key==='Enter') sendChatPrompt();" />
           <button class="btn-send-chat" id="sendChatBtn" onclick="sendChatPrompt()">
-            <span>Send</span> <span>➤</span>
+            <span>Send</span> <i class="fa-solid fa-paper-plane text-xs"></i>
           </button>
         </div>
         <div class="prompt-chips-row">
           <span style="font-size: 0.8rem; color: var(--text-subtle); align-self: center;">Suggestions:</span>
-          <button class="prompt-chip" onclick="setPrompt('Explain quantum entanglement in 1 simple sentence')">⚡ Quantum Entanglement</button>
-          <button class="prompt-chip" onclick="setPrompt('Write a Python function to check for prime numbers')">🐍 Prime Number Code</button>
-          <button class="prompt-chip" onclick="setPrompt('Why is on-device mobile AI hosting better than cloud GPUs?')">📱 Edge AI vs Cloud</button>
+          <button class="prompt-chip" onclick="setPrompt('Explain quantum entanglement in 1 simple sentence')"><i class="fa-solid fa-bolt mr-1 text-cyan-400"></i> Quantum Entanglement</button>
+          <button class="prompt-chip" onclick="setPrompt('Write a Python function to check for prime numbers')"><i class="fa-brands fa-python mr-1 text-emerald-400"></i> Prime Number Code</button>
+          <button class="prompt-chip" onclick="setPrompt('Why is on-device mobile AI hosting better than cloud GPUs?')"><i class="fa-solid fa-mobile-screen mr-1 text-purple-400"></i> Edge AI vs Cloud</button>
         </div>
       </div>
     </section>
 
-    <!-- SECTION 3: TEXT-TO-SPEECH (TTS) STUDIO (KOKORO-82M NEURAL VOICE) -->
+    <!-- SECTION 3: TEXT-TO-SPEECH (TTS) STUDIO (PIPER-VITS NEURAL VOICE) -->
     <section id="tts-studio">
       <div class="section-head">
         <span class="section-tag">
-          <span>🗣️</span>
-          <span>Mode 3: Kokoro-82M Neural Voice Synthesis</span>
+          <i class="fa-solid fa-microphone-lines"></i>
+          <span>Mode 3: Piper-VITS Neural Voice Synthesis</span>
         </span>
-        <h2 class="section-title">Kokoro Neural Text-to-Speech (TTS)</h2>
-        <p class="section-desc">Generate lifelike speech in pure American English (Heart - Female & Adam - Male) directly on the sovereign phone node with sub-15ms cached latency.</p>
+        <h2 class="section-title">Piper VITS Neural Text-to-Speech (TTS)</h2>
+        <p class="section-desc">Generate lifelike speech in pure English (Amy - Female & Lessac - Male) directly on the sovereign phone node with sub-15ms cached latency.</p>
       </div>
 
       <div class="card-glow" style="padding: 1.5rem; border-radius: 16px;">
@@ -1959,8 +1960,8 @@
           <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
             <label style="font-size: 0.85rem; color: var(--text-muted);">Voice:</label>
             <select id="ttsVoiceSelect" class="format-pill-select" style="padding: 0.4rem 0.8rem; font-weight: 600;">
-              <option value="af_heart" selected>🇺🇸 Heart (English Female • Warm & Natural)</option>
-              <option value="am_adam">🇺🇸 Adam (English Male • Resonant & Clear)</option>
+              <option value="amy" selected>Amy (Female • Natural VITS)</option>
+              <option value="lessac">Lessac (Male • Resonant VITS)</option>
             </select>
             <label style="font-size: 0.85rem; color: var(--text-muted); margin-left: 0.5rem;">Speed:</label>
             <select id="ttsSpeedSelect" class="format-pill-select" style="padding: 0.4rem 0.8rem;">
@@ -1971,17 +1972,17 @@
             </select>
           </div>
           <button class="btn-send-chat" id="generateTtsBtn" onclick="generateSpeech()">
-            <span>🔊 Generate & Speak</span>
+            <i class="fa-solid fa-volume-high mr-1.5"></i> <span>Generate & Speak</span>
           </button>
         </div>
         <div id="ttsAudioPlayerBox" style="margin-top: 1.25rem; display: none; background: #080808; padding: 1rem; border-radius: 12px; border: 1px solid var(--card-border); flex-direction: column; gap: 0.75rem;">
           <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; width: 100%;">
             <audio id="ttsAudioElement" controls style="flex: 1;"></audio>
-            <a id="ttsDownloadLink" class="btn-action" download="kokoro_speech.wav" style="text-decoration: none;">💾 Download WAV</a>
+            <a id="ttsDownloadLink" class="btn-action" download="piper_speech.wav" style="text-decoration: none;"><i class="fa-solid fa-download mr-1"></i> Download WAV</a>
           </div>
           <div id="ttsMetaBar" style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; color: var(--text-muted); font-family: var(--font-mono); border-top: 1px solid #1a1a1a; padding-top: 0.5rem; width: 100%;">
-            <span id="ttsEngineLabel">⚡ Kokoro-82M</span>
-            <span id="ttsLatencyBadge" style="color: #10b981;">⚡ Hot Latent Vault (HIT)</span>
+            <span id="ttsEngineLabel"><i class="fa-solid fa-bolt text-emerald-400 mr-1"></i> Piper-VITS</span>
+            <span id="ttsLatencyBadge" style="color: #10b981;"><i class="fa-solid fa-bolt text-emerald-400 mr-1"></i> Phone RAM Cache (HIT)</span>
           </div>
         </div>
       </div>
@@ -1991,7 +1992,7 @@
     <section id="embeddings-studio">
       <div class="section-head">
         <span class="section-tag">
-          <span>🔍</span>
+          <i class="fa-solid fa-magnifying-glass"></i>
           <span>Mode 4: Dense Vector Search</span>
         </span>
         <h2 class="section-title">Worldwide Mobile AI Vector Embeddings</h2>
@@ -2011,7 +2012,7 @@
         </div>
 
         <button class="btn-send-chat" onclick="computeSimilarity()" style="margin-bottom: 1rem;">
-          <span>⚡ Compare Cosine Similarity</span>
+          <i class="fa-solid fa-bolt mr-1.5"></i> <span>Compare Cosine Similarity</span>
         </button>
 
         <div id="similarityResultBox" style="background: #080808; padding: 1.25rem; border-radius: 12px; border: 1px solid var(--card-border);">
@@ -2031,7 +2032,7 @@
     <section id="reranker-studio" style="margin-top: 2rem;">
       <div class="section-head">
         <span class="section-tag">
-          <span>🎯</span>
+          <i class="fa-solid fa-bullseye"></i>
           <span>Mode 5: Deep Cross-Attention NLI</span>
         </span>
         <h2 class="section-title">Worldwide Mobile AI Semantic Reranker (BGE-Reranker-Base)</h2>
@@ -2059,7 +2060,7 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
         </div>
 
         <button class="btn-send-chat" id="executeRerankBtn" onclick="executeRerankerPlayground()" style="margin-bottom: 1.25rem;">
-          <span>🎯 Execute Deep Cross-Attention Reranking</span>
+          <i class="fa-solid fa-bullseye mr-1.5"></i> <span>Execute Deep Cross-Attention Reranking</span>
         </button>
 
         <div id="rerankResultsContainer" style="display: flex; flex-direction: column; gap: 0.75rem;">
@@ -2075,7 +2076,7 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
     <section id="mediapipe-studio" style="margin-top: 2rem;">
       <div class="section-head">
         <span class="section-tag">
-          <span>👁️</span>
+          <i class="fa-solid fa-eye"></i>
           <span>Mode 6: Computer Vision & Spatial AI</span>
         </span>
         <h2 class="section-title">Computer Vision Suite (Google MediaPipe on ARM)</h2>
@@ -2085,21 +2086,21 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
       <div class="chat-container-card">
         <!-- Task Selection Chips -->
         <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.25rem;">
-          <button class="prompt-chip" id="taskBtn_face_detection" onclick="selectVisionTask('face_detection')" style="background: rgba(56, 189, 248, 0.2); border-color: var(--primary); color: #fff;">👤 Face Detection</button>
-          <button class="prompt-chip" id="taskBtn_hand_landmarks" onclick="selectVisionTask('hand_landmarks')">✋ Hand Landmarks (21-Pt)</button>
-          <button class="prompt-chip" id="taskBtn_pose_landmarks" onclick="selectVisionTask('pose_landmarks')">🏃 Pose Skeleton (33-Pt)</button>
-          <button class="prompt-chip" id="taskBtn_face_mesh" onclick="selectVisionTask('face_mesh')">🎭 Face Mesh (468-Pt)</button>
-          <button class="prompt-chip" id="taskBtn_selfie_segmentation" onclick="selectVisionTask('selfie_segmentation')">✂️ Selfie Segmentation</button>
-          <button class="prompt-chip" id="taskBtn_background_blur" onclick="selectVisionTask('background_blur')">📷 Background Blur</button>
-          <button class="prompt-chip" id="taskBtn_object_detection" onclick="selectVisionTask('object_detection')">📦 Object Detection</button>
-          <button class="prompt-chip" id="taskBtn_holistic" onclick="selectVisionTask('holistic')">🌐 Holistic (543-Pt)</button>
+          <button class="prompt-chip" id="taskBtn_face_detection" onclick="selectVisionTask('face_detection')" style="background: rgba(56, 189, 248, 0.2); border-color: var(--primary); color: #fff;"><i class="fa-solid fa-user mr-1"></i> Face Detection</button>
+          <button class="prompt-chip" id="taskBtn_hand_landmarks" onclick="selectVisionTask('hand_landmarks')"><i class="fa-solid fa-hand mr-1"></i> Hand Landmarks (21-Pt)</button>
+          <button class="prompt-chip" id="taskBtn_pose_landmarks" onclick="selectVisionTask('pose_landmarks')"><i class="fa-solid fa-person-running mr-1"></i> Pose Skeleton (33-Pt)</button>
+          <button class="prompt-chip" id="taskBtn_face_mesh" onclick="selectVisionTask('face_mesh')"><i class="fa-solid fa-masks-theater mr-1"></i> Face Mesh (468-Pt)</button>
+          <button class="prompt-chip" id="taskBtn_selfie_segmentation" onclick="selectVisionTask('selfie_segmentation')"><i class="fa-solid fa-scissors mr-1"></i> Selfie Segmentation</button>
+          <button class="prompt-chip" id="taskBtn_background_blur" onclick="selectVisionTask('background_blur')"><i class="fa-solid fa-camera mr-1"></i> Background Blur</button>
+          <button class="prompt-chip" id="taskBtn_object_detection" onclick="selectVisionTask('object_detection')"><i class="fa-solid fa-box mr-1"></i> Object Detection</button>
+          <button class="prompt-chip" id="taskBtn_holistic" onclick="selectVisionTask('holistic')"><i class="fa-solid fa-globe mr-1"></i> Holistic (543-Pt)</button>
         </div>
 
         <!-- Input Modality Selector: Image vs Video File vs Live WebCam -->
         <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-bottom: 1rem; background: rgba(5,8,15,0.8); padding: 0.4rem; border-radius: 10px; border: 1px solid var(--card-border); width: fit-content;">
-          <button class="btn-action" id="visionModeBtn_image" onclick="setVisionInputMode('image')" style="background: var(--primary); color: #000; font-weight: 700;">📸 Static Image</button>
-          <button class="btn-action" id="visionModeBtn_video" onclick="setVisionInputMode('video')">🎥 Video File</button>
-          <button class="btn-action" id="visionModeBtn_camera" onclick="setVisionInputMode('camera')">🔴 Live WebCam Stream</button>
+          <button class="btn-action" id="visionModeBtn_image" onclick="setVisionInputMode('image')" style="background: var(--primary); color: #000; font-weight: 700;"><i class="fa-solid fa-image mr-1"></i> Static Image</button>
+          <button class="btn-action" id="visionModeBtn_video" onclick="setVisionInputMode('video')"><i class="fa-solid fa-video mr-1"></i> Video File</button>
+          <button class="btn-action" id="visionModeBtn_camera" onclick="setVisionInputMode('camera')"><i class="fa-solid fa-circle text-rose-500 mr-1"></i> Live WebCam Stream</button>
         </div>
 
         <!-- Vision Control Bar Dynamic (Changes based on mode) -->
@@ -2107,15 +2108,15 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
           <!-- Dynamic Left Controls -->
           <div id="visionInputControls" style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
             <label class="btn-action" for="visionFileInput" style="cursor: pointer;">
-              📁 Upload Image
+              <i class="fa-solid fa-folder-open mr-1"></i> Upload Image
               <input type="file" id="visionFileInput" accept="image/*" style="display: none;" onchange="handleVisionImageUpload(event)">
             </label>
             <label class="btn-action" id="visionVideoUploadBtn" for="visionVideoInput" style="display: none; cursor: pointer;">
-              🎬 Upload Video File
+              <i class="fa-solid fa-clapperboard mr-1"></i> Upload Video File
               <input type="file" id="visionVideoInput" accept="video/*" style="display: none;" onchange="handleVisionVideoUpload(event)">
             </label>
             <button class="btn-action" id="toggleLiveCamBtn" style="display: none;" onclick="toggleLiveWebcam()">
-              📹 Start Live WebCam
+              <i class="fa-solid fa-video mr-1"></i> Start Live WebCam
             </button>
             <span id="visionFileName" style="font-size: 0.8rem; color: var(--text-subtle);">Using default benchmark canvas</span>
           </div>
@@ -2124,7 +2125,7 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
           <div style="display: flex; gap: 0.75rem; align-items: center;">
             <span id="visionFpsBadge" style="display: none; font-size: 0.78rem; font-family: monospace; color: #10b981; background: rgba(16,185,129,0.15); padding: 0.2rem 0.6rem; border-radius: 4px; border: 1px solid rgba(16,185,129,0.3);">0.0 FPS</span>
             <button class="btn-send-chat" id="runVisionBtn" onclick="executeVisionTask()" style="padding: 0.5rem 1.25rem;">
-              <span>⚡ Run Vision Task</span>
+              <i class="fa-solid fa-bolt mr-1.5"></i> <span>Run Vision Task</span>
             </button>
           </div>
         </div>
@@ -2137,7 +2138,7 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
           </div>
           <input type="range" id="videoFrameSlider" min="0" max="0" value="0" style="width: 100%; cursor: pointer;" oninput="onVideoSliderScrub(this.value)">
           <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
-            <button class="btn-action" style="font-size: 0.75rem; padding: 0.2rem 0.5rem;" onclick="playVideoSequence()">▶ Play Sequence</button>
+            <button class="btn-action" style="font-size: 0.75rem; padding: 0.2rem 0.5rem;" onclick="playVideoSequence()"><i class="fa-solid fa-play mr-1"></i> Play Sequence</button>
             <button class="btn-action" style="font-size: 0.75rem; padding: 0.2rem 0.5rem;" onclick="pauseVideoSequence()">⏸ Pause</button>
           </div>
         </div>
@@ -2174,7 +2175,7 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
     <section id="cloud-storage" style="margin-top: 2.5rem;">
       <div class="section-head">
         <span class="section-tag" style="background: rgba(56, 189, 248, 0.15); border-color: rgba(56, 189, 248, 0.3); color: #38bdf8;">
-          <span>☁️</span>
+          <i class="fa-solid fa-cloud"></i>
           <span>Worldwide Datacenter Feature: Cloud Storage & CDN</span>
         </span>
         <h2 class="section-title">Phone AI Datacenter Cloud Storage & CDN</h2>
@@ -2216,7 +2217,7 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
           <div id="storageAuthLoggedOutView">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
               <div>
-                <span style="font-weight: 700; color: #fff; font-size: 1rem;">🔐 Cloud Storage Pure Account System</span>
+                <span style="font-weight: 700; color: #fff; font-size: 1rem;"><i class="fa-solid fa-lock mr-1.5 text-amber-400"></i> Cloud Storage Pure Account System</span>
                 <span style="font-size: 0.8rem; color: var(--text-muted); margin-left: 0.5rem;">(Register or Log In to generate API keys &amp; manage your bucket)</span>
               </div>
               <div style="display: flex; gap: 0.4rem;">
@@ -2243,7 +2244,7 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
               <input type="password" id="registerPassword" placeholder="Choose Password" required
                      style="background: rgba(0,0,0,0.6); border: 1px solid var(--card-border); color: #fff; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; padding: 0.55rem 0.8rem; border-radius: 8px; width: 220px;">
               <button type="submit" class="btn-send-chat" style="padding: 0.55rem 1.1rem; font-size: 0.85rem; background: #10b981; color: #000; font-weight: 700;">
-                <span>✨ Register &amp; Get Primary Key</span>
+                <i class="fa-solid fa-wand-magic-sparkles mr-1.5"></i> <span>Register &amp; Get Primary Key</span>
               </button>
             </form>
           </div>
@@ -2252,7 +2253,7 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
           <div id="storageAuthLoggedInView" style="display: none;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
               <div style="display: flex; align-items: center; gap: 0.75rem;">
-                <span style="font-size: 1.2rem;">👤</span>
+                <i class="fa-solid fa-user" style="font-size: 1.2rem;"></i>
                 <div>
                   <div style="font-weight: 700; color: #fff; font-size: 0.95rem;">
                     Logged in as <span id="authUsernameBadge" style="color: #38bdf8; font-family: 'JetBrains Mono', monospace;">user</span>
@@ -2263,7 +2264,7 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
               </div>
               <div style="display: flex; gap: 0.5rem; align-items: center;">
                 <button onclick="promptCreateNewAccountKey()" class="btn-send-chat" style="padding: 0.4rem 0.85rem; font-size: 0.82rem; background: #38bdf8; color: #000; font-weight: 700;">
-                  <span>➕ New Key</span>
+                  <i class="fa-solid fa-plus mr-1"></i> <span>New Key</span>
                 </button>
                 <button onclick="handleStorageLogout()" class="btn-action" style="padding: 0.4rem 0.8rem; font-size: 0.82rem; color: #ef4444; border-color: rgba(239,68,68,0.3);">
                   <span>Log Out</span>
@@ -2278,10 +2279,10 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
                       style="flex: 1; min-width: 260px; background: rgba(0,0,0,0.7); border: 1px solid var(--card-border); color: #38bdf8; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; padding: 0.5rem 0.8rem; border-radius: 8px;">
               </select>
               <button onclick="copyCurrentStorageApiKey()" class="btn-action" style="padding: 0.5rem 0.8rem; font-size: 0.82rem;">
-                <span>📋 Copy Active Key</span>
+                <i class="fa-solid fa-copy mr-1"></i> <span>Copy Active Key</span>
               </button>
               <button onclick="runStorageHardwareBenchmark()" class="btn-action" style="padding: 0.5rem 0.85rem; font-size: 0.82rem; border-color: #a855f7; color: #c084fc;">
-                <span>⚡ Benchmark CRUD</span>
+                <i class="fa-solid fa-bolt mr-1"></i> <span>Benchmark CRUD</span>
               </button>
             </div>
           </div>
@@ -2300,7 +2301,7 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
                ondragleave="handleStorageDragLeave(event)" 
                ondrop="handleStorageDrop(event)"
                style="border: 2px dashed rgba(56, 189, 248, 0.4); border-radius: 12px; padding: 1.75rem; text-align: center; background: rgba(56, 189, 248, 0.03); transition: all 0.2s ease;">
-            <div style="font-size: 2.2rem; margin-bottom: 0.5rem;">📁</div>
+            <div style="font-size: 2.2rem; margin-bottom: 0.5rem;"><i class="fa-solid fa-folder-open text-cyan-400"></i></div>
             <div style="font-weight: 700; color: #fff; font-size: 1.05rem; margin-bottom: 0.3rem;">Drag &amp; Drop Files Here or Select File</div>
             <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">Instant streaming upload to phone NVMe/eMMC flash storage with public CDN permalink</div>
             <div style="display: flex; justify-content: center; gap: 0.75rem; flex-wrap: wrap; align-items: center;">
@@ -2311,7 +2312,7 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
               <input type="text" id="storageCustomKeyInput" placeholder="Custom Object Key (optional, e.g. avatars/logo.png)" 
                      style="background: rgba(0,0,0,0.5); border: 1px solid var(--card-border); color: #fff; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; padding: 0.5rem 0.8rem; border-radius: 6px; width: 280px;">
               <button id="storageUploadBtn" onclick="uploadSelectedStorageFile()" class="btn-send-chat" style="padding: 0.5rem 1.25rem; font-size: 0.85rem;" disabled>
-                <span>⚡ Upload to Phone</span>
+                <i class="fa-solid fa-cloud-arrow-up mr-1.5"></i> <span>Upload to Phone</span>
               </button>
             </div>
             <div id="storageUploadProgressText" style="font-size: 0.82rem; color: #38bdf8; margin-top: 0.75rem; font-family: 'JetBrains Mono', monospace; display: none;"></div>
@@ -2321,11 +2322,11 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
           <div>
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
               <div style="display: flex; align-items: center; gap: 0.5rem;">
-                <span style="font-weight: 700; color: #fff; font-size: 1rem;">📦 Bucket Objects</span>
+                <span style="font-weight: 700; color: #fff; font-size: 1rem;"><i class="fa-solid fa-boxes-stacked mr-1.5 text-sky-400"></i> Bucket Objects</span>
                 <span id="storageObjectCountBadge" style="font-size: 0.75rem; background: rgba(56,189,248,0.2); color: #38bdf8; padding: 0.15rem 0.5rem; border-radius: 12px; font-family: 'JetBrains Mono', monospace;">0 items</span>
               </div>
               <button onclick="loadStorageObjects()" class="btn-action" style="padding: 0.35rem 0.75rem; font-size: 0.8rem;">
-                <span>🔄 Refresh Objects</span>
+                <i class="fa-solid fa-arrows-rotate mr-1"></i> <span>Refresh Objects</span>
               </button>
             </div>
             
@@ -2355,7 +2356,7 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
         <!-- Developer Integration Snippets Tabs (cURL, Python, JS) -->
         <div style="margin-top: 2rem; background: rgba(0,0,0,0.5); border: 1px solid var(--card-border); border-radius: 12px; padding: 1.25rem;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-            <span style="font-weight: 700; color: #fff; font-size: 0.95rem;">💻 Developer API Integration</span>
+            <span style="font-weight: 700; color: #fff; font-size: 0.95rem;"><i class="fa-solid fa-laptop-code mr-1.5 text-emerald-400"></i> Developer API Integration</span>
             <div style="display: flex; gap: 0.4rem;">
               <button class="btn-action" id="snippetTab_curl" onclick="showSnippetTab('curl')" style="padding: 0.3rem 0.7rem; font-size: 0.78rem; background: var(--primary); color: #000; font-weight: 700;">cURL</button>
               <button class="btn-action" id="snippetTab_python" onclick="showSnippetTab('python')" style="padding: 0.3rem 0.7rem; font-size: 0.78rem;">Python</button>
@@ -2371,7 +2372,7 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
     <section id="cheatsheet" style="margin-top: 4rem;">
       <div class="section-head">
         <span class="section-tag">
-          <span>⚡</span>
+          <i class="fa-solid fa-bolt text-amber-400"></i>
           <span>Zero-Config Public API Reference</span>
         </span>
         <h2 class="section-title">Universal API Endpoints Cheatsheet</h2>
@@ -2382,31 +2383,31 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
       <div class="cheatsheet-banner" style="background: rgba(10, 15, 30, 0.85); border: 1px solid var(--card-border); border-radius: 12px; padding: 1.25rem; display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1.5rem;">
         <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem;">
           <div class="base-url-box" style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
-            <span class="base-url-pill" style="background: #3b82f6; color: #fff; font-weight: 800; font-size: 0.75rem; padding: 0.25rem 0.6rem; border-radius: 6px; letter-spacing: 0.05em;">🌐 PERMANENT PUBLIC API BASE</span>
+            <span class="base-url-pill" style="background: #3b82f6; color: #fff; font-weight: 800; font-size: 0.75rem; padding: 0.25rem 0.6rem; border-radius: 6px; letter-spacing: 0.05em;"><i class="fa-solid fa-globe mr-1"></i> PERMANENT PUBLIC API BASE</span>
             <span id="cheatsheetPublicUrl" style="font-family: monospace; font-size: 0.95rem; color: #38bdf8; word-break: break-all;">https://phone-whisper-server.pages.dev</span>
           </div>
-          <button class="btn-action" onclick="copyText(document.getElementById('cheatsheetPublicUrl').innerText)">📋 Copy Permanent URL</button>
+          <button class="btn-action" onclick="copyText(document.getElementById('cheatsheetPublicUrl').innerText)"><i class="fa-solid fa-copy mr-1"></i> Copy Permanent URL</button>
         </div>
         <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem; padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.07);">
           <div class="base-url-box" style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
-            <span class="base-url-pill" style="background: #10b981; color: #000; font-weight: 800; font-size: 0.75rem; padding: 0.25rem 0.6rem; border-radius: 6px; letter-spacing: 0.05em;">🏠 LOCAL WI-FI LAN URL</span>
+            <span class="base-url-pill" style="background: #10b981; color: #000; font-weight: 800; font-size: 0.75rem; padding: 0.25rem 0.6rem; border-radius: 6px; letter-spacing: 0.05em;"><i class="fa-solid fa-house mr-1"></i> LOCAL WI-FI LAN URL</span>
             <span id="cheatsheetLanUrl" style="font-family: monospace; font-size: 0.95rem; color: #a7f3d0; word-break: break-all;">http://192.168.29.2:8080</span>
           </div>
-          <button class="btn-action" onclick="copyText(document.getElementById('cheatsheetLanUrl').innerText)">📋 Copy LAN URL</button>
+          <button class="btn-action" onclick="copyText(document.getElementById('cheatsheetLanUrl').innerText)"><i class="fa-solid fa-copy mr-1"></i> Copy LAN URL</button>
         </div>
       </div>
 
       <!-- Interactive Category Filter Chips -->
       <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.75rem;">
-        <button class="prompt-chip active-chip" id="cheatFilter_all" onclick="filterCheatsheet('all')">🌟 All Endpoints (9)</button>
-        <button class="prompt-chip" id="cheatFilter_chat" onclick="filterCheatsheet('chat')">💬 Qwen 2.5 SLM Chat</button>
-        <button class="prompt-chip" id="cheatFilter_whisper" onclick="filterCheatsheet('whisper')">🎙️ Whisper STT</button>
-        <button class="prompt-chip" id="cheatFilter_tts" onclick="filterCheatsheet('tts')">🗣️ Neural TTS Voice</button>
-        <button class="prompt-chip" id="cheatFilter_embed" onclick="filterCheatsheet('embed')">🔍 Vector Embeddings</button>
-        <button class="prompt-chip" id="cheatFilter_rerank" onclick="filterCheatsheet('rerank')">🎯 Semantic Reranker</button>
-        <button class="prompt-chip" id="cheatFilter_vision" onclick="filterCheatsheet('vision')">👁️ MediaPipe Vision Suite</button>
-        <button class="prompt-chip" id="cheatFilter_storage" onclick="filterCheatsheet('storage')">☁️ Cloud Storage &amp; CDN</button>
-        <button class="prompt-chip" id="cheatFilter_telemetry" onclick="filterCheatsheet('telemetry')">📊 Kernel Telemetry</button>
+        <button class="prompt-chip active-chip" id="cheatFilter_all" onclick="filterCheatsheet('all')"><i class="fa-solid fa-star mr-1 text-amber-400"></i> All Endpoints (9)</button>
+        <button class="prompt-chip" id="cheatFilter_chat" onclick="filterCheatsheet('chat')"><i class="fa-solid fa-comments mr-1 text-cyan-400"></i> Qwen 2.5 SLM Chat</button>
+        <button class="prompt-chip" id="cheatFilter_whisper" onclick="filterCheatsheet('whisper')"><i class="fa-solid fa-microphone mr-1 text-emerald-400"></i> Whisper STT</button>
+        <button class="prompt-chip" id="cheatFilter_tts" onclick="filterCheatsheet('tts')"><i class="fa-solid fa-volume-high mr-1 text-rose-400"></i> Piper Neural TTS</button>
+        <button class="prompt-chip" id="cheatFilter_embed" onclick="filterCheatsheet('embed')"><i class="fa-solid fa-magnifying-glass mr-1 text-purple-400"></i> Vector Embeddings</button>
+        <button class="prompt-chip" id="cheatFilter_rerank" onclick="filterCheatsheet('rerank')"><i class="fa-solid fa-bullseye mr-1 text-amber-400"></i> Semantic Reranker</button>
+        <button class="prompt-chip" id="cheatFilter_vision" onclick="filterCheatsheet('vision')"><i class="fa-solid fa-eye mr-1 text-teal-400"></i> MediaPipe Vision Suite</button>
+        <button class="prompt-chip" id="cheatFilter_storage" onclick="filterCheatsheet('storage')"><i class="fa-solid fa-cloud mr-1 text-sky-400"></i> Cloud Storage &amp; CDN</button>
+        <button class="prompt-chip" id="cheatFilter_telemetry" onclick="filterCheatsheet('telemetry')"><i class="fa-solid fa-chart-line mr-1 text-lime-400"></i> Kernel Telemetry</button>
       </div>
 
       <!-- ENDPOINTS CONTAINER -->
@@ -2420,15 +2421,15 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
               <span>/v1/storage/objects/* &amp; /s/*</span>
             </div>
             <div class="feature-tags-row" style="margin: 0;">
-              <span class="feature-tag">☁️ Phone NVMe/Flash Storage</span>
-              <span class="feature-tag">⚡ Pure RAM L1 Reflection</span>
-              <span class="feature-tag">🔒 Zero-Tassel Multi-Tenancy</span>
-              <span class="feature-tag">🌐 Direct Public CDN Stream</span>
+              <span class="feature-tag"><i class="fa-solid fa-hard-drive mr-1"></i> Phone Flash Storage</span>
+              <span class="feature-tag"><i class="fa-solid fa-bolt mr-1 text-amber-400"></i> Pure RAM L1 Reflection</span>
+              <span class="feature-tag"><i class="fa-solid fa-lock mr-1 text-emerald-400"></i> Zero-Tassel Multi-Tenancy</span>
+              <span class="feature-tag"><i class="fa-solid fa-globe mr-1 text-cyan-400"></i> Direct Public CDN Stream</span>
             </div>
           </div>
           <div class="endpoint-body">
             <div style="background: rgba(56, 189, 248, 0.08); border-left: 3px solid var(--primary); padding: 0.75rem 1rem; border-radius: 0 8px 8px 0; margin-bottom: 1rem;">
-              <strong style="color: #38bdf8;">💡 Newbie 101: What is this?</strong>
+              <strong style="color: #38bdf8;"><i class="fa-solid fa-lightbulb mr-1 text-amber-400"></i> Newbie 101: What is this?</strong>
               <p style="margin: 0.25rem 0 0; font-size: 0.88rem; color: var(--text-muted); line-height: 1.4;">
                 This endpoint turns the phone into an S3-compatible, hyper-fast object storage datacenter! Upload images, models, binaries, and documents with sub-microsecond in-memory metadata reflection and instant worldwide CDN permalinks at <code>/s/&lt;tenant_id&gt;/&lt;file&gt;</code>. Multi-tenancy is completely isolated with zero data cross-contamination.
               </p>
@@ -2501,14 +2502,14 @@ console.log("Public CDN permalink:", object.url);</code></pre>
               <span>/v1/chat/completions</span>
             </div>
             <div class="feature-tags-row" style="margin: 0;">
-              <span class="feature-tag">💬 OpenAI-Compatible</span>
-              <span class="feature-tag">⚡ Real-Time SSE Stream</span>
-              <span class="feature-tag">🧠 Qwen 2.5 0.5B</span>
+              <span class="feature-tag"><i class="fa-solid fa-comments mr-1 text-cyan-400"></i> OpenAI-Compatible</span>
+              <span class="feature-tag"><i class="fa-solid fa-bolt mr-1 text-amber-400"></i> Real-Time SSE Stream</span>
+              <span class="feature-tag"><i class="fa-solid fa-brain mr-1 text-purple-400"></i> Qwen 2.5 0.5B</span>
             </div>
           </div>
           <div class="endpoint-body">
             <div style="background: rgba(56, 189, 248, 0.08); border-left: 3px solid var(--primary); padding: 0.75rem 1rem; border-radius: 0 8px 8px 0; margin-bottom: 1rem;">
-              <strong style="color: #38bdf8;">💡 Newbie 101: What is this?</strong>
+              <strong style="color: #38bdf8;"><i class="fa-solid fa-lightbulb mr-1 text-amber-400"></i> Newbie 101: What is this?</strong>
               <p style="margin: 0.25rem 0 0; font-size: 0.88rem; color: var(--text-muted); line-height: 1.4;">
                 This endpoint allows you to chat with the on-device AI just like ChatGPT! Send a list of messages, and the phone streams back tokens word-by-word at ~20 tokens/sec. Drop-in replacement for OpenAI SDK.
               </p>
@@ -2585,14 +2586,14 @@ while (true) {
               <span>/inference</span>
             </div>
             <div class="feature-tags-row" style="margin: 0;">
-              <span class="feature-tag">🎙️ Speech-to-Text</span>
-              <span class="feature-tag">⚡ OpenAI Whisper Base.en</span>
-              <span class="feature-tag">📁 Form-Data Audio</span>
+              <span class="feature-tag"><i class="fa-solid fa-microphone mr-1 text-emerald-400"></i> Speech-to-Text</span>
+              <span class="feature-tag"><i class="fa-solid fa-bolt mr-1 text-amber-400"></i> OpenAI Whisper Base.en</span>
+              <span class="feature-tag"><i class="fa-solid fa-folder mr-1 text-cyan-400"></i> Form-Data Audio</span>
             </div>
           </div>
           <div class="endpoint-body">
             <div style="background: rgba(16, 185, 129, 0.08); border-left: 3px solid var(--success); padding: 0.75rem 1rem; border-radius: 0 8px 8px 0; margin-bottom: 1rem;">
-              <strong style="color: #10b981;">💡 Newbie 101: What is this?</strong>
+              <strong style="color: #10b981;"><i class="fa-solid fa-lightbulb mr-1 text-amber-400"></i> Newbie 101: What is this?</strong>
               <p style="margin: 0.25rem 0 0; font-size: 0.88rem; color: var(--text-muted); line-height: 1.4;">
                 Send any recorded voice file (WAV, MP3, OGG, M4A) and the phone transcribes it into crystal-clear text or subtitle formats (SRT / VTT).
               </p>
@@ -2654,14 +2655,14 @@ console.log("Transcribed Text:", data.text);</code></pre>
               <span>/v1/audio/speech</span>
             </div>
             <div class="feature-tags-row" style="margin: 0;">
-              <span class="feature-tag">🗣️ Neural Voice</span>
-              <span class="feature-tag">🔊 WAV Audio Stream</span>
-              <span class="feature-tag">⚡ Fast ARM Synthesis</span>
+              <span class="feature-tag"><i class="fa-solid fa-microphone-lines mr-1 text-rose-400"></i> Piper Neural Voice</span>
+              <span class="feature-tag"><i class="fa-solid fa-volume-high mr-1 text-cyan-400"></i> WAV Audio Stream</span>
+              <span class="feature-tag"><i class="fa-solid fa-bolt mr-1 text-amber-400"></i> Fast ARM VITS Synthesis</span>
             </div>
           </div>
           <div class="endpoint-body">
             <div style="background: rgba(244, 63, 94, 0.08); border-left: 3px solid #f43f5e; padding: 0.75rem 1rem; border-radius: 0 8px 8px 0; margin-bottom: 1rem;">
-              <strong style="color: #f43f5e;">💡 Newbie 101: What is this?</strong>
+              <strong style="color: #f43f5e;"><i class="fa-solid fa-lightbulb mr-1 text-amber-400"></i> Newbie 101: What is this?</strong>
               <p style="margin: 0.25rem 0 0; font-size: 0.88rem; color: var(--text-muted); line-height: 1.4;">
                 Send plain text and receive back real human voice audio (WAV) directly generated on the phone CPU. Great for giving your bots a voice!
               </p>
@@ -2673,7 +2674,7 @@ console.log("Transcribed Text:", data.text);</code></pre>
                 <thead><tr><th>Field</th><th>Type</th><th>Required</th><th>Default</th><th>Description</th></tr></thead>
                 <tbody>
                   <tr><td><code>input</code></td><td>String</td><td><strong style="color: var(--danger)">Yes</strong></td><td>-</td><td>Text to synthesize into spoken audio</td></tr>
-                  <tr><td><code>voice</code></td><td>String</td><td>No</td><td><code>af_heart</code></td><td>Pure English Voice: <code>af_heart</code> (American Female), <code>am_adam</code> (American Male)</td></tr>
+                  <tr><td><code>voice</code></td><td>String</td><td>No</td><td><code>af_heart</code></td><td>Pure English Voice: <code>af_heart</code> (Female • Heart), <code>am_adam</code> (Male • Adam)</td></tr>
                   <tr><td><code>speed</code></td><td>Float</td><td>No</td><td><code>1.0</code></td><td>Speech rate multiplier (0.5 to 2.0)</td></tr>
                 </tbody>
               </table>
@@ -2690,14 +2691,14 @@ console.log("Transcribed Text:", data.text);</code></pre>
               <div id="snip-tts-curl" class="snippet-pane active">
                 <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>curl -X POST "https://phone-whisper-server.pages.dev/v1/audio/speech" \
   -H "Content-Type: application/json" \
-  -d '{"input": "Hello world from Kokoro neural speech", "voice": "af_heart"}' \
+  -d '{"input": "Hello world from Piper VITS neural speech", "voice": "amy"}' \
   --output speech.wav</code></pre>
               </div>
               <div id="snip-tts-py" class="snippet-pane" style="display: none;">
                 <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>import requests
 
 url = "https://phone-whisper-server.pages.dev/v1/audio/speech"
-res = requests.post(url, json={"input": "Welcome to Kokoro neural speech!", "voice": "af_heart"})
+res = requests.post(url, json={"input": "Welcome to Piper VITS neural speech!", "voice": "amy"})
 with open("output.wav", "wb") as f:
     f.write(res.content)</code></pre>
               </div>
@@ -2705,7 +2706,7 @@ with open("output.wav", "wb") as f:
                 <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>const res = await fetch("https://phone-whisper-server.pages.dev/v1/audio/speech", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ input: "Hello from Kokoro TTS!", voice: "af_heart" })
+  body: JSON.stringify({ input: "Hello from Piper VITS!", voice: "amy" })
 });
 const audioBlob = await res.blob();
 const audioUrl = URL.createObjectURL(audioBlob);
@@ -2723,14 +2724,14 @@ new Audio(audioUrl).play();</code></pre>
               <span>/v1/embeddings</span>
             </div>
             <div class="feature-tags-row" style="margin: 0;">
-              <span class="feature-tag">🔍 Dense Vectors</span>
-              <span class="feature-tag">📐 896 Dimensions</span>
-              <span class="feature-tag">🧠 BAAI BGE-Small</span>
+              <span class="feature-tag"><i class="fa-solid fa-magnifying-glass mr-1 text-purple-400"></i> Dense Vectors</span>
+              <span class="feature-tag"><i class="fa-solid fa-ruler-combined mr-1 text-indigo-400"></i> 896 Dimensions</span>
+              <span class="feature-tag"><i class="fa-solid fa-brain mr-1 text-purple-400"></i> BAAI BGE-Small</span>
             </div>
           </div>
           <div class="endpoint-body">
             <div style="background: rgba(168, 85, 247, 0.08); border-left: 3px solid var(--secondary); padding: 0.75rem 1rem; border-radius: 0 8px 8px 0; margin-bottom: 1rem;">
-              <strong style="color: #a855f7;">💡 Newbie 101: What is this?</strong>
+              <strong style="color: #a855f7;"><i class="fa-solid fa-lightbulb mr-1 text-amber-400"></i> Newbie 101: What is this?</strong>
               <p style="margin: 0.25rem 0 0; font-size: 0.88rem; color: var(--text-muted); line-height: 1.4;">
                 Converts any sentence into a numerical array (896 floats). Compare two sentence vectors using cosine similarity to search documents by <em>meaning</em> rather than exact keyword matches!
               </p>
@@ -2750,14 +2751,14 @@ new Audio(audioUrl).play();</code></pre>
               <span>/v1/rerank</span>
             </div>
             <div class="feature-tags-row" style="margin: 0;">
-              <span class="feature-tag">🎯 NLI Cross-Attention</span>
-              <span class="feature-tag">🧠 BGE Reranker-Base</span>
-              <span class="feature-tag">🏆 Document Scoring</span>
+              <span class="feature-tag"><i class="fa-solid fa-bullseye mr-1 text-amber-400"></i> NLI Cross-Attention</span>
+              <span class="feature-tag"><i class="fa-solid fa-brain mr-1 text-amber-400"></i> BGE Reranker-Base</span>
+              <span class="feature-tag"><i class="fa-solid fa-trophy mr-1 text-yellow-400"></i> Document Scoring</span>
             </div>
           </div>
           <div class="endpoint-body">
             <div style="background: rgba(245, 158, 11, 0.08); border-left: 3px solid var(--warning); padding: 0.75rem 1rem; border-radius: 0 8px 8px 0; margin-bottom: 1rem;">
-              <strong style="color: #f59e0b;">💡 Newbie 101: What is this?</strong>
+              <strong style="color: #f59e0b;"><i class="fa-solid fa-lightbulb mr-1 text-amber-400"></i> Newbie 101: What is this?</strong>
               <p style="margin: 0.25rem 0 0; font-size: 0.88rem; color: var(--text-muted); line-height: 1.4;">
                 Takes a question and candidate search results, compares them cross-attentively, and scores them from 0.0 to 1.0. Eliminates hallucinated search results and catches contradictions!
               </p>
@@ -2783,15 +2784,15 @@ new Audio(audioUrl).play();</code></pre>
               <span>/v1/vision/{task}</span>
             </div>
             <div class="feature-tags-row" style="margin: 0;">
-              <span class="feature-tag">📸 Static Image</span>
-              <span class="feature-tag">🎥 Video Keyframe Sequence</span>
-              <span class="feature-tag">🔴 Live WebCam Stream</span>
-              <span class="feature-tag">⚡ Sub-10ms ARM</span>
+              <span class="feature-tag"><i class="fa-solid fa-image mr-1"></i> Static Image</span>
+              <span class="feature-tag"><i class="fa-solid fa-film mr-1 text-cyan-400"></i> Video Keyframe Sequence</span>
+              <span class="feature-tag"><i class="fa-solid fa-circle text-rose-500 mr-1"></i> Live WebCam Stream</span>
+              <span class="feature-tag"><i class="fa-solid fa-bolt mr-1 text-amber-400"></i> Sub-10ms ARM</span>
             </div>
           </div>
           <div class="endpoint-body">
             <div style="background: rgba(6, 182, 212, 0.08); border-left: 3px solid #06b6d4; padding: 0.75rem 1rem; border-radius: 0 8px 8px 0; margin-bottom: 1rem;">
-              <strong style="color: #06b6d4;">💡 Newbie 101: What is this?</strong>
+              <strong style="color: #06b6d4;"><i class="fa-solid fa-lightbulb mr-1 text-amber-400"></i> Newbie 101: What is this?</strong>
               <p style="margin: 0.25rem 0 0; font-size: 0.88rem; color: var(--text-muted); line-height: 1.4;">
                 On-device Computer Vision suite supporting <strong>Static Images</strong>, <strong>Video Files</strong>, and <strong>Real-Time Live WebCam Streams</strong>. Tracks 33-point body skeletons, 21-point hand landmarks, 468-point 3D face meshes, and portrait bokeh background blur in under 10ms!
               </p>
@@ -2805,9 +2806,9 @@ new Audio(audioUrl).play();</code></pre>
             <div style="margin-top: 1rem;">
               <h4 style="font-size: 0.82rem; text-transform: uppercase; color: var(--text-subtle); letter-spacing: 0.05em; margin-bottom: 0.4rem;">3 Input Modality Examples</h4>
               <div class="docs-tabs" style="font-size: 0.8rem; margin-bottom: 0.5rem;">
-                <button class="docs-tab active" onclick="switchSnippetTab(this, 'snip-vis-img')">📸 Static Image</button>
-                <button class="docs-tab" onclick="switchSnippetTab(this, 'snip-vis-vid')">🎥 Video Sequence</button>
-                <button class="docs-tab" onclick="switchSnippetTab(this, 'snip-vis-cam')">🔴 Live WebCam Frame</button>
+                <button class="docs-tab active" onclick="switchSnippetTab(this, 'snip-vis-img')"><i class="fa-solid fa-image mr-1"></i> Static Image</button>
+                <button class="docs-tab" onclick="switchSnippetTab(this, 'snip-vis-vid')"><i class="fa-solid fa-film mr-1"></i> Video Sequence</button>
+                <button class="docs-tab" onclick="switchSnippetTab(this, 'snip-vis-cam')"><i class="fa-solid fa-circle text-rose-500 mr-1"></i> Live WebCam Frame</button>
               </div>
               <div id="snip-vis-img" class="snippet-pane active">
                 <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>curl -X POST "https://phone-whisper-server.pages.dev/v1/vision/face-detection" \
@@ -2847,14 +2848,14 @@ console.log(`Live 468-pt Mesh computed in ${data.inference_time_ms}ms`);</code><
               <span>/telemetry</span>
             </div>
             <div class="feature-tags-row" style="margin: 0;">
-              <span class="feature-tag">🔋 Real Hardware State</span>
-              <span class="feature-tag">🧠 Linux Kernel /proc</span>
-              <span class="feature-tag">🌡️ Zero-Hardcoding</span>
+              <span class="feature-tag"><i class="fa-solid fa-battery-half mr-1 text-emerald-400"></i> Real Hardware State</span>
+              <span class="feature-tag"><i class="fa-solid fa-microchip mr-1 text-purple-400"></i> Linux Kernel /proc</span>
+              <span class="feature-tag"><i class="fa-solid fa-temperature-half mr-1 text-rose-400"></i> Zero-Hardcoding</span>
             </div>
           </div>
           <div class="endpoint-body">
             <div style="background: rgba(16, 185, 129, 0.08); border-left: 3px solid #10b981; padding: 0.75rem 1rem; border-radius: 0 8px 8px 0; margin-bottom: 1rem;">
-              <strong style="color: #10b981;">💡 Newbie 101: What is this?</strong>
+              <strong style="color: #10b981;"><i class="fa-solid fa-lightbulb mr-1 text-amber-400"></i> Newbie 101: What is this?</strong>
               <p style="margin: 0.25rem 0 0; font-size: 0.88rem; color: var(--text-muted); line-height: 1.4;">
                 Returns 100% genuine real-time hardware telemetry directly from the Android Linux kernel: exact battery percentage, temperature, voltage, free RAM, CPU load, and active processes.
               </p>
@@ -2866,10 +2867,10 @@ console.log(`Live 468-pt Mesh computed in ${data.inference_time_ms}ms`);</code><
 
       </div>
 
-      <!-- 🛠️ BEGINNER STARTER RECIPES -->
+      <!-- BEGINNER STARTER RECIPES -->
       <div style="margin-top: 4rem; background: rgba(10, 15, 30, 0.7); border: 1px solid var(--card-border); border-radius: 16px; padding: 1.5rem;">
         <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
-          <span style="font-size: 1.25rem;">🛠️</span>
+          <i class="fa-solid fa-screwdriver-wrench" style="font-size: 1.25rem;"></i>
           <h3 style="font-size: 1.15rem; color: #fff; margin: 0;">Pre-Built 100% On-Device Recipes for Newbies</h3>
         </div>
         <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 1.25rem;">
@@ -2879,7 +2880,7 @@ console.log(`Live 468-pt Mesh computed in ${data.inference_time_ms}ms`);</code><
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem;">
           <!-- Recipe 1 -->
           <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--card-border); border-radius: 10px; padding: 1rem;">
-            <div style="font-weight: 700; color: #38bdf8; font-size: 0.95rem; margin-bottom: 0.4rem;">🎙️ Full Voice AI Assistant</div>
+            <div style="font-weight: 700; color: #38bdf8; font-size: 0.95rem; margin-bottom: 0.4rem;"><i class="fa-solid fa-microphone mr-1.5 text-cyan-400"></i> Full Voice AI Assistant</div>
             <p style="font-size: 0.82rem; color: var(--text-muted); line-height: 1.4; margin-bottom: 0.75rem;">
               Capture audio $	o$ Transcribe with Whisper $	o$ Reason with Qwen SLM $	o$ Speak reply with Neural TTS.
             </p>
@@ -2891,7 +2892,7 @@ text_to_speech(reply, "reply.wav")</code></pre>
 
           <!-- Recipe 2 -->
           <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--card-border); border-radius: 10px; padding: 1rem;">
-            <div style="font-weight: 700; color: #a855f7; font-size: 0.95rem; margin-bottom: 0.4rem;">📚 Smart Semantic Document RAG</div>
+            <div style="font-weight: 700; color: #a855f7; font-size: 0.95rem; margin-bottom: 0.4rem;"><i class="fa-solid fa-book-open mr-1.5 text-purple-400"></i> Smart Semantic Document RAG</div>
             <p style="font-size: 0.82rem; color: var(--text-muted); line-height: 1.4; margin-bottom: 0.75rem;">
               Vector Embeddings $	o$ Cosine Similarity Search $	o$ Cross-Attention Reranking $	o$ Accurate Grounded Answers.
             </p>
@@ -2903,7 +2904,7 @@ ans = chat(f"Context: {ranked[0]}\nQuestion: {query}")</code></pre>
 
           <!-- Recipe 3 -->
           <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--card-border); border-radius: 10px; padding: 1rem;">
-            <div style="font-weight: 700; color: #10b981; font-size: 0.95rem; margin-bottom: 0.4rem;">👁️ Real-Time Gesture Controller</div>
+            <div style="font-weight: 700; color: #10b981; font-size: 0.95rem; margin-bottom: 0.4rem;"><i class="fa-solid fa-hand mr-1.5 text-emerald-400"></i> Real-Time Gesture Controller</div>
             <p style="font-size: 0.82rem; color: var(--text-muted); line-height: 1.4; margin-bottom: 0.75rem;">
               Stream webcam frames $	o$ Detect 21 hand joints $	o$ Trigger custom UI gestures or drone controls in $<8	ext{ms}$.
             </p>
@@ -2932,7 +2933,7 @@ if (res.hands && res.hands[0]) {
         <!-- CPU Load & Dynamic Graph -->
         <div class="telemetry-card col-6">
           <div class="telemetry-card-header">
-            <span class="telemetry-title">⚡ CPU Load & Core Activity</span>
+            <span class="telemetry-title"><i class="fa-solid fa-microchip mr-1.5 text-amber-400"></i> CPU Load & Core Activity</span>
             <span class="telemetry-badge live-glow">8x ARMv8 Cores</span>
           </div>
           <div class="telemetry-big-val">
@@ -2950,7 +2951,7 @@ if (res.hands && res.hands[0]) {
         <!-- Latency & Network Graph -->
         <div class="telemetry-card col-6">
           <div class="telemetry-card-header">
-            <span class="telemetry-title">🌐 Edge Latency & Network RTT</span>
+            <span class="telemetry-title"><i class="fa-solid fa-network-wired mr-1.5 text-cyan-400"></i> Edge Latency & Network RTT</span>
             <span class="telemetry-badge success">QUIC / Anycast</span>
           </div>
           <div class="telemetry-big-val">
@@ -2969,14 +2970,14 @@ if (res.hands && res.hands[0]) {
         <!-- JIT Memory Governor & Dynamic Model Lifecycle Card -->
         <div class="telemetry-card col-4">
           <div class="telemetry-card-header">
-            <span class="telemetry-title">🧠 Memory Supervisor (Process Auto-Killer)</span>
+            <span class="telemetry-title"><i class="fa-solid fa-shield-halved mr-1.5 text-purple-400"></i> Memory Supervisor (Process Auto-Killer)</span>
             <span class="telemetry-badge success" id="govPolicyBadge">75s Inactivity Timeout</span>
           </div>
           <div class="telemetry-big-val" style="font-size: 1.35rem; line-height: 1.3;" id="govActiveSummary">
             <span style="color: var(--success);">0 Active</span> <span style="font-size: 0.9rem; color: var(--text-muted); font-weight: normal;">• 4 Sleeping</span>
           </div>
           <div style="background: rgba(255, 255, 255, 0.04); border-radius: 8px; padding: 0.6rem 0.8rem; margin-top: 0.5rem; font-size: 0.8rem; color: var(--text-subtle); line-height: 1.4;" id="govModelList">
-            💤 All models evicted from RAM (2.0+ GB Free)
+            <i class="fa-solid fa-moon mr-1.5 text-zinc-500"></i> All models evicted from RAM (2.0+ GB Free)
           </div>
           <div class="telemetry-footer-stats" style="margin-top: 0.6rem;">
             <span>Auto-Eviction: <strong>75s TTL</strong></span>
@@ -2987,7 +2988,7 @@ if (res.hands && res.hands[0]) {
         <!-- Memory / RAM Usage Card (REAL DATA) -->
         <div class="telemetry-card col-4">
           <div class="telemetry-card-header">
-            <span class="telemetry-title">🧠 Real RAM Allocation</span>
+            <span class="telemetry-title"><i class="fa-solid fa-memory mr-1.5 text-indigo-400"></i> Real RAM Allocation</span>
             <span class="telemetry-badge" id="ramBadge">Kernel MemInfo</span>
           </div>
           <div class="telemetry-big-val">
@@ -3005,7 +3006,7 @@ if (res.hands && res.hands[0]) {
         <!-- Thermal & Battery Card (100% REAL LIVE DATA) -->
         <div class="telemetry-card col-4">
           <div class="telemetry-card-header">
-            <span class="telemetry-title">🌡️ Real Battery & Thermal</span>
+            <span class="telemetry-title"><i class="fa-solid fa-temperature-half mr-1.5 text-rose-400"></i> Real Battery & Thermal</span>
             <span class="telemetry-badge success" id="batteryBadge">Live HW</span>
           </div>
           <div class="telemetry-big-val">
@@ -3023,7 +3024,7 @@ if (res.hands && res.hands[0]) {
         <!-- Inference Velocity & Token Counter -->
         <div class="telemetry-card col-4">
           <div class="telemetry-card-header">
-            <span class="telemetry-title">🚀 Inference Velocity</span>
+            <span class="telemetry-title"><i class="fa-solid fa-gauge-high mr-1.5 text-emerald-400"></i> Inference Velocity</span>
             <span class="telemetry-badge">Tiny.en</span>
           </div>
           <div class="telemetry-big-val">
@@ -3041,7 +3042,7 @@ if (res.hands && res.hands[0]) {
         <!-- Active Process & Thread Matrix Table -->
         <div class="telemetry-card col-8">
           <div class="telemetry-card-header">
-            <span class="telemetry-title">⚙️ Active Daemon & Process Matrix</span>
+            <span class="telemetry-title"><i class="fa-solid fa-gears mr-1.5 text-zinc-400"></i> Active Daemon & Process Matrix</span>
             <span class="telemetry-badge success">Termux Daemon</span>
           </div>
           <div class="process-table-wrapper">
@@ -3066,7 +3067,7 @@ if (res.hands && res.hands[0]) {
         <!-- Live Streaming Event Log Terminal -->
         <div class="telemetry-card col-4">
           <div class="telemetry-card-header">
-            <span class="telemetry-title">📟 Live System Event Feed</span>
+            <span class="telemetry-title"><i class="fa-solid fa-terminal mr-1.5 text-emerald-400"></i> Live System Event Feed</span>
             <span class="telemetry-badge live-glow">Live Stream</span>
           </div>
           <div class="terminal-window" id="terminalWindow"></div>
@@ -3114,7 +3115,7 @@ if (res.hands && res.hands[0]) {
     <section id="docs" style="margin-top: 4rem;">
       <div class="section-head">
         <span class="section-tag">
-          <span>💻</span>
+          <i class="fa-solid fa-laptop-code text-cyan-400"></i>
           <span>Universal SDK & Integration</span>
         </span>
         <h2 class="section-title">Developer Guide & Drop-In Client Integration</h2>
@@ -3124,23 +3125,23 @@ if (res.hands && res.hands[0]) {
       <!-- Quickstart Banner -->
       <div style="background: linear-gradient(135deg, rgba(56, 189, 248, 0.12), rgba(168, 85, 247, 0.12)); border: 1px solid var(--primary); border-radius: 12px; padding: 1.25rem; margin-bottom: 1.5rem; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem;">
         <div>
-          <div style="font-weight: 700; color: #fff; font-size: 1rem; margin-bottom: 0.25rem;">🚀 60-Second Quickstart Test</div>
+          <div style="font-weight: 700; color: #fff; font-size: 1rem; margin-bottom: 0.25rem;"><i class="fa-solid fa-rocket mr-1.5 text-emerald-400"></i> 60-Second Quickstart Test</div>
           <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0;">Run a live health and multi-modal roundtrip test to the phone right from your browser or terminal.</p>
         </div>
         <button class="btn-send-chat" onclick="testLiveSdkIntegration()" id="btnTestSdk" style="padding: 0.5rem 1.25rem; font-size: 0.85rem;">
-          <span>⚡ Run Universal Integration Test</span>
+          <i class="fa-solid fa-bolt mr-1.5"></i> <span>Run Universal Integration Test</span>
         </button>
       </div>
       <div id="sdkTestOutput" style="display: none; background: #05080f; border: 1px solid var(--card-border); border-radius: 10px; padding: 1rem; font-family: monospace; font-size: 0.85rem; color: #38bdf8; margin-bottom: 1.5rem; white-space: pre-wrap;"></div>
 
       <div class="docs-wrapper" style="background: rgba(10, 15, 30, 0.85); border: 1px solid var(--card-border); border-radius: 16px; padding: 1.5rem;">
         <div class="docs-tabs" style="display: flex; flex-wrap: wrap; gap: 0.5rem; border-bottom: 1px solid var(--card-border); padding-bottom: 1rem; margin-bottom: 1.5rem;">
-          <div class="docs-tab active" onclick="switchTab('python')">🐍 Python (Sync, Async & Colab)</div>
-          <div class="docs-tab" onclick="switchTab('javascript')">🌐 JavaScript / TypeScript / React</div>
-          <div class="docs-tab" onclick="switchTab('curl')">💻 cURL & Automated Bash</div>
-          <div class="docs-tab" onclick="switchTab('flutter')">📱 Flutter / Dart Mobile</div>
-          <div class="docs-tab" onclick="switchTab('rust_go')">🦀 Rust & 🐹 Go</div>
-          <div class="docs-tab" onclick="switchTab('phone')">📱 Phone Termux Host Setup</div>
+          <div class="docs-tab active" onclick="switchTab('python')"><i class="fa-brands fa-python mr-1.5 text-emerald-400"></i> Python (Sync, Async & Colab)</div>
+          <div class="docs-tab" onclick="switchTab('javascript')"><i class="fa-brands fa-js mr-1.5 text-amber-400"></i> JavaScript / TypeScript / React</div>
+          <div class="docs-tab" onclick="switchTab('curl')"><i class="fa-solid fa-terminal mr-1.5 text-purple-400"></i> cURL & Automated Bash</div>
+          <div class="docs-tab" onclick="switchTab('flutter')"><i class="fa-solid fa-mobile-screen mr-1.5 text-cyan-400"></i> Flutter / Dart Mobile</div>
+          <div class="docs-tab" onclick="switchTab('rust_go')"><i class="fa-brands fa-rust mr-1 text-orange-400"></i> Rust & <i class="fa-brands fa-golang mr-1 text-cyan-400"></i> Go</div>
+          <div class="docs-tab" onclick="switchTab('phone')"><i class="fa-solid fa-mobile mr-1.5 text-emerald-400"></i> Phone Termux Host Setup</div>
         </div>
 
         <div class="docs-content">
@@ -3148,14 +3149,14 @@ if (res.hands && res.hands[0]) {
           <!-- 1. PYTHON TAB -->
           <div id="tab-python" class="tab-pane active">
             <div style="background: rgba(56, 189, 248, 0.08); border-left: 3px solid var(--primary); padding: 0.75rem 1rem; border-radius: 0 8px 8px 0; margin-bottom: 1rem; font-size: 0.85rem; color: var(--text-muted);">
-              <strong>🐍 Universal Python SDK:</strong> Works out-of-the-box in Google Colab, Jupyter, FastAPI, Django, Flask, or backend microservices. Zero API keys required.
+              <strong><i class="fa-brands fa-python mr-1 text-emerald-400"></i> Universal Python SDK:</strong> Works out-of-the-box in Google Colab, Jupyter, FastAPI, Django, Flask, or backend microservices. Zero API keys required.
             </div>
             <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>import requests, json, base64
 
 BASE_URL = "https://phone-whisper-server.pages.dev"
 
 # ==========================================
-# 1. 💬 Qwen 2.5 SLM Streaming Chat
+# 1. Qwen 2.5 SLM Streaming Chat
 # ==========================================
 def stream_chat(prompt: str, system_prompt: str = "You are a helpful AI assistant."):
     url = f"{BASE_URL}/v1/chat/completions"
@@ -3176,7 +3177,7 @@ def stream_chat(prompt: str, system_prompt: str = "You are a helpful AI assistan
             yield token
 
 # ==========================================
-# 2. 🎙️ OpenAI Whisper Speech-to-Text (STT)
+# 2. OpenAI Whisper Speech-to-Text (STT)
 # ==========================================
 def transcribe_audio(audio_file_path: str):
     url = f"{BASE_URL}/inference"
@@ -3185,17 +3186,17 @@ def transcribe_audio(audio_file_path: str):
     return res.json()  # Returns {'text': '...', 'duration': 2.4, ...}
 
 # ==========================================
-# 3. 🗣️ Neural Text-to-Speech (TTS)
+# 3. Piper VITS Neural Text-to-Speech (TTS)
 # ==========================================
 def text_to_speech(text: str, output_path: str = "voice.wav"):
     url = f"{BASE_URL}/v1/audio/speech"
     res = requests.post(url, json={"input": text, "speed": 1.0})
     with open(output_path, "wb") as f:
         f.write(res.content)
-    print(f"✅ Audio saved to {output_path}")
+    print(f"[OK] Audio saved to {output_path}")
 
 # ==========================================
-# 4. 🔍 Dense Vector Embeddings (896 Dimensions)
+# 4. Dense Vector Embeddings (896 Dimensions)
 # ==========================================
 def get_embeddings(text: str):
     url = f"{BASE_URL}/v1/embeddings"
@@ -3203,7 +3204,7 @@ def get_embeddings(text: str):
     return res.json()["data"][0]["embedding"]  # Returns 896 float vector
 
 # ==========================================
-# 5. 🎯 Deep Cross-Attention Semantic Reranker
+# 5. Deep Cross-Attention Semantic Reranker
 # ==========================================
 def rerank_documents(query: str, documents: list):
     url = f"{BASE_URL}/v1/rerank"
@@ -3211,7 +3212,7 @@ def rerank_documents(query: str, documents: list):
     return res.json()  # Returns ranked results with cross-attention scores
 
 # ==========================================
-# 6. 👁️ Google MediaPipe Vision (Image / Video / Live Frame)
+# 6. Google MediaPipe Vision (Image / Video / Live Frame)
 # ==========================================
 def detect_vision(image_path: str, task: str = "face_detection"):
     url = f"{BASE_URL}/v1/vision/{task.replace('_', '-')}"
@@ -3221,27 +3222,27 @@ def detect_vision(image_path: str, task: str = "face_detection"):
     return res.json()  # Returns 3D spatial landmarks / bounding boxes
 
 # ==========================================
-# 7. 📊 Real-Time Hardware & Battery Telemetry
+# 7. Real-Time Hardware & Battery Telemetry
 # ==========================================
 def get_telemetry():
     return requests.get(f"{BASE_URL}/telemetry").json()
 
 # --- Quick Test ---
 if __name__ == "__main__":
-    print("💬 Qwen SLM Stream Output:")
+    print("[Chat] Qwen SLM Stream Output:")
     for token in stream_chat("Give me 3 bullet points on why on-device AI is the future."):
         print(token, end="", flush=True)
-    print("\n\n🔋 Phone Battery:", get_telemetry()["battery"])</code></pre>
+    print("\n\n[Battery] Phone Battery:", get_telemetry()["battery"])</code></pre>
           </div>
 
           <!-- 2. JAVASCRIPT / TYPESCRIPT / REACT TAB -->
           <div id="tab-javascript" class="tab-pane">
             <div style="background: rgba(168, 85, 247, 0.08); border-left: 3px solid var(--secondary); padding: 0.75rem 1rem; border-radius: 0 8px 8px 0; margin-bottom: 1rem; font-size: 0.85rem; color: var(--text-muted);">
-              <strong>🌐 Zero-Dependency Web & Node.js:</strong> Compatible with browser native Fetch, Node.js v18+, Next.js App Router, Vue, React Native, and Electron.
+              <strong><i class="fa-brands fa-js mr-1 text-amber-400"></i> Zero-Dependency Web & Node.js:</strong> Compatible with browser native Fetch, Node.js v18+, Next.js App Router, Vue, React Native, and Electron.
             </div>
             <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>const BASE_URL = "https://phone-whisper-server.pages.dev";
 
-// 1. 💬 Token-by-Token Streaming Chat (Qwen 2.5 SLM)
+// 1. Token-by-Token Streaming Chat (Qwen 2.5 SLM)
 export async function streamChat(prompt, onToken, systemPrompt = "You are a helpful AI.") {
   const res = await fetch(`${BASE_URL}/v1/chat/completions`, {
     method: "POST",
@@ -3270,7 +3271,7 @@ export async function streamChat(prompt, onToken, systemPrompt = "You are a help
   }
 }
 
-// 2. 🎙️ Audio Transcription (Whisper STT)
+// 2. Audio Transcription (Whisper STT)
 export async function transcribeAudio(audioBlob) {
   const formData = new FormData();
   formData.append("file", audioBlob, "audio.wav");
@@ -3278,7 +3279,7 @@ export async function transcribeAudio(audioBlob) {
   return await res.json();
 }
 
-// 3. 🗣️ Text-to-Speech (Neural TTS)
+// 3. Text-to-Speech (Piper VITS TTS)
 export async function playTextToSpeech(text) {
   const res = await fetch(`${BASE_URL}/v1/audio/speech`, {
     method: "POST",
@@ -3291,7 +3292,7 @@ export async function playTextToSpeech(text) {
   audio.play();
 }
 
-// 4. 🔍 Dense Vector Embeddings
+// 4. Dense Vector Embeddings
 export async function getEmbedding(text) {
   const res = await fetch(`${BASE_URL}/v1/embeddings`, {
     method: "POST",
@@ -3302,7 +3303,7 @@ export async function getEmbedding(text) {
   return json.data[0].embedding; // 896-dimension array
 }
 
-// 5. 🎯 Deep Cross-Attention Reranker
+// 5. Deep Cross-Attention Reranker
 export async function rerankDocs(query, documents) {
   const res = await fetch(`${BASE_URL}/v1/rerank`, {
     method: "POST",
@@ -3312,7 +3313,7 @@ export async function rerankDocs(query, documents) {
   return await res.json();
 }
 
-// 6. 👁️ MediaPipe Vision (Image / Video Sequence / Live WebCam Frame)
+// 6. MediaPipe Vision (Image / Video Sequence / Live WebCam Frame)
 export async function detectVision(imageBlobOrBase64, task = "face_detection", isLiveStream = false) {
   let b64 = imageBlobOrBase64;
   if (imageBlobOrBase64 instanceof Blob) {
@@ -3330,7 +3331,7 @@ export async function detectVision(imageBlobOrBase64, task = "face_detection", i
   return await res.json();
 }
 
-// 7. 📊 Live Kernel Telemetry
+// 7. Live Kernel Telemetry
 export async function getTelemetry() {
   return await fetch(`${BASE_URL}/telemetry`).then(r => r.json());
 }</code></pre>
@@ -3339,7 +3340,7 @@ export async function getTelemetry() {
           <!-- 3. cURL & SHELL TAB -->
           <div id="tab-curl" class="tab-pane">
             <div style="background: rgba(16, 185, 129, 0.08); border-left: 3px solid var(--success); padding: 0.75rem 1rem; border-radius: 0 8px 8px 0; margin-bottom: 1rem; font-size: 0.85rem; color: var(--text-muted);">
-              <strong>💻 Terminal & CI/CD Pipelines:</strong> Ready-to-run shell one-liners for GitHub Actions, cron jobs, and bash scripts.
+              <strong><i class="fa-solid fa-terminal mr-1 text-purple-400"></i> Terminal & CI/CD Pipelines:</strong> Ready-to-run shell one-liners for GitHub Actions, cron jobs, and bash scripts.
             </div>
             <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code># 1. Chat Completion (SSE Real-Time Stream)
 curl -N -X POST "https://phone-whisper-server.pages.dev/v1/chat/completions" \
@@ -3379,7 +3380,7 @@ curl -s "https://phone-whisper-server.pages.dev/telemetry" | jq .battery</code><
           <!-- 4. FLUTTER / DART TAB -->
           <div id="tab-flutter" class="tab-pane" style="display: none;">
             <div style="background: rgba(56, 189, 248, 0.08); border-left: 3px solid var(--primary); padding: 0.75rem 1rem; border-radius: 0 8px 8px 0; margin-bottom: 1rem; font-size: 0.85rem; color: var(--text-muted);">
-              <strong>📱 Flutter / Dart Production SDK:</strong> Drop-in class for iOS, Android, and Web apps supporting all 6 on-device AI modalities.
+              <strong><i class="fa-solid fa-mobile-screen mr-1 text-cyan-400"></i> Flutter / Dart Production SDK:</strong> Drop-in class for iOS, Android, and Web apps supporting all 6 on-device AI modalities.
             </div>
             <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>import 'dart:convert';
 import 'dart:typed_data';
@@ -3388,7 +3389,7 @@ import 'package:http/http.dart' as http;
 class PhoneAIClient {
   static const String baseUrl = "https://phone-whisper-server.pages.dev";
 
-  // 1. 💬 Qwen 2.5 SLM Chat (Streaming & Full)
+  // 1. Qwen 2.5 SLM Chat (Streaming & Full)
   static Future&lt;String&gt; chat(String prompt, {String systemPrompt = "You are a helpful AI assistant."}) async {
     final res = await http.post(
       Uri.parse("$baseUrl/v1/chat/completions"),
@@ -3407,7 +3408,7 @@ class PhoneAIClient {
     return data["choices"][0]["message"]["content"];
   }
 
-  // 2. 🎙️ Whisper Audio STT
+  // 2. Whisper Audio STT
   static Future&lt;String&gt; transcribe(Uint8List audioBytes) async {
     final req = http.MultipartRequest("POST", Uri.parse("$baseUrl/inference"));
     req.files.add(http.MultipartFile.fromBytes("file", audioBytes, filename: "audio.wav"));
@@ -3418,7 +3419,7 @@ class PhoneAIClient {
     return jsonDecode(res.body)["text"];
   }
 
-  // 3. 🗣️ Neural Text-to-Speech (TTS)
+  // 3. Piper VITS Neural Text-to-Speech (TTS)
   static Future&lt;Uint8List&gt; textToSpeech(String text) async {
     final res = await http.post(
       Uri.parse("$baseUrl/v1/audio/speech"),
@@ -3428,7 +3429,7 @@ class PhoneAIClient {
     return res.bodyBytes;
   }
 
-  // 4. 🔍 Dense Vector Embeddings (896 Dimensions)
+  // 4. Dense Vector Embeddings (896 Dimensions)
   static Future&lt;List&lt;double&gt;&gt; getEmbedding(String text) async {
     final res = await http.post(
       Uri.parse("$baseUrl/v1/embeddings"),
@@ -3439,7 +3440,7 @@ class PhoneAIClient {
     return List&lt;double&gt;.from(data["data"][0]["embedding"]);
   }
 
-  // 5. 🎯 Deep Cross-Attention Semantic Reranker
+  // 5. Deep Cross-Attention Semantic Reranker
   static Future&lt;Map&lt;String, dynamic&gt;&gt; rerank(String query, List&lt;String&gt; documents) async {
     final res = await http.post(
       Uri.parse("$baseUrl/v1/rerank"),
@@ -3449,7 +3450,7 @@ class PhoneAIClient {
     return jsonDecode(res.body);
   }
 
-  // 6. 👁️ Google MediaPipe Vision (Image & Video)
+  // 6. Google MediaPipe Vision (Image & Video)
   static Future&lt;Map&lt;String, dynamic&gt;&gt; detectVision(String base64Image, {String task = "face_detection"}) async {
     final res = await http.post(
       Uri.parse("$baseUrl/v1/vision/${task.replaceAll('_', '-')}"),
@@ -3459,7 +3460,7 @@ class PhoneAIClient {
     return jsonDecode(res.body);
   }
 
-  // 7. 📊 Real-Time Hardware Telemetry
+  // 7. Real-Time Hardware Telemetry
   static Future&lt;Map&lt;String, dynamic&gt;&gt; getTelemetry() async {
     final res = await http.get(Uri.parse("$baseUrl/telemetry"));
     return jsonDecode(res.body);
@@ -3470,10 +3471,10 @@ class PhoneAIClient {
           <!-- 5. RUST & GO TAB -->
           <div id="tab-rust_go" class="tab-pane" style="display: none;">
             <div style="background: rgba(245, 158, 11, 0.08); border-left: 3px solid var(--warning); padding: 0.75rem 1rem; border-radius: 0 8px 8px 0; margin-bottom: 1rem; font-size: 0.85rem; color: var(--text-muted);">
-              <strong>🦀 High-Performance Rust & 🐹 Go SDKs:</strong> Async, zero-allocation client implementations for backend microservices and data pipelines.
+              <strong><i class="fa-brands fa-rust mr-1 text-orange-400"></i> High-Performance Rust & <i class="fa-brands fa-golang mr-1 text-cyan-400"></i> Go SDKs:</strong> Async, zero-allocation client implementations for backend microservices and data pipelines.
             </div>
             
-            <h4 style="font-size: 0.82rem; text-transform: uppercase; color: var(--text-subtle); letter-spacing: 0.05em; margin-bottom: 0.4rem;">🦀 Rust Async Implementation (tokio + reqwest)</h4>
+            <h4 style="font-size: 0.82rem; text-transform: uppercase; color: var(--text-subtle); letter-spacing: 0.05em; margin-bottom: 0.4rem;"><i class="fa-brands fa-rust mr-1 text-orange-400"></i> Rust Async Implementation (tokio + reqwest)</h4>
             <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>use reqwest::Client;
 use serde_json::json;
 use futures_util::StreamExt;
@@ -3484,8 +3485,8 @@ const BASE_URL: &str = "https://phone-whisper-server.pages.dev";
 async fn main() -> Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
     let client = Client::new();
 
-    // 1. 💬 Stream Qwen 2.5 SLM Chat
-    println!("💬 Asking Qwen SLM...");
+    // 1. Stream Qwen 2.5 SLM Chat
+    println!("[Chat] Asking Qwen SLM...");
     let payload = json!({
         "messages": [{"role": "user", "content": "Explain quantum physics in 15 words"}],
         "stream": true
@@ -3502,19 +3503,19 @@ async fn main() -> Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
         print!("{}", String::from_utf8_lossy(&chunk));
     }
 
-    // 2. 📊 Fetch Hardware Telemetry
+    // 2. Fetch Hardware Telemetry
     let tel: serde_json::Value = client
         .get(format!("{}/telemetry", BASE_URL))
         .send()
         .await?
         .json()
         .await?;
-    println!("\n\n🔋 Phone Battery: {}%", tel["battery"]["level"]);
+    println!("\n\n[Battery] Phone Battery: {}%", tel["battery"]["level"]);
 
     Ok(())
 }</code></pre>
 
-            <h4 style="font-size: 0.82rem; text-transform: uppercase; color: var(--text-subtle); letter-spacing: 0.05em; margin: 1.25rem 0 0.4rem;">🐹 Go (Golang) Production Microservice Wrapper</h4>
+            <h4 style="font-size: 0.82rem; text-transform: uppercase; color: var(--text-subtle); letter-spacing: 0.05em; margin: 1.25rem 0 0.4rem;"><i class="fa-brands fa-golang mr-1 text-cyan-400"></i> Go (Golang) Production Microservice Wrapper</h4>
             <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>package main
 
 import (
@@ -3559,7 +3560,7 @@ func GetTelemetry() (map[string]interface{}, error) {
 }
 
 func main() {
-	fmt.Println("🚀 Streaming from On-Device Phone AI:")
+	fmt.Println("[Stream] Streaming from On-Device Phone AI:")
 	StreamChat("What is edge computing?")
 }</code></pre>
           </div>
@@ -3567,7 +3568,7 @@ func main() {
           <!-- 6. PHONE TERMUX SETUP TAB -->
           <div id="tab-phone" class="tab-pane">
             <div style="background: rgba(16, 185, 129, 0.08); border-left: 3px solid var(--success); padding: 0.75rem 1rem; border-radius: 0 8px 8px 0; margin-bottom: 1rem; font-size: 0.85rem; color: var(--text-muted);">
-              <strong>📱 Turn Any Spare Android Phone into a 24/7 AI Datacenter:</strong>
+              <strong><i class="fa-solid fa-mobile-screen mr-1 text-cyan-400"></i> Turn Any Spare Android Phone into a 24/7 AI Datacenter:</strong>
             </div>
             <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code># 1. Update and install packages in Termux
 pkg update && pkg install -y git clang cmake tmux espeak python nodejs
@@ -3583,7 +3584,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
         </div>
       </div>
     </section><footer>
-      <div>PhoneWhisper AI • Built with ⚡ by <a href="https://github.com/Electroiscoding" target="_blank">Soham (@Electroiscoding)</a></div>
+      <div>PhoneWhisper AI • Built with <i class="fa-solid fa-bolt text-amber-400"></i> by <a href="https://github.com/Electroiscoding" target="_blank">Soham (@Electroiscoding)</a></div>
       <div style="font-size: 0.78rem;">Open Source MIT License • Self-Hosted On-Device AI</div>
     </footer>
 
@@ -3638,7 +3639,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
     mobileCloseBtn.addEventListener("click", closeMobileDrawer);
     mobileDrawerOverlay.addEventListener("click", closeMobileDrawer);
 
-    // 🛡️ HYPER PROD-GRADE AUTONOMOUS NETWORK OUTAGE & AUTO-RECONNECT GUARDIAN
+    // HYPER PROD-GRADE AUTONOMOUS NETWORK OUTAGE & AUTO-RECONNECT GUARDIAN
     const isDirectHosted = window.location.port === "8080" || window.location.hostname === "192.168.29.2" || window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
     let BASE_ENDPOINT = window.location.origin;
     
@@ -3715,7 +3716,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       reconnectAttempts++;
       
       updateConnectionHUD("reconnecting", `Reconnecting (Attempt ${reconnectAttempts})...`);
-      console.warn(`⚠️ [Network Outage Detected]: Initiating candidate probe (Attempt #${reconnectAttempts})...`);
+      console.warn(`[Network Outage Detected]: Initiating candidate probe (Attempt #${reconnectAttempts})...`);
 
       // 1. First probe current host / Cloudflare Pages edge proxy (Zero CORS)
       const primaryOrigin = window.location.origin;
@@ -3726,7 +3727,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
         reconnectAttempts = 0;
         lastHealthyTimestamp = Date.now();
         updateConnectionHUD("online", isDirectHosted ? "Direct LAN :8080" : "Gateway Restored");
-        console.log("🟢 [Connection Guardian]: Active origin healthy:", BASE_ENDPOINT);
+        console.log("[Connection Guardian]: Active origin healthy:", BASE_ENDPOINT);
         return true;
       }
 
@@ -3739,7 +3740,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
           reconnectAttempts = 0;
           lastHealthyTimestamp = Date.now();
           updateConnectionHUD("online", `Restored: ${cand.replace(/^https?:\/\//, "")}`);
-          console.log("🟢 [Connection Guardian]: Switched to healthy candidate:", BASE_ENDPOINT);
+          console.log("[Connection Guardian]: Switched to healthy candidate:", BASE_ENDPOINT);
           return true;
         }
       }
@@ -3782,7 +3783,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
             reconnectAttempts = 0;
             lastHealthyTimestamp = Date.now();
             updateConnectionHUD("online", "Remote Gateway Active");
-            console.log("🟢 [Connection Guardian]: Synced from remote endpoint:", BASE_ENDPOINT);
+            console.log("[Connection Guardian]: Synced from remote endpoint:", BASE_ENDPOINT);
             return true;
           }
         } catch (e) {}
@@ -3823,7 +3824,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
         try {
           let res = await fetch(fullUrl, options);
           if (res.status === 502 || res.status === 503 || res.status === 504 || res.status === 522 || res.status === 530) {
-            console.warn(`⚠️ Gateway returned ${res.status} — auto-recovering connection (attempt ${attempt + 1}/${maxRetries})...`);
+            console.warn(`Gateway returned ${res.status} — auto-recovering connection (attempt ${attempt + 1}/${maxRetries})...`);
             await recoverFromNetworkOutage(true);
             fullUrl = pathOrUrl.startsWith("http") ? pathOrUrl.replace(/^https?:\/\/[^/]+/, BASE_ENDPOINT) : `${BASE_ENDPOINT}${pathOrUrl}`;
             attempt++;
@@ -3839,7 +3840,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
           if (err && (err.name === 'AbortError' || (err.message && err.message.includes('abort')))) {
             throw err;
           }
-          console.warn(`⚠️ Network drop during fetch — auto-recovering (attempt ${attempt + 1}/${maxRetries})...`, err);
+          console.warn(`Network drop during fetch — auto-recovering (attempt ${attempt + 1}/${maxRetries})...`, err);
           await recoverFromNetworkOutage(true);
           fullUrl = pathOrUrl.startsWith("http") ? pathOrUrl.replace(/^https?:\/\/[^/]+/, BASE_ENDPOINT) : `${BASE_ENDPOINT}${pathOrUrl}`;
           attempt++;
@@ -3854,7 +3855,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
     }
 
     // =========================================================================
-    // 💬 QWEN 2.5 SLM CHAT HANDLER & DYNAMIC MESSAGE QUEUE
+    // QWEN 2.5 SLM CHAT HANDLER & DYNAMIC MESSAGE QUEUE
     // =========================================================================
     let chatQueue = [];
     let isQueueCollapsed = false;
@@ -3902,10 +3903,10 @@ python3 mobile/nuclear_watchdog.py</code></pre>
                 <span>→</span>
               </button>
               <button type="button" class="btn-queue-action" title="Edit message" onclick="editQueuedMessage('${item.id}')">
-                <span>✏️</span>
+                <i class="fa-solid fa-pen-to-square"></i>
               </button>
               <button type="button" class="btn-queue-action delete" title="Delete message" onclick="deleteQueuedMessage('${item.id}')">
-                <span>🗑️</span>
+                <i class="fa-solid fa-trash-can"></i>
               </button>
             </div>
           </div>
@@ -3982,12 +3983,12 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       if (chatBox) {
         chatBox.innerHTML = `
           <div class="chat-bubble ai">
-            🧹 Memory cleared! Fresh session started. Ask me anything or test on-device reasoning!
+            Memory cleared! Fresh session started. Ask me anything or test on-device reasoning!
           </div>
         `;
       }
       const memBadge = document.getElementById("qwenMemoryBadge");
-      if (memBadge) memBadge.innerText = "🧠 Hyper-Temporary Memory: Fresh (0 turns)";
+      if (memBadge) memBadge.innerHTML = '<i class="fa-solid fa-brain text-cyan-400 mr-1.5"></i> Hyper-Temporary Memory: Fresh (0 turns)';
     }
     window.clearQwenChatMemory = clearQwenChatMemory;
 
@@ -4101,19 +4102,19 @@ python3 mobile/nuclear_watchdog.py</code></pre>
         const turnCount = Math.floor((qwenSessionMemory.length - 1) / 2);
 
         const memBadge = document.getElementById("qwenMemoryBadge");
-        if (memBadge) memBadge.innerText = `🧠 Memory: ${turnCount} turn(s) active`;
+        if (memBadge) memBadge.innerHTML = `<i class="fa-solid fa-brain text-cyan-400 mr-1.5"></i> Memory: ${turnCount} turn(s) active`;
 
         const metaDiv = document.createElement("div");
         metaDiv.style.fontSize = "0.75rem";
         metaDiv.style.color = "var(--text-subtle)";
         metaDiv.style.marginTop = "0.5rem";
         metaDiv.style.fontFamily = "'JetBrains Mono', monospace";
-        metaDiv.innerText = `⚡ Streamed ${estimatedTokens} tokens in ${elapsed}s (~${tokPerSec} tokens/sec on Qwen 2.5) • Context: ${turnCount} turns`;
+        metaDiv.innerHTML = `<i class="fa-solid fa-bolt text-amber-400 mr-1"></i> Streamed ${estimatedTokens} tokens in ${elapsed}s (~${tokPerSec} tokens/sec on Qwen 2.5) • Context: ${turnCount} turns`;
         aiBubble.appendChild(metaDiv);
 
       } catch (err) {
         cursorSpan.remove();
-        contentSpan.innerHTML = `<span style="color: var(--danger);">❌ Streaming error: ${err.message}</span>`;
+        contentSpan.innerHTML = `<span style="color: var(--danger);"><i class="fa-solid fa-circle-xmark mr-1"></i> Streaming error: ${err.message}</span>`;
       } finally {
         isInferencing = false;
         activeDaemon = null;
@@ -4132,7 +4133,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
     window.sendChatPrompt = sendChatPrompt;
 
     // =========================================================================
-    // 🗣️ TEXT-TO-SPEECH (TTS) HANDLER (MULTI-TIER CACHE ARCHITECTURE)
+    // TEXT-TO-SPEECH (TTS) HANDLER (MULTI-TIER CACHE ARCHITECTURE)
     // =========================================================================
     const ttsClientMemoryCache = new Map();
 
@@ -4158,9 +4159,9 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       // Tier 0: In-Browser Client Memory Cache (0ms)
       if (ttsClientMemoryCache.has(cacheKey)) {
         const cachedItem = ttsClientMemoryCache.get(cacheKey);
-        if (engineLabel) engineLabel.innerText = `🎙️ ${cachedItem.engine} • Voice: ${cachedItem.voiceTag}`;
+        if (engineLabel) engineLabel.innerHTML = `<i class="fa-solid fa-microphone mr-1 text-cyan-400"></i> ${cachedItem.engine} • Voice: ${cachedItem.voiceTag}`;
         if (latencyBadge) {
-          latencyBadge.innerText = "⚡ Instant Client Cache (HIT 0ms)";
+          latencyBadge.innerHTML = '<i class="fa-solid fa-bolt mr-1 text-emerald-400"></i> Instant Client Cache (HIT 0ms)';
           latencyBadge.style.color = "#34d399";
         }
         if (audioElement && downloadLink && playerBox) {
@@ -4185,7 +4186,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
         const res = await nuclearFetch(`${BASE_ENDPOINT}/v1/audio/speech`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ input: text, voice, speed, model: "kokoro" })
+          body: JSON.stringify({ input: text, voice, speed, model: "piper" })
         });
 
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -4193,21 +4194,21 @@ python3 mobile/nuclear_watchdog.py</code></pre>
         const blob = await res.blob();
         const audioUrl = URL.createObjectURL(blob);
 
-        const engine = res.headers.get("x-tts-engine") || "Kokoro-82M Neural Engine";
+        const engine = res.headers.get("x-tts-engine") || "Piper-VITS Neural Engine";
         const voiceTag = res.headers.get("x-tts-voice") || voice;
         const edgeCache = res.headers.get("x-edge-cache") === "HIT";
         const cacheStatus = res.headers.get("x-cache") || "MISS";
 
-        if (engineLabel) engineLabel.innerText = `🎙️ ${engine} • Voice: ${voiceTag}`;
+        if (engineLabel) engineLabel.innerHTML = `<i class="fa-solid fa-microphone mr-1 text-cyan-400"></i> ${engine} • Voice: ${voiceTag}`;
         if (latencyBadge) {
           if (edgeCache) {
-            latencyBadge.innerText = `⚡ Cloudflare Edge Cache (HIT ${elapsed}ms)`;
+            latencyBadge.innerHTML = `<i class="fa-solid fa-bolt mr-1 text-emerald-400"></i> Cloudflare Edge Cache (HIT ${elapsed}ms)`;
             latencyBadge.style.color = "#10b981";
           } else if (cacheStatus === "HIT") {
-            latencyBadge.innerText = `⚡ Hot Latent Vault (HIT ${elapsed}ms)`;
+            latencyBadge.innerHTML = `<i class="fa-solid fa-bolt mr-1 text-emerald-400"></i> Gateway RAM Cache (HIT ${elapsed}ms)`;
             latencyBadge.style.color = "#10b981";
           } else {
-            latencyBadge.innerText = `⚡ Realtime Native (MISS ${elapsed}ms)`;
+            latencyBadge.innerHTML = `<i class="fa-solid fa-bolt mr-1 text-sky-400"></i> Realtime Piper VITS (MISS ${elapsed}ms)`;
             latencyBadge.style.color = "#38bdf8";
           }
         }
@@ -4228,16 +4229,16 @@ python3 mobile/nuclear_watchdog.py</code></pre>
         activeDaemon = null;
         if (btn) {
           btn.disabled = false;
-          btn.innerHTML = "<span>🔊 Generate & Speak</span>";
+          btn.innerHTML = "<i class="fa-solid fa-volume-high mr-1.5"></i> <span>Generate & Speak</span>";
         }
       }
     }
     window.generateSpeech = generateSpeech;
 
     // =========================================================================
-    // 🔍 VECTOR EMBEDDINGS & SIMILARITY HANDLER
+    // VECTOR EMBEDDINGS & SIMILARITY HANDLER
     // =========================================================================
-    // 🧠 VECTOR & CROSS-ENCODER SEMANTIC INTELLIGENCE STUDIO
+    // VECTOR & CROSS-ENCODER SEMANTIC INTELLIGENCE STUDIO
     // =========================================================================
     async function computeSimilarity() {
       const textA = document.getElementById("embTextA").value.trim();
@@ -4311,7 +4312,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
     window.computeSimilarity = computeSimilarity;
 
     // =========================================================================
-    // 🎯 DEEP SEMANTIC CROSS-ENCODER RERANKER PLAYGROUND
+    // DEEP SEMANTIC CROSS-ENCODER RERANKER PLAYGROUND
     // =========================================================================
     function loadRerankPreset(type) {
       const qEl = document.getElementById("rerankQuery");
@@ -4343,7 +4344,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
 
       btn.disabled = true;
       btn.innerHTML = "<span>⏳ Computing Deep Cross-Attention...</span>";
-      resultsContainer.innerHTML = `<div style="color: var(--primary); font-size: 0.9rem; padding: 1rem; text-align: center;">⚡ Evaluating joint transformer self-attention across ${documents.length} candidates on phone CPU...</div>`;
+      resultsContainer.innerHTML = `<div style="color: var(--primary); font-size: 0.9rem; padding: 1rem; text-align: center;"><i class="fa-solid fa-bolt mr-1"></i> Evaluating joint transformer self-attention across ${documents.length} candidates on phone CPU...</div>`;
 
       try {
         const resp = await nuclearFetch(`${BASE_ENDPOINT}/v1/rerank`, {
@@ -4368,24 +4369,24 @@ python3 mobile/nuclear_watchdog.py</code></pre>
           const logit = item.raw_logit !== undefined ? item.raw_logit.toFixed(2) : (item.relevance_score ? item.relevance_score.toFixed(2) : "0.00");
           
           let badgeColor = "var(--primary)";
-          let badgeText = "🎯 Relevant";
+          let badgeText = '<i class="fa-solid fa-bullseye mr-1 text-amber-400"></i> Relevant';
           let barBg = "linear-gradient(90deg, #38bdf8, #818cf8)";
 
           if (pct >= 65) {
             badgeColor = "var(--success)";
-            badgeText = "✅ High Relevance / Paraphrase";
+            badgeText = '<i class="fa-solid fa-circle-check mr-1 text-emerald-400"></i> High Relevance / Paraphrase';
             barBg = "linear-gradient(90deg, #10b981, #34d399)";
           } else if (pct >= 25) {
             badgeColor = "var(--primary)";
-            badgeText = "🎯 Moderate Relevance / Related";
+            badgeText = '<i class="fa-solid fa-bullseye mr-1 text-amber-400"></i> Moderate Relevance / Related';
             barBg = "linear-gradient(90deg, #38bdf8, #818cf8)";
           } else if (pct >= 0.05 && pct < 25) {
             badgeColor = "var(--danger)";
-            badgeText = "🛑 Contradiction / Polar Opposite";
+            badgeText = '<i class="fa-solid fa-circle-stop mr-1 text-rose-400"></i> Contradiction / Polar Opposite';
             barBg = "linear-gradient(90deg, #ef4444, #f87171)";
           } else {
             badgeColor = "var(--text-subtle)";
-            badgeText = "⚠️ Unrelated / No Match";
+            badgeText = '<i class="fa-solid fa-triangle-exclamation mr-1 text-zinc-400"></i> Unrelated / No Match';
             barBg = "rgba(255,255,255,0.2)";
           }
 
@@ -4415,7 +4416,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
         resultsContainer.innerHTML = `<div style="color: var(--danger); padding: 1rem;">Error: ${err.message}</div>`;
       } finally {
         btn.disabled = false;
-        btn.innerHTML = "<span>🎯 Execute Deep Cross-Attention Reranking</span>";
+        btn.innerHTML = "<i class="fa-solid fa-bullseye mr-1.5"></i> <span>Execute Deep Cross-Attention Reranking</span>";
       }
     }
     window.executeRerankerPlayground = executeRerankerPlayground;
@@ -4654,7 +4655,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
         pillRecorderBar.classList.add("recording-active");
         pillRecorderBar.classList.remove("ready-to-send");
         recordToggleBtn.classList.add("active-recording");
-        micBtnIcon.innerText = "⏹️";
+        micBtnIcon.innerHTML = '<i class="fa-solid fa-stop"></i>';
         
         recordingTimerBadge.style.display = "flex";
         fileReadyBadge.style.display = "none";
@@ -4676,7 +4677,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
 
       pillRecorderBar.classList.remove("recording-active");
       recordToggleBtn.classList.remove("active-recording");
-      micBtnIcon.innerText = "🎙️";
+      micBtnIcon.innerHTML = '<i class="fa-solid fa-microphone"></i>';
       recordingTimerBadge.style.display = "none";
 
       if (processorNode) processorNode.disconnect();
@@ -4716,7 +4717,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       discardBtn.style.display = "none";
       sendTranscribeBtn.disabled = true;
       pillRecorderBar.classList.remove("ready-to-send", "recording-active");
-      audioStatusText.innerText = "Click 🎙️ to record, or upload audio";
+      audioStatusText.innerText = "Click mic button to record, or upload audio";
     }
 
     recordToggleBtn.addEventListener("click", () => {
@@ -4820,7 +4821,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
         if (totalInferencesVal) totalInferencesVal.innerText = totalInferences;
         outputContentArea.innerText = result || "(No speech recognized in audio)";
         charCountLabel.innerText = `${result.length} characters`;
-        latencyBadge.innerText = `Transcribed in ${elapsed}s ⚡`;
+        latencyBadge.innerHTML = `Transcribed in ${elapsed}s <i class="fa-solid fa-bolt text-amber-400 ml-1"></i>`;
 
         // Update velocity & RT card dynamically
         const estTokens = Math.max(1, Math.round(result.length / 4));
@@ -4835,7 +4836,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
         addTerminalLog("SUCCESS", `[INFERENCE DONE] In-memory decode completed in ${elapsed}s • ${result.length} chars generated`);
 
       } catch (err) {
-        outputContentArea.innerText = `❌ Error: ${err.message}`;
+        outputContentArea.innerHTML = `<span style="color: #ef4444;"><i class="fa-solid fa-circle-xmark mr-1"></i> Error: ${err.message}</span>`;
         latencyBadge.innerText = "Inference Failed";
         addTerminalLog("WARN", `[INFERENCE ERROR] ${err.message}`);
       } finally {
@@ -4848,8 +4849,8 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       const text = outputContentArea.innerText;
       if (!text || outputContentArea.classList.contains("placeholder-mode")) return;
       navigator.clipboard.writeText(text);
-      copyOutputBtn.innerText = "✅ Copied!";
-      setTimeout(() => copyOutputBtn.innerText = "📋 Copy", 1600);
+      copyOutputBtn.innerHTML = '<i class="fa-solid fa-check mr-1 text-emerald-400"></i> Copied!';
+      setTimeout(() => copyOutputBtn.innerHTML = '<i class="fa-solid fa-copy mr-1"></i> Copy', 1600);
     });
 
     downloadOutputBtn.addEventListener("click", () => {
@@ -5034,7 +5035,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
 
             if (activeMods.length === 0) {
               if (summaryEl) summaryEl.innerHTML = `<span style="color: var(--text-muted); font-weight: 700;">0 Active</span> <span style="font-size: 0.85rem; color: var(--text-subtle); font-weight: normal;">• 4 Sleeping</span>`;
-              if (listEl) listEl.innerHTML = `💤 All AI models evicted from RAM (Max Memory Reclaimed)`;
+              if (listEl) listEl.innerHTML = '<i class="fa-solid fa-moon mr-1.5 text-zinc-500"></i> All AI models evicted from RAM (Max Memory Reclaimed)';
               if (reclaimEl) reclaimEl.innerText = "0 MB AI RAM";
             } else {
               const modelLabels = {
@@ -5047,7 +5048,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
               const items = activeMods.map(m => {
                 const label = modelLabels[m.key] || m.name;
                 const busyBadge = m.is_busy ? `<span style="color: #fbbf24; font-weight: 700;">[Inferencing]</span>` : `<span style="color: var(--text-subtle);">(${m.idle_seconds}s idle)</span>`;
-                return `⚡ <b>${label}</b> ${busyBadge}`;
+                return `<i class="fa-solid fa-bolt text-amber-400 mr-1"></i> <b>${label}</b> ${busyBadge}`;
               }).join("<br>");
 
               if (summaryEl) summaryEl.innerHTML = `<span style="color: var(--primary); font-weight: 800;">${activeMods.length} Active</span> <span style="font-size: 0.85rem; color: var(--text-subtle); font-weight: normal;">• ${evictedMods.length} Sleeping</span>`;
@@ -5125,7 +5126,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
     setInterval(fetchLiveHardwareTelemetry, 1000);
 
     // =========================================================================
-    // 👁️ GOOGLE MEDIAPIPE VISION SUITE (IMAGE, VIDEO & LIVE WEBCAM ENGINE)
+    // GOOGLE MEDIAPIPE VISION SUITE (IMAGE, VIDEO & LIVE WEBCAM ENGINE)
     // =========================================================================
     let currentVisionTask = "face_detection";
     let visionInputMode = "image"; // 'image' | 'video' | 'camera'
@@ -5222,12 +5223,12 @@ python3 mobile/nuclear_watchdog.py</code></pre>
     }
     window.handleVisionImageUpload = handleVisionImageUpload;
 
-    // 🎥 Video File Extraction & Keyframe Processor
+    // Video File Extraction & Keyframe Processor
     function handleVisionVideoUpload(event) {
       const file = event.target.files[0];
       if (!file) return;
       const nameEl = document.getElementById("visionFileName");
-      if (nameEl) nameEl.innerText = `🎥 ${file.name} (Extracting frames...)`;
+      if (nameEl) nameEl.innerHTML = `<i class="fa-solid fa-video mr-1 text-cyan-400"></i> ${file.name} (Extracting frames...)`;
 
       const videoEl = document.getElementById("hiddenFileVideo");
       if (!videoEl) return;
@@ -5253,7 +5254,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
           videoExtractedFrames.push(tempCanvas.toDataURL("image/jpeg", 0.8));
         }
 
-        if (nameEl) nameEl.innerText = `🎬 ${file.name} (${videoExtractedFrames.length} frames ready)`;
+        if (nameEl) nameEl.innerHTML = `<i class="fa-solid fa-clapperboard mr-1 text-cyan-400"></i> ${file.name} (${videoExtractedFrames.length} frames ready)`;
         const scrubber = document.getElementById("videoScrubberContainer");
         const slider = document.getElementById("videoFrameSlider");
         const info = document.getElementById("videoFrameInfo");
@@ -5312,7 +5313,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
     }
     window.pauseVideoSequence = pauseVideoSequence;
 
-    // 🔴 Live Camera / WebCam Stream Controller
+    // Live Camera / WebCam Stream Controller
     async function toggleLiveWebcam() {
       if (isWebcamRunning) {
         stopLiveWebcam();
@@ -5343,7 +5344,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
           btn.style.color = "#fff";
           btn.innerText = "⏹ Stop Live Camera";
         }
-        if (nameEl) nameEl.innerText = "🔴 Live Camera Streaming (Real-Time In-Memory ARM Vision)";
+        if (nameEl) nameEl.innerHTML = '<i class="fa-solid fa-circle text-rose-500 mr-1 animate-pulse"></i> Live Camera Streaming (Real-Time In-Memory ARM Vision)';
         if (fpsBadge) fpsBadge.style.display = "inline-block";
 
         requestAnimationFrame(processLiveWebcamLoop);
@@ -5363,7 +5364,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       if (btn) {
         btn.style.background = "rgba(255,255,255,0.08)";
         btn.style.color = "var(--text-muted)";
-        btn.innerText = "📹 Start Live WebCam";
+        btn.innerText = "<i class="fa-solid fa-video mr-1"></i> Start Live WebCam";
       }
       if (nameEl) nameEl.innerText = "Camera stopped";
     }
@@ -5389,7 +5390,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       if (now - webcamFpsLastCalc >= 1000) {
         const fps = Math.round((webcamFpsCount * 1000) / (now - webcamFpsLastCalc));
         const fpsBadge = document.getElementById("visionFpsBadge");
-        if (fpsBadge) fpsBadge.innerText = `⚡ ${fps} FPS (Live)`;
+        if (fpsBadge) fpsBadge.innerHTML = `<i class="fa-solid fa-bolt text-amber-400 mr-1"></i> ${fps} FPS (Live)`;
         webcamFpsCount = 0;
         webcamFpsLastCalc = now;
       }
@@ -5412,7 +5413,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
         .then(r => r.json())
         .then(data => {
           const latencyLabel = document.getElementById("visionLatencyLabel");
-          if (latencyLabel) latencyLabel.innerText = `⚡ ${data.inference_time_ms || 6}ms Live on Phone ARM`;
+          if (latencyLabel) latencyLabel.innerHTML = `<i class="fa-solid fa-bolt text-amber-400 mr-1"></i> ${data.inference_time_ms || 6}ms Live on Phone ARM`;
           drawOverlayGraphics(canvas, ctx, data, canvas.width, canvas.height);
         })
         .catch(() => {})
@@ -5479,7 +5480,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
         const data = await res.json();
 
         if (jsonOutput) jsonOutput.innerText = JSON.stringify(data, null, 2);
-        if (latencyLabel) latencyLabel.innerText = `⚡ ${data.inference_time_ms || data.avg_inference_time_per_frame_ms || 12}ms on Phone CPU`;
+        if (latencyLabel) latencyLabel.innerHTML = `<i class="fa-solid fa-bolt text-amber-400 mr-1"></i> ${data.inference_time_ms || data.avg_inference_time_per_frame_ms || 12}ms on Phone CPU`;
 
         if (visionInputMode === "video" && data.frames) {
           videoSequenceResults = data;
@@ -5498,7 +5499,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
         activeDaemon = null;
         if (btn) {
           btn.disabled = false;
-          btn.innerHTML = "<span>⚡ Run Vision Task</span>";
+          btn.innerHTML = "<i class="fa-solid fa-bolt mr-1.5"></i> <span>Run Vision Task</span>";
         }
       }
     }
@@ -5643,7 +5644,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
 
 
     // =========================================================================
-    // ⚡ INTERACTIVE API CHEATSHEET FILTER & CODE TAB SWITCHER
+    // INTERACTIVE API CHEATSHEET FILTER & CODE TAB SWITCHER
     // =========================================================================
     function filterCheatsheet(category) {
       const chips = [
@@ -5694,7 +5695,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
 
 
     // =========================================================================
-    // ⚡ UNIVERSAL SDK LIVE INTEGRATION TESTER
+    // UNIVERSAL SDK LIVE INTEGRATION TESTER
     // =========================================================================
     async function testLiveSdkIntegration() {
       const btn = document.getElementById("btnTestSdk");
@@ -5705,7 +5706,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       }
       if (out) {
         out.style.display = "block";
-        out.innerText = "🚀 Starting Multi-Modal Integration Test to: " + BASE_ENDPOINT + "\n\n";
+        out.innerText = "[START] Starting Multi-Modal Integration Test to: " + BASE_ENDPOINT + "\n\n";
       }
 
       try {
@@ -5714,7 +5715,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
         const telRes = await nuclearFetch(`${BASE_ENDPOINT}/telemetry`);
         const telData = await telRes.json();
         const tTel = (performance.now() - t0).toFixed(1);
-        out.innerText += `✅ [1/5] Hardware Telemetry: HTTP 200 (${tTel}ms) -> Battery: ${telData.battery.level}% (${telData.battery.status}, ${telData.battery.temperature}°C, ${telData.battery.voltage_mv}mV)\n`;
+        out.innerText += `[PASS] [1/5] Hardware Telemetry: HTTP 200 (${tTel}ms) -> Battery: ${telData.battery.level}% (${telData.battery.status}, ${telData.battery.temperature}°C, ${telData.battery.voltage_mv}mV)\n`;
 
         // Test 2: Qwen Chat Completion
         const t1 = performance.now();
@@ -5726,7 +5727,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
         const chatData = await chatRes.json();
         const tChat = (performance.now() - t1).toFixed(1);
         const reply = chatData.choices?.[0]?.message?.content || "OK";
-        out.innerText += `✅ [2/5] Qwen 2.5 SLM Chat: HTTP 200 (${tChat}ms) -> "${reply.trim()}"\n`;
+        out.innerText += `[PASS] [2/5] Qwen 2.5 SLM Chat: HTTP 200 (${tChat}ms) -> "${reply.trim()}"\n`;
 
         // Test 3: Embeddings
         const t2 = performance.now();
@@ -5737,7 +5738,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
         });
         const embData = await embRes.json();
         const tEmb = (performance.now() - t2).toFixed(1);
-        out.innerText += `✅ [3/5] Vector Embeddings: HTTP 200 (${tEmb}ms) -> ${embData.data[0].embedding.length}-dimension float vector\n`;
+        out.innerText += `[PASS] [3/5] Vector Embeddings: HTTP 200 (${tEmb}ms) -> ${embData.data[0].embedding.length}-dimension float vector\n`;
 
         // Test 4: Reranker
         const t3 = performance.now();
@@ -5748,7 +5749,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
         });
         const rnkData = await rnkRes.json();
         const tRnk = (performance.now() - t3).toFixed(1);
-        out.innerText += `✅ [4/5] Cross-Attention Reranker: HTTP 200 (${tRnk}ms) -> Top Score: ${(rnkData.results[0].relevance_score).toFixed(4)}\n`;
+        out.innerText += `[PASS] [4/5] Cross-Attention Reranker: HTTP 200 (${tRnk}ms) -> Top Score: ${(rnkData.results[0].relevance_score).toFixed(4)}\n`;
 
         // Test 5: MediaPipe Vision
         const t4 = performance.now();
@@ -5759,15 +5760,15 @@ python3 mobile/nuclear_watchdog.py</code></pre>
         });
         const visData = await visRes.json();
         const tVis = (performance.now() - t4).toFixed(1);
-        out.innerText += `✅ [5/5] MediaPipe Vision: HTTP 200 (${tVis}ms) -> ${visData.faces_detected} face detected (${visData.inference_time_ms}ms CPU inference)\n\n`;
+        out.innerText += `[PASS] [5/5] MediaPipe Vision: HTTP 200 (${tVis}ms) -> ${visData.faces_detected} face detected (${visData.inference_time_ms}ms CPU inference)\n\n`;
 
-        out.innerText += "🎉 ALL 5 AI MODALITIES FULLY OPERATIONAL & READY FOR 100% UTILIZATION!";
+        out.innerText += ">>> ALL 5 AI MODALITIES FULLY OPERATIONAL & READY FOR 100% UTILIZATION!";
       } catch (err) {
-        out.innerText += `\n❌ Test Error: ${err.message}`;
+        out.innerText += `\n[FAIL] Test Error: ${err.message}`;
       } finally {
         if (btn) {
           btn.disabled = false;
-          btn.innerHTML = "<span>⚡ Re-Run Universal Integration Test</span>";
+          btn.innerHTML = '<span><i class="fa-solid fa-bolt mr-1.5"></i> Re-Run Universal Integration Test</span>';
         }
       }
     }
@@ -5775,7 +5776,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
 
   
     // =========================================================================
-    // ⚡ CLOUD STORAGE & OBJECT STORE CLIENT ENGINE (SUB-MICROSECOND L1)
+    // CLOUD STORAGE & OBJECT STORE CLIENT ENGINE (SUB-MICROSECOND L1)
     // =========================================================================
     let currentAccount = null;
     try {
@@ -5873,16 +5874,16 @@ python3 mobile/nuclear_watchdog.py</code></pre>
           showLoggedInState(profile);
           copyText(data.api_key);
           if (statusEl) {
-            statusEl.innerHTML = `<span style="color: #10b981;">🎉 Account registered! Primary API Key: <code>${data.api_key}</code> (copied to clipboard).</span>`;
+            statusEl.innerHTML = `<span style="color: #10b981;"><i class="fa-solid fa-circle-check mr-1"></i> Account registered! Primary API Key: <code>${data.api_key}</code> (copied to clipboard).</span>`;
           }
           await loadStorageUsage();
           await loadStorageObjects();
           updateSnippetCode();
         } else {
-          if (statusEl) statusEl.innerHTML = `<span style="color: #ef4444;">❌ Registration failed: ${data.error || "Unknown error"}</span>`;
+          if (statusEl) statusEl.innerHTML = `<span style="color: #ef4444;"><i class="fa-solid fa-circle-xmark mr-1"></i> Registration failed: ${data.error || "Unknown error"}</span>`;
         }
       } catch (err) {
-        if (statusEl) statusEl.innerHTML = `<span style="color: #ef4444;">❌ Error: ${err.message}</span>`;
+        if (statusEl) statusEl.innerHTML = `<span style="color: #ef4444;"><i class="fa-solid fa-circle-xmark mr-1"></i> Error: ${err.message}</span>`;
       }
     }
     window.handleStorageRegister = handleStorageRegister;
@@ -5926,16 +5927,16 @@ python3 mobile/nuclear_watchdog.py</code></pre>
 
           showLoggedInState(profile);
           if (statusEl) {
-            statusEl.innerHTML = `<span style="color: #10b981;">✅ Welcome back, <strong>${data.username}</strong>! Isolated cloud bucket loaded.</span>`;
+            statusEl.innerHTML = `<span style="color: #10b981;"><i class="fa-solid fa-circle-check mr-1"></i> Welcome back, <strong>${data.username}</strong>! Isolated cloud bucket loaded.</span>`;
           }
           await loadStorageUsage();
           await loadStorageObjects();
           updateSnippetCode();
         } else {
-          if (statusEl) statusEl.innerHTML = `<span style="color: #ef4444;">❌ Login failed: ${data.error || "Invalid username or password"}</span>`;
+          if (statusEl) statusEl.innerHTML = `<span style="color: #ef4444;"><i class="fa-solid fa-circle-xmark mr-1"></i> Login failed: ${data.error || "Invalid username or password"}</span>`;
         }
       } catch (err) {
-        if (statusEl) statusEl.innerHTML = `<span style="color: #ef4444;">❌ Error: ${err.message}</span>`;
+        if (statusEl) statusEl.innerHTML = `<span style="color: #ef4444;"><i class="fa-solid fa-circle-xmark mr-1"></i> Error: ${err.message}</span>`;
       }
     }
     window.handleStorageLogin = handleStorageLogin;
@@ -6044,22 +6045,22 @@ python3 mobile/nuclear_watchdog.py</code></pre>
           populateAccountKeySelect(currentAccount.keys);
           copyText(data.api_key);
           if (statusEl) {
-            statusEl.innerHTML = `<span style="color: #10b981;">✨ New Key Created &amp; Copied: <strong>${data.api_key}</strong> (${data.name})</span>`;
+            statusEl.innerHTML = `<span style="color: #10b981;"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i> New Key Created &amp; Copied: <strong>${data.api_key}</strong> (${data.name})</span>`;
           }
           alert(`New API Key generated & copied to clipboard:\n\n${data.api_key}\n\nSave it safely!`);
           updateSnippetCode();
         } else {
-          if (statusEl) statusEl.innerHTML = `<span style="color: #ef4444;">❌ Failed: ${data.error || "Unknown"}</span>`;
+          if (statusEl) statusEl.innerHTML = `<span style="color: #ef4444;"><i class="fa-solid fa-circle-xmark mr-1"></i> Failed: ${data.error || "Unknown"}</span>`;
         }
       } catch (err) {
-        if (statusEl) statusEl.innerHTML = `<span style="color: #ef4444;">❌ Error: ${err.message}</span>`;
+        if (statusEl) statusEl.innerHTML = `<span style="color: #ef4444;"><i class="fa-solid fa-circle-xmark mr-1"></i> Error: ${err.message}</span>`;
       }
     }
     window.promptCreateNewAccountKey = promptCreateNewAccountKey;
 
     async function runStorageHardwareBenchmark() {
       const statusEl = document.getElementById("storageKeyStatusMsg");
-      if (statusEl) statusEl.innerHTML = `<span style="color: #a855f7;">⚡ Running live nanosecond hardware reflection benchmark on phone...</span>`;
+      if (statusEl) statusEl.innerHTML = `<span style="color: #a855f7;"><i class="fa-solid fa-bolt mr-1"></i> Running live nanosecond hardware reflection benchmark on phone...</span>`;
       try {
         const res = await nuclearFetch(`${BASE_ENDPOINT}/v1/storage/benchmark`, {
           headers: currentStorageApiKey ? { "x-api-key": currentStorageApiKey } : {}
@@ -6067,7 +6068,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
         if (res.ok) {
           const data = await res.json();
           const r = data.benchmark_results || {};
-          const msg = `⚡ Live Phone Hardware CRUD Benchmark:
+          const msg = `Live Phone Hardware CRUD Benchmark:
 • HEAD Reflection: ${r.head_reflection_avg_ns} ns (${r.head_reflection_avg_ms} ms)
 • Hot RAM GET: ${r.get_cached_avg_ns || 250} ns
 • DELETE Purge: ${r.delete_reflection_avg_ns} ns (${r.delete_reflection_avg_ms} ms)
@@ -6080,7 +6081,7 @@ Status: ${data.status} (Sub-Microsecond Reflection Achieved: ${r.sub_microsecond
             crudEl.innerText = `${r.head_reflection_avg_ms} ms`;
           }
           if (statusEl) {
-            statusEl.innerHTML = `<span style="color: #a855f7;">⚡ Benchmark Complete: HEAD Reflection = <strong>${r.head_reflection_avg_ns} ns</strong> | DELETE = <strong>${r.delete_reflection_avg_ns} ns</strong> (${r.sub_microsecond_achieved ? '✅ Target SLA Met' : ''})</span>`;
+            statusEl.innerHTML = `<span style="color: #a855f7;"><i class="fa-solid fa-bolt mr-1"></i> Benchmark Complete: HEAD Reflection = <strong>${r.head_reflection_avg_ns} ns</strong> | DELETE = <strong>${r.delete_reflection_avg_ns} ns</strong> (${r.sub_microsecond_achieved ? '<i class="fa-solid fa-circle-check text-emerald-400 mr-1"></i> Target SLA Met' : ''})</span>`;
           }
         }
       } catch (err) {
@@ -6144,7 +6145,7 @@ Status: ${data.status} (Sub-Microsecond Reflection Achieved: ${r.sub_microsecond
       }
 
       if (tbody) {
-        tbody.innerHTML = `<tr><td colspan="5" style="padding: 1.5rem; text-align: center; color: #38bdf8;">⚡ Fetching L1 memory indexed objects...</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" style="padding: 1.5rem; text-align: center; color: #38bdf8;"><i class="fa-solid fa-bolt mr-1"></i> Fetching L1 memory indexed objects...</td></tr>`;
       }
 
       const t0 = performance.now();
@@ -6161,7 +6162,7 @@ Status: ${data.status} (Sub-Microsecond Reflection Achieved: ${r.sub_microsecond
           if (objects.length === 0) {
             if (tbody) {
               tbody.innerHTML = `<tr><td colspan="5" style="padding: 2.5rem; text-align: center; color: var(--text-muted);">
-                <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">📭</div>
+                <div style="font-size: 1.5rem; margin-bottom: 0.5rem;"><i class="fa-solid fa-inbox text-zinc-600"></i></div>
                 <div>Your tenant bucket is empty. Drag and drop a file above to upload to the phone datacenter!</div>
               </td></tr>`;
             }
@@ -6175,7 +6176,7 @@ Status: ${data.status} (Sub-Microsecond Reflection Achieved: ${r.sub_microsecond
                             `${(obj.size/(1024*1024)).toFixed(2)} MB`;
             const cdnUrl = `${BASE_ENDPOINT}${obj.url}`;
             const isImg = (obj.content_type || "").startsWith("image/");
-            const icon = isImg ? "🖼️" : "📄";
+            const icon = isImg ? '<i class="fa-solid fa-image text-cyan-400"></i>' : '<i class="fa-solid fa-file-lines text-zinc-400"></i>';
 
             rows += `
               <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); transition: background 0.15s;">
@@ -6188,13 +6189,13 @@ Status: ${data.status} (Sub-Microsecond Reflection Achieved: ${r.sub_microsecond
                 <td style="padding: 0.75rem 1rem;">
                   <div style="display: flex; align-items: center; gap: 0.5rem;">
                     <a href="${cdnUrl}" target="_blank" style="color: #38bdf8; text-decoration: none; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block;">${obj.url}</a>
-                    <button onclick="copyText('${cdnUrl}')" class="btn-action" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;" title="Copy Public CDN URL">📋</button>
+                    <button onclick="copyText('${cdnUrl}')" class="btn-action" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;" title="Copy Public CDN URL"><i class="fa-solid fa-copy"></i></button>
                   </div>
                 </td>
                 <td style="padding: 0.75rem 1rem; text-align: right;">
                   <div style="display: flex; gap: 0.4rem; justify-content: flex-end;">
-                    <a href="${cdnUrl}" target="_blank" class="btn-action" style="padding: 0.3rem 0.6rem; font-size: 0.78rem; text-decoration: none;" title="Open / Preview">👁️</a>
-                    <button onclick="deleteStorageObject('${obj.key}')" class="btn-action" style="padding: 0.3rem 0.6rem; font-size: 0.78rem; border-color: rgba(239,68,68,0.4); color: #ef4444;" title="Delete Object">🗑️</button>
+                    <a href="${cdnUrl}" target="_blank" class="btn-action" style="padding: 0.3rem 0.6rem; font-size: 0.78rem; text-decoration: none;" title="Open / Preview"><i class="fa-solid fa-eye"></i></a>
+                    <button onclick="deleteStorageObject('${obj.key}')" class="btn-action" style="padding: 0.3rem 0.6rem; font-size: 0.78rem; border-color: rgba(239,68,68,0.4); color: #ef4444;" title="Delete Object"><i class="fa-solid fa-trash-can"></i></button>
                   </div>
                 </td>
               </tr>
@@ -6283,7 +6284,7 @@ Status: ${data.status} (Sub-Microsecond Reflection Achieved: ${r.sub_microsecond
       if (uploadBtn) uploadBtn.disabled = true;
       if (progText) {
         progText.style.display = "block";
-        progText.innerText = `⚡ Uploading "${objectKey}" to phone NVMe/eMMC flash storage...`;
+        progText.innerHTML = `<i class="fa-solid fa-bolt mr-1 text-amber-400"></i> Uploading "${objectKey}" to phone NVMe/eMMC flash storage...`;
       }
 
       const t0 = performance.now();
@@ -6301,7 +6302,7 @@ Status: ${data.status} (Sub-Microsecond Reflection Achieved: ${r.sub_microsecond
         if (res.ok) {
           const data = await res.json();
           if (progText) {
-            progText.innerHTML = `✅ <span style="color: #10b981;">Uploaded in ${elapsed}ms! Live RAM reflection complete.</span> CDN: <a href="${BASE_ENDPOINT}${data.object.url}" target="_blank" style="color: #38bdf8;">${data.object.url}</a>`;
+            progText.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400 mr-1"></i> <span style="color: #10b981;">Uploaded in ${elapsed}ms! Live RAM reflection complete.</span> CDN: <a href="${BASE_ENDPOINT}${data.object.url}" target="_blank" style="color: #38bdf8;">${data.object.url}</a>`;
           }
           selectedStorageFile = null;
           if (customKeyInput) customKeyInput.value = "";
@@ -6310,12 +6311,12 @@ Status: ${data.status} (Sub-Microsecond Reflection Achieved: ${r.sub_microsecond
         } else {
           const errData = await res.json().catch(() => ({}));
           if (progText) {
-            progText.innerHTML = `❌ <span style="color: #ef4444;">Upload failed (${res.status}): ${errData.error || "Unknown error"}</span>`;
+            progText.innerHTML = `<i class="fa-solid fa-circle-xmark text-rose-500 mr-1"></i> <span style="color: #ef4444;">Upload failed (${res.status}): ${errData.error || "Unknown error"}</span>`;
           }
         }
       } catch (err) {
         if (progText) {
-          progText.innerHTML = `❌ <span style="color: #ef4444;">Upload network error: ${err.message}</span>`;
+          progText.innerHTML = `<i class="fa-solid fa-circle-xmark text-rose-500 mr-1"></i> <span style="color: #ef4444;">Upload network error: ${err.message}</span>`;
         }
       } finally {
         if (uploadBtn) uploadBtn.disabled = false;

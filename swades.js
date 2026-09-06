@@ -203,11 +203,11 @@ class SwadesClient {
     }
   };
 
-  // --- KOKORO-82M SPEECH SYNTHESIS (TTS) ---
+  // --- PIPER VITS SPEECH SYNTHESIS (TTS) ---
   tts = {
     // 1-line speech synthesis with client-side & edge caching
     speak: async (text, options = {}) => {
-      const voice = (options.voice || 'af_heart').trim().toLowerCase();
+      const voice = (options.voice || 'amy').trim().toLowerCase();
       const speed = parseFloat(options.speed || 1.0);
       const format = options.format || 'wav';
       const quality = options.quality || 'auto';
@@ -241,7 +241,7 @@ class SwadesClient {
       if (!res.ok) throw new Error(`Speech synthesis failed: HTTP ${res.status}`);
       const blob = await res.blob();
       const url = typeof URL !== 'undefined' ? URL.createObjectURL(blob) : null;
-      const engine = res.headers.get('x-tts-engine') || 'Kokoro-82M';
+      const engine = res.headers.get('x-tts-engine') || 'Piper-VITS';
       const voiceTag = res.headers.get('x-tts-voice') || voice;
       const isHit = res.headers.get('x-cache') === 'HIT' || res.headers.get('x-edge-cache') === 'HIT';
 
@@ -251,7 +251,7 @@ class SwadesClient {
         engine,
         voice: voiceTag,
         cached: isHit,
-        source: res.headers.get('x-edge-cache') === 'HIT' ? 'edge_cache' : (isHit ? 'hot_vault' : 'native_engine'),
+        source: res.headers.get('x-edge-cache') === 'HIT' ? 'edge_cache' : (isHit ? 'vault_cache' : 'piper_vits_engine'),
         play: () => {
           if (typeof Audio !== 'undefined' && url) {
             const a = new Audio(url);
@@ -269,7 +269,7 @@ class SwadesClient {
 
     // Generates an edge-cacheable GET URL for direct <audio src="..."> playback
     getAudioUrl: (text, options = {}) => {
-      const voice = encodeURIComponent((options.voice || 'af_heart').trim().toLowerCase());
+      const voice = encodeURIComponent((options.voice || 'amy').trim().toLowerCase());
       const speed = parseFloat(options.speed || 1.0).toFixed(2);
       const format = options.format || 'wav';
       return `${this.endpoint}/v1/audio/speech?input=${encodeURIComponent(text)}&voice=${voice}&speed=${speed}&format=${format}`;
@@ -280,7 +280,7 @@ class SwadesClient {
       this._ttsCache.clear();
     },
 
-    // List all supported Kokoro neural voices
+    // List all supported Piper VITS neural voices
     voices: async () => {
       const res = await fetch(`${this.endpoint}/v1/audio/voices`);
       const data = await res.json();

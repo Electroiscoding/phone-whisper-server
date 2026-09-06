@@ -122,15 +122,15 @@ def chat(
 def tts(
     text: str,
     output_path: Optional[Union[str, Path]] = "output.wav",
-    voice: str = "af_heart",
+    voice: str = "amy",
     speed: float = 1.0,
     timeout: int = 30
 ) -> bytes:
     """
-    Synthesizes text into speech WAV audio bytes on-device in ~15-40ms.
+    Synthesizes text into speech WAV audio bytes on-device via Piper VITS.
     :param text: Text string to convert to speech.
     :param output_path: Optional local path to save WAV file.
-    :param voice: Kokoro voice ID (e.g. 'af_heart', 'dm_martin', 'df_eva', 'ef_dora', 'ff_siwis').
+    :param voice: Piper VITS voice ID (e.g. 'amy' for female, 'lessac' for male).
     :param speed: Speech playback rate multiplier (0.75 - 1.5).
     :return: Raw audio WAV bytes.
     """
@@ -146,7 +146,7 @@ def tts(
 
 
 def voices(timeout: int = 10) -> List[Dict[str, Any]]:
-    """Returns the list of active Kokoro-82M neural voices."""
+    """Returns the list of active Piper VITS neural voices."""
     url = f"{BASE_ENDPOINT.rstrip('/')}/v1/audio/voices"
     res = requests.get(url, timeout=timeout)
     res.raise_for_status()
