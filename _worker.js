@@ -50,9 +50,19 @@ async function getLiveOrigin(forceRefresh = false) {
       }
     }, 2500);
     if (apiRes.ok) {
-      const data = await apiRes.json();
-      if (data && data.endpoint && data.endpoint.startsWith("https://")) {
-        cachedOrigin = data.endpoint.replace(/\/+$/, "");
+      let parsed = null;
+      try {
+        const json = await apiRes.json();
+        if (json.content && json.encoding === "base64") {
+          const decoded = atob(json.content.replace(/\s+/g, ""));
+          parsed = JSON.parse(decoded);
+        } else {
+          parsed = json;
+        }
+      } catch (e) {}
+
+      if (parsed && parsed.endpoint && parsed.endpoint.startsWith("https://")) {
+        cachedOrigin = parsed.endpoint.replace(/\/+$/, "");
         lastFetchTime = now;
         return cachedOrigin;
       }
