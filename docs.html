@@ -2175,37 +2175,47 @@ proot-distro login alpine -- node /root/Swades-Agent/worker.js --job job_a9f8224
           </div>
         </div>
 
-        <!-- ENDPOINT 3: POST /v1/audio/speech -->
+        <!-- ENDPOINT 3: POST / GET /v1/audio/speech -->
         <div id="api-tts" class="bg-cardbg border border-cardborder rounded-xl p-6 mb-8 font-mono text-xs">
           <div class="flex items-center justify-between border-b border-cardborder pb-3 mb-4">
             <div class="flex items-center gap-3">
-              <span class="px-2.5 py-1 rounded bg-emerald-900/60 border border-emerald-700 text-emerald-300 font-bold">POST</span>
+              <span class="px-2.5 py-1 rounded bg-emerald-900/60 border border-emerald-700 text-emerald-300 font-bold">POST / GET</span>
               <span class="text-white font-bold text-sm">/v1/audio/speech</span>
             </div>
-            <span class="text-[10px] px-2 py-0.5 rounded bg-zinc-800 text-neonemerald border border-zinc-700">PUBLIC • ZERO AUTH</span>
+            <span class="text-[10px] px-2 py-0.5 rounded bg-zinc-800 text-neonemerald border border-zinc-700">PUBLIC • ZERO AUTH • EDGE CACHED</span>
           </div>
           <p class="text-zinc-300 text-[11px] mb-4 leading-relaxed">
-            Synthesizes high-fidelity natural speech from text using Kokoro-82M. Returns a 24,000 Hz single-channel uncompressed WAV binary stream.
+            Synthesizes high-fidelity natural speech from text using Kokoro-82M. Supports multi-tier caching: Tier 0 (Client SDK/Browser), Tier 1 (Cloudflare Global Edge &lt;5ms), Tier 2 (Phone Hot Latent Vault &lt;15ms), and Tier 3 (Realtime Native &lt;40ms). Returns a 24,000 Hz single-channel uncompressed WAV binary stream.
           </p>
 
-          <div class="mb-4">
-            <div class="text-[11px] font-bold text-zinc-400 uppercase mb-2">Request Body (application/json):</div>
-            <pre class="bg-zinc-950 p-3 rounded border border-cardborder text-cyan-300 overflow-x-auto"><code>{
-  "model": "kokoro",
-  "input": "PhoneWhisper neural voice synthesizer online.",
-  "voice": "af_sarah",
-  "response_format": "wav",
-  "speed": 1.0
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <div class="text-[11px] font-bold text-zinc-400 uppercase mb-2">POST Request (application/json):</div>
+              <pre class="bg-zinc-950 p-3 rounded border border-cardborder text-cyan-300 overflow-x-auto"><code>{
+  "input": "Welcome to earth!",
+  "voice": "dm_martin",
+  "speed": 1.0,
+  "response_format": "wav"
 }</code></pre>
+            </div>
+            <div>
+              <div class="text-[11px] font-bold text-zinc-400 uppercase mb-2">GET Request (Direct Audio Embedding):</div>
+              <pre class="bg-zinc-950 p-3 rounded border border-cardborder text-emerald-300 overflow-x-auto"><code>GET /v1/audio/speech?input=Welcome+to+earth!&voice=dm_martin
+
+&lt;!-- HTML5 Native Player --&gt;
+&lt;audio src="/v1/audio/speech?input=Welcome+to+earth!&voice=dm_martin" controls&gt;&lt;/audio&gt;</code></pre>
+            </div>
           </div>
 
           <div>
-            <div class="text-[11px] font-bold text-zinc-400 uppercase mb-2">Response 200 OK:</div>
-            <div class="bg-zinc-950 p-3 rounded border border-cardborder text-zinc-400 text-[11px]">
+            <div class="text-[11px] font-bold text-zinc-400 uppercase mb-2">Response Headers (HTTP 200 / 304):</div>
+            <div class="bg-zinc-950 p-3 rounded border border-cardborder text-zinc-400 text-[11px] space-y-1">
               <code>Content-Type: audio/wav</code><br>
+              <code>Cache-Control: public, max-age=86400, s-maxage=604800, immutable</code><br>
+              <code>ETag: "c78c6806688f41e270b8daa4b5979a5c78a3ac0b4ac6f988c89220b967964037"</code><br>
               <code>X-TTS-Engine: Kokoro-82M Neural Engine (Hot Latent Vault)</code><br>
               <code>X-TTS-Voice: dm_martin</code><br>
-              <code>X-Cache: HIT (&lt;15ms)</code><br>
+              <code>X-Cache: HIT (&lt;15ms) • X-Edge-Cache: HIT (&lt;5ms)</code><br>
               Binary audio/wav payload directly playable via HTML5 <code>&lt;audio&gt;</code> element.
             </div>
           </div>
@@ -2221,7 +2231,7 @@ proot-distro login alpine -- node /root/Swades-Agent/worker.js --job job_a9f8224
             <span class="text-[10px] px-2 py-0.5 rounded bg-zinc-800 text-cyan-400 border border-zinc-700">PUBLIC • ZERO AUTH</span>
           </div>
           <p class="text-zinc-300 text-[11px] mb-4 leading-relaxed">
-            Returns all 7 active Kokoro-82M neural voices on the phone with language, gender, accent, engine metadata, and hot vault status.
+            Returns the 2 pure American English Kokoro-82M neural voices (Big Tech style: Heart - Female, Adam - Male) with language, gender, accent, engine metadata, and hot vault status.
           </p>
 
           <div class="mb-4">
@@ -2229,15 +2239,10 @@ proot-distro login alpine -- node /root/Swades-Agent/worker.js --job job_a9f8224
             <pre class="bg-zinc-950 p-3 rounded border border-cardborder text-cyan-300 overflow-x-auto"><code>{
   "status": "success",
   "voices": [
-    { "id": "af_heart", "name": "af_heart (English Female)", "language": "en-US", "gender": "female" },
-    { "id": "df_eva", "name": "df_eva (German Female)", "language": "de-DE", "gender": "female" },
-    { "id": "df_victoria", "name": "df_victoria (German Female Studio)", "language": "de-DE", "gender": "female" },
-    { "id": "dm_bernd", "name": "dm_bernd (German Male)", "language": "de-DE", "gender": "male" },
-    { "id": "dm_martin", "name": "dm_martin (German Male Deep)", "language": "de-DE", "gender": "male" },
-    { "id": "ef_dora", "name": "ef_dora (Spanish Female)", "language": "es-ES", "gender": "female" },
-    { "id": "ff_siwis", "name": "ff_siwis (French Female)", "language": "fr-FR", "gender": "female" }
+    { "id": "af_heart", "name": "Heart (American English Female)", "language": "en-US", "gender": "female" },
+    { "id": "am_adam", "name": "Adam (American English Male)", "language": "en-US", "gender": "male" }
   ],
-  "total": 7,
+  "total": 2,
   "engine": "Kokoro-82M Neural Model (StyleTTS2 Architecture)",
   "latency": { "hot_vault": "&lt;15ms", "realtime_native": "&lt;40ms" }
 }</code></pre>

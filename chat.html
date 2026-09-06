@@ -779,7 +779,9 @@
 
   <script>
     // Universal CORS-Shielded Edge Worker with Live Tunnel Auto-Sync
-    let BASE_ENDPOINT = "https://black-term-8c36.botmaker583-55e.workers.dev";
+    let BASE_ENDPOINT = (typeof window !== "undefined" && window.location.origin && window.location.origin.includes("pages.dev"))
+      ? window.location.origin
+      : "https://phone-whisper-server.pages.dev";
     let isResolvingTunnel = false;
 
     async function autoResolveDirectTunnel() {
@@ -1066,16 +1068,32 @@
       btn.classList.add("active-audio");
       btn.querySelector("span").innerText = "Synthesizing...";
 
+      const chatTtsCache = window._chatTtsCache || (window._chatTtsCache = new Map());
+      const cleanText = text.replace(/[*#`_~]/g, "").slice(0, 300).trim();
+
+      if (chatTtsCache.has(cleanText)) {
+        audio.src = chatTtsCache.get(cleanText);
+        btn.querySelector("span").innerText = "Playing...";
+        audio.play();
+        audio.onended = () => {
+          btn.classList.remove("active-audio");
+          btn.querySelector("span").innerText = "Read Aloud";
+          activeAudioBtn = null;
+        };
+        return;
+      }
+
       try {
-        const cleanText = text.replace(/[*#`_~]/g, "").slice(0, 300);
         const res = await fetch(`${BASE_ENDPOINT}/v1/audio/speech`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ input: cleanText, speed: 1.0 })
+          body: JSON.stringify({ input: cleanText, voice: "af_heart", speed: 1.0 })
         });
         if (!res.ok) throw new Error(`TTS HTTP ${res.status}`);
         const blob = await res.blob();
-        audio.src = URL.createObjectURL(blob);
+        const blobUrl = URL.createObjectURL(blob);
+        chatTtsCache.set(cleanText, blobUrl);
+        audio.src = blobUrl;
         btn.querySelector("span").innerText = "Playing...";
         audio.play();
         audio.onended = () => {

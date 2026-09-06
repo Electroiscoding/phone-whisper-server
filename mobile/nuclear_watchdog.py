@@ -14,7 +14,7 @@ import json
 import urllib.request
 
 HOME = "/data/data/com.termux/files/home"
-WORKER_REGISTER_URL = "https://black-term-8c36.botmaker583-55e.workers.dev/register_tunnel"
+WORKER_REGISTER_URL = "https://phone-whisper-server.pages.dev/register_tunnel"
 SHARED_SECRET = "mobile_ai_nuclear_key"
 
 def log(msg):

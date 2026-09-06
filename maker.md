@@ -180,60 +180,70 @@ The following endpoints do NOT require an `Authorization` header or API key:
 
 ### 4.5 Kokoro-82M Neural Text-to-Speech (`/v1/audio/speech` & `/v1/audio/voices`)
 
-The datacenter exposes an OpenAI-compatible speech synthesis endpoint backed by the **Kokoro-82M StyleTTS2** neural model, an ultra-fast **Hot Latent Cache Vault (<15ms)**, and multi-lingual native fallback (<40ms).
+The datacenter exposes an OpenAI-compatible speech synthesis endpoint backed by the **Kokoro-82M StyleTTS2** neural model, multi-tier caching (Client, Cloudflare Global Edge, and On-Device Hot Latent Vault), and multi-lingual native fallback.
 
-#### 4.5.1 Synthesize Speech (`POST /v1/audio/speech`)
-- **Aliases**: `POST /tts`, `POST /v1/tts`, `POST /speech`
-- **Request Headers**: `Content-Type: application/json`
-- **Payload Schema**:
-  ```json
-  {
-    "input": "Welcome to earth!",
-    "voice": "dm_martin",
-    "speed": 1.0,
-    "quality": "auto",
-    "response_format": "wav"
-  }
-  ```
+#### 4.5.1 Synthesize Speech (`POST` & `GET /v1/audio/speech`)
+- **Paths**: `/v1/audio/speech`, `/speech`, `/tts`, `/v1/tts`
+- **Supported Methods**:
+  - `POST`: JSON payload (`application/json`)
+  - `GET`: Query parameters (`?input=...&voice=...&speed=...`) for direct HTML5 `<audio src="...">` embedding and CDN caching.
+- **Request Parameters**:
+  | Parameter | Type | Default | Description |
+  | :--- | :--- | :--- | :--- |
+  | `input` / `text` | string | *required* | The text prompt to synthesize into speech. |
+  | `voice` | string | `"af_heart"` | Kokoro voice persona (e.g. `dm_martin`, `af_heart`, `df_eva`, `ef_dora`, `ff_siwis`). |
+  | `speed` | float | `1.0` | Playback speed multiplier (`0.5` to `2.0`). |
+  | `response_format` | string | `"wav"` | Output audio container format. |
+  | `quality` | string | `"auto"` | `"auto"` (multi-tier cache/realtime) or `"neural"` (on-demand forward pass). |
+
 - **Response Headers**:
   - `Content-Type: audio/wav`
+  - `Cache-Control: public, max-age=86400, s-maxage=604800, immutable`
+  - `ETag: "<sha256_hash>"`
+  - `Accept-Ranges: bytes`
   - `X-TTS-Engine: Kokoro-82M Neural Engine (Hot Latent Vault)`
   - `X-TTS-Voice: dm_martin`
   - `X-Cache: HIT` (or `MISS`)
+  - `X-Edge-Cache: HIT` (when served from Cloudflare's 300+ global edge locations)
+- **HTTP 304 Support**: Pass `If-None-Match: "<sha256_hash>"` for instant 304 Not Modified verification (<1ms, 0 byte transfer).
 - **Binary Output**: 24,000 Hz broadcast-quality WAV audio stream.
 
 #### 4.5.2 Voice Catalogue (`GET /v1/audio/voices`)
-Exposes all 7 active Kokoro neural voices on the device:
+Exposes the 2 pure American English Kokoro neural voices on the device (equivalent to Big Tech flagship assistant personas):
 
-| Voice ID | Name & Description | Language | Gender | Accent | Engine Model |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `af_heart` | American Female (Warm) | `en-US` | Female | American | `kokoro-82m-q8_0.gguf` |
-| `df_eva` | German Female (Articulated) | `de-DE` | Female | German | `kokoro-voice-df_eva.gguf` |
-| `df_victoria` | German Female (Studio) | `de-DE` | Female | German | `kokoro-voice-df_victoria.gguf` |
-| `dm_bernd` | German Male (Conversational) | `de-DE` | Male | German | `kokoro-voice-dm_bernd.gguf` |
-| `dm_martin` | German Male (Deep Resonance) | `de-DE` | Male | German | `kokoro-voice-dm_martin.gguf` |
-| `ef_dora` | Spanish Female (Expressive) | `es-ES` | Female | Castilian | `kokoro-voice-ef_dora.gguf` |
-| `ff_siwis` | French Female (Parisian) | `fr-FR` | Female | Parisian | `kokoro-voice-ff_siwis.gguf` |
+| Voice ID | Name & Description | Language | Gender | Accent | Engine Model | Big Tech Persona Equivalent |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| `af_heart` | Heart (American English Female) | `en-US` | Female | American | `kokoro-82m-q8_0.gguf` | Siri / OpenAI Alloy & Sky (Warm & Articulate) |
+| `am_adam` | Adam (American English Male) | `en-US` | Male | American | `kokoro-82m-q8_0.gguf` | Jarvis / OpenAI Echo & Onyx (Resonant & Crisp) |
 
-*OpenAI Voice Aliases Supported*: `alloy` -> `af_heart`, `echo` -> `am_adam`, `fable` -> `bf_emma`, `onyx` -> `dm_martin`, `nova` -> `df_eva`, `shimmer` -> `ef_dora`.
+*Full Voice Aliasing*: Any female alias (`alloy`, `sky`, `nova`, `female`, `woman`, `heart`) maps to `af_heart`. Any male alias (`echo`, `onyx`, `male`, `man`, `adam`, `michael`) maps to `am_adam`. Zero foreign accent bleed.
 
-#### 4.5.3 Multi-Tier Latency Architecture
-1. **Tier 1: Hot Latent Vault (HIT)**: **<15ms** instant response for pre-warmed phrases. Strict per-voice hash isolation.
-2. **Tier 2: Realtime Native (MISS)**: **<40ms** instant speech respecting the exact language (`de`, `es`, `fr`, `en`), gender, and formants, while dispatching a background thread to compute full Kokoro neural audio.
-3. **Tier 3: On-Demand Neural (`quality: "neural"`)**: Full StyleTTS2 82M forward-pass on 8x Cortex-A53 cores.
+#### 4.5.3 4-Tier Latency & Caching Architecture
+To guarantee maximum speed without ever encountering browser timeouts:
 
-#### 4.5.4 1-Line Developer SDK Usage
+| Tier | Layer | Latency | Description |
+| :--- | :--- | :--- | :--- |
+| **Tier 0** | Client Memory & Disk | **0.01ms** | In-browser `Map` (`swades.js`) and local disk cache in `~/.swades/tts_cache/` (`swades.py`). |
+| **Tier 1** | Cloudflare Edge Cache | **<5ms** | Global edge caching across 300+ datacenters via `caches.default` in `_worker.js`. |
+| **Tier 2** | On-Device Hot Latent Vault | **<15ms** | Pre-warmed full Kokoro neural audio files stored on the phone in `.kokoro_cache/`. |
+| **Tier 3** | Realtime Multi-Lingual Native | **<40ms** | Instant native formant engine with precise language and pitch matching + async neural pre-warmer. |
 
-##### JavaScript (`swades.js`):
+#### 4.5.4 Developer SDK Usage
+
+##### JavaScript / Node.js (`swades.js`):
 ```javascript
 import { Swades } from './swades.js';
 const client = Swades.init();
 
-// 1-line speech synthesis
+// 1. Synthesize speech (Cached in client memory & Cloudflare edge)
 const audio = await client.speak("Welcome to earth!", { voice: "dm_martin" });
 audio.play();
 
-// List voices
+// 2. Direct cacheable URL for <audio src="..."> HTML elements
+const audioUrl = client.getAudioUrl("Welcome to earth!", { voice: "dm_martin" });
+document.getElementById("myAudio").src = audioUrl;
+
+// 3. List available voices
 const voices = await client.voices();
 ```
 
@@ -242,22 +252,30 @@ const voices = await client.voices();
 from swades import Swades
 client = Swades()
 
-# 1-line speech synthesis
+# 1. Synthesize audio bytes (Automatic local memory + disk caching in ~/.swades/tts_cache/)
 audio_bytes = client.tts("Welcome to earth!", voice="dm_martin", speed=1.0)
 
-# Save directly to disk
+# 2. Save directly to file
 client.tts_to_file("Welcome to earth!", "speech.wav", voice="dm_martin")
 
-# List voices
+# 3. Direct edge-cacheable URL
+url = client.get_audio_url("Welcome to earth!", voice="dm_martin")
+
+# 4. List available voices
 voices = client.voices()
 ```
 
-##### cURL:
+##### cURL Examples:
 ```bash
+# POST Synthesis
 curl -s -X POST https://phone-whisper-server.pages.dev/v1/audio/speech \
   -H "Content-Type: application/json" \
   -d '{"input": "Welcome to earth!", "voice": "dm_martin"}' \
   --output speech.wav
+
+# GET Direct Streaming (Edge Cacheable)
+curl -s "https://phone-whisper-server.pages.dev/v1/audio/speech?input=Welcome+to+earth!&voice=dm_martin" \
+  --output speech_get.wav
 ```
 
 ---

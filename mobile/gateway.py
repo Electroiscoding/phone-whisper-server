@@ -3226,6 +3226,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_dashboard_security_status()
         elif path in ["/v1/audio/voices", "/v1/voices", "/voices"]:
             self.handle_tts_voices()
+        elif path in ["/v1/audio/speech", "/speech", "/tts", "/v1/tts"]:
+            self.handle_tts()
         elif path.startswith('/v1/agent/pop_message/'):
             job_id = path.split('/')[-1]
             self.handle_agent_pop_message(job_id)
@@ -6073,79 +6075,24 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         voices = [
             {
                 "id": "af_heart",
-                "name": "af_heart (English Female)",
+                "name": "Heart (American English Female)",
                 "language": "en-US",
                 "gender": "female",
                 "accent": "American",
-                "description": "Warm, natural English female tone (Kokoro-82M Flagship)",
+                "description": "Warm, natural, expressive American English female (Kokoro-82M Flagship • Big Tech Style)",
                 "neural_model": "kokoro-82m-q8_0.gguf",
                 "voice_file": "kokoro-voice-af_heart.gguf",
                 "is_active": True
             },
             {
-                "id": "df_eva",
-                "name": "df_eva (German Female)",
-                "language": "de-DE",
-                "gender": "female",
-                "accent": "German",
-                "description": "Crisp, articulated German female voice",
-                "neural_model": "kokoro-82m-q8_0.gguf",
-                "voice_file": "kokoro-voice-df_eva.gguf",
-                "is_active": True
-            },
-            {
-                "id": "df_victoria",
-                "name": "df_victoria (German Female Studio)",
-                "language": "de-DE",
-                "gender": "female",
-                "accent": "German",
-                "description": "Studio-grade broadcast German female voice",
-                "neural_model": "kokoro-82m-q8_0.gguf",
-                "voice_file": "kokoro-voice-df_victoria.gguf",
-                "is_active": True
-            },
-            {
-                "id": "dm_bernd",
-                "name": "dm_bernd (German Male)",
-                "language": "de-DE",
+                "id": "am_adam",
+                "name": "Adam (American English Male)",
+                "language": "en-US",
                 "gender": "male",
-                "accent": "German",
-                "description": "Natural German male conversational voice",
+                "accent": "American",
+                "description": "Resonant, clear, professional American English male (Kokoro-82M Flagship • Big Tech Style)",
                 "neural_model": "kokoro-82m-q8_0.gguf",
-                "voice_file": "kokoro-voice-dm_bernd.gguf",
-                "is_active": True
-            },
-            {
-                "id": "dm_martin",
-                "name": "dm_martin (German Male Deep)",
-                "language": "de-DE",
-                "gender": "male",
-                "accent": "German",
-                "description": "Deep resonance German male voice",
-                "neural_model": "kokoro-82m-q8_0.gguf",
-                "voice_file": "kokoro-voice-dm_martin.gguf",
-                "is_active": True
-            },
-            {
-                "id": "ef_dora",
-                "name": "ef_dora (Spanish Female)",
-                "language": "es-ES",
-                "gender": "female",
-                "accent": "Castilian Spanish",
-                "description": "Expressive European Spanish female voice",
-                "neural_model": "kokoro-82m-q8_0.gguf",
-                "voice_file": "kokoro-voice-ef_dora.gguf",
-                "is_active": True
-            },
-            {
-                "id": "ff_siwis",
-                "name": "ff_siwis (French Female)",
-                "language": "fr-FR",
-                "gender": "female",
-                "accent": "Parisian French",
-                "description": "High-fidelity French female voice (SIWIS dataset)",
-                "neural_model": "kokoro-82m-q8_0.gguf",
-                "voice_file": "kokoro-voice-ff_siwis.gguf",
+                "voice_file": "kokoro-voice-am_adam.gguf",
                 "is_active": True
             }
         ]
@@ -6178,35 +6125,72 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             _active_daemon = "gateway (TTS Engine)"
 
         try:
-            content_length = int(self.headers.get("Content-Length", 0))
-            body = self.rfile.read(content_length) if content_length > 0 else b"{}"
-            try:
-                payload = json.loads(body.decode("utf-8"))
-            except Exception:
-                payload = {}
+            if self.command == "GET":
+                parsed_url = urllib.parse.urlparse(self.path)
+                qs = urllib.parse.parse_qs(parsed_url.query)
+                input_text = str(qs.get("input", qs.get("text", ["Welcome to PhoneWhisper speech synthesis."]))[0]).strip()
+                raw_voice = str(qs.get("voice", ["af_heart"])[0]).strip().lower()
+                speed = float(qs.get("speed", [1.0])[0])
+                fmt = str(qs.get("response_format", qs.get("format", ["wav"]))[0]).lower().strip()
+                quality = str(qs.get("quality", ["auto"])[0]).lower().strip()
+            else:
+                content_length = int(self.headers.get("Content-Length", 0))
+                body = self.rfile.read(content_length) if content_length > 0 else b"{}"
+                try:
+                    payload = json.loads(body.decode("utf-8"))
+                except Exception:
+                    payload = {}
+                input_text = str(payload.get("input", payload.get("text", "Welcome to PhoneWhisper speech synthesis."))).strip()
+                raw_voice = str(payload.get("voice", "af_heart")).strip().lower()
+                speed = float(payload.get("speed", 1.0))
+                fmt = str(payload.get("response_format", "wav")).lower().strip()
+                quality = str(payload.get("quality", "auto")).lower().strip()
 
-            input_text = str(payload.get("input", payload.get("text", "Welcome to PhoneWhisper speech synthesis."))).strip()
             if not input_text:
                 input_text = "Hello from PhoneWhisper sovereign artificial intelligence datacenter."
 
-            raw_voice = str(payload.get("voice", "af_heart")).strip().lower()
-            speed = float(payload.get("speed", 1.0))
-            fmt = str(payload.get("response_format", "wav")).lower().strip()
-            quality = str(payload.get("quality", "auto")).lower().strip()
-
-            # Voice Aliasing (OpenAI Standard -> Kokoro Canonical)
+            # Voice Aliasing (Strictly Pure English Female / Male Big Tech Standard)
             voice_alias_map = {
-                "alloy": "af_heart",
-                "default": "af_heart",
                 "female": "af_heart",
+                "woman": "af_heart",
+                "girl": "af_heart",
+                "alloy": "af_heart",
+                "sky": "af_heart",
+                "nova": "af_heart",
+                "shimmer": "af_heart",
+                "heart": "af_heart",
+                "af_heart": "af_heart",
+                "af_bella": "af_heart",
+                "af_sarah": "af_heart",
+                "af_nicole": "af_heart",
+                "bf_emma": "af_heart",
+                "df_eva": "af_heart",
+                "df_victoria": "af_heart",
+                "ef_dora": "af_heart",
+                "ff_siwis": "af_heart",
+                
                 "male": "am_adam",
+                "man": "am_adam",
+                "boy": "am_adam",
                 "echo": "am_adam",
-                "fable": "bf_emma",
-                "onyx": "dm_martin",
-                "nova": "df_eva",
-                "shimmer": "ef_dora"
+                "onyx": "am_adam",
+                "fable": "am_adam",
+                "adam": "am_adam",
+                "am_adam": "am_adam",
+                "am_michael": "am_adam",
+                "am_fenrir": "am_adam",
+                "am_liam": "am_adam",
+                "bm_george": "am_adam",
+                "bm_daniel": "am_adam",
+                "dm_martin": "am_adam",
+                "dm_bernd": "am_adam"
             }
-            voice_norm = voice_alias_map.get(raw_voice, raw_voice)
+            if raw_voice in voice_alias_map:
+                voice_norm = voice_alias_map[raw_voice]
+            elif any(m in raw_voice for m in ["male", "man", "adam", "boy", "m_"]):
+                voice_norm = "am_adam"
+            else:
+                voice_norm = "af_heart"
 
             # 1. Check Kokoro-82M Hot Latent Cache (Sub-15ms Instant Response)
             # STRICT VOICE ISOLATION: A request for dm_martin will ONLY ever match dm_martin!
@@ -6214,6 +6198,16 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             normalized_text = " ".join(input_text.strip().lower().split())
             cache_key = hashlib.sha256(f"{voice_norm}_{speed:.2f}_{normalized_text}".encode("utf-8")).hexdigest()
             cache_key_std = hashlib.sha256(f"{voice_norm}_1.00_{normalized_text}".encode("utf-8")).hexdigest()
+
+            # HTTP Conditional Request Handling (304 Not Modified)
+            if_none_match = self.headers.get("If-None-Match", "").strip('"')
+            if if_none_match and if_none_match in [cache_key, cache_key_std]:
+                self.send_response(304)
+                self._send_cors_headers()
+                self.send_header("ETag", f'"{cache_key}"')
+                self.send_header("Cache-Control", "public, max-age=86400, s-maxage=604800, immutable")
+                self.end_headers()
+                return
 
             cached_file = None
             if os.path.exists(kokoro_cache_dir):
@@ -6231,6 +6225,9 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 self._send_cors_headers()
                 self.send_header("Content-Type", "audio/wav")
                 self.send_header("Content-Length", str(len(cached_bytes)))
+                self.send_header("Cache-Control", "public, max-age=86400, s-maxage=604800, immutable")
+                self.send_header("ETag", f'"{cache_key}"')
+                self.send_header("Accept-Ranges", "bytes")
                 self.send_header("X-TTS-Engine", "Kokoro-82M Neural Engine (Hot Latent Vault)")
                 self.send_header("X-Kokoro-Model", "Kokoro-82M-Q8_0 (StyleTTS2 Native GGML)")
                 self.send_header("X-TTS-Voice", voice_norm)
@@ -6282,23 +6279,12 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             espeak_bin = "/data/data/com.termux/files/usr/bin/espeak-ng"
             if not audio_data and os.path.exists(espeak_bin):
                 try:
-                    # Precise Multi-Lingual Voice Formant & Pitch Mapping
+                    # Pure American English Voice Formant & Pitch Models
                     native_voice_profiles = {
-                        "af_heart": {"v": "en-US+f3", "p": 55, "label": "Kokoro-82M American Female (Warm)"},
-                        "af_bella": {"v": "en-US+f4", "p": 62, "label": "Kokoro-82M American Female (Bright)"},
-                        "af_sarah": {"v": "en-US+f2", "p": 52, "label": "Kokoro-82M American Female (Calm)"},
-                        "af_nicole": {"v": "en-US+f5", "p": 58, "label": "Kokoro-82M American Female (Crisp)"},
-                        "am_adam": {"v": "en-US+m3", "p": 38, "label": "Kokoro-82M American Male (Resonant)"},
-                        "am_michael": {"v": "en-US+m1", "p": 42, "label": "Kokoro-82M American Male (Studio)"},
-                        "bf_emma": {"v": "en-gb+f2", "p": 55, "label": "Kokoro-82M British Female (Royal)"},
-                        "df_eva": {"v": "de+f2", "p": 58, "label": "Kokoro-82M German Female (Clear)"},
-                        "df_victoria": {"v": "de+f3", "p": 52, "label": "Kokoro-82M German Female (Studio)"},
-                        "dm_bernd": {"v": "de+m2", "p": 40, "label": "Kokoro-82M German Male (Casual)"},
-                        "dm_martin": {"v": "de+m4", "p": 30, "label": "Kokoro-82M German Male (Deep)"},
-                        "ef_dora": {"v": "es+f3", "p": 55, "label": "Kokoro-82M Spanish Female (Expressive)"},
-                        "ff_siwis": {"v": "fr+f2", "p": 55, "label": "Kokoro-82M French Female (Parisian)"},
+                        "af_heart": {"v": "en-US+f3", "p": 55, "label": "Kokoro-82M American Female (Heart)"},
+                        "am_adam": {"v": "en-US+m3", "p": 38, "label": "Kokoro-82M American Male (Adam)"}
                     }
-                    prof = native_voice_profiles.get(voice_norm, {"v": "en-US", "p": 50, "label": f"Kokoro-82M ({voice_norm})"})
+                    prof = native_voice_profiles.get(voice_norm, native_voice_profiles["af_heart"])
                     esp_voice = prof["v"]
                     esp_pitch = prof["p"]
                     wpm = int(160 * max(0.5, min(2.0, speed)))
@@ -6365,6 +6351,9 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 self._send_cors_headers()
                 self.send_header("Content-Type", content_type)
                 self.send_header("Content-Length", str(len(audio_data)))
+                self.send_header("Cache-Control", "public, max-age=86400, s-maxage=604800, immutable")
+                self.send_header("ETag", f'"{cache_key}"')
+                self.send_header("Accept-Ranges", "bytes")
                 self.send_header("X-TTS-Engine", engine_used)
                 self.send_header("X-TTS-Voice", voice_norm)
                 self.send_header("X-Cache", "MISS")

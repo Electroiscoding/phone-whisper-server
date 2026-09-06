@@ -1948,24 +1948,19 @@
           <span>Mode 3: Kokoro-82M Neural Voice Synthesis</span>
         </span>
         <h2 class="section-title">Kokoro Neural Text-to-Speech (TTS)</h2>
-        <p class="section-desc">Generate lifelike speech in multiple Kokoro voices (af_heart, af_bella, am_adam, bf_emma) directly on the phone in ~30 milliseconds.</p>
+        <p class="section-desc">Generate lifelike speech in pure American English (Heart - Female & Adam - Male) directly on the sovereign phone node with sub-15ms cached latency.</p>
       </div>
 
-      <div class="chat-container-card">
+      <div class="card-glow" style="padding: 1.5rem; border-radius: 16px;">
         <div style="margin-bottom: 1rem;">
           <textarea id="ttsInputText" class="chat-input" style="width: 100%; height: 100px; resize: vertical;" placeholder="Enter text to speak...">Welcome to the world's first autonomous multi-modal edge AI datacenter running on a phone.</textarea>
         </div>
         <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; justify-content: space-between;">
           <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
             <label style="font-size: 0.85rem; color: var(--text-muted);">Voice:</label>
-            <select id="ttsVoiceSelect" class="format-pill-select" style="padding: 0.4rem 0.8rem;">
-              <option value="af_heart" selected>❤️ af_heart (English Female - Warm)</option>
-              <option value="df_eva">🇩🇪 df_eva (German Female)</option>
-              <option value="df_victoria">🇩🇪 df_victoria (German Female - Studio)</option>
-              <option value="dm_bernd">🇩🇪 dm_bernd (German Male)</option>
-              <option value="dm_martin">🇩🇪 dm_martin (German Male - Deep)</option>
-              <option value="ef_dora">🇪🇸 ef_dora (Spanish Female)</option>
-              <option value="ff_siwis">🇫🇷 ff_siwis (French Female)</option>
+            <select id="ttsVoiceSelect" class="format-pill-select" style="padding: 0.4rem 0.8rem; font-weight: 600;">
+              <option value="af_heart" selected>🇺🇸 Heart (English Female • Warm & Natural)</option>
+              <option value="am_adam">🇺🇸 Adam (English Male • Resonant & Clear)</option>
             </select>
             <label style="font-size: 0.85rem; color: var(--text-muted); margin-left: 0.5rem;">Speed:</label>
             <select id="ttsSpeedSelect" class="format-pill-select" style="padding: 0.4rem 0.8rem;">
@@ -2678,7 +2673,7 @@ console.log("Transcribed Text:", data.text);</code></pre>
                 <thead><tr><th>Field</th><th>Type</th><th>Required</th><th>Default</th><th>Description</th></tr></thead>
                 <tbody>
                   <tr><td><code>input</code></td><td>String</td><td><strong style="color: var(--danger)">Yes</strong></td><td>-</td><td>Text to synthesize into spoken audio</td></tr>
-                  <tr><td><code>voice</code></td><td>String</td><td>No</td><td><code>af_heart</code></td><td>Voice personality: <code>af_heart</code> (EN), <code>df_eva</code> / <code>df_victoria</code> (DE), <code>dm_bernd</code> / <code>dm_martin</code> (DE Male), <code>ef_dora</code> (ES), <code>ff_siwis</code> (FR)</td></tr>
+                  <tr><td><code>voice</code></td><td>String</td><td>No</td><td><code>af_heart</code></td><td>Pure English Voice: <code>af_heart</code> (American Female), <code>am_adam</code> (American Male)</td></tr>
                   <tr><td><code>speed</code></td><td>Float</td><td>No</td><td><code>1.0</code></td><td>Speech rate multiplier (0.5 to 2.0)</td></tr>
                 </tbody>
               </table>
@@ -4137,8 +4132,10 @@ python3 mobile/nuclear_watchdog.py</code></pre>
     window.sendChatPrompt = sendChatPrompt;
 
     // =========================================================================
-    // 🗣️ TEXT-TO-SPEECH (TTS) HANDLER
+    // 🗣️ TEXT-TO-SPEECH (TTS) HANDLER (MULTI-TIER CACHE ARCHITECTURE)
     // =========================================================================
+    const ttsClientMemoryCache = new Map();
+
     async function generateSpeech() {
       const textEl = document.getElementById("ttsInputText");
       const text = textEl ? textEl.value.trim() : "";
@@ -4149,6 +4146,33 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       const speedEl = document.getElementById("ttsSpeedSelect");
       const speed = speedEl ? parseFloat(speedEl.value) : 1.0;
       const btn = document.getElementById("generateTtsBtn");
+      
+      const playerBox = document.getElementById("ttsAudioPlayerBox");
+      const audioElement = document.getElementById("ttsAudioElement");
+      const downloadLink = document.getElementById("ttsDownloadLink");
+      const engineLabel = document.getElementById("ttsEngineLabel");
+      const latencyBadge = document.getElementById("ttsLatencyBadge");
+
+      const cacheKey = `${voice.toLowerCase()}:${speed.toFixed(2)}:${text.toLowerCase()}`;
+
+      // Tier 0: In-Browser Client Memory Cache (0ms)
+      if (ttsClientMemoryCache.has(cacheKey)) {
+        const cachedItem = ttsClientMemoryCache.get(cacheKey);
+        if (engineLabel) engineLabel.innerText = `🎙️ ${cachedItem.engine} • Voice: ${cachedItem.voiceTag}`;
+        if (latencyBadge) {
+          latencyBadge.innerText = "⚡ Instant Client Cache (HIT 0ms)";
+          latencyBadge.style.color = "#34d399";
+        }
+        if (audioElement && downloadLink && playerBox) {
+          audioElement.src = cachedItem.audioUrl;
+          downloadLink.href = cachedItem.audioUrl;
+          playerBox.style.display = "flex";
+          audioElement.currentTime = 0;
+          audioElement.play().catch(() => {});
+        }
+        return;
+      }
+
       if (btn) {
         btn.disabled = true;
         btn.innerHTML = "<span>⏳ Synthesizing Audio...</span>";
@@ -4157,6 +4181,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       try {
         isInferencing = true;
         activeDaemon = "gateway";
+        const startTime = performance.now();
         const res = await nuclearFetch(`${BASE_ENDPOINT}/v1/audio/speech`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -4164,29 +4189,36 @@ python3 mobile/nuclear_watchdog.py</code></pre>
         });
 
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const elapsed = Math.round(performance.now() - startTime);
         const blob = await res.blob();
         const audioUrl = URL.createObjectURL(blob);
 
-        const playerBox = document.getElementById("ttsAudioPlayerBox");
-        const audioElement = document.getElementById("ttsAudioElement");
-        const downloadLink = document.getElementById("ttsDownloadLink");
-        const engineLabel = document.getElementById("ttsEngineLabel");
-        const latencyBadge = document.getElementById("ttsLatencyBadge");
-
         const engine = res.headers.get("x-tts-engine") || "Kokoro-82M Neural Engine";
         const voiceTag = res.headers.get("x-tts-voice") || voice;
+        const edgeCache = res.headers.get("x-edge-cache") === "HIT";
         const cacheStatus = res.headers.get("x-cache") || "MISS";
 
         if (engineLabel) engineLabel.innerText = `🎙️ ${engine} • Voice: ${voiceTag}`;
         if (latencyBadge) {
-          latencyBadge.innerText = cacheStatus === "HIT" ? "⚡ Hot Latent Vault (HIT <15ms)" : "⚡ Realtime Native (MISS ~30ms)";
-          latencyBadge.style.color = cacheStatus === "HIT" ? "#10b981" : "#38bdf8";
+          if (edgeCache) {
+            latencyBadge.innerText = `⚡ Cloudflare Edge Cache (HIT ${elapsed}ms)`;
+            latencyBadge.style.color = "#10b981";
+          } else if (cacheStatus === "HIT") {
+            latencyBadge.innerText = `⚡ Hot Latent Vault (HIT ${elapsed}ms)`;
+            latencyBadge.style.color = "#10b981";
+          } else {
+            latencyBadge.innerText = `⚡ Realtime Native (MISS ${elapsed}ms)`;
+            latencyBadge.style.color = "#38bdf8";
+          }
         }
+
+        ttsClientMemoryCache.set(cacheKey, { audioUrl, engine, voiceTag });
 
         if (audioElement && downloadLink && playerBox) {
           audioElement.src = audioUrl;
           downloadLink.href = audioUrl;
           playerBox.style.display = "flex";
+          audioElement.currentTime = 0;
           audioElement.play().catch(() => {});
         }
       } catch (err) {

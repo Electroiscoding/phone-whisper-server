@@ -9,15 +9,21 @@
  * 5. Telemetry: getTelemetry()
  */
 
-const BASE_ENDPOINT = (typeof process !== "undefined" && process.env && process.env.WHISPER_API_URL)
-  ? process.env.WHISPER_API_URL
-  : "https://black-term-8c36.botmaker583-55e.workers.dev";
+function getBaseEndpoint() {
+  if (typeof process !== "undefined" && process.env && process.env.WHISPER_API_URL) {
+    return process.env.WHISPER_API_URL;
+  }
+  if (typeof window !== "undefined" && window.location.origin && window.location.origin.includes("pages.dev")) {
+    return window.location.origin;
+  }
+  return "https://phone-whisper-server.pages.dev";
+}
 
 /**
  * Transcribes audio using on-device Whisper Base.en model.
  */
 async function transcribe(audioInput, options = {}) {
-  const endpoint = `${BASE_ENDPOINT.replace(/\/+$/, "")}/inference`;
+  const endpoint = `${getBaseEndpoint().replace(/\/+$/, "")}/inference`;
   const responseFormat = options.responseFormat || "json";
   const temperature = options.temperature !== undefined ? String(options.temperature) : "0.0";
 
@@ -70,7 +76,7 @@ async function transcribe(audioInput, options = {}) {
  * Generates chat completion using on-device Qwen 2.5 0.5B SLM.
  */
 async function chat(prompt, options = {}) {
-  const endpoint = `${BASE_ENDPOINT.replace(/\/+$/, "")}/v1/chat/completions`;
+  const endpoint = `${getBaseEndpoint().replace(/\/+$/, "")}/v1/chat/completions`;
   const messages = [];
   if (options.systemPrompt) {
     messages.push({ role: "system", content: options.systemPrompt });
@@ -92,26 +98,51 @@ async function chat(prompt, options = {}) {
   return data.choices[0].message.content.trim();
 }
 
+const _ttsCache = new Map();
+
 /**
- * Synthesizes text to speech audio bytes on-device.
+ * Synthesizes text to speech audio bytes on-device with multi-voice support.
  */
 async function tts(text, options = {}) {
-  const endpoint = `${BASE_ENDPOINT.replace(/\/+$/, "")}/v1/audio/speech`;
+  const voice = (options.voice || "af_heart").trim().toLowerCase();
+  const speed = parseFloat(options.speed || 1.0);
+  const cacheKey = `${voice}:${speed.toFixed(2)}:${text.trim().toLowerCase()}`;
+
+  if (options.cache !== false && _ttsCache.has(cacheKey)) {
+    return _ttsCache.get(cacheKey);
+  }
+
+  const endpoint = `${getBaseEndpoint().replace(/\/+$/, "")}/v1/audio/speech`;
   const response = await fetch(endpoint, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ input: text, speed: options.speed || 1.0 }),
+    body: JSON.stringify({ input: text, voice, speed }),
   });
 
   if (!response.ok) throw new Error(`TTS failed with HTTP ${response.status}`);
-  return await response.arrayBuffer();
+  const buffer = await response.arrayBuffer();
+  if (options.cache !== false) {
+    _ttsCache.set(cacheKey, buffer);
+  }
+  return buffer;
+}
+
+/**
+ * Lists all active Kokoro-82M neural voices.
+ */
+async function voices() {
+  const endpoint = `${getBaseEndpoint().replace(/\/+$/, "")}/v1/audio/voices`;
+  const response = await fetch(endpoint);
+  if (!response.ok) throw new Error(`Voices failed with HTTP ${response.status}`);
+  const data = await response.json();
+  return data.voices || [];
 }
 
 /**
  * Generates dense vector embeddings.
  */
 async function embed(text) {
-  const endpoint = `${BASE_ENDPOINT.replace(/\/+$/, "")}/v1/embeddings`;
+  const endpoint = `${getBaseEndpoint().replace(/\/+$/, "")}/v1/embeddings`;
   const response = await fetch(endpoint, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -140,7 +171,7 @@ function cosineSimilarity(v1, v2) {
  * Fetches real-time Android kernel battery and RAM telemetry.
  */
 async function getTelemetry() {
-  const endpoint = `${BASE_ENDPOINT.replace(/\/+$/, "")}/telemetry`;
+  const endpoint = `${getBaseEndpoint().replace(/\/+$/, "")}/telemetry`;
   const response = await fetch(endpoint);
   if (!response.ok) throw new Error(`Telemetry failed with HTTP ${response.status}`);
   return await response.json();
@@ -184,5 +215,5 @@ if (typeof process !== "undefined" && process.argv && process.argv[1]) {
 }
 
 if (typeof module !== "undefined" && module.exports) {
-  module.exports = { transcribe, chat, tts, embed, cosineSimilarity, getTelemetry };
+  module.exports = { transcribe, chat, tts, voices, embed, cosineSimilarity, getTelemetry };
 }

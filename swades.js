@@ -9,6 +9,7 @@ class SwadesClient {
     this.endpoint = (options.endpoint || (typeof window !== 'undefined' ? window.location.origin : 'https://phone-whisper-server.pages.dev')).replace(/\/+$/, '');
     this.apiKey = options.apiKey || '';
     this.projectId = options.projectId || options.project || 'default';
+    this._ttsCache = new Map();
   }
 
   // Set active project
@@ -204,12 +205,29 @@ class SwadesClient {
 
   // --- KOKORO-82M SPEECH SYNTHESIS (TTS) ---
   tts = {
-    // 1-line speech synthesis
+    // 1-line speech synthesis with client-side & edge caching
     speak: async (text, options = {}) => {
-      const voice = options.voice || 'af_heart';
-      const speed = options.speed || 1.0;
+      const voice = (options.voice || 'af_heart').trim().toLowerCase();
+      const speed = parseFloat(options.speed || 1.0);
       const format = options.format || 'wav';
       const quality = options.quality || 'auto';
+      const useCache = options.cache !== false;
+
+      const cacheKey = `${voice}:${speed.toFixed(2)}:${text.trim().toLowerCase()}`;
+      if (useCache && this._ttsCache.has(cacheKey)) {
+        const cached = this._ttsCache.get(cacheKey);
+        return {
+          ...cached,
+          cached: true,
+          source: 'client_memory',
+          play: () => {
+            if (typeof Audio !== 'undefined' && cached.url) {
+              const a = new Audio(cached.url);
+              return a.play();
+            }
+          }
+        };
+      }
 
       const res = await fetch(`${this.endpoint}/v1/audio/speech`, {
         method: 'POST',
@@ -222,19 +240,44 @@ class SwadesClient {
       });
       if (!res.ok) throw new Error(`Speech synthesis failed: HTTP ${res.status}`);
       const blob = await res.blob();
-      return {
+      const url = typeof URL !== 'undefined' ? URL.createObjectURL(blob) : null;
+      const engine = res.headers.get('x-tts-engine') || 'Kokoro-82M';
+      const voiceTag = res.headers.get('x-tts-voice') || voice;
+      const isHit = res.headers.get('x-cache') === 'HIT' || res.headers.get('x-edge-cache') === 'HIT';
+
+      const result = {
         blob,
-        url: typeof URL !== 'undefined' ? URL.createObjectURL(blob) : null,
-        engine: res.headers.get('x-tts-engine') || 'Kokoro-82M',
-        voice: res.headers.get('x-tts-voice') || voice,
-        cached: res.headers.get('x-cache') === 'HIT',
+        url,
+        engine,
+        voice: voiceTag,
+        cached: isHit,
+        source: res.headers.get('x-edge-cache') === 'HIT' ? 'edge_cache' : (isHit ? 'hot_vault' : 'native_engine'),
         play: () => {
-          if (typeof Audio !== 'undefined') {
-            const a = new Audio(URL.createObjectURL(blob));
+          if (typeof Audio !== 'undefined' && url) {
+            const a = new Audio(url);
             return a.play();
           }
         }
       };
+
+      if (useCache) {
+        this._ttsCache.set(cacheKey, result);
+      }
+
+      return result;
+    },
+
+    // Generates an edge-cacheable GET URL for direct <audio src="..."> playback
+    getAudioUrl: (text, options = {}) => {
+      const voice = encodeURIComponent((options.voice || 'af_heart').trim().toLowerCase());
+      const speed = parseFloat(options.speed || 1.0).toFixed(2);
+      const format = options.format || 'wav';
+      return `${this.endpoint}/v1/audio/speech?input=${encodeURIComponent(text)}&voice=${voice}&speed=${speed}&format=${format}`;
+    },
+
+    // Clears the client-side speech cache
+    clearCache: () => {
+      this._ttsCache.clear();
     },
 
     // List all supported Kokoro neural voices
@@ -248,6 +291,9 @@ class SwadesClient {
   // Top-level convenience helpers
   async speak(text, options) {
     return this.tts.speak(text, options);
+  }
+  getAudioUrl(text, options) {
+    return this.tts.getAudioUrl(text, options);
   }
   async voices() {
     return this.tts.voices();

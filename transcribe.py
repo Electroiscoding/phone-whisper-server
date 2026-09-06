@@ -18,7 +18,7 @@ import requests
 from pathlib import Path
 from typing import Optional, Dict, Any, Union, List, Iterator
 
-BASE_ENDPOINT = os.getenv("WHISPER_API_URL", "https://black-term-8c36.botmaker583-55e.workers.dev")
+BASE_ENDPOINT = os.getenv("WHISPER_API_URL", "https://phone-whisper-server.pages.dev")
 
 
 def transcribe(
@@ -122,18 +122,20 @@ def chat(
 def tts(
     text: str,
     output_path: Optional[Union[str, Path]] = "output.wav",
+    voice: str = "af_heart",
     speed: float = 1.0,
     timeout: int = 30
 ) -> bytes:
     """
-    Synthesizes text into speech WAV audio bytes on-device in ~50ms.
+    Synthesizes text into speech WAV audio bytes on-device in ~15-40ms.
     :param text: Text string to convert to speech.
     :param output_path: Optional local path to save WAV file.
+    :param voice: Kokoro voice ID (e.g. 'af_heart', 'dm_martin', 'df_eva', 'ef_dora', 'ff_siwis').
     :param speed: Speech playback rate multiplier (0.75 - 1.5).
     :return: Raw audio WAV bytes.
     """
     url = f"{BASE_ENDPOINT.rstrip('/')}/v1/audio/speech"
-    payload = {"input": text, "speed": speed}
+    payload = {"input": text, "voice": voice, "speed": speed}
     res = requests.post(url, json=payload, timeout=timeout)
     res.raise_for_status()
     audio_bytes = res.content
@@ -141,6 +143,14 @@ def tts(
         with open(output_path, "wb") as f:
             f.write(audio_bytes)
     return audio_bytes
+
+
+def voices(timeout: int = 10) -> List[Dict[str, Any]]:
+    """Returns the list of active Kokoro-82M neural voices."""
+    url = f"{BASE_ENDPOINT.rstrip('/')}/v1/audio/voices"
+    res = requests.get(url, timeout=timeout)
+    res.raise_for_status()
+    return res.json().get("voices", [])
 
 
 def embed(

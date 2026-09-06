@@ -145,6 +145,63 @@ export default {
       }
     }
 
+    // 2.5 High-Speed Edge Caching for TTS and Voices
+    const isTts = ["/v1/audio/speech", "/speech", "/tts", "/v1/tts"].includes(url.pathname);
+    const isVoices = ["/v1/audio/voices", "/v1/voices", "/voices"].includes(url.pathname);
+
+    let edgeCacheKey = null;
+    let ttsVoice = "af_heart";
+    let reqBodyText = null;
+
+    if (isVoices && request.method === "GET") {
+      try {
+        const cachedVoices = await caches.default.match(request);
+        if (cachedVoices) {
+          const h = new Headers(cachedVoices.headers);
+          Object.entries(CORS_HEADERS).forEach(([k, v]) => h.set(k, v));
+          h.set("X-Edge-Cache", "HIT");
+          return new Response(cachedVoices.body, { status: 200, headers: h });
+        }
+      } catch (err) {}
+    }
+
+    if (isTts) {
+      let ttsInput = "";
+      let ttsSpeed = "1.0";
+      if (request.method === "GET") {
+        ttsInput = url.searchParams.get("input") || url.searchParams.get("text") || "";
+        ttsVoice = (url.searchParams.get("voice") || "af_heart").trim().toLowerCase();
+        ttsSpeed = url.searchParams.get("speed") || "1.0";
+      } else if (request.method === "POST") {
+        try {
+          reqBodyText = await request.text();
+          const parsedBody = JSON.parse(reqBodyText);
+          ttsInput = parsedBody.input || parsedBody.text || "";
+          ttsVoice = (parsedBody.voice || "af_heart").trim().toLowerCase();
+          ttsSpeed = String(parsedBody.speed || 1.0);
+        } catch (err) {}
+      }
+
+      if (ttsInput) {
+        const normText = ttsInput.trim().toLowerCase().replace(/\s+/g, " ");
+        const normSpeed = parseFloat(ttsSpeed || 1.0).toFixed(2);
+        const cacheUrl = `https://phone-whisper-server.pages.dev/v1/audio/speech?voice=${encodeURIComponent(ttsVoice)}&speed=${normSpeed}&input=${encodeURIComponent(normText)}`;
+        edgeCacheKey = new Request(cacheUrl, { method: "GET" });
+
+        try {
+          const edgeHit = await caches.default.match(edgeCacheKey);
+          if (edgeHit) {
+            const h = new Headers(edgeHit.headers);
+            Object.entries(CORS_HEADERS).forEach(([k, v]) => h.set(k, v));
+            h.set("X-Edge-Cache", "HIT");
+            h.set("X-Cache", "HIT");
+            h.set("X-TTS-Voice", ttsVoice);
+            return new Response(edgeHit.body, { status: 200, headers: h });
+          }
+        } catch (err) {}
+      }
+    }
+
     // 3. Resilient Proxy Request to Live Phone Origin with Autonomous Multi-Attempt Retry
     let origin = await getLiveOrigin(false);
     let targetUrl = `${origin}${url.pathname}${url.search}`;
@@ -169,7 +226,7 @@ export default {
         const proxyReq = new Request(targetUrl, {
           method: request.method,
           headers: request.headers,
-          body: ["GET", "HEAD"].includes(request.method) ? undefined : request.body,
+          body: ["GET", "HEAD"].includes(request.method) ? undefined : (reqBodyText !== null ? reqBodyText : request.body),
           redirect: "follow",
           signal: controller.signal
         });
@@ -218,7 +275,45 @@ export default {
       });
     }
 
-    // 5. Return Phone's Response with CORS headers attached
+    // 5. Store Cacheable Responses to Cloudflare Edge Cache
+    if (response && response.status === 200) {
+      if (isTts && edgeCacheKey && (response.headers.get("content-type") || "").includes("audio")) {
+        try {
+          const cacheCopy = response.clone();
+          const cacheH = new Headers(cacheCopy.headers);
+          cacheH.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
+          cacheH.set("X-Edge-Cache", "HIT");
+          cacheH.set("X-TTS-Voice", ttsVoice);
+          const responseToStore = new Response(cacheCopy.body, {
+            status: 200,
+            headers: cacheH
+          });
+          if (ctx && ctx.waitUntil) {
+            ctx.waitUntil(caches.default.put(edgeCacheKey, responseToStore));
+          } else {
+            await caches.default.put(edgeCacheKey, responseToStore);
+          }
+        } catch (err) {}
+      } else if (isVoices && request.method === "GET") {
+        try {
+          const cacheCopy = response.clone();
+          const cacheH = new Headers(cacheCopy.headers);
+          cacheH.set("Cache-Control", "public, max-age=300, s-maxage=300");
+          cacheH.set("X-Edge-Cache", "HIT");
+          const responseToStore = new Response(cacheCopy.body, {
+            status: 200,
+            headers: cacheH
+          });
+          if (ctx && ctx.waitUntil) {
+            ctx.waitUntil(caches.default.put(request, responseToStore));
+          } else {
+            await caches.default.put(request, responseToStore);
+          }
+        } catch (err) {}
+      }
+    }
+
+    // 6. Return Phone's Response with CORS headers attached
     const responseHeaders = new Headers(response.headers);
     Object.entries(CORS_HEADERS).forEach(([k, v]) => responseHeaders.set(k, v));
 
