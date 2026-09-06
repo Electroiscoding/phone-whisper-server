@@ -223,9 +223,19 @@ export default {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
+        const proxyHeaders = new Headers(request.headers);
+        proxyHeaders.delete("cf-connecting-ip");
+        proxyHeaders.delete("cf-ray");
+        proxyHeaders.delete("cf-ipcountry");
+        proxyHeaders.delete("cf-visitor");
+        try {
+          const targetHost = new URL(targetUrl).host;
+          proxyHeaders.set("Host", targetHost);
+        } catch (e) {}
+
         const proxyReq = new Request(targetUrl, {
           method: request.method,
-          headers: request.headers,
+          headers: proxyHeaders,
           body: ["GET", "HEAD"].includes(request.method) ? undefined : (reqBodyText !== null ? reqBodyText : request.body),
           redirect: "follow",
           signal: controller.signal
@@ -234,8 +244,8 @@ export default {
         response = await fetch(proxyReq);
         clearTimeout(timeoutId);
 
-        // If origin returned 502, 503, 504, 530, invalidate cachedOrigin, force refresh and retry
-        if ([502, 503, 504, 530].includes(response.status) && attempt < maxAttempts) {
+        // If origin returned 403, 502, 503, 504, 530, invalidate cachedOrigin, force refresh and retry
+        if ([403, 502, 503, 504, 530].includes(response.status) && attempt < maxAttempts) {
           cachedOrigin = null;
           await new Promise(r => setTimeout(r, attempt * 250));
           origin = await getLiveOrigin(true);
