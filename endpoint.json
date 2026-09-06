@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://morning-chart-warranty-controversy.trycloudflare.com",
-  "inference": "https://morning-chart-warranty-controversy.trycloudflare.com/inference",
-  "telemetry": "https://morning-chart-warranty-controversy.trycloudflare.com/telemetry",
+  "endpoint": "https://minor-synthetic-indianapolis-organisation.trycloudflare.com",
+  "inference": "https://minor-synthetic-indianapolis-organisation.trycloudflare.com/inference",
+  "telemetry": "https://minor-synthetic-indianapolis-organisation.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-09-06T12:15:24Z"
+  "updated_at": "2026-09-06T12:16:43Z"
 }
