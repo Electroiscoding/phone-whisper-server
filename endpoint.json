@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://terminology-defend-equal-gratis.trycloudflare.com",
-  "inference": "https://terminology-defend-equal-gratis.trycloudflare.com/inference",
-  "telemetry": "https://terminology-defend-equal-gratis.trycloudflare.com/telemetry",
+  "endpoint": "https://advocate-him-marion-northern.trycloudflare.com",
+  "inference": "https://advocate-him-marion-northern.trycloudflare.com/inference",
+  "telemetry": "https://advocate-him-marion-northern.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-09-06T11:33:21Z"
+  "updated_at": "2026-09-06T12:13:54Z"
 }
