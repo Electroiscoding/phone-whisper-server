@@ -262,7 +262,7 @@ class SwadeJobManager:
         self.lock = threading.RLock()
         self.subscribers = {}  # { job_id: set(queue.Queue) }
         self.message_queues = {}  # { job_id: [ {"message": str, "timestamp": str} ] }
-        # ⚡ L1 Ultra-Fast In-Memory Hash Map: { job_id: dict }
+        # L1 Ultra-Fast In-Memory Hash Map: { job_id: dict }
         self._mem_jobs = collections.OrderedDict()
         self._disk_queue = queue.Queue()
         self._disk_thread = threading.Thread(target=self._disk_worker, daemon=True)
@@ -395,7 +395,7 @@ class SwadeJobManager:
             "github_user": github_user or "anonymous"
         }
         with self.lock:
-            # ⚡ Microsecond RAM insert (0.002ms)
+            # Microsecond RAM insert (0.002ms)
             self._mem_jobs[job_id] = job_dict
 
         def _async_persist():
@@ -506,7 +506,7 @@ class SwadeJobManager:
                 return []
 
     def list_jobs(self, limit=50, offset=0, github_user=None):
-        """⚡ Hyper-speed O(1) RAM retrieval (0.005ms - 0.02ms)"""
+        """Hyper-speed O(1) RAM retrieval (0.005ms - 0.02ms)"""
         with self.lock:
             all_jobs = list(self._mem_jobs.values())
         
@@ -522,7 +522,7 @@ class SwadeJobManager:
         return paged, total
 
     def delete_job(self, job_id, github_user=None):
-        """⚡ Microsecond RAM purge (<0.02ms) + Background container workspace unlinking"""
+        """Microsecond RAM purge (<0.02ms) + Background container workspace unlinking"""
         with self.lock:
             existed = job_id in self._mem_jobs
             if existed:
@@ -572,7 +572,7 @@ class SwadeJobManager:
 _job_manager = SwadeJobManager()
 
 # ==============================================================================
-# ⚡ HYPER-SECURE PHONE AI DATACENTER CLOUD STORAGE & OBJECT ENGINE
+# HYPER-SECURE PHONE AI DATACENTER CLOUD STORAGE & OBJECT ENGINE
 # ==============================================================================
 
 def _get_storage_pools():
@@ -712,7 +712,7 @@ _security_shield = SwadesSecurityShield(max_attempts=15, window_seconds=60, lock
 
 
 # =========================================================================
-# ⚡ HYPER PROD-GRADE ZSTANDARD (ZSTD v1.5.7) NATIVE ENGINE (DUAL-TIER)
+# HYPER PROD-GRADE ZSTANDARD (ZSTD v1.5.7) NATIVE ENGINE (DUAL-TIER)
 # Level 1 (-1 -T4): Dedicated to Developer API requests (/v1/compress),
 #                   real-time HTTP Content-Encoding, and live streaming.
 # Level 3 (-3 -T4): Dedicated strictly to Internal Storage Vault (/v1/storage)
@@ -829,11 +829,11 @@ class SwadeStorageVault:
         os.makedirs(self.storage_dir, exist_ok=True)
         self.db_path = os.path.join(self.storage_dir, "auth.db")
         self.lock = threading.RLock()
-        # ⚡ L1 In-Memory Fast Lookup Index: key_hash -> record dict (~40ns)
+        # L1 In-Memory Fast Lookup Index: key_hash -> record dict (~40ns)
         self._key_cache = {}
-        # ⚡ L1 In-Memory User Index: username -> user dict
+        # L1 In-Memory User Index: username -> user dict
         self._user_cache = {}
-        # ⚡ L1 Tenant Quota Index: tenant_id (or user_id) -> quota_bytes
+        # L1 Tenant Quota Index: tenant_id (or user_id) -> quota_bytes
         self._tenant_quotas = collections.defaultdict(lambda: 2147483648) # 2GB default
         self._init_db()
         self._warm_cache()
@@ -1308,7 +1308,7 @@ class SwadeStorageVault:
         }
 
         with self.lock:
-            # ⚡ Nanosecond RAM reflection
+            # Nanosecond RAM reflection
             self._key_cache[key_hash] = record
             if tenant_id not in self._tenant_quotas:
                 self._tenant_quotas[tenant_id] = quota_bytes
@@ -1339,7 +1339,7 @@ class SwadeStorageVault:
         }
 
     def verify_key(self, raw_key: str):
-        """⚡ Pure RAM Key Verification with Resilient DB Fallback"""
+        """Pure RAM Key Verification with Resilient DB Fallback"""
         if not raw_key or not isinstance(raw_key, str):
             return None
         kh = self._hash_key(raw_key)
@@ -2299,7 +2299,7 @@ class SwadeObjectStore:
         os.makedirs(self.root_dir, exist_ok=True)
         self.lock = threading.RLock()
         
-        # ⚡ L1 Memory Directory & Metadata Index:
+        # L1 Memory Directory & Metadata Index:
         # { tenant_id: { object_key: { ...meta... } } }
         self._meta_index = collections.defaultdict(dict)
         # O(1) in-memory quota tracking counters
@@ -2327,7 +2327,7 @@ class SwadeObjectStore:
                 action, path, payload = item
                 if action == "write":
                     os.makedirs(os.path.dirname(path), exist_ok=True)
-                    # ⚡ Level 3 (-3 -T4) Dedicated Internal Storage Compression
+                    # Level 3 (-3 -T4) Dedicated Internal Storage Compression
                     try:
                         compressed_data = _zstd_engine.compress(payload, level=3)
                         with open(path, "wb") as f:
@@ -2419,7 +2419,7 @@ class SwadeObjectStore:
         return full_path, pname
 
     def put_object(self, tenant_id: str, raw_key: str, data: bytes, content_type=None, is_public=True, pool="auto"):
-        """⚡ Immediate Sub-Microsecond RAM Reflection + Async Non-blocking Disk Flush"""
+        """Immediate Sub-Microsecond RAM Reflection + Async Non-blocking Disk Flush"""
         clean_key = self._sanitize_key(raw_key)
         size = len(data)
 
@@ -2451,7 +2451,7 @@ class SwadeObjectStore:
             "_disk_path": pool_path
         }
 
-        # ⚡ Instant RAM L1 Index Update (~40ns)
+        # Instant RAM L1 Index Update (~40ns)
         old = self._meta_index[tenant_id].get(clean_key)
         if old:
             self._tenant_used_bytes[tenant_id] -= old["size"]
@@ -2471,7 +2471,7 @@ class SwadeObjectStore:
         return meta
 
     def head_object(self, tenant_id: str, raw_key: str):
-        """⚡ Pure RAM Metadata Reflection"""
+        """Pure RAM Metadata Reflection"""
         t_dict = self._meta_index.get(tenant_id)
         if not t_dict or not raw_key:
             return None
@@ -2497,7 +2497,7 @@ class SwadeObjectStore:
         if full_path and os.path.exists(full_path):
             with open(full_path, "rb") as f:
                 content = f.read()
-            # ⚡ Transparent Decompression if Zstd compressed
+            # Transparent Decompression if Zstd compressed
             if content and content.startswith(ZstdEngine.MAGIC):
                 try:
                     content = _zstd_engine.decompress(content)
@@ -2507,7 +2507,7 @@ class SwadeObjectStore:
         return None, None
 
     def delete_object(self, tenant_id: str, raw_key: str):
-        """⚡ Microsecond RAM Index Purge + Background File Unlink"""
+        """Microsecond RAM Index Purge + Background File Unlink"""
         if not raw_key:
             return False
         clean_key = raw_key if (not raw_key.startswith("/") and "\\" not in raw_key) else raw_key.replace("\\", "/").strip("/ ")
@@ -2533,7 +2533,7 @@ class SwadeObjectStore:
         return True
 
     def list_objects(self, tenant_id: str, prefix=None, limit=100):
-        """⚡ In-Memory Directory Slice in <0.005ms"""
+        """In-Memory Directory Slice in <0.005ms"""
         t_dict = self._meta_index.get(tenant_id, {})
         t_objs = list(t_dict.values())
         if prefix:
@@ -4030,7 +4030,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         self.wfile.write(resp_data)
 
     # =========================================================================
-    # ⚡ HYPER-SPEED CLOUD STORAGE & OBJECT STORE HANDLERS (SUB-MICROSECOND L1)
+    # HYPER-SPEED CLOUD STORAGE & OBJECT STORE HANDLERS (SUB-MICROSECOND L1)
     # =========================================================================
 
     def _authenticate_storage_request(self):
@@ -5636,7 +5636,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             try:
                 os.kill(pid, signal.SIGSTOP)
                 _job_manager.update_job(job_id, status="PAUSED")
-                _job_manager.append_log(job_id, "status", "⏸️ Agent execution paused by user")
+                _job_manager.append_log(job_id, "status", "[PAUSED] Agent execution paused by user")
             except OSError as e:
                 self.send_error(500, f"Failed to pause worker: {e}")
                 return
@@ -5658,7 +5658,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             try:
                 os.kill(pid, signal.SIGCONT)
                 _job_manager.update_job(job_id, status="RUNNING")
-                _job_manager.append_log(job_id, "status", "▶️ Agent execution resumed by user")
+                _job_manager.append_log(job_id, "status", "[RESUMED] Agent execution resumed by user")
             except OSError as e:
                 self.send_error(500, f"Failed to resume worker: {e}")
                 return
@@ -6474,7 +6474,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
 
 
     # =========================================================================
-    # ⚡ ZSTANDARD (ZSTD v1.5.7) HANDLERS (DUAL-TIER)
+    # ZSTANDARD (ZSTD v1.5.7) HANDLERS (DUAL-TIER)
     # =========================================================================
     def handle_zstd_info(self):
         info = {
@@ -6572,7 +6572,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             pct_saved = round((1.0 - (comp_sz / max(1, orig_sz))) * 100.0, 1)
             throughput_mbs = round((orig_sz / 1024 / 1024) / max(0.0001, elapsed_ms / 1000.0), 1)
 
-            if output_format == "base64" or "application/json" in (self.headers.get("Accept") or ""):
+            if output_format in ["base64", "json", "text"] or "application/json" in (self.headers.get("Accept") or ""):
                 resp = {
                     "status": "success",
                     "engine": "Zstandard v1.5.7 (ARM Cortex-A53 Native)",
@@ -6643,9 +6643,10 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             if "application/json" in content_type:
                 try:
                     payload = json.loads(body.decode("utf-8"))
-                    input_data = payload.get("data", "")
-                    output_format = payload.get("format", "binary")
-                    raw_compressed = base64.b64decode(input_data)
+                    input_data = payload.get("data") or payload.get("compressed_base64") or payload.get("compressed_data") or ""
+                    as_text_req = bool(payload.get("as_text", False))
+                    output_format = payload.get("format", "json" if as_text_req else "binary")
+                    raw_compressed = base64.b64decode(input_data) if isinstance(input_data, str) else bytes(input_data)
                 except Exception as ex:
                     self.send_response(400)
                     self._send_cors_headers()
@@ -6662,7 +6663,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             decomp_sz = len(decompressed)
             throughput_mbs = round((decomp_sz / 1024 / 1024) / max(0.0001, elapsed_ms / 1000.0), 1)
 
-            if output_format == "base64" or "application/json" in (self.headers.get("Accept") or ""):
+            if output_format in ["base64", "json", "text"] or "application/json" in (self.headers.get("Accept") or ""):
                 try:
                     text_content = decompressed.decode("utf-8")
                     is_utf8 = True
@@ -6717,7 +6718,7 @@ def main():
     httpd = ThreadedHTTPServer(server_address, MultiModalGatewayHandler)
     print(f"==================================================")
     print(f"[GATEWAY] Multi-Modal Gateway & Ground-Truth Governor Active on port {port}")
-    print(f"⚡ JIT Memory Eviction Policy: {ModelGovernor.IDLE_TIMEOUT}s Idle Threshold")
+    print(f"JIT Memory Eviction Policy: {ModelGovernor.IDLE_TIMEOUT}s Idle Threshold")
     print(f"==================================================")
     try:
         httpd.serve_forever()

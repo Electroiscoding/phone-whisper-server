@@ -1,5 +1,5 @@
 /**
- * ☢️ CLOUDFLARE PAGES UNIVERSAL EDGE WORKER (_worker.js)
+ * CLOUDFLARE PAGES UNIVERSAL EDGE WORKER (_worker.js)
  * Makes all API endpoints 100% PERMANENT under https://phone-whisper-server.pages.dev
  * Automatically routes all /v1/*, /inference, /telemetry, /tts to the live phone tunnel.
  * Features: Zero-hang timeouts, multi-CDN origin discovery, and instant self-healing.

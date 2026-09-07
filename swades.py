@@ -1,5 +1,5 @@
 """
-⚡ Swades Cloud Python SDK — Hyper-Fast Sovereign Firebase Alternative
+Swades Cloud Python SDK — Hyper-Fast Sovereign Firebase Alternative
 1-line CRUD, S3 Object Storage with instant CDN, Auth & Scoped Keys.
 """
 import requests
@@ -177,7 +177,7 @@ class Swades:
         return res.json().get("voices", [])
 
     # =========================================================================
-    # ⚡ ZSTANDARD (ZSTD v1.5.7) HARDWARE DUAL-TIER COMPRESSION ENGINE
+    # ZSTANDARD (ZSTD v1.5.7) HARDWARE DUAL-TIER COMPRESSION ENGINE
     # Level 1 (-1 -T4): Dedicated to Developer API requests, real-time HTTP transfer,
     #                   live streaming, and sub-millisecond client SDK calls (~180 MB/s, <2ms).
     # Level 3 (-3 -T4): Dedicated strictly to Sovereign Internal Storage Vault backups,

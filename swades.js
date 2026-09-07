@@ -1,5 +1,5 @@
 /**
- * ⚡ Swades Cloud Client SDK — Hyper-Fast Sovereign Firebase Alternative
+ * Swades Cloud Client SDK — Hyper-Fast Sovereign Firebase Alternative
  * Features: 1-line CRUD, S3 Object Storage with instant CDN, Auth & Scoped Keys.
  * 10,000% safe, project-isolated, sub-millisecond local reflection.
  */
