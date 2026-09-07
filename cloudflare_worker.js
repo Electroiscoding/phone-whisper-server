@@ -1,20 +1,17 @@
 /**
- * ☢️ NUCLEAR CLOUDFLARE EDGE WORKER
- * Self-Healing Dynamic Failover & Universal Reverse Proxy with GitHub OAuth for Swades Agent
+ * CLOUDFLARE PAGES UNIVERSAL EDGE WORKER (_worker.js)
+ * Makes all API endpoints 100% PERMANENT under https://phone-whisper-server.pages.dev
+ * Automatically routes all /v1/*, /inference, /telemetry, /tts to the live phone tunnel.
+ * Features: Zero-hang timeouts, multi-CDN origin discovery, and instant self-healing.
  */
 
 const JSDELIVR_ENDPOINT_URL = "https://cdn.jsdelivr.net/gh/Electroiscoding/phone-whisper-server@main/endpoint.json";
 const GITHUB_ENDPOINT_URL = "https://raw.githubusercontent.com/Electroiscoding/phone-whisper-server/main/endpoint.json";
 const SHARED_SECRET = "mobile_ai_nuclear_key";
 
-// GitHub OAuth App Credentials (configured via Cloudflare Worker Secrets / Environment Variables)
-const getClientId = (env) => (env && env.GITHUB_CLIENT_ID) || "";
-const getClientSecret = (env) => (env && env.GITHUB_CLIENT_SECRET) || "";
-
-// In-Memory Edge Cache for Active Tunnel Target
 let cachedOrigin = "https://ocean-color-referrals-reg.trycloudflare.com";
 let lastFetchTime = Date.now();
-const CACHE_TTL_MS = 60000; // 60 seconds
+const CACHE_TTL_MS = 60000; // 60 seconds cache for live tunnel origin
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -47,15 +44,25 @@ async function getLiveOrigin(forceRefresh = false) {
   try {
     const apiRes = await fetchWithTimeout(`https://api.github.com/repos/Electroiscoding/phone-whisper-server/contents/endpoint.json?ref=main&_t=${now}`, {
       headers: {
-        "User-Agent": "Cloudflare-Edge-Worker/2.0",
+        "User-Agent": "Cloudflare-Pages-Worker/3.0",
         "Accept": "application/vnd.github.v3.raw",
         "Cache-Control": "no-cache, no-store"
       }
     }, 2500);
     if (apiRes.ok) {
-      const data = await apiRes.json();
-      if (data && data.endpoint && data.endpoint.startsWith("https://")) {
-        cachedOrigin = data.endpoint.replace(/\/+$/, "");
+      let parsed = null;
+      try {
+        const json = await apiRes.json();
+        if (json.content && json.encoding === "base64") {
+          const decoded = atob(json.content.replace(/\s+/g, ""));
+          parsed = JSON.parse(decoded);
+        } else {
+          parsed = json;
+        }
+      } catch (e) {}
+
+      if (parsed && parsed.endpoint && parsed.endpoint.startsWith("https://")) {
+        cachedOrigin = parsed.endpoint.replace(/\/+$/, "");
         lastFetchTime = now;
         return cachedOrigin;
       }
@@ -65,12 +72,11 @@ async function getLiveOrigin(forceRefresh = false) {
   // 2. Secondary: Raw GitHub CDN
   try {
     const res = await fetchWithTimeout(`${GITHUB_ENDPOINT_URL}?_t=${now}`, {
-      headers: { "User-Agent": "Cloudflare-Edge-Worker/2.0", "Cache-Control": "no-cache, no-store, must-revalidate" },
-      cf: { cacheTtl: 0, cacheEverything: false }
+      headers: { "User-Agent": "Cloudflare-Pages-Worker/3.0", "Cache-Control": "no-cache, no-store, must-revalidate" }
     }, 2500);
     if (res.ok) {
       const data = await res.json();
-      if (data.endpoint && data.endpoint.startsWith("https://")) {
+      if (data && data.endpoint && data.endpoint.startsWith("https://")) {
         cachedOrigin = data.endpoint.replace(/\/+$/, "");
         lastFetchTime = now;
         return cachedOrigin;
@@ -108,139 +114,29 @@ export default {
       });
     }
 
-    // =========================================================================
-    // 🐙 GITHUB OAUTH AUTHENTICATION HANDLERS (SWADES AGENT)
-    // =========================================================================
-    
-    // (A) Redirect to GitHub OAuth Authorization Page
-    if (["/auth/github/login", "/login"].includes(url.pathname)) {
-      const authUrl = `https://github.com/login/oauth/authorize?client_id=${getClientId(env)}&scope=repo,read:user`;
-      return Response.redirect(authUrl, 302);
+    // Determine if this is an API route or static asset
+    const apiPrefixes = ["/v1/", "/auth/", "/s/"];
+    const apiExactPaths = ["/inference", "/telemetry", "/tts", "/speech", "/health", "/models", "/backends", "/register_tunnel", "/benchmark", "/compress", "/decompress"];
+    const isApi = apiPrefixes.some(prefix => url.pathname.startsWith(prefix)) || apiExactPaths.includes(url.pathname);
+
+    // If it's a static frontend request, serve through Cloudflare Pages static assets
+    if (!isApi && env.ASSETS) {
+      const assetRes = await env.ASSETS.fetch(request);
+      if (assetRes.status === 404 && !url.pathname.includes(".")) {
+        // Try .html
+        const htmlUrl = new URL(url.pathname + ".html", request.url);
+        const htmlRes = await env.ASSETS.fetch(new Request(htmlUrl, request));
+        if (htmlRes.ok) return htmlRes;
+
+        // Try .md (e.g. /maker -> /maker.md)
+        const mdUrl = new URL(url.pathname + ".md", request.url);
+        const mdRes = await env.ASSETS.fetch(new Request(mdUrl, request));
+        if (mdRes.ok) return mdRes;
+      }
+      return assetRes;
     }
 
-    // (B) OAuth Callback from GitHub
-    if (["/auth/github/callback", "/session", "/callback", "/auth/callback"].includes(url.pathname)) {
-      const code = url.searchParams.get("code");
-      if (!code) {
-        return new Response("Missing OAuth code from GitHub.", { status: 400 });
-      }
-
-      try {
-        // 1. Exchange code for access token
-        const tokenRes = await fetch("https://github.com/login/oauth/access_token", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-            "User-Agent": "SwadesAgent/1.0"
-          },
-          body: JSON.stringify({
-            client_id: getClientId(env),
-            client_secret: getClientSecret(env),
-            code: code
-          })
-        });
-
-        const tokenData = await tokenRes.json();
-        if (!tokenData.access_token) {
-          return new Response(`OAuth Error: ${tokenData.error_description || JSON.stringify(tokenData)}`, { status: 400 });
-        }
-
-        const accessToken = tokenData.access_token;
-
-        // 2. Fetch authenticated user profile
-        let userProfile = { login: "github_user", avatar_url: "" };
-        try {
-          const userRes = await fetch("https://api.github.com/user", {
-            headers: {
-              "Authorization": `Bearer ${accessToken}`,
-              "User-Agent": "SwadesAgent/1.0"
-            }
-          });
-          if (userRes.ok) {
-            userProfile = await userRes.json();
-          }
-        } catch (e) {}
-
-        // 3. Return clean HTML popup bridge or redirect
-        const authPayload = JSON.stringify({
-          token: accessToken,
-          username: userProfile.login,
-          avatar: userProfile.avatar_url,
-          name: userProfile.name || userProfile.login
-        });
-
-        const htmlResponse = `<!DOCTYPE html>
-<html>
-<head>
-  <title>Connecting GitHub to Swades Agent...</title>
-  <style>
-    body { background: #07090e; color: #38bdf8; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; text-align: center; }
-    .box { background: rgba(16, 22, 38, 0.9); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 16px; padding: 2rem; max-width: 400px; }
-  </style>
-</head>
-<body>
-  <div class="box">
-    <h2>🐙 GitHub Connected!</h2>
-    <p>Logged in as <strong>@${userProfile.login}</strong></p>
-    <p style="font-size: 0.85rem; color: #94a3b8;">Redirecting back to PhoneWhisper...</p>
-  </div>
-  <script>
-    const auth = ${authPayload};
-    try {
-      localStorage.setItem("gh_auth", JSON.stringify(auth));
-      if (window.opener && !window.opener.closed) {
-        window.opener.postMessage({ type: "GITHUB_AUTH", auth: auth }, "*");
-        setTimeout(() => window.close(), 800);
-      } else {
-        window.location.href = "https://phone-whisper-server.pages.dev/";
-      }
-    } catch (e) {
-      window.location.href = "https://phone-whisper-server.pages.dev/";
-    }
-  </script>
-</body>
-</html>`;
-
-        return new Response(htmlResponse, {
-          headers: { "Content-Type": "text/html; charset=utf-8" }
-        });
-      } catch (err) {
-        return new Response(`Authentication failed: ${err.message}`, { status: 500 });
-      }
-    }
-
-    // (C) Proxy User Repositories for Auto-complete
-    if (url.pathname === "/auth/github/user-repos") {
-      const authHeader = request.headers.get("Authorization");
-      if (!authHeader) {
-        return new Response(JSON.stringify({ error: "Unauthorized" }), {
-          status: 401,
-          headers: { ...CORS_HEADERS, "Content-Type": "application/json" }
-        });
-      }
-
-      try {
-        const repoRes = await fetch("https://api.github.com/user/repos?sort=updated&per_page=30", {
-          headers: {
-            "Authorization": authHeader,
-            "User-Agent": "SwadesAgent/1.0",
-            "Accept": "application/vnd.github.v3+json"
-          }
-        });
-        const repos = await repoRes.json();
-        return new Response(JSON.stringify(repos), {
-          headers: { ...CORS_HEADERS, "Content-Type": "application/json" }
-        });
-      } catch (err) {
-        return new Response(JSON.stringify({ error: err.message }), {
-          status: 500,
-          headers: { ...CORS_HEADERS, "Content-Type": "application/json" }
-        });
-      }
-    }
-
-    // 2. Direct Tunnel Registration from Phone (Instant Zero-Delay Registration)
+    // 2. Direct Tunnel Registration from Phone
     if (url.pathname === "/register_tunnel" && request.method === "POST") {
       try {
         const body = await request.json();
@@ -259,12 +155,70 @@ export default {
       }
     }
 
-    // 3. Proxy Request to Origin with Auto-Retry
+    // 2.5 High-Speed Edge Caching for TTS and Voices
+    const isTts = ["/v1/audio/speech", "/speech", "/tts", "/v1/tts"].includes(url.pathname);
+    const isVoices = ["/v1/audio/voices", "/v1/voices", "/voices"].includes(url.pathname);
+
+    let edgeCacheKey = null;
+    let ttsVoice = "amy";
+    let reqBodyText = null;
+
+    if (isVoices && request.method === "GET") {
+      try {
+        const cachedVoices = await caches.default.match(request);
+        if (cachedVoices) {
+          const h = new Headers(cachedVoices.headers);
+          Object.entries(CORS_HEADERS).forEach(([k, v]) => h.set(k, v));
+          h.set("X-Edge-Cache", "HIT");
+          return new Response(cachedVoices.body, { status: 200, headers: h });
+        }
+      } catch (err) {}
+    }
+
+    if (isTts) {
+      let ttsInput = "";
+      let ttsSpeed = "1.0";
+      if (request.method === "GET") {
+        ttsInput = url.searchParams.get("input") || url.searchParams.get("text") || "";
+        ttsVoice = (url.searchParams.get("voice") || "amy").trim().toLowerCase();
+        ttsSpeed = url.searchParams.get("speed") || "1.0";
+      } else if (request.method === "POST") {
+        try {
+          reqBodyText = await request.text();
+          const parsedBody = JSON.parse(reqBodyText);
+          ttsInput = parsedBody.input || parsedBody.text || "";
+          ttsVoice = (parsedBody.voice || "amy").trim().toLowerCase();
+          ttsSpeed = String(parsedBody.speed || 1.0);
+        } catch (err) {}
+      }
+
+      if (ttsInput) {
+        const normText = ttsInput.trim().toLowerCase().replace(/\s+/g, " ");
+        const normSpeed = parseFloat(ttsSpeed || 1.0).toFixed(2);
+        const cacheUrl = `https://phone-whisper-server.pages.dev/v1/audio/speech?voice=${encodeURIComponent(ttsVoice)}&speed=${normSpeed}&input=${encodeURIComponent(normText)}`;
+        edgeCacheKey = new Request(cacheUrl, { method: "GET" });
+
+        try {
+          const edgeHit = await caches.default.match(edgeCacheKey);
+          if (edgeHit) {
+            const h = new Headers(edgeHit.headers);
+            Object.entries(CORS_HEADERS).forEach(([k, v]) => h.set(k, v));
+            h.set("X-Edge-Cache", "HIT");
+            h.set("X-Cache", "HIT");
+            h.set("X-TTS-Voice", ttsVoice);
+            return new Response(edgeHit.body, { status: 200, headers: h });
+          }
+        } catch (err) {}
+      }
+    }
+
+    // 3. Resilient Proxy Request to Live Phone Origin with Autonomous Multi-Attempt Retry
     let origin = await getLiveOrigin(false);
     let targetUrl = `${origin}${url.pathname}${url.search}`;
 
     let response = null;
     let attempt = 0;
+    const maxAttempts = 3;
 
     const isLongRunning = url.pathname.includes("/speech") || 
                           url.pathname.includes("/transcriptions") || 
@@ -273,16 +227,26 @@ export default {
                           url.pathname.includes("/inference");
     const timeoutMs = isLongRunning ? 30000 : 8000;
 
-    while (attempt < 3) {
+    while (attempt < maxAttempts) {
       attempt++;
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
+        const proxyHeaders = new Headers(request.headers);
+        proxyHeaders.delete("cf-connecting-ip");
+        proxyHeaders.delete("cf-ray");
+        proxyHeaders.delete("cf-ipcountry");
+        proxyHeaders.delete("cf-visitor");
+        try {
+          const targetHost = new URL(targetUrl).host;
+          proxyHeaders.set("Host", targetHost);
+        } catch (e) {}
+
         const proxyReq = new Request(targetUrl, {
           method: request.method,
-          headers: request.headers,
-          body: ["GET", "HEAD"].includes(request.method) ? undefined : request.body,
+          headers: proxyHeaders,
+          body: ["GET", "HEAD"].includes(request.method) ? undefined : (reqBodyText !== null ? reqBodyText : request.body),
           redirect: "follow",
           signal: controller.signal
         });
@@ -290,8 +254,8 @@ export default {
         response = await fetch(proxyReq);
         clearTimeout(timeoutId);
 
-        // If origin returned 502, 503, 504, 530, force-refresh endpoint and retry
-        if ([502, 503, 504, 530].includes(response.status) && attempt < 3) {
+        // If origin returned 403, 502, 503, 504, 530, invalidate cachedOrigin, force refresh and retry
+        if ([403, 502, 503, 504, 530].includes(response.status) && attempt < maxAttempts) {
           cachedOrigin = null;
           await new Promise(r => setTimeout(r, attempt * 250));
           origin = await getLiveOrigin(true);
@@ -301,7 +265,7 @@ export default {
 
         break;
       } catch (fetchErr) {
-        if (attempt < 3) {
+        if (attempt < maxAttempts) {
           cachedOrigin = null;
           await new Promise(r => setTimeout(r, attempt * 300));
           origin = await getLiveOrigin(true);
@@ -311,11 +275,11 @@ export default {
       }
     }
 
-    // 4. Structured JSON Fallback if Phone is Temporarily Reconnecting
+    // 4. Fallback if Phone is Reconnecting
     if (!response || [502, 503, 504, 530].includes(response.status)) {
       const errorBody = JSON.stringify({
         status: "reconnecting",
-        error: "Phone AI Gateway is self-healing / reconnecting tunnel.",
+        error: "Phone AI Datacenter is self-healing / refreshing tunnel.",
         cached_origin: origin,
         retry_after_sec: 2,
         timestamp: Math.floor(Date.now() / 1000)
@@ -331,7 +295,45 @@ export default {
       });
     }
 
-    // 5. Attach Full CORS Headers to Phone Response
+    // 5. Store Cacheable Responses to Cloudflare Edge Cache
+    if (response && response.status === 200) {
+      if (isTts && edgeCacheKey && (response.headers.get("content-type") || "").includes("audio")) {
+        try {
+          const cacheCopy = response.clone();
+          const cacheH = new Headers(cacheCopy.headers);
+          cacheH.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
+          cacheH.set("X-Edge-Cache", "HIT");
+          cacheH.set("X-TTS-Voice", ttsVoice);
+          const responseToStore = new Response(cacheCopy.body, {
+            status: 200,
+            headers: cacheH
+          });
+          if (ctx && ctx.waitUntil) {
+            ctx.waitUntil(caches.default.put(edgeCacheKey, responseToStore));
+          } else {
+            await caches.default.put(edgeCacheKey, responseToStore);
+          }
+        } catch (err) {}
+      } else if (isVoices && request.method === "GET") {
+        try {
+          const cacheCopy = response.clone();
+          const cacheH = new Headers(cacheCopy.headers);
+          cacheH.set("Cache-Control", "public, max-age=300, s-maxage=300");
+          cacheH.set("X-Edge-Cache", "HIT");
+          const responseToStore = new Response(cacheCopy.body, {
+            status: 200,
+            headers: cacheH
+          });
+          if (ctx && ctx.waitUntil) {
+            ctx.waitUntil(caches.default.put(request, responseToStore));
+          } else {
+            await caches.default.put(request, responseToStore);
+          }
+        } catch (err) {}
+      }
+    }
+
+    // 6. Return Phone's Response with CORS headers attached
     const responseHeaders = new Headers(response.headers);
     Object.entries(CORS_HEADERS).forEach(([k, v]) => responseHeaders.set(k, v));
 
