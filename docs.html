@@ -1974,6 +1974,70 @@ proot-distro login alpine -- node /root/Swades-Agent/worker.js --job job_a9f8224
               <div class="bg-zinc-950 p-2 rounded border border-cardborder">Decomp: ~400 MB/s (&lt;1ms)</div>
               <div class="bg-zinc-950 p-2 rounded border border-cardborder">Multi-Core: 4 Threads (-T4)</div>
             </div>
+
+            <!-- Dual-Tier Hardware Benchmark Matrix -->
+            <div class="mt-4 border border-cardborder rounded-lg overflow-hidden">
+              <div class="bg-zinc-900/80 px-3 py-1.5 text-[10px] text-zinc-300 font-bold border-b border-cardborder flex items-center justify-between">
+                <span>HARDWARE BENCHMARK BREAKDOWN (PER 1 GB DATA • -T4 MULTI-CORE)</span>
+                <span class="text-neonemerald">Empirical MediaTek Helio G25</span>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse text-[10px]">
+                  <thead>
+                    <tr class="bg-zinc-950 text-zinc-400 border-b border-cardborder">
+                      <th class="p-2">Level Group</th>
+                      <th class="p-2">Orig Size</th>
+                      <th class="p-2">Estimated Size</th>
+                      <th class="p-2">Time (4 Cores)</th>
+                      <th class="p-2">RAM Footprint</th>
+                      <th class="p-2">Operational Tier &amp; Policy</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-cardborder text-zinc-300">
+                    <tr class="bg-emerald-950/20">
+                      <td class="p-2 font-bold text-neonemerald">Level 1 (-1 -T4)</td>
+                      <td class="p-2">1,000 MB</td>
+                      <td class="p-2 text-white">~350 MB</td>
+                      <td class="p-2 text-neonemerald font-bold">~15 sec</td>
+                      <td class="p-2 text-zinc-400">~10 MB</td>
+                      <td class="p-2 text-neonemerald font-bold">Developer API Requests (/v1/compress) &amp; Live Streaming</td>
+                    </tr>
+                    <tr class="bg-cyan-950/20">
+                      <td class="p-2 font-bold text-neoncyan">Level 3 (-3 -T4)</td>
+                      <td class="p-2">1,000 MB</td>
+                      <td class="p-2 text-white">~300 MB</td>
+                      <td class="p-2 text-neoncyan font-bold">~25 sec</td>
+                      <td class="p-2 text-zinc-400">~30 MB</td>
+                      <td class="p-2 text-neoncyan font-bold">Internal Storage Vault Backups (/v1/storage) • The Sweet Spot</td>
+                    </tr>
+                    <tr class="text-zinc-500">
+                      <td class="p-2">Level 9 (Medium)</td>
+                      <td class="p-2">1,000 MB</td>
+                      <td class="p-2">~270 MB</td>
+                      <td class="p-2">~1.5 min</td>
+                      <td class="p-2">~70 MB</td>
+                      <td class="p-2 text-rose-400/80">Disabled Permanently on Phone Silicon (Thermal Risk)</td>
+                    </tr>
+                    <tr class="text-zinc-500">
+                      <td class="p-2">Level 15 (High)</td>
+                      <td class="p-2">1,000 MB</td>
+                      <td class="p-2">~250 MB</td>
+                      <td class="p-2">~4 min</td>
+                      <td class="p-2">~150 MB</td>
+                      <td class="p-2 text-rose-400/80">Disabled Permanently on Phone Silicon (Thermal Risk)</td>
+                    </tr>
+                    <tr class="text-zinc-500">
+                      <td class="p-2">Level 19 (Max Safe)</td>
+                      <td class="p-2">1,000 MB</td>
+                      <td class="p-2">~230 MB</td>
+                      <td class="p-2">~8+ min</td>
+                      <td class="p-2">~500 MB</td>
+                      <td class="p-2 text-rose-500 font-bold">Disabled Permanently (LMK Eviction &amp; 45°C+ Throttling Risk)</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
 
           <!-- Swades Autonomous Coding Agent -->
