@@ -7051,7 +7051,8 @@ const blob = await cdnStream.blob();`;
         if (decompStatus) decompStatus.innerText = `Compressed in ${data.elapsed_ms}ms (${formatBytes(data.compressed_size)})`;
 
         if (outEl) {
-          outEl.innerText = `[DEMO ONLY • 100% IN-MEMORY STREAM • ZERO FILES STORED ON DISK]\nZstandard v1.5.7 Level 1 (-1 -T4) Image Compression:\nOriginal Size:   ${formatBytes(data.original_size)} (${data.original_size} B)\nCompressed Size: ${formatBytes(data.compressed_size)} (${data.compressed_size} B)\nCompression Ratio: ${data.compression_ratio}x\nSpace Saved:     ${data.space_saved_percent}%\nSilicon Latency: ${data.elapsed_ms} ms on ARM Cortex-A53\nThroughput:      ${data.throughput_mb_s || 0} MB/s\n\nZstd Frame Base64:\n${lastImageCompressedB64.slice(0, 300)}...`;
+          const entropyNote = (data.compression_ratio <= 1.05) ? '\n\n[TECHNICAL NOTE] Pre-compressed binary images (JPEG/PNG) are already entropy-coded. Zstandard operates losslessly and protects high-entropy binary data from payload inflation while preserving 100% bit-exact byte recovery.' : '';
+          outEl.innerText = `[DEMO ONLY • 100% IN-MEMORY STREAM • ZERO FILES STORED ON DISK]\nZstandard v1.5.7 Level 1 (-1 -T4) Image Compression:\nOriginal Size:   ${formatBytes(data.original_size)} (${data.original_size} B)\nCompressed Size: ${formatBytes(data.compressed_size)} (${data.compressed_size} B)\nCompression Ratio: ${data.compression_ratio}x\nSpace Saved:     ${data.space_saved_percent}%\nSilicon Latency: ${data.elapsed_ms} ms on ARM Cortex-A53\nThroughput:      ${data.throughput_mb_s || 0} MB/s${entropyNote}\n\nZstd Frame Base64:\n${lastImageCompressedB64.slice(0, 300)}...`;
         }
       } catch (err) {
         if (outEl) outEl.innerText = 'Image compression error: ' + err.message;
