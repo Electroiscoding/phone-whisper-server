@@ -3729,7 +3729,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_acc_info()
         elif path in ["/v1/zstd/info", "/zstd/info", "/v1/zstd"]:
             self.handle_zstd_info()
-        elif path in ["/v1/images/info", "/v1/image/info", "/images/info", "/image/info"]:
+        elif path in ["/v1/images/info", "/v1/image/info", "/images/info", "/image/info", "/v1/info/image", "/v1/info/images", "/info/image", "/info/images"]:
             self.handle_image_info()
         elif path in ["/telemetry", "/v1/telemetry"]:
             self.handle_telemetry()
@@ -3921,7 +3921,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_zstd_compress()
         elif path in ["/v1/decompress", "/decompress"]:
             self.handle_zstd_decompress()
-        elif path in ["/v1/images/compress", "/v1/image/compress", "/images/compress", "/image/compress"]:
+        elif path in ["/v1/images/compress", "/v1/image/compress", "/images/compress", "/image/compress", "/v1/compress/image", "/compress/image"]:
             self.handle_image_compress()
         elif path in ["/inference", "/v1/audio/transcriptions"]:
             self.proxy_whisper()
