@@ -93,7 +93,7 @@ console.log(`Compressed in ${res.elapsed_ms}ms: ${res.original_size}B -> ${res.c
 
 // 2. Decompress
 const decomp = await client.zstd.decompress(res.compressed_base64, { asText: true });
-console.log("Decompressed:", decomp.data);
+console.log("Decompressed:", decomp);
 
 // 3. Speech-to-Text via Whisper.cpp
 const formData = new FormData();
