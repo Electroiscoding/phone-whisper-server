@@ -1404,7 +1404,7 @@ print(f"Losslessly restored {len(restored_bytes)} bytes")</pre>
 
       grid.innerHTML = filtered.map(f => {
         const ext = f.key.split('.').pop().toLowerCase();
-        const isImg = ['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg'].includes(ext);
+        const isImg = ['png', 'jpg', 'jpeg', 'gif', 'svg'].includes(ext);
         const isVid = ['mp4', 'webm', 'mov'].includes(ext);
         const isAud = ['mp3', 'wav', 'ogg'].includes(ext);
         const icon = isImg ? '<i class="fa-solid fa-image text-cyan-400"></i>' : (isVid ? '<i class="fa-solid fa-film text-purple-400"></i>' : (isAud ? '<i class="fa-solid fa-music text-pink-400"></i>' : '<i class="fa-solid fa-file text-zinc-400"></i>'));
@@ -1466,7 +1466,7 @@ print(f"Losslessly restored {len(restored_bytes)} bytes")</pre>
       document.getElementById('preview-cdn-link').href = cdnUrl;
 
       const container = document.getElementById('preview-container');
-      if (['png', 'jpg', 'jpeg', 'webp', 'gif'].includes(ext)) {
+      if (['png', 'jpg', 'jpeg', 'gif'].includes(ext)) {
         container.innerHTML = `<img src="${cdnUrl}" class="max-h-80 object-contain rounded" />`;
       } else if (['mp4', 'webm'].includes(ext)) {
         container.innerHTML = `<video src="${cdnUrl}" controls class="max-h-80 w-full rounded"></video>`;

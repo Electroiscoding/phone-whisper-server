@@ -132,8 +132,6 @@ export async function prepareImageUrl(imagePathOrUrl) {
     mimeType = "image/jpeg";
   } else if (ext === ".gif") {
     mimeType = "image/gif";
-  } else if (ext === ".webp") {
-    mimeType = "image/webp";
   }
 
   return `data:${mimeType};base64,${base64Data}`;
