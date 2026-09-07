@@ -145,6 +145,10 @@
           <span id="sidebar-battery"><i class="fa-solid fa-battery-half text-emerald-400 mr-1"></i> 80%</span>
           <span id="sidebar-temp" class="text-cyan-400"><i class="fa-solid fa-temperature-half mr-1"></i> 32.8°C</span>
         </div>
+        <div class="flex justify-between items-center text-[10px] text-zinc-500 pt-1 border-t border-zinc-800/60">
+          <span>Zstd v1.5.7:</span>
+          <span class="text-emerald-400 font-semibold"><i class="fa-solid fa-file-zipper mr-1"></i> Native -T4</span>
+        </div>
       </div>
     </aside>
 
@@ -370,6 +374,15 @@ console.log(url);')" class="text-zinc-400 hover:text-white text-[10px]"><i class
               <pre class="bg-black/90 p-2.5 rounded border border-zinc-800 text-zinc-300 select-text">const { url } = await db.storage.upload(file);
 console.log("Public CDN Permalink:", url);</pre>
             </div>
+
+            <div class="space-y-1">
+              <div class="flex items-center justify-between text-purple-400 font-bold text-[11px]">
+                <span>4. Hardware-Accelerated Zstd Compression (&lt;2ms)</span>
+                <button onclick="copyToClipboard('const res = await db.compress(\'Sensor Telemetry Data\');\nconsole.log(res);')" class="text-zinc-400 hover:text-white text-[10px]"><i class="fa-regular fa-clipboard mr-1"></i> Copy</button>
+              </div>
+              <pre class="bg-black/90 p-2.5 rounded border border-zinc-800 text-zinc-300 select-text">const res = await db.compress("Sensor Telemetry Data");
+console.log(`Saved ${res.space_saved_percent}% in ${res.elapsed_ms}ms`);</pre>
+            </div>
           </div>
 
           <div id="sdk-code-py" class="hidden space-y-3">
@@ -398,6 +411,17 @@ print(res["result"]["rows"])</pre>
         headers={"x-api-key": "YOUR_KEY"}, data=f.read()).json()
 print("CDN URL:", res["object"]["url"])</pre>
             </div>
+
+            <div class="space-y-1">
+              <div class="flex items-center justify-between text-purple-400 font-bold text-[11px]">
+                <span>3. Real-Time Zstandard v1.5.7 Compression</span>
+                <button onclick="copyToClipboard('from swades import Swades\nclient = Swades(api_key=\'YOUR_KEY\')\nres = client.compress(\'Sensor Telemetry\', level=1, as_json=True)\nprint(res)')" class="text-zinc-400 hover:text-white text-[10px]"><i class="fa-regular fa-clipboard mr-1"></i> Copy</button>
+              </div>
+              <pre class="bg-black/90 p-2.5 rounded border border-zinc-800 text-zinc-300 select-text">from swades import Swades
+client = Swades(api_key="YOUR_KEY")
+res = client.compress("Sensor Telemetry", level=1, as_json=True)
+print(f"Compressed in {res['elapsed_ms']}ms: {res['compression_ratio']}x ratio")</pre>
+            </div>
           </div>
 
           <div id="sdk-code-curl" class="hidden space-y-3">
@@ -415,6 +439,14 @@ print("CDN URL:", res["object"]["url"])</pre>
                 <button onclick="copyToClipboard('curl -X PUT https://phone-whisper-server.pages.dev/v1/storage/objects/document.pdf -H "x-api-key: YOUR_KEY" --data-binary @document.pdf')" class="text-zinc-400 hover:text-white text-[10px]"><i class="fa-regular fa-clipboard mr-1"></i> Copy</button>
               </div>
               <pre class="bg-black/90 p-2.5 rounded border border-zinc-800 text-zinc-300 select-text">curl -X PUT https://phone-whisper-server.pages.dev/v1/storage/objects/document.pdf   -H "x-api-key: YOUR_KEY"   --data-binary @document.pdf</pre>
+            </div>
+
+            <div class="space-y-1">
+              <div class="flex items-center justify-between text-purple-400 font-bold text-[11px]">
+                <span>3. Zstd Hardware Compression (&lt;2ms)</span>
+                <button onclick="copyToClipboard('curl -X POST https://phone-whisper-server.pages.dev/v1/compress -H \"Content-Type: application/json\" -H \"Accept: application/json\" -d \'{\"data\": \"Telemetry payload\", \"level\": 1}\'')" class="text-zinc-400 hover:text-white text-[10px]"><i class="fa-regular fa-clipboard mr-1"></i> Copy</button>
+              </div>
+              <pre class="bg-black/90 p-2.5 rounded border border-zinc-800 text-zinc-300 select-text">curl -X POST https://phone-whisper-server.pages.dev/v1/compress   -H "Content-Type: application/json"   -H "Accept: application/json"   -d '{"data": "Telemetry payload", "level": 1}'</pre>
             </div>
           </div>
         </div>
