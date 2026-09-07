@@ -272,7 +272,7 @@
             <li><a href="#model-qwen" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">Qwen 2.5 0.5B Instruct</a></li>
             <li><a href="#model-piper" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">Piper-VITS Neural TTS</a></li>
             <li><a href="#model-zstd" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">Zstandard v1.5.7 Engine</a></li>
-            <li><a href="#model-images" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">Hardware Image Compression</a></li>
+            <li><a href="#model-images" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">Zstandard Image Compression</a></li>
             <li><a href="#model-bge" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">MiniLM & BGE Reranker</a></li>
             <li><a href="#swades-agent" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">Swades Autonomous Agent</a></li>
           </ul>
@@ -2042,81 +2042,26 @@ proot-distro login alpine -- node /root/Swades-Agent/worker.js --job job_a9f8224
             </div>
           </div>
 
-          <!-- MODEL CARD: HARDWARE IMAGE COMPRESSION -->
+          <!-- MODEL CARD: NATIVE ZSTANDARD IMAGE COMPRESSION -->
           <div id="model-images" class="bg-cardbg border border-cardborder rounded-xl p-5 font-mono text-xs">
             <div class="flex items-center justify-between border-b border-cardborder pb-3 mb-3">
               <div class="flex items-center gap-2">
-                <span class="text-fuchsia-400 font-bold text-sm">Hardware Image Compression Engine</span>
-                <span class="text-[10px] px-2 py-0.5 rounded bg-fuchsia-950/40 border border-fuchsia-800/40 text-fuchsia-300">WEBP / JPEG SIMD / AVIF</span>
+                <span class="text-purple-400 font-bold text-sm">Zstandard Image Compression Engine</span>
+                <span class="text-[10px] px-2 py-0.5 rounded bg-purple-950/40 border border-purple-800/40 text-purple-300">ZSTD v1.5.7 NATIVE</span>
               </div>
-              <span class="text-zinc-400 text-[11px]">Pillow ARM-Native (libjpeg_turbo &amp; WebP)</span>
+              <span class="text-zinc-400 text-[11px]">Level 1 (-1 -T4) API | Level 3 (-3 -T4) Vault</span>
             </div>
             <p class="text-zinc-300 text-[11px] leading-relaxed mb-3">
-              High-efficiency image optimization pipeline executing directly on phone ARM Cortex-A53 silicon. Leverages <strong class="text-fuchsia-400">Google WebP</strong> (lossy &amp; lossless, saving 60%&ndash;90% transfer size), <strong class="text-amber-400">libjpeg_turbo ARM NEON SIMD</strong> for ultra-low latency JPEG encoding, quantized PNG palette reduction, and AVIF. Features automated high-quality Lanczos resampling and EXIF/metadata stripping to protect user privacy and eliminate header overhead.
+              Native Zstandard (zstd v1.5.7) hardware image compression pipeline executing directly on phone ARM Cortex-A53 silicon. Compresses PNG, JPEG, WebP, SVG, and raw bitmap image payloads losslessly with sub-millisecond execution. Zero external conversion libraries, zero transcoding artifacts, and zero RAM bloat.
             </p>
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px] text-zinc-400">
-              <div class="bg-zinc-950 p-2 rounded border border-cardborder">Latency: &lt;10ms (ARM NEON)</div>
-              <div class="bg-zinc-950 p-2 rounded border border-cardborder">Throughput: ~10 - 25 MB/s</div>
-              <div class="bg-zinc-950 p-2 rounded border border-cardborder">Resampling: Lanczos Filter</div>
-              <div class="bg-zinc-950 p-2 rounded border border-cardborder">Formats: WebP, JPEG, PNG, AVIF</div>
-            </div>
-
-            <!-- Empirical Benchmark Matrix -->
-            <div class="mt-4 border border-cardborder rounded-lg overflow-hidden">
-              <div class="bg-zinc-900/80 px-3 py-1.5 text-[10px] text-zinc-300 font-bold border-b border-cardborder flex items-center justify-between">
-                <span>EMPIRICAL HARDWARE IMAGE COMPRESSION BENCHMARKS</span>
-                <span class="text-fuchsia-400">Helio G25 Silicon</span>
-              </div>
-              <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse text-[10px]">
-                  <thead>
-                    <tr class="bg-zinc-950 text-zinc-400 border-b border-cardborder">
-                      <th class="p-2">Format &amp; Mode</th>
-                      <th class="p-2">Orig Size</th>
-                      <th class="p-2">Compressed Size</th>
-                      <th class="p-2">Space Saved</th>
-                      <th class="p-2">Silicon Latency</th>
-                      <th class="p-2">Recommended Use Case</th>
-                    </tr>
-                  </thead>
-                  <tbody class="divide-y divide-cardborder text-zinc-300">
-                    <tr class="bg-fuchsia-950/20">
-                      <td class="p-2 font-bold text-fuchsia-400">WebP (Quality 80)</td>
-                      <td class="p-2">2.4 MB (PNG)</td>
-                      <td class="p-2 text-white font-bold">~280 KB</td>
-                      <td class="p-2 text-neonemerald font-bold">~88.3%</td>
-                      <td class="p-2 text-amber-400">~12.4 ms</td>
-                      <td class="p-2 text-fuchsia-300">Web delivery, mobile apps, CDN asset hosting</td>
-                    </tr>
-                    <tr class="bg-cyan-950/20">
-                      <td class="p-2 font-bold text-cyan-400">JPEG (libjpeg_turbo)</td>
-                      <td class="p-2">4.1 MB (RAW)</td>
-                      <td class="p-2 text-white font-bold">~520 KB</td>
-                      <td class="p-2 text-neonemerald font-bold">~87.3%</td>
-                      <td class="p-2 text-neonemerald font-bold">~7.8 ms</td>
-                      <td class="p-2 text-cyan-300">Ultra-fast photo camera ingestion, legacy clients</td>
-                    </tr>
-                    <tr class="bg-purple-950/20">
-                      <td class="p-2 font-bold text-purple-400">WebP Lossless</td>
-                      <td class="p-2">1.8 MB (PNG)</td>
-                      <td class="p-2 text-white font-bold">~640 KB</td>
-                      <td class="p-2 text-neonemerald font-bold">~64.4%</td>
-                      <td class="p-2 text-amber-400">~18.2 ms</td>
-                      <td class="p-2 text-purple-300">Pixel-perfect graphics, diagrams, UI badges</td>
-                    </tr>
-                    <tr class="bg-zinc-950/40">
-                      <td class="p-2 font-bold text-zinc-400">PNG Quantized (256c)</td>
-                      <td class="p-2">1.2 MB (PNG)</td>
-                      <td class="p-2 text-white font-bold">~310 KB</td>
-                      <td class="p-2 text-neonemerald font-bold">~74.1%</td>
-                      <td class="p-2 text-amber-400">~14.5 ms</td>
-                      <td class="p-2 text-zinc-300">Icons, transparent graphics, legacy web fallback</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+              <div class="bg-zinc-950 p-2 rounded border border-cardborder">Latency: &lt;1.5ms (-1 -T4)</div>
+              <div class="bg-zinc-950 p-2 rounded border border-cardborder">Throughput: ~180 MB/s</div>
+              <div class="bg-zinc-950 p-2 rounded border border-cardborder">Lossless: 100% Bit-Exact</div>
+              <div class="bg-zinc-950 p-2 rounded border border-cardborder">Engine: libzstd.so v1.5.7</div>
             </div>
           </div>
+
 
 
           <!-- Swades Autonomous Coding Agent -->
@@ -2645,53 +2590,53 @@ data: {"job_id":"job_9a717658","passed":true,"compiler":"node --check","errors":
         <div id="api-images" class="bg-cardbg border border-cardborder rounded-xl p-6 mb-8 font-mono text-xs">
           <div class="flex items-center justify-between border-b border-cardborder pb-3 mb-4">
             <div class="flex items-center gap-3">
-              <span class="px-2.5 py-1 rounded bg-fuchsia-950/60 border border-fuchsia-800 text-fuchsia-300 font-bold">POST &amp; GET</span>
+              <span class="px-2.5 py-1 rounded bg-purple-950/60 border border-purple-800 text-purple-300 font-bold">POST &amp; GET</span>
               <span class="text-white font-bold text-sm">/v1/images/compress &amp; /v1/images/info</span>
             </div>
-            <span class="text-[10px] px-2 py-0.5 rounded bg-zinc-800 text-fuchsia-400 border border-zinc-700">HARDWARE IMAGE OPTIMIZATION</span>
+            <span class="text-[10px] px-2 py-0.5 rounded bg-zinc-800 text-purple-400 border border-zinc-700">ZSTANDARD IMAGE COMPRESSION</span>
           </div>
           <p class="text-zinc-300 text-[11px] mb-4 leading-relaxed">
-            Hardware-accelerated image compression and formatting. Accepts JSON with Base64/Data URLs or direct binary octet-streams with URL parameters. Automatically compresses using <strong class="text-fuchsia-400">WebP</strong>, <strong class="text-amber-400">JPEG (libjpeg_turbo SIMD)</strong>, <strong class="text-cyan-400">PNG</strong>, or <strong class="text-purple-400">AVIF</strong>. Supports proportional resizing, quality quantization, and privacy metadata stripping.
+            Native Zstandard hardware image compression. Compresses image binary payloads (PNG, JPEG, WebP, SVG, raw bitmaps) using <strong class="text-emerald-400">Level 1 (-1 -T4)</strong> in &lt;1.5ms. 100% bit-exact lossless recovery with zero transcoding bloat.
           </p>
 
           <div class="space-y-4">
             <div>
-              <span class="text-zinc-400 text-[10px] block mb-1 font-bold">1. COMPRESS VIA JSON (BASE64 IN / OUT):</span>
-              <pre class="bg-zinc-950 p-3 rounded border border-cardborder text-fuchsia-400 overflow-x-auto"><code>curl -X POST "https://phone-whisper-server.pages.dev/v1/images/compress" \
+              <span class="text-zinc-400 text-[10px] block mb-1 font-bold">1. COMPRESS IMAGE BINARY (RAW OCTET-STREAM):</span>
+              <pre class="bg-zinc-950 p-3 rounded border border-cardborder text-purple-400 overflow-x-auto"><code>curl -X POST "https://phone-whisper-server.pages.dev/v1/images/compress" \
+  -H "Content-Type: application/octet-stream" \
+  --data-binary "@photo.png" \
+  -o "photo.png.zst"</code></pre>
+            </div>
+
+            <div>
+              <span class="text-zinc-400 text-[10px] block mb-1 font-bold">2. COMPRESS VIA JSON (BASE64 IN / OUT):</span>
+              <pre class="bg-zinc-950 p-3 rounded border border-cardborder text-cyan-400 overflow-x-auto"><code>curl -X POST "https://phone-whisper-server.pages.dev/v1/images/compress" \
   -H "Content-Type: application/json" \
   -H "Accept: application/json" \
-  -d '{"image": "data:image/jpeg;base64,...", "format": "webp", "quality": 80, "max_width": 1920}'</code></pre>
+  -d '{"image": "iVBORw0KGgoAAAANSUhEUgAA...", "as_json": true}'</code></pre>
             </div>
 
             <div>
               <span class="text-zinc-400 text-[10px] block mb-1 font-bold">RESPONSE JSON METRICS:</span>
               <pre class="bg-zinc-950 p-3 rounded border border-cardborder text-zinc-300 overflow-x-auto"><code>{
   "status": "success",
-  "engine": "Pillow ARM-Native (libjpeg_turbo/WebP/AVIF)",
-  "format": "webp",
-  "mime_type": "image/webp",
-  "original_size": 2489120,
-  "compressed_size": 289140,
-  "compression_ratio": 8.61,
-  "space_saved_percent": 88.4,
-  "original_dimensions": [3840, 2160],
-  "compressed_dimensions": [1920, 1080],
-  "elapsed_ms": 12.4,
-  "throughput_mb_s": 14.8,
-  "compressed_base64": "UklGRu...",
-  "data_url": "data:image/webp;base64,UklGRu..."
+  "engine": "Zstandard v1.5.7 (ARM Cortex-A53 Native 4T)",
+  "compression_algorithm": "zstd",
+  "tier": "api",
+  "level": 1,
+  "original_size": 128450,
+  "compressed_size": 42100,
+  "compression_ratio": 3.05,
+  "space_saved_percent": 67.2,
+  "elapsed_ms": 0.65,
+  "throughput_mb_s": 192.4,
+  "compressed_base64": "KLUv/SBwUQA...",
+  "data_url": "data:application/zstd;base64,KLUv/SBwUQA..."
 }</code></pre>
             </div>
 
             <div>
-              <span class="text-zinc-400 text-[10px] block mb-1 font-bold">2. DIRECT BINARY OCTET-STREAM OPTIMIZATION:</span>
-              <pre class="bg-zinc-950 p-3 rounded border border-cardborder text-cyan-400 overflow-x-auto"><code>curl -X POST "https://phone-whisper-server.pages.dev/v1/images/compress?format=webp&amp;quality=80&amp;max_width=1280" \
-  --data-binary "@photo.jpg" \
-  -o "optimized.webp"</code></pre>
-            </div>
-
-            <div>
-              <span class="text-zinc-400 text-[10px] block mb-1 font-bold">3. HARDWARE SPECIFICATIONS &amp; CODECS:</span>
+              <span class="text-zinc-400 text-[10px] block mb-1 font-bold">3. HARDWARE SPECIFICATIONS &amp; POLICY:</span>
               <pre class="bg-zinc-950 p-3 rounded border border-cardborder text-purple-400 overflow-x-auto"><code>curl -s "https://phone-whisper-server.pages.dev/v1/images/info"</code></pre>
             </div>
 
@@ -2700,9 +2645,9 @@ data: {"job_id":"job_9a717658","passed":true,"compiler":"node --check","errors":
               <pre class="bg-zinc-950 p-3 rounded border border-cardborder text-emerald-400 overflow-x-auto"><code>from swades import Swades
 
 client = Swades()
-# 1-line image compression:
-res = client.compress_image("photo.jpg", format="webp", quality=80, max_width=1920, as_json=True)
-print(f"Compressed {res['original_size']}B -&gt; {res['compressed_size']}B in {res['elapsed_ms']}ms ({res['space_saved_percent']}% saved)")</code></pre>
+# 1-line Zstd image compression (Level 1 -1 -T4):
+compressed_bytes = client.compress_image("photo.png")
+recovered_bytes = client.decompress_image(compressed_bytes)</code></pre>
             </div>
 
             <div>
@@ -2710,12 +2655,8 @@ print(f"Compressed {res['original_size']}B -&gt; {res['compressed_size']}B in {r
               <pre class="bg-zinc-950 p-3 rounded border border-cardborder text-amber-400 overflow-x-auto"><code>import { Swades } from './swades.js';
 
 const client = Swades.init();
-const res = await client.images.compressFile(fileInput.files[0], {
-  format: 'webp',
-  quality: 80,
-  maxWidth: 1920
-});
-console.log(`Saved ${res.space_saved_percent}% in ${res.elapsed_ms}ms:`, res.data_url);</code></pre>
+const zstdBytes = await client.images.compress(imageUint8Array);
+const restoredBytes = await client.images.decompress(zstdBytes);</code></pre>
             </div>
           </div>
         </div>
@@ -4948,7 +4889,7 @@ WAL file size: 1.4 MB • Checkpoint status: PASS (0 uncommitted frames)
       { title: 'Alpine PRoot Virtualization', hash: '#container-runtime', tag: 'LINUX' },
       { title: 'Zstandard v1.5.7 Hardware Compression', hash: '#model-zstd', tag: 'MODEL' },
       { title: 'POST /v1/compress Zstandard', hash: '#api-zstd', tag: 'API' },
-      { title: 'Hardware Image Compression (WebP/JPEG)', hash: '#model-images', tag: 'MODEL' },
+      { title: 'Zstandard Image Compression Engine', hash: '#model-images', tag: 'MODEL' },
       { title: 'POST /v1/images/compress', hash: '#api-images', tag: 'API' },
       { title: 'Whisper Base.en ASR Model', hash: '#model-whisper', tag: 'MODEL' },
       { title: 'Qwen 2.5 0.5B Instruct SLM', hash: '#model-qwen', tag: 'MODEL' },

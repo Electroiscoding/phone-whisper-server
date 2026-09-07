@@ -7,7 +7,7 @@
 ## The Reality & Philosophy (100% Sovereign & Local)
 
 * **Hardware:** A single budget Android smartphone (Redmi 9i / 9A) with 8x ARM Cortex-A53 CPU cores @ 2.0 GHz and 4GB RAM (~2GB free after Android OS).
-* **Software Stack:** Linux inside Termux, `llama.cpp`, `whisper.cpp`, `piper` (VITS neural TTS) / `espeak-ng`, `libzstd.so` v1.5.7 native C library, `Pillow`, and a lightweight Python process supervisor (`gateway.py`).
+* **Software Stack:** Linux inside Termux, `llama.cpp`, `whisper.cpp`, `piper` (VITS neural TTS) / `espeak-ng`, `libzstd.so` v1.5.7 native C library, and a lightweight Python process supervisor (`gateway.py`).
 * **Direct Local Access:** Binds to `0.0.0.0:8080`, allowing instant access over your local Wi-Fi router, Phone Hotspot, or USB reverse tethering (`http://192.168.29.2:8080` or `http://localhost:8080`), as well as secure edge access via Cloudflare Pages and quick tunnels.
 * **Memory Management:** Because the phone cannot keep multiple heavy neural networks in RAM simultaneously, `gateway.py` automatically spawns the requested model when a request arrives and **terminates (`pkill`) idle models after 75 seconds of silence**.
 * **Zero Cloud Outages:** Completely runs on phone silicon with zero external proprietary API tokens, zero rate limits, zero vendor lock-in, and zero data leakage.
@@ -22,7 +22,7 @@
 | **SLM Chat** | Qwen 2.5 0.5B Instruct Q4_K_M | `llama.cpp` | `POST /v1/chat/completions` | ~10–12s (Streaming) |
 | **Text-to-Speech** | Piper TTS (VITS Neural) / eSpeak-NG | Native ARM | `POST /v1/audio/speech` | ~1.5s |
 | **Hardware Compression** | Zstandard v1.5.7 Dual-Tier Engine | Native `libzstd.so` C / -T4 | `POST /v1/compress` & `POST /v1/decompress` | <1.5ms (~180 MB/s) |
-| **Image Optimization** | ARM NEON SIMD Image Processor | Pillow / WebP / libjpeg_turbo | `POST /v1/images/compress` & `GET /v1/images/info` | <10ms (WebP/JPEG) |
+| **Image Compression** | Native Zstandard Image Processor | Native `libzstd.so` / -1 -T4 | `POST /v1/images/compress` & `GET /v1/images/info` | <1.5ms (~180 MB/s) |
 | **Sovereign Cloud Storage** | S3-Compatible Vault + Auto Zstd L3 | `SwadeObjectStore` / eMMC | `PUT /v1/storage/{bucket}/{key}` | <0.5ms RAM / <8ms Disk |
 | **Sovereign SQL Database** | SQLite3 + Microsecond WAL Engine | Python / SQLite3 | `POST /v1/dashboard/db/sql` | <1ms |
 | **Vector Embeddings** | BAAI BGE-Small-en-v1.5 (896-d) | `llama.cpp` | `POST /v1/embeddings` | ~2–3s |
@@ -243,7 +243,7 @@ func main() {
 1. **Install Termux & Dependencies**:
    ```bash
    pkg update && pkg install -y python nodejs git build-essential clang zstd libzstd
-   pip install pillow requests
+   pip install requests
    ```
 2. **Start the Sovereign Gateway & Governor**:
    ```bash

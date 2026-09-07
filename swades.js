@@ -468,78 +468,19 @@ class SwadesClient {
     }
   };
 
-  // --- HARDWARE IMAGE COMPRESSION (WebP, JPEG, PNG, AVIF) ---
+  // --- NATIVE ZSTANDARD IMAGE COMPRESSION (Level 1 -1 -T4) ---
   images = {
-    // Compress image using phone hardware engine
+    // Compress image binary using native Zstandard Level 1 (-1 -T4)
     compress: async (imageData, options = {}) => {
-      const format = options.format || 'webp';
-      const quality = options.quality !== undefined ? options.quality : 80;
-      const maxWidth = options.maxWidth || options.max_width;
-      const maxHeight = options.maxHeight || options.max_height;
-      const lossless = !!options.lossless;
-      const asJson = options.asJson !== false;
-
-      const headers = {
-        'x-api-key': this.apiKey,
-        'x-project-id': this.projectId
-      };
-
-      if (typeof imageData === 'string') {
-        headers['Content-Type'] = 'application/json';
-        headers['Accept'] = 'application/json';
-        const payload = {
-          image: imageData,
-          format,
-          quality,
-          max_width: maxWidth,
-          max_height: maxHeight,
-          lossless,
-          as_json: asJson
-        };
-        const res = await fetch(`${this.endpoint}/v1/images/compress`, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify(payload)
-        });
-        if (!res.ok) {
-          const err = await res.text();
-          throw new Error(`Image compression failed (HTTP ${res.status}): ${err}`);
-        }
-        return await res.json();
-      } else {
-        if (asJson) {
-          let binary = '';
-          const bytes = imageData instanceof Uint8Array ? imageData : new Uint8Array(imageData);
-          const len = bytes.byteLength;
-          for (let i = 0; i < len; i++) {
-            binary += String.fromCharCode(bytes[i]);
-          }
-          const b64 = typeof btoa === 'function' ? btoa(binary) : (typeof Buffer !== 'undefined' ? Buffer.from(bytes).toString('base64') : '');
-          return this.images.compress(b64, options);
-        } else {
-          headers['Content-Type'] = 'application/octet-stream';
-          headers['X-Image-Format'] = format;
-          headers['X-Image-Quality'] = String(quality);
-          if (maxWidth) headers['X-Image-Max-Width'] = String(maxWidth);
-          if (maxHeight) headers['X-Image-Max-Height'] = String(maxHeight);
-
-          const bodyBytes = imageData instanceof Uint8Array ? imageData : new Uint8Array(imageData);
-          const res = await fetch(`${this.endpoint}/v1/images/compress`, {
-            method: 'POST',
-            headers,
-            body: bodyBytes
-          });
-          if (!res.ok) {
-            const err = await res.text();
-            throw new Error(`Image compression failed (HTTP ${res.status}): ${err}`);
-          }
-          const arrayBuf = await res.arrayBuffer();
-          return new Uint8Array(arrayBuf);
-        }
-      }
+      return this.zstd.compress(imageData, options);
     },
 
-    // Helper to compress a DOM File or Blob directly
+    // Decompress Zstandard-compressed image losslessly
+    decompress: async (compressedData, options = {}) => {
+      return this.zstd.decompress(compressedData, options);
+    },
+
+    // Helper to compress a DOM File or Blob directly via Zstandard
     compressFile: async (file, options = {}) => {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -556,7 +497,7 @@ class SwadesClient {
       });
     },
 
-    // Returns image compression engine specifications and supported hardware codecs
+    // Returns image compression engine specifications
     info: async () => {
       const res = await fetch(`${this.endpoint}/v1/images/info`);
       return await res.json();
@@ -599,6 +540,9 @@ class SwadesClient {
   }
   async compressImage(imageData, options) {
     return this.images.compress(imageData, options);
+  }
+  async decompressImage(compressedData, options) {
+    return this.images.decompress(compressedData, options);
   }
   async imageInfo() {
     return this.images.info();

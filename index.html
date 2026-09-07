@@ -1723,7 +1723,6 @@
         <i class="fa-solid fa-robot mr-1.5 text-cyan-400"></i> <span>Demo</span>
       </a>
       <a href="#studio" class="nav-link">Studio</a>
-      <a href="#image-studio" class="nav-link" style="color: #c084fc; font-weight: 700;">Image Studio <i class="fa-solid fa-image text-xs ml-1"></i></a>
       <a href="#cloud-storage" class="nav-link" style="color: #38bdf8; font-weight: 700;">Cloud Storage <i class="fa-solid fa-cloud text-xs ml-1"></i></a>
       <a href="/dashboard.html" class="nav-link" style="color: #a855f7; font-weight: 700;">Console <i class="fa-solid fa-sliders text-xs ml-1"></i></a>
       <a href="#cheatsheet" class="nav-link">API Cheatsheet</a>
@@ -1759,9 +1758,6 @@
       </a>
       <a href="#studio" class="mobile-nav-item" onclick="closeMobileDrawer()">
         <i class="fa-solid fa-microphone mr-2 text-cyan-400"></i> <span>Voice Studio</span>
-      </a>
-      <a href="#image-studio" class="mobile-nav-item" onclick="closeMobileDrawer()" style="color: #c084fc;">
-        <i class="fa-solid fa-image mr-2 text-fuchsia-400"></i> <span>Image Studio</span>
       </a>
       <a href="#cloud-storage" class="mobile-nav-item" onclick="closeMobileDrawer()" style="color: #38bdf8;">
         <i class="fa-solid fa-cloud mr-2 text-sky-400"></i> <span>Cloud Storage & CDN</span>
@@ -1804,9 +1800,6 @@
       <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; justify-content: center; align-items: center; margin-bottom: 0.5rem;">
         <a href="#studio" class="btn-action" style="padding: 0.55rem 1.15rem; font-size: 0.85rem; font-weight: 600; background: rgba(56, 189, 248, 0.1); border-color: rgba(56, 189, 248, 0.3); color: #38bdf8;">
           <i class="fa-solid fa-microphone mr-2 text-cyan-400"></i> <span>Speech Studio</span>
-        </a>
-        <a href="#image-studio" class="btn-action" style="padding: 0.55rem 1.15rem; font-size: 0.85rem; font-weight: 600; background: rgba(192, 132, 252, 0.1); border-color: rgba(192, 132, 252, 0.3); color: #c084fc;">
-          <i class="fa-solid fa-image mr-2 text-fuchsia-400"></i> <span>Image Studio</span>
         </a>
         <a href="#cloud-storage" class="btn-action" style="padding: 0.55rem 1.15rem; font-size: 0.85rem; font-weight: 600; background: rgba(56, 189, 248, 0.06); border-color: rgba(56, 189, 248, 0.2); color: #93c5fd;">
           <i class="fa-solid fa-cloud mr-2 text-sky-400"></i> <span>Edge Storage</span>
@@ -2419,6 +2412,7 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
             <button onclick="loadZstdSample('telemetry')" class="btn-action" style="padding: 0.3rem 0.65rem; font-size: 0.78rem;"><i class="fa-solid fa-chart-line mr-1 text-cyan-400"></i> JSON Telemetry</button>
             <button onclick="loadZstdSample('log')" class="btn-action" style="padding: 0.3rem 0.65rem; font-size: 0.78rem;"><i class="fa-solid fa-terminal mr-1 text-amber-400"></i> Server Logs</button>
             <button onclick="loadZstdSample('sql')" class="btn-action" style="padding: 0.3rem 0.65rem; font-size: 0.78rem;"><i class="fa-solid fa-database mr-1 text-emerald-400"></i> SQL Dump</button>
+            <button onclick="loadZstdSample('image')" class="btn-action" style="padding: 0.3rem 0.65rem; font-size: 0.78rem;"><i class="fa-solid fa-image mr-1 text-fuchsia-400"></i> Image Payload</button>
           </div>
           <span id="zstdInputCharCount" style="font-size: 0.75rem; color: var(--text-subtle); font-family: monospace;">0 bytes</span>
         </div>
@@ -2510,185 +2504,6 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
       </div>
     </section>
 
-    <!-- MODE 9: IMAGE COMPRESSION HARDWARE STUDIO -->
-    <section id="image-studio" style="margin-top: 3rem;">
-      <div class="section-head">
-        <span class="section-tag">
-          <i class="fa-solid fa-image text-fuchsia-400"></i>
-          <span>Mode 9: Image Compression Studio</span>
-        </span>
-        <h2 class="section-title">Hardware-Accelerated Image Compression Studio</h2>
-        <p class="section-desc">On-device image optimization powered by native ARM Cortex-A53 silicon. Supports <strong>Google WebP</strong> (lossy &amp; lossless, up to 90% space reduction), <strong>libjpeg_turbo</strong> (NEON SIMD accelerated), <strong>PNG</strong> (quantized palette reduction), and <strong>AVIF</strong> next-gen compression with Lanczos resampling and metadata stripping.</p>
-      </div>
-
-      <div class="studio-card" style="background: rgba(10, 15, 26, 0.85); border: 1px solid var(--card-border); border-radius: 16px; padding: 1.75rem;">
-        <!-- Codecs & Engine Banner -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
-          <div style="background: rgba(192, 132, 252, 0.06); border: 1px solid rgba(192, 132, 252, 0.25); border-radius: 12px; padding: 1rem;">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
-              <span style="font-weight: 700; color: #c084fc; font-size: 0.85rem;"><i class="fa-solid fa-bolt mr-1.5"></i> WebP &amp; AVIF Codecs</span>
-              <span style="font-family: monospace; font-size: 0.75rem; background: rgba(192,132,252,0.2); color: #e9d5ff; padding: 0.15rem 0.5rem; border-radius: 6px;">ARM Native</span>
-            </div>
-            <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0; line-height: 1.4;">
-              60% - 90% size reduction with alpha transparency and lossless modes. Perfect for web delivery &amp; mobile clients.
-            </p>
-          </div>
-          <div style="background: rgba(251, 146, 60, 0.06); border: 1px solid rgba(251, 146, 60, 0.25); border-radius: 12px; padding: 1rem;">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
-              <span style="font-weight: 700; color: #fb923c; font-size: 0.85rem;"><i class="fa-solid fa-microchip mr-1.5"></i> libjpeg_turbo (NEON SIMD)</span>
-              <span style="font-family: monospace; font-size: 0.75rem; background: rgba(251,146,60,0.2); color: #fed7aa; padding: 0.15rem 0.5rem; border-radius: 6px;">SIMD Active</span>
-            </div>
-            <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0; line-height: 1.4;">
-              Hardware-accelerated baseline &amp; progressive JPEG encoding with 4:2:0 subsampling for ultra-low latency inference.
-            </p>
-          </div>
-        </div>
-
-        <!-- Image Upload & Preset Area -->
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
-          <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-            <span style="font-size: 0.8rem; color: var(--text-subtle);">Load Sample Image:</span>
-            <button onclick="loadImagePreset('sample_photo')" class="btn-action" style="padding: 0.3rem 0.65rem; font-size: 0.78rem;"><i class="fa-solid fa-camera mr-1 text-cyan-400"></i> Sample Photo</button>
-            <button onclick="loadImagePreset('sample_graphic')" class="btn-action" style="padding: 0.3rem 0.65rem; font-size: 0.78rem;"><i class="fa-solid fa-shapes mr-1 text-amber-400"></i> Vector Graphic</button>
-            <button onclick="loadImagePreset('sample_badge')" class="btn-action" style="padding: 0.3rem 0.65rem; font-size: 0.78rem;"><i class="fa-solid fa-shield mr-1 text-emerald-400"></i> Alpha Badge</button>
-          </div>
-          <span id="imageFileInfo" style="font-size: 0.75rem; color: var(--text-subtle); font-family: monospace;">No file chosen</span>
-        </div>
-
-        <!-- Drag & Drop Area -->
-        <div id="imageDropZone" onclick="document.getElementById('imageFileInput').click()"
-             ondragover="handleImageDragOver(event)" ondragleave="handleImageDragLeave(event)" ondrop="handleImageDrop(event)"
-             style="border: 2px dashed rgba(255,255,255,0.18); border-radius: 12px; padding: 1.75rem 1rem; text-align: center; background: rgba(0,0,0,0.3); cursor: pointer; transition: all 0.2s ease;">
-          <input type="file" id="imageFileInput" accept="image/*" onchange="handleImageFileSelect(event)" style="display: none;">
-          <i class="fa-solid fa-cloud-arrow-up" style="font-size: 2rem; color: #c084fc; margin-bottom: 0.5rem;"></i>
-          <div style="font-weight: 600; font-size: 0.95rem; color: #f1f5f9;">Drag and drop an image here, or click to browse</div>
-          <div style="font-size: 0.78rem; color: var(--text-subtle); margin-top: 0.3rem;">Supports JPEG, PNG, WebP, GIF, BMP, TIFF (Up to 50MB)</div>
-        </div>
-
-        <!-- Controls: Format, Quality, Constraints -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1.25rem; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 1rem;">
-          <div>
-            <label style="font-size: 0.8rem; color: var(--text-subtle); display: block; margin-bottom: 0.35rem;">Target Format:</label>
-            <select id="imageTargetFormat" onchange="updateImageSnippets()" style="width: 100%; background: rgba(0,0,0,0.7); border: 1px solid var(--card-border); color: #c084fc; font-family: monospace; font-size: 0.85rem; padding: 0.5rem 0.75rem; border-radius: 8px;">
-              <option value="webp" selected>WebP (High Efficiency / Alpha)</option>
-              <option value="jpeg">JPEG (libjpeg_turbo SIMD)</option>
-              <option value="png">PNG (Palette Quantization)</option>
-              <option value="avif">AVIF (Next-Gen AV1)</option>
-            </select>
-          </div>
-
-          <div>
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
-              <label style="font-size: 0.8rem; color: var(--text-subtle);">Quality:</label>
-              <span id="imageQualityVal" style="font-size: 0.82rem; font-weight: 700; color: #34d399; font-family: monospace;">80%</span>
-            </div>
-            <input type="range" id="imageQualitySlider" min="1" max="100" value="80" oninput="document.getElementById('imageQualityVal').innerText = this.value + '%'; updateImageSnippets();" style="width: 100%; accent-color: #10b981; cursor: pointer;">
-          </div>
-
-          <div>
-            <label style="font-size: 0.8rem; color: var(--text-subtle); display: block; margin-bottom: 0.35rem;">Max Width (px):</label>
-            <input type="number" id="imageMaxWidth" placeholder="Original (e.g. 1920)" oninput="updateImageSnippets()" style="width: 100%; background: rgba(0,0,0,0.7); border: 1px solid var(--card-border); color: #f1f5f9; font-family: monospace; font-size: 0.85rem; padding: 0.45rem 0.65rem; border-radius: 8px; box-sizing: border-box;">
-          </div>
-
-          <div>
-            <label style="font-size: 0.8rem; color: var(--text-subtle); display: block; margin-bottom: 0.35rem;">Max Height (px):</label>
-            <input type="number" id="imageMaxHeight" placeholder="Original (e.g. 1080)" oninput="updateImageSnippets()" style="width: 100%; background: rgba(0,0,0,0.7); border: 1px solid var(--card-border); color: #f1f5f9; font-family: monospace; font-size: 0.85rem; padding: 0.45rem 0.65rem; border-radius: 8px; box-sizing: border-box;">
-          </div>
-        </div>
-
-        <!-- Action Buttons -->
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; flex-wrap: wrap; gap: 0.75rem;">
-          <div style="display: flex; gap: 1rem; align-items: center;">
-            <label style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.82rem; color: var(--text-muted); cursor: pointer;">
-              <input type="checkbox" id="imageLosslessCheck" style="accent-color: #c084fc;">
-              <span>Lossless WebP</span>
-            </label>
-            <label style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.82rem; color: var(--text-muted); cursor: pointer;">
-              <input type="checkbox" id="imageStripMetaCheck" checked style="accent-color: #c084fc;">
-              <span>Strip EXIF Metadata</span>
-            </label>
-          </div>
-
-          <div style="display: flex; gap: 0.5rem; align-items: center;">
-            <button id="imageCompressBtn" onclick="runImageCompress()" class="btn-send-chat" style="padding: 0.55rem 1.35rem; font-size: 0.85rem; background: #c084fc; color: #000; font-weight: 700;">
-              <i class="fa-solid fa-wand-magic-sparkles mr-1.5"></i> <span>Compress Image</span>
-            </button>
-            <a id="imageDownloadBtn" href="#" download="compressed_image.webp" style="display: none; padding: 0.55rem 1.1rem; font-size: 0.85rem; background: #10b981; color: #000; font-weight: 700; border-radius: 8px; text-decoration: none; align-items: center; gap: 0.4rem;">
-              <i class="fa-solid fa-download"></i> <span>Download</span>
-            </a>
-          </div>
-        </div>
-
-        <!-- Hardware Metrics Display Grid -->
-        <div id="imageResultsGrid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.75rem; margin-top: 1.25rem; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 0.85rem;">
-          <div style="text-align: center;">
-            <div style="font-size: 0.7rem; color: var(--text-subtle); text-transform: uppercase;">Original Size</div>
-            <div id="imgMetricOrig" style="font-family: monospace; font-size: 1.05rem; font-weight: 700; color: #f1f5f9; margin-top: 0.2rem;">-- KB</div>
-          </div>
-          <div style="text-align: center;">
-            <div style="font-size: 0.7rem; color: var(--text-subtle); text-transform: uppercase;">Compressed</div>
-            <div id="imgMetricComp" style="font-family: monospace; font-size: 1.05rem; font-weight: 700; color: #c084fc; margin-top: 0.2rem;">-- KB</div>
-          </div>
-          <div style="text-align: center;">
-            <div style="font-size: 0.7rem; color: var(--text-subtle); text-transform: uppercase;">Space Saved</div>
-            <div id="imgMetricSaved" style="font-family: monospace; font-size: 1.05rem; font-weight: 700; color: #34d399; margin-top: 0.2rem;">-- %</div>
-          </div>
-          <div style="text-align: center;">
-            <div style="font-size: 0.7rem; color: var(--text-subtle); text-transform: uppercase;">Ratio</div>
-            <div id="imgMetricRatio" style="font-family: monospace; font-size: 1.05rem; font-weight: 700; color: #38bdf8; margin-top: 0.2rem;">-- x</div>
-          </div>
-          <div style="text-align: center;">
-            <div style="font-size: 0.7rem; color: var(--text-subtle); text-transform: uppercase;">Inference Time</div>
-            <div id="imgMetricLatency" style="font-family: monospace; font-size: 1.05rem; font-weight: 700; color: #fbbf24; margin-top: 0.2rem;">-- ms</div>
-          </div>
-          <div style="text-align: center;">
-            <div style="font-size: 0.7rem; color: var(--text-subtle); text-transform: uppercase;">Dimensions</div>
-            <div id="imgMetricDims" style="font-family: monospace; font-size: 0.95rem; font-weight: 700; color: #fed7aa; margin-top: 0.2rem;">-- x --</div>
-          </div>
-        </div>
-
-        <!-- Side-by-Side Visual Comparison Preview -->
-        <div id="imagePreviewContainer" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem; margin-top: 1.25rem;">
-          <!-- Original Preview Box -->
-          <div style="background: rgba(0,0,0,0.5); border: 1px solid var(--card-border); border-radius: 12px; padding: 1rem; text-align: center;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-              <span style="font-size: 0.82rem; font-weight: 700; color: #e2e8f0;"><i class="fa-solid fa-file-image mr-1 text-slate-400"></i> Original Preview</span>
-              <span id="imgOrigBadge" style="font-family: monospace; font-size: 0.75rem; color: var(--text-subtle); background: rgba(255,255,255,0.06); padding: 0.15rem 0.45rem; border-radius: 4px;">--</span>
-            </div>
-            <div style="min-height: 200px; max-height: 320px; display: flex; align-items: center; justify-content: center; background: #030712; border-radius: 8px; overflow: hidden;">
-              <img id="imgOrigPreview" src="" alt="Original Image" style="max-width: 100%; max-height: 300px; object-fit: contain; display: none;">
-              <div id="imgOrigPlaceholder" style="color: var(--text-subtle); font-size: 0.85rem;"><i class="fa-solid fa-image mr-1"></i> No image loaded</div>
-            </div>
-          </div>
-
-          <!-- Compressed Preview Box -->
-          <div style="background: rgba(0,0,0,0.5); border: 1px solid var(--card-border); border-radius: 12px; padding: 1rem; text-align: center;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-              <span style="font-size: 0.82rem; font-weight: 700; color: #c084fc;"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Compressed Output</span>
-              <span id="imgCompBadge" style="font-family: monospace; font-size: 0.75rem; color: #34d399; background: rgba(16,185,129,0.15); padding: 0.15rem 0.45rem; border-radius: 4px;">--</span>
-            </div>
-            <div style="min-height: 200px; max-height: 320px; display: flex; align-items: center; justify-content: center; background: #030712; border-radius: 8px; overflow: hidden;">
-              <img id="imgCompPreview" src="" alt="Compressed Image" style="max-width: 100%; max-height: 300px; object-fit: contain; display: none;">
-              <div id="imgCompPlaceholder" style="color: var(--text-subtle); font-size: 0.85rem;"><i class="fa-solid fa-hourglass-start mr-1"></i> Click Compress to run</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 1-Click Code Snippets for Image Compression -->
-        <div style="margin-top: 1.5rem; background: rgba(0,0,0,0.5); border: 1px solid var(--card-border); border-radius: 12px; padding: 1rem;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-            <span style="font-weight: 700; color: #fff; font-size: 0.88rem;"><i class="fa-solid fa-laptop-code mr-1.5 text-fuchsia-400"></i> 1-Line Drop-In Code</span>
-            <div style="display: flex; gap: 0.4rem;">
-              <button class="btn-action" id="imgSnipTab_curl" onclick="showImageSnippetTab('curl')" style="padding: 0.25rem 0.65rem; font-size: 0.75rem; background: var(--primary); color: #000; font-weight: 700;">cURL</button>
-              <button class="btn-action" id="imgSnipTab_py" onclick="showImageSnippetTab('py')" style="padding: 0.25rem 0.65rem; font-size: 0.75rem;">Python</button>
-              <button class="btn-action" id="imgSnipTab_js" onclick="showImageSnippetTab('js')" style="padding: 0.25rem 0.65rem; font-size: 0.75rem;">JavaScript</button>
-            </div>
-          </div>
-          <pre id="imageSnippetBlock" style="margin: 0; background: #030712; border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 0.85rem; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; color: #e2e8f0; overflow-x: auto;"></pre>
-        </div>
-      </div>
-    </section>
-
 
     <!-- PUBLIC API CHEATSHEET & ENDPOINT EXPLORER (ULTRA-NEWBIE TO PRO) -->
     <section id="cheatsheet" style="margin-top: 4rem;">
@@ -2765,7 +2580,7 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
                 <thead><tr><th>Method</th><th>Endpoint</th><th>Supported Formats</th><th>Description</th></tr></thead>
                 <tbody>
                   <tr><td><code>POST</code></td><td><code>/v1/images/compress</code></td><td><strong style="color: #c084fc;">WebP, JPEG, PNG, AVIF</strong></td><td>Compresses binary stream or Base64 image with quality &amp; resize controls (&lt;10ms).</td></tr>
-                  <tr><td><code>GET</code></td><td><code>/v1/images/info</code></td><td><strong style="color: #34d399;">Public Telemetry</strong></td><td>Returns supported hardware codecs, default profiles, and Pillow engine specifications.</td></tr>
+                  <tr><td><code>GET</code></td><td><code>/v1/images/info</code></td><td><strong style="color: #34d399;">Public Telemetry</strong></td><td>Returns Zstandard v1.5.7 engine specifications, dual-tier allocation, and image binary compression policies.</td></tr>
                 </tbody>
               </table>
             </div>
@@ -6961,6 +6776,11 @@ INSERT INTO sensor_telemetry (node, cpu_temp) VALUES ('redmi_9i_core3', 33.1);`
     };
 
     function loadZstdSample(type) {
+      if (type === 'image') {
+        document.getElementById('zstdInputText').value = "iVBORw0KGgoAAAANSUhEUgAAAUAAAADwCAYAAABg1f7QAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAALEwAACxMBAJqcGAAAAgZJREFUeJzt1MENAAAAwqD3b20NDxQQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADwYMIAAAY2V3gAAAAAElFTkSuQmCC";
+        updateZstdCharCount();
+        return;
+      }
       const area = document.getElementById('zstdInputText');
       if (area && zstdSamples[type]) {
         area.value = zstdSamples[type];
@@ -7154,307 +6974,6 @@ console.log("Recovered:", text);`;
     window.updateZstdSnippetCode = updateZstdSnippetCode;
 
 
-    // =========================================================================
-    // MODE 9: IMAGE COMPRESSION HARDWARE STUDIO LOGIC
-    // =========================================================================
-    let activeImageRawB64 = '';
-    let activeImageFile = null;
-    let activeImageMime = 'image/png';
-    let activeImageWidth = 0;
-    let activeImageHeight = 0;
-    let activeImageOriginalSize = 0;
-    let activeImageSnippetTab = 'curl';
-
-    // SVG Samples for instant zero-dependency testing
-    const IMAGE_SAMPLES = {
-      sample_photo: () => {
-        // High density geometric gradient canvas
-        const c = document.createElement('canvas');
-        c.width = 800; c.height = 600;
-        const ctx = c.getContext('2d');
-        const grad = ctx.createLinearGradient(0, 0, 800, 600);
-        grad.addColorStop(0, '#1e1b4b');
-        grad.addColorStop(0.5, '#4338ca');
-        grad.addColorStop(1, '#065f46');
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, 800, 600);
-        // Add photo texture circles
-        for (let i = 0; i < 60; i++) {
-          ctx.beginPath();
-          ctx.arc(Math.random() * 800, Math.random() * 600, Math.random() * 80 + 20, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(${Math.floor(Math.random()*255)}, ${Math.floor(Math.random()*255)}, 255, 0.25)`;
-          ctx.fill();
-        }
-        ctx.font = 'bold 36px sans-serif';
-        ctx.fillStyle = '#ffffff';
-        ctx.textAlign = 'center';
-        ctx.fillText('Phone Datacenter ARM Photo Sample', 400, 300);
-        return c.toDataURL('image/jpeg', 0.95);
-      },
-      sample_graphic: () => {
-        const c = document.createElement('canvas');
-        c.width = 600; c.height = 600;
-        const ctx = c.getContext('2d');
-        ctx.fillStyle = '#0f172a';
-        ctx.fillRect(0, 0, 600, 600);
-        ctx.strokeStyle = '#c084fc';
-        ctx.lineWidth = 8;
-        ctx.strokeRect(50, 50, 500, 500);
-        ctx.font = 'bold 32px monospace';
-        ctx.fillStyle = '#38bdf8';
-        ctx.textAlign = 'center';
-        ctx.fillText('VECTOR GRAPHIC LOGO', 300, 280);
-        ctx.fillStyle = '#34d399';
-        ctx.font = '20px monospace';
-        ctx.fillText('SWADES CLOUD SILICON', 300, 330);
-        return c.toDataURL('image/png');
-      },
-      sample_badge: () => {
-        const c = document.createElement('canvas');
-        c.width = 400; c.height = 400;
-        const ctx = c.getContext('2d');
-        // Transparent background
-        ctx.clearRect(0, 0, 400, 400);
-        ctx.beginPath();
-        ctx.arc(200, 200, 180, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(16, 185, 129, 0.85)';
-        ctx.fill();
-        ctx.lineWidth = 6;
-        ctx.strokeStyle = '#ffffff';
-        ctx.stroke();
-        ctx.font = 'bold 28px sans-serif';
-        ctx.fillStyle = '#ffffff';
-        ctx.textAlign = 'center';
-        ctx.fillText('ARM CORTEX', 200, 190);
-        ctx.fillText('ALPHA BADGE', 200, 230);
-        return c.toDataURL('image/png');
-      }
-    };
-
-    function loadImagePreset(key) {
-      if (!IMAGE_SAMPLES[key]) return;
-      const dataUrl = IMAGE_SAMPLES[key]();
-      loadDataUrlIntoStudio(dataUrl, key + '.png');
-    }
-    window.loadImagePreset = loadImagePreset;
-
-    function loadDataUrlIntoStudio(dataUrl, filename) {
-      activeImageRawB64 = dataUrl;
-      const img = new Image();
-      img.onload = () => {
-        activeImageWidth = img.naturalWidth || img.width;
-        activeImageHeight = img.naturalHeight || img.height;
-        // Calculate raw base64 size
-        const b64Data = dataUrl.split(',')[1] || '';
-        activeImageOriginalSize = Math.round((b64Data.length * 3) / 4);
-
-        const origImg = document.getElementById('imgOrigPreview');
-        const origPlaceholder = document.getElementById('imgOrigPlaceholder');
-        if (origImg && origPlaceholder) {
-          origImg.src = dataUrl;
-          origImg.style.display = 'block';
-          origPlaceholder.style.display = 'none';
-        }
-        document.getElementById('imgOrigBadge').innerText = `${activeImageWidth}x${activeImageHeight} • ${(activeImageOriginalSize / 1024).toFixed(1)} KB`;
-        document.getElementById('imageFileInfo').innerText = `${filename} (${(activeImageOriginalSize / 1024).toFixed(1)} KB)`;
-        document.getElementById('imgMetricOrig').innerText = (activeImageOriginalSize / 1024).toFixed(1) + ' KB';
-        updateImageSnippets();
-      };
-      img.src = dataUrl;
-    }
-
-    function handleImageFileSelect(e) {
-      const file = e.target.files ? e.target.files[0] : null;
-      if (!file) return;
-      processSelectedImageFile(file);
-    }
-    window.handleImageFileSelect = handleImageFileSelect;
-
-    function handleImageDragOver(e) {
-      e.preventDefault();
-      e.stopPropagation();
-      const dropZone = document.getElementById('imageDropZone');
-      if (dropZone) dropZone.style.borderColor = '#c084fc';
-    }
-    window.handleImageDragOver = handleImageDragOver;
-
-    function handleImageDragLeave(e) {
-      e.preventDefault();
-      e.stopPropagation();
-      const dropZone = document.getElementById('imageDropZone');
-      if (dropZone) dropZone.style.borderColor = 'rgba(255,255,255,0.18)';
-    }
-    window.handleImageDragLeave = handleImageDragLeave;
-
-    function handleImageDrop(e) {
-      e.preventDefault();
-      e.stopPropagation();
-      const dropZone = document.getElementById('imageDropZone');
-      if (dropZone) dropZone.style.borderColor = 'rgba(255,255,255,0.18)';
-      if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-        processSelectedImageFile(e.dataTransfer.files[0]);
-      }
-    }
-    window.handleImageDrop = handleImageDrop;
-
-    function processSelectedImageFile(file) {
-      if (!file.type.startsWith('image/')) {
-        alert('Please select a valid image file (JPEG, PNG, WebP, AVIF, GIF, BMP).');
-        return;
-      }
-      activeImageFile = file;
-      const reader = new FileReader();
-      reader.onload = (evt) => {
-        loadDataUrlIntoStudio(evt.target.result, file.name);
-      };
-      reader.readAsDataURL(file);
-    }
-
-    async function runImageCompress() {
-      if (!activeImageRawB64) {
-        alert('Please load a sample image or upload a file first.');
-        return;
-      }
-
-      const format = document.getElementById('imageTargetFormat')?.value || 'webp';
-      const quality = parseInt(document.getElementById('imageQualitySlider')?.value || '80', 10);
-      const maxWidth = document.getElementById('imageMaxWidth')?.value || null;
-      const maxHeight = document.getElementById('imageMaxHeight')?.value || null;
-      const lossless = document.getElementById('imageLosslessCheck')?.checked || false;
-      const stripMeta = document.getElementById('imageStripMetaCheck')?.checked || true;
-
-      const btn = document.getElementById('imageCompressBtn');
-      if (btn) btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1.5"></i> <span>Optimizing...</span>';
-
-      try {
-        const endpoint = (window.activeOrigin || window.location.origin).replace(/\/+$/, '');
-        const payload = {
-          image: activeImageRawB64,
-          format: format,
-          quality: quality,
-          max_width: maxWidth ? parseInt(maxWidth, 10) : null,
-          max_height: maxHeight ? parseInt(maxHeight, 10) : null,
-          lossless: lossless,
-          strip_metadata: stripMeta,
-          as_json: true
-        };
-
-        const res = await fetch(`${endpoint}/v1/images/compress`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          body: JSON.stringify(payload)
-        });
-
-        if (!res.ok) {
-          const err = await res.text();
-          throw new Error(`HTTP ${res.status}: ${err}`);
-        }
-
-        const data = await res.json();
-
-        // Update telemetry HUD
-        document.getElementById('imgMetricOrig').innerText = (data.original_size / 1024).toFixed(1) + ' KB';
-        document.getElementById('imgMetricComp').innerText = (data.compressed_size / 1024).toFixed(1) + ' KB';
-        document.getElementById('imgMetricSaved').innerText = data.space_saved_percent + '%';
-        document.getElementById('imgMetricRatio').innerText = data.compression_ratio + 'x';
-        document.getElementById('imgMetricLatency').innerText = data.elapsed_ms + ' ms';
-        document.getElementById('imgMetricDims').innerText = `${data.compressed_dimensions[0]}x${data.compressed_dimensions[1]}`;
-
-        // Display compressed image
-        const compImg = document.getElementById('imgCompPreview');
-        const compPlaceholder = document.getElementById('imgCompPlaceholder');
-        if (compImg && compPlaceholder) {
-          compImg.src = data.data_url;
-          compImg.style.display = 'block';
-          compPlaceholder.style.display = 'none';
-        }
-
-        document.getElementById('imgCompBadge').innerText = `${data.format.toUpperCase()} • ${(data.compressed_size / 1024).toFixed(1)} KB • -${data.space_saved_percent}%`;
-
-        // Update Download button
-        const dlBtn = document.getElementById('imageDownloadBtn');
-        if (dlBtn) {
-          dlBtn.href = data.data_url;
-          dlBtn.download = `optimized_${Date.now()}.${data.format}`;
-          dlBtn.style.display = 'inline-flex';
-        }
-      } catch (err) {
-        alert('Image compression failed: ' + err.message);
-      } finally {
-        if (btn) btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles mr-1.5"></i> <span>Compress Image</span>';
-      }
-    }
-    window.runImageCompress = runImageCompress;
-
-    function showImageSnippetTab(lang) {
-      activeImageSnippetTab = lang;
-      ['curl', 'py', 'js'].forEach(l => {
-        const btn = document.getElementById('imgSnipTab_' + l);
-        if (btn) {
-          if (l === lang) {
-            btn.style.background = 'var(--primary)';
-            btn.style.color = '#000';
-            btn.style.fontWeight = '700';
-          } else {
-            btn.style.background = 'transparent';
-            btn.style.color = 'var(--text-muted)';
-            btn.style.fontWeight = 'normal';
-          }
-        }
-      });
-      updateImageSnippets();
-    }
-    window.showImageSnippetTab = showImageSnippetTab;
-
-    function updateImageSnippets() {
-      const block = document.getElementById('imageSnippetBlock');
-      if (!block) return;
-      const origin = (window.activeOrigin || window.location.origin).replace(/\/+$/, '');
-      const format = document.getElementById('imageTargetFormat')?.value || 'webp';
-      const quality = document.getElementById('imageQualitySlider')?.value || '80';
-      const mw = document.getElementById('imageMaxWidth')?.value;
-      const resizeParam = mw ? `, "max_width": ${mw}` : '';
-
-      if (activeImageSnippetTab === 'curl') {
-        block.innerText =
-`# 1-line cURL image optimization to ${format.toUpperCase()}:
-curl -X POST "${origin}/v1/images/compress" \
-  -H "Content-Type: application/json" \
-  -H "Accept: application/json" \
-  -d '{"image": "data:image/jpeg;base64,...", "format": "${format}", "quality": ${quality}${resizeParam}}'
-
-# Direct binary stream:
-curl -X POST "${origin}/v1/images/compress?format=${format}&quality=${quality}" \
-  --data-binary "@input.jpg" -o "output.${format}"`;
-      } else if (activeImageSnippetTab === 'py') {
-        block.innerText =
-`from swades import Swades
-
-client = Swades(endpoint="${origin}")
-
-# 1-line image compression (auto-detects path or bytes):
-res = client.compress_image("photo.jpg", format="${format}", quality=${quality}${resizeParam ? ', max_width=' + mw : ''}, as_json=True)
-print(f"Compressed {res['original_size']}B -> {res['compressed_size']}B in {res['elapsed_ms']}ms ({res['space_saved_percent']}% saved)")`;
-      } else if (activeImageSnippetTab === 'js') {
-        block.innerText =
-`import { Swades } from './swades.js';
-
-const client = Swades.init({ endpoint: "${origin}" });
-
-// Compress file directly from DOM input:
-const res = await client.images.compressFile(fileInput.files[0], {
-  format: '${format}',
-  quality: ${quality}${mw ? ', maxWidth: ' + mw : ''}
-});
-console.log("Compressed to " + res.format + " in " + res.elapsed_ms + "ms, saved " + res.space_saved_percent + "%");`;
-      }
-    }
-    window.updateImageSnippets = updateImageSnippets;
-
-    // =========================================================================
   </script>
 </body>
 </html>

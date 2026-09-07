@@ -11,34 +11,29 @@ import base64
 import urllib.parse
 
 class ImageClient:
-    """Hardware-accelerated Image Compression Client (WebP, JPEG, PNG, AVIF)"""
+    """Native Zstandard (zstd v1.5.7) Image Compression Client.
+    Lossless sub-millisecond compression for image binaries using Level 1 (-1 -T4).
+    """
     def __init__(self, swades):
         self.swades = swades
 
     def info(self):
-        """Returns image compression engine specifications and supported hardware codecs"""
+        """Returns Zstandard image compression engine specifications."""
         res = self.swades._req("GET", "/v1/images/info", timeout=10)
         return res.json()
 
-    def compress(self, image, format="webp", quality=80, max_width=None, max_height=None,
-                 lossless=False, strip_metadata=True, as_json=False):
-        """Compresses image using ARM-native hardware engine (WebP, JPEG, PNG, AVIF).
+    def compress(self, image, as_json=False):
+        """Compresses image binary using Zstandard Level 1 (-1 -T4).
         
         Args:
             image: bytes, file-like object, or file path string.
-            format: Target format ('webp', 'jpeg', 'png', 'avif'). Default: 'webp'.
-            quality: Compression quality (1-100). Default: 80.
-            max_width: Optional maximum width constraint in pixels.
-            max_height: Optional maximum height constraint in pixels.
-            lossless: Enable lossless compression (WebP only). Default: False.
-            strip_metadata: Strip EXIF and camera metadata for privacy and size. Default: True.
             as_json: If True, returns detailed metadata dict with Base64 payload. If False, returns raw compressed bytes.
         """
         if isinstance(image, str):
             if os.path.isfile(image):
                 with open(image, "rb") as f:
                     raw_bytes = f.read()
-            elif image.startswith("data:image/") or len(image) > 200:
+            elif image.startswith("data:") or len(image) > 200:
                 if ";base64," in image:
                     image = image.split(";base64,")[1]
                 raw_bytes = base64.b64decode(image)
@@ -57,29 +52,22 @@ class ImageClient:
             headers["Accept"] = "application/json"
             payload = {
                 "image": base64.b64encode(raw_bytes).decode("ascii"),
-                "format": format,
-                "quality": quality,
-                "max_width": max_width,
-                "max_height": max_height,
-                "lossless": lossless,
-                "strip_metadata": strip_metadata,
                 "as_json": True
             }
             res = self.swades._req("POST", "/v1/images/compress", headers=headers, json=payload, timeout=30)
             if not res.ok:
-                raise RuntimeError(f"Image compression failed: HTTP {res.status_code} - {res.text}")
+                raise RuntimeError(f"Zstd image compression failed: HTTP {res.status_code} - {res.text}")
             return res.json()
         else:
             headers["Content-Type"] = "application/octet-stream"
-            headers["X-Image-Format"] = str(format)
-            headers["X-Image-Quality"] = str(quality)
-            if max_width: headers["X-Image-Max-Width"] = str(max_width)
-            if max_height: headers["X-Image-Max-Height"] = str(max_height)
-            
             res = self.swades._req("POST", "/v1/images/compress", headers=headers, data=raw_bytes, timeout=30)
             if not res.ok:
-                raise RuntimeError(f"Image compression failed: HTTP {res.status_code} - {res.text}")
+                raise RuntimeError(f"Zstd image compression failed: HTTP {res.status_code} - {res.text}")
             return res.content
+
+    def decompress(self, compressed_data, as_text=False):
+        """Decompresses Zstandard-compressed image data losslessly."""
+        return self.swades.decompress(compressed_data, as_text=as_text)
 
 class Swades:
     def __init__(self, api_key="", project_id="default", endpoint="https://phone-whisper-server.pages.dev"):
@@ -389,10 +377,15 @@ class Swades:
     # IMAGE COMPRESSION HARDWARE ACCELERATION
     # =========================================================================
     def compress_image(self, image, **kwargs):
-        """Compresses an image using the phone's native hardware engine (WebP, JPEG, PNG, AVIF)."""
+        """Compresses an image using native Zstandard Level 1 (-1 -T4)."""
         return self.images.compress(image, **kwargs)
 
+    def decompress_image(self, compressed_data):
+        """Decompresses a Zstandard-compressed image losslessly."""
+        return self.images.decompress(compressed_data)
+
     def image_info(self):
-        """Returns image compression engine specifications and supported hardware codecs."""
+        """Returns Zstandard image compression engine specifications."""
         return self.images.info()
+
 

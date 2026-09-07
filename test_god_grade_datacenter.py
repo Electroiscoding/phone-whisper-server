@@ -26,7 +26,8 @@ import urllib.request
 import urllib.error
 import io
 import base64
-from PIL import Image, ImageDraw
+import zlib
+import struct
 from swades import Swades
 
 BASE_URL = os.environ.get("TARGET_HOST", "http://192.168.29.2:8080")
@@ -521,9 +522,9 @@ tel_acc_ok = (res_tel_acc["status"] == 200 and "acc" in tel_acc_data and tel_acc
 report.log("ACC", "Unified Kernel Telemetry ACC Inclusion (/telemetry)", tel_acc_ok, f"Integrated in /telemetry payload (State: {tel_acc_data.get('acc', {}).get('charging_state')})")
 
 # =============================================================================
-# 11. HARDWARE IMAGE COMPRESSION TESTS (WebP / JPEG / AVIF)
+# 11. NATIVE ZSTANDARD IMAGE COMPRESSION TESTS (Level 1 -1 -T4)
 # =============================================================================
-print(f"\n{BOLD}{CYAN}--- SECTION 11: HARDWARE IMAGE COMPRESSION ENGINE ---{RESET}")
+print(f"\n{BOLD}{CYAN}--- SECTION 11: NATIVE ZSTANDARD IMAGE COMPRESSION ENGINE ---{RESET}")
 
 # 11.1 Query Image Hardware Specifications (GET /v1/images/info)
 res_img_info = http_req("/v1/images/info")
@@ -531,70 +532,80 @@ img_info_data = res_img_info["json"] if res_img_info["json"] else {}
 img_info_ok = (
     res_img_info["status"] == 200 and
     img_info_data.get("status") == "success" and
-    "webp" in img_info_data.get("supported_formats", [])
+    img_info_data.get("compression_algorithm") == "zstd" and
+    (img_info_data.get("api_level") == 1 or img_info_data.get("level") == 1)
 )
-report.log("IMAGE", "Hardware Engine Telemetry (GET /v1/images/info)", img_info_ok, f"Engine: {img_info_data.get('engine', 'Unknown')}, Formats: {img_info_data.get('supported_formats')}")
+report.log("IMAGE", "Hardware Zstd Image Telemetry (GET /v1/images/info)", img_info_ok,
+           f"Engine: {img_info_data.get('engine', 'Unknown')}, Algorithm: {img_info_data.get('compression_algorithm')}")
 
-# Generate a synthetic test image for compression
-test_img = Image.new("RGBA", (640, 480), color=(30, 41, 59, 255))
-test_draw = ImageDraw.Draw(test_img)
-test_draw.rectangle([50, 50, 590, 430], fill=(56, 189, 248, 200), outline=(255, 255, 255, 255), width=4)
-test_buf = io.BytesIO()
-test_img.save(test_buf, format="PNG")
-raw_test_png = test_buf.getvalue()
+# Generate a synthetic test PNG image for compression using pure standard library
+def _generate_synthetic_png(w=64, h=64):
+    raw_data = bytearray()
+    for y in range(h):
+        raw_data.append(0)
+        raw_data.extend(b"\x38\xbd\xf8\xff" * w)
+    compressed = zlib.compress(bytes(raw_data))
+    png = bytearray(b"\x89PNG\r\n\x1a\n")
+    ihdr_data = struct.pack(">IIBBBBB", w, h, 8, 6, 0, 0, 0)
+    ihdr_crc = struct.pack(">I", zlib.crc32(b"IHDR" + ihdr_data) & 0xffffffff)
+    png.extend(struct.pack(">I", len(ihdr_data)) + b"IHDR" + ihdr_data + ihdr_crc)
+    idat_crc = struct.pack(">I", zlib.crc32(b"IDAT" + compressed) & 0xffffffff)
+    png.extend(struct.pack(">I", len(compressed)) + b"IDAT" + compressed + idat_crc)
+    iend_crc = struct.pack(">I", zlib.crc32(b"IEND") & 0xffffffff)
+    png.extend(struct.pack(">I", 0) + b"IEND" + iend_crc)
+    return bytes(png)
+
+raw_test_png = _generate_synthetic_png(128, 128)
 test_img_b64 = base64.b64encode(raw_test_png).decode("ascii")
 
-# 11.2 JSON Base64 WebP Compression (POST /v1/images/compress)
-res_img_webp = http_req(
+# 11.2 JSON Base64 Zstandard Image Compression (POST /v1/images/compress)
+res_img_zstd = http_req(
     "/v1/images/compress",
     method="POST",
-    data={"image": test_img_b64, "format": "webp", "quality": 80, "as_json": True},
+    data={"image": test_img_b64, "as_json": True},
     headers={"Accept": "application/json"}
 )
-img_webp_data = res_img_webp["json"] if res_img_webp["json"] else {}
-img_webp_bytes = base64.b64decode(img_webp_data.get("compressed_base64", "")) if img_webp_data.get("compressed_base64") else b""
-img_webp_ok = (
-    res_img_webp["status"] == 200 and
-    img_webp_data.get("status") == "success" and
-    img_webp_data.get("space_saved_percent", 0) > 0 and
-    img_webp_bytes[:4] == b"RIFF" and
-    img_webp_bytes[8:12] == b"WEBP"
+img_zstd_data = res_img_zstd["json"] if res_img_zstd["json"] else {}
+img_zstd_bytes = base64.b64decode(img_zstd_data.get("compressed_base64", "")) if img_zstd_data.get("compressed_base64") else b""
+img_zstd_ok = (
+    res_img_zstd["status"] == 200 and
+    img_zstd_data.get("status") == "success" and
+    img_zstd_data.get("level") == 1 and
+    img_zstd_bytes[:4] == b"\x28\xb5\x2f\xfd"
 )
-report.log("IMAGE", "JSON Base64 WebP Compression (POST /v1/images/compress)", img_webp_ok,
-           f"Saved {img_webp_data.get('space_saved_percent')}% in {img_webp_data.get('elapsed_ms')}ms (Ratio: {img_webp_data.get('compression_ratio')}x)")
+report.log("IMAGE", "JSON Base64 Zstandard Image Compression (Level 1)", img_zstd_ok,
+           f"Level 1: {len(raw_test_png)}B -> {len(img_zstd_bytes)}B in {img_zstd_data.get('elapsed_ms')}ms (Ratio: {img_zstd_data.get('compression_ratio')}x)")
 
-# 11.3 Direct Binary Octet-Stream with Proportional Resizing (POST /v1/images/compress)
+# 11.3 Direct Binary Octet-Stream Zstandard Compression (POST /v1/images/compress)
 t_b0 = time.perf_counter()
 res_img_bin = http_req(
-    "/v1/images/compress?format=jpeg&quality=85&max_width=320",
+    "/v1/images/compress",
     method="POST",
     data=raw_test_png,
     headers={"Content-Type": "application/octet-stream"}
 )
 t_bin_ms = (time.perf_counter() - t_b0) * 1000.0
 bin_content = res_img_bin.get("body", b"")
-img_bin_ok = False
-dims_str = ""
-if res_img_bin["status"] == 200 and bin_content[:2] == b"\xff\xd8":
-    try:
-        dec_img = Image.open(io.BytesIO(bin_content))
-        dims_str = f"{dec_img.size[0]}x{dec_img.size[1]}"
-        img_bin_ok = (dec_img.size[0] <= 320)
-    except Exception:
-        img_bin_ok = False
-report.log("IMAGE", "Binary Stream JPEG Encoding + Resize (<320px)", img_bin_ok,
-           f"Resized to {dims_str}, {len(bin_content)} bytes in {t_bin_ms:.1f}ms")
-
-# 11.4 Python SDK Integration (Swades.compress_image)
-sdk_client = Swades(endpoint=BASE_URL)
-sdk_img_res = sdk_client.compress_image(raw_test_png, format="webp", quality=80, as_json=True)
-sdk_img_ok = (
-    isinstance(sdk_img_res, dict) and
-    sdk_img_res.get("status") == "success" and
-    sdk_img_res.get("compressed_size", 0) > 0
+img_bin_ok = (
+    res_img_bin["status"] == 200 and
+    bin_content[:4] == b"\x28\xb5\x2f\xfd" and
+    res_img_bin.get("headers", {}).get("X-Zstd-Tier") == "api" and
+    res_img_bin.get("headers", {}).get("X-Zstd-Level") == "1"
 )
-report.log("IMAGE", "Python SDK Swades.compress_image Integration", sdk_img_ok,
-           f"SDK call passed ({sdk_img_res.get('compressed_size')} bytes in {sdk_img_res.get('elapsed_ms')}ms)")
+report.log("IMAGE", "Binary Stream Image Compression (Level 1 -1 -T4)", img_bin_ok,
+           f"Compressed {len(raw_test_png)}B -> {len(bin_content)}B in {t_bin_ms:.2f}ms (Magic: 0x28B52FFD)")
+
+# 11.4 Python SDK Integration & Bit-Exact Decompression
+sdk_client = Swades(endpoint=BASE_URL)
+sdk_compressed = sdk_client.compress_image(raw_test_png)
+sdk_decompressed = sdk_client.decompress_image(sdk_compressed)
+sdk_img_ok = (
+    isinstance(sdk_compressed, (bytes, bytearray)) and
+    sdk_compressed[:4] == b"\x28\xb5\x2f\xfd" and
+    sdk_decompressed == raw_test_png
+)
+report.log("IMAGE", "Python SDK compress_image / decompress_image Bit-Exact Roundtrip", sdk_img_ok,
+           f"SDK roundtrip 100% bit-exact ({len(sdk_compressed)}B compressed -> {len(sdk_decompressed)}B restored)")
 
 # =============================================================================
 # FINAL SUMMARY REPORT

@@ -729,12 +729,6 @@
       <input type="text" id="mainChatInput" class="chat-text-input" placeholder="Ask anything..." onkeydown="if(event.key==='Enter') submitUserPrompt();" />
       
       <div class="input-actions-right">
-        <!-- Image Compression Upload Button -->
-        <input type="file" id="chatImageInput" accept="image/*" style="display: none;" onchange="handleChatImageUpload(event)" />
-        <button class="btn-mic-input" id="chatImageBtn" onclick="document.getElementById('chatImageInput').click()" title="Hardware Image Compression (<10ms)">
-          <i class="fa-solid fa-image" style="font-size: 15px;"></i>
-        </button>
-
         <!-- Mic Button for Speech-to-Text -->
         <button class="btn-mic-input" id="micRecordBtn" onclick="toggleVoiceInput()" title="Voice-to-Text (OpenAI Whisper Base.en)">
           <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
@@ -1265,58 +1259,6 @@
         alert("Transcription error: " + e.message);
       } finally {
         input.placeholder = "Ask anything...";
-      }
-    }
-
-    async function handleChatImageUpload(event) {
-      const file = event.target.files && event.target.files[0];
-      if (!file) return;
-
-      const input = document.getElementById("mainChatInput");
-      const oldPlaceholder = input.placeholder;
-      input.placeholder = "Compressing on Phone Silicon...";
-
-      try {
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-          const rawBase64 = e.target.result;
-          const res = await fetch("/v1/images/compress", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "Accept": "application/json" },
-            body: JSON.stringify({
-              image: rawBase64,
-              format: "webp",
-              quality: 80,
-              max_width: 1200,
-              as_json: true
-            })
-          });
-          const data = await res.json();
-          if (data.status === "success") {
-            const thread = document.getElementById("messagesThread");
-            const welcome = document.getElementById("welcomeContainer");
-            if (welcome) welcome.style.display = "none";
-
-            const row = document.createElement("div");
-            row.className = "message-row user";
-            row.innerHTML = `
-              <div class="user-bubble" style="max-width: 360px; padding: 0.75rem;">
-                <div style="font-size: 0.75rem; color: #38bdf8; margin-bottom: 0.4rem; font-family: monospace;">
-                  <i class="fa-solid fa-bolt"></i> Silicon WebP Compressed: ${Math.round(data.original_size / 1024)}KB &rarr; ${Math.round(data.compressed_size / 1024)}KB (${data.space_saved_percent}% saved in ${data.elapsed_ms}ms)
-                </div>
-                <img src="${data.data_url}" style="max-width: 100%; border-radius: 8px; display: block;" />
-              </div>
-            `;
-            thread.appendChild(row);
-            thread.scrollTop = thread.scrollHeight;
-          }
-        };
-        reader.readAsDataURL(file);
-      } catch (err) {
-        alert("Image compression failed: " + err.message);
-      } finally {
-        input.placeholder = oldPlaceholder;
-        event.target.value = "";
       }
     }
 

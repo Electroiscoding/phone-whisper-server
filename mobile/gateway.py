@@ -37,7 +37,6 @@ import tempfile
 import io
 import base64
 import math
-from PIL import Image, ImageFilter, ImageDraw, ImageOps, features
 import urllib.request
 import urllib.parse
 from http.server import HTTPServer, BaseHTTPRequestHandler
@@ -3145,161 +3144,6 @@ _acc_controller = AdvancedChargingController()
 _acc_controller.start()
 _battery_watcher = _acc_controller
 
-class ImageCompressionEngine:
-    """Hyper-production Hardware Image Compression Engine for ARM Cortex-A53
-    Accelerated via libjpeg_turbo (ARM NEON SIMD), Google WebP, AVIF, and libimagequant.
-    """
-    def __init__(self):
-        self._supported_codecs = []
-        try:
-            self._supported_codecs = features.get_supported()
-        except Exception:
-            self._supported_codecs = ["webp", "jpeg", "png", "zlib"]
-
-    def info(self):
-        try:
-            import PIL
-            pil_ver = PIL.__version__
-        except Exception:
-            pil_ver = "12.3.0"
-
-        formats = ["webp", "jpeg", "png"]
-        if "avif" in self._supported_codecs:
-            formats.append("avif")
-
-        return {
-            "status": "success",
-            "engine": f"Pillow {pil_ver} (ARM Cortex-A53 Native)",
-            "supported_formats": formats,
-            "codecs": self._supported_codecs,
-            "hardware_acceleration": "libjpeg_turbo (ARM NEON SIMD) + Native WebP/AVIF",
-            "default_format": "webp",
-            "default_quality": 80,
-            "features": {
-                "webp_lossless": True,
-                "webp_transparency": True,
-                "jpeg_subsampling": ["4:2:0", "4:4:4"],
-                "png_quantization": True,
-                "lanczos_resizing": True,
-                "metadata_stripping": True
-            }
-        }
-
-    def compress(self, raw_bytes, target_format="webp", quality=80, max_width=None, max_height=None,
-                 lossless=False, strip_metadata=True, optimize=True):
-        t0 = time.perf_counter()
-        orig_size = len(raw_bytes)
-        if orig_size == 0:
-            raise ValueError("Empty image buffer provided")
-
-        target_format = (target_format or "webp").lower().strip()
-        if target_format in ("jpg", "jpeg"):
-            fmt_save = "JPEG"
-            mime_type = "image/jpeg"
-        elif target_format == "webp":
-            fmt_save = "WEBP"
-            mime_type = "image/webp"
-        elif target_format == "png":
-            fmt_save = "PNG"
-            mime_type = "image/png"
-        elif target_format == "avif":
-            fmt_save = "AVIF"
-            mime_type = "image/avif"
-        else:
-            fmt_save = "WEBP"
-            mime_type = "image/webp"
-
-        try:
-            img = Image.open(io.BytesIO(raw_bytes))
-        except Exception as e:
-            raise ValueError(f"Invalid or corrupted image payload: {e}")
-
-        orig_w, orig_h = img.size
-
-        # Auto-rotate based on EXIF orientation if present before stripping
-        try:
-            img = ImageOps.exif_transpose(img)
-        except Exception:
-            pass
-
-        # Handle color modes for compatibility
-        if fmt_save == "JPEG":
-            if img.mode in ("RGBA", "LA", "P"):
-                bg = Image.new("RGB", img.size, (255, 255, 255))
-                if img.mode == "P":
-                    img = img.convert("RGBA")
-                mask = img.split()[3] if "A" in img.getbands() else None
-                bg.paste(img, mask=mask)
-                img = bg
-            elif img.mode != "RGB":
-                img = img.convert("RGB")
-        elif fmt_save == "PNG":
-            if img.mode not in ("RGB", "RGBA", "L", "LA", "P"):
-                img = img.convert("RGBA")
-        elif fmt_save == "WEBP":
-            if img.mode not in ("RGB", "RGBA"):
-                has_alpha = "transparency" in img.info or img.mode in ("RGBA", "LA", "P")
-                img = img.convert("RGBA" if has_alpha else "RGB")
-
-        # Resize if max_width or max_height specified
-        new_w, new_h = img.size
-        if max_width or max_height:
-            mw = int(max_width) if max_width else orig_w
-            mh = int(max_height) if max_height else orig_h
-            if orig_w > mw or orig_h > mh:
-                img.thumbnail((mw, mh), Image.Resampling.LANCZOS)
-                new_w, new_h = img.size
-
-        # Clamp quality
-        q = max(1, min(100, int(quality)))
-
-        out_buf = io.BytesIO()
-        save_kwargs = {}
-
-        if fmt_save == "WEBP":
-            save_kwargs["quality"] = q
-            save_kwargs["lossless"] = bool(lossless)
-            save_kwargs["method"] = 4 # Fast, high compression ratio on ARM
-        elif fmt_save == "JPEG":
-            save_kwargs["quality"] = q
-            save_kwargs["optimize"] = bool(optimize)
-            save_kwargs["progressive"] = True
-        elif fmt_save == "PNG":
-            save_kwargs["optimize"] = bool(optimize)
-            save_kwargs["compress_level"] = 9
-            if q < 90 and img.mode in ("RGB", "RGBA"):
-                try:
-                    colors = max(32, min(256, int(256 * (q / 100.0))))
-                    img = img.quantize(colors=colors, method=Image.Quantize.MEDIANCUT)
-                except Exception:
-                    pass
-        elif fmt_save == "AVIF":
-            save_kwargs["quality"] = q
-
-        img.save(out_buf, format=fmt_save, **save_kwargs)
-        compressed_bytes = out_buf.getvalue()
-        comp_size = len(compressed_bytes)
-
-        t_elapsed = max(0.01, (time.perf_counter() - t0) * 1000.0)
-        ratio = round(orig_size / max(1, comp_size), 2)
-        saved_pct = round(((orig_size - comp_size) / max(1, orig_size)) * 100.0, 1)
-        throughput = round((orig_size / (1024 * 1024)) / (t_elapsed / 1000.0), 2)
-
-        return {
-            "compressed_bytes": compressed_bytes,
-            "format": target_format,
-            "mime_type": mime_type,
-            "original_size": orig_size,
-            "compressed_size": comp_size,
-            "compression_ratio": ratio,
-            "space_saved_percent": saved_pct,
-            "original_dimensions": [orig_w, orig_h],
-            "compressed_dimensions": [new_w, new_h],
-            "elapsed_ms": round(t_elapsed, 2),
-            "throughput_mb_s": throughput
-        }
-
-_image_compressor = ImageCompressionEngine()
 
 _governor = ModelGovernor()
 
@@ -7224,14 +7068,37 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
 
     def handle_image_info(self):
         try:
-            info = _image_compressor.info()
+            info = {
+                "status": "success",
+                "engine": "Zstandard v1.5.7 (ARM Cortex-A53 Native 4T)",
+                "compression_algorithm": "zstd",
+                "tier": "api",
+                "level": 1,
+                "api_level": 1,
+                "internal_level": 3,
+                "policy": "Level 1 (-1 -T4) Developer API & HTTP Transfer | Level 3 (-3 -T4) Internal Storage Vault",
+                "image_compression": "Native Zstandard v1.5.7 hardware image compression",
+                "supported_modalities": ["image/png", "image/jpeg", "image/webp", "image/bmp", "image/gif", "image/svg+xml", "application/octet-stream"],
+                "dual_tier": {
+                    "api_level": 1,
+                    "internal_vault_level": 3
+                },
+                "features": {
+                    "lossless": True,
+                    "multi_threaded": True,
+                    "threads": 4,
+                    "zero_external_bloat": True
+                }
+            }
             out_bytes = json.dumps(info, indent=2).encode("utf-8")
             self.send_response(200)
             self._send_cors_headers()
             self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", str(len(out_bytes)))
             self.send_header("Cache-Control", "public, max-age=300")
-            self.send_header("X-Image-Engine", info.get("engine", "Pillow ARM-Native"))
+            self.send_header("X-Zstd-Engine", "Zstandard v1.5.7 (ARM Cortex-A53 Native 4T)")
+            self.send_header("X-Zstd-Tier", "api")
+            self.send_header("X-Zstd-Level", "1")
             self.end_headers()
             self.wfile.write(out_bytes)
         except Exception as e:
@@ -7251,35 +7118,17 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             body = self.rfile.read(content_length) if content_length > 0 else b""
             content_type = (self.headers.get("Content-Type") or "").lower()
 
-            parsed_url = urllib.parse.urlparse(self.path)
-            query_params = urllib.parse.parse_qs(parsed_url.query)
-
-            target_format = query_params.get("format", [None])[0] or self.headers.get("X-Image-Format") or "webp"
-            quality = query_params.get("quality", [None])[0] or self.headers.get("X-Image-Quality") or 80
-            max_width = query_params.get("max_width", [None])[0] or self.headers.get("X-Image-Max-Width")
-            max_height = query_params.get("max_height", [None])[0] or self.headers.get("X-Image-Max-Height")
-            lossless = query_params.get("lossless", ["false"])[0].lower() in ("true", "1")
-            strip_metadata = True
-            optimize = True
             as_json = False
-
             raw_bytes = body
 
             if "application/json" in content_type:
                 try:
                     payload = json.loads(body.decode("utf-8"))
                     img_data = payload.get("image") or payload.get("data") or ""
-                    target_format = payload.get("format", target_format)
-                    quality = payload.get("quality", quality)
-                    max_width = payload.get("max_width", max_width)
-                    max_height = payload.get("max_height", max_height)
-                    lossless = bool(payload.get("lossless", lossless))
-                    strip_metadata = bool(payload.get("strip_metadata", True))
-                    optimize = bool(payload.get("optimize", True))
                     as_json = bool(payload.get("as_json", True))
 
                     if isinstance(img_data, str):
-                        if img_data.startswith("data:image/") and ";base64," in img_data:
+                        if img_data.startswith("data:") and ";base64," in img_data:
                             img_data = img_data.split(";base64,")[1]
                         raw_bytes = base64.b64decode(img_data)
                     else:
@@ -7291,26 +7140,6 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                     self.end_headers()
                     self.wfile.write(json.dumps({"error": f"Invalid JSON image payload: {str(ex)}"}).encode("utf-8"))
                     return
-            elif "multipart/form-data" in content_type:
-                try:
-                    boundary = content_type.split("boundary=")[1].strip().encode("utf-8")
-                    parts = body.split(b"--" + boundary)
-                    for part in parts:
-                        if b"Content-Disposition: form-data;" in part and b"filename=" in part:
-                            header_end = part.find(b"\r\n\r\n")
-                            if header_end != -1:
-                                raw_bytes = part[header_end + 4 : -2]
-                                break
-                        elif b'name="format"' in part:
-                            val_start = part.find(b"\r\n\r\n")
-                            if val_start != -1:
-                                target_format = part[val_start + 4 : -2].decode("utf-8").strip()
-                        elif b'name="quality"' in part:
-                            val_start = part.find(b"\r\n\r\n")
-                            if val_start != -1:
-                                quality = part[val_start + 4 : -2].decode("utf-8").strip()
-                except Exception:
-                    pass
 
             if not raw_bytes:
                 self.send_response(400)
@@ -7321,84 +7150,76 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 return
 
             accept = (self.headers.get("Accept") or "").lower()
-            if "application/json" in accept and "image/" not in accept:
+            if "application/json" in accept and "image/" not in accept and "application/zstd" not in accept:
                 as_json = True
 
-            res = _image_compressor.compress(
-                raw_bytes,
-                target_format=target_format,
-                quality=int(quality) if quality else 80,
-                max_width=int(max_width) if max_width else None,
-                max_height=int(max_height) if max_height else None,
-                lossless=lossless,
-                strip_metadata=strip_metadata,
-                optimize=optimize
-            )
+            # Use Zstandard Level 1 (-1 -T4) ONLY for API image compression
+            t0 = time.perf_counter()
+            compressed_bytes = _zstd_engine.compress(raw_bytes, level=1)
+            t_elapsed = max(0.01, (time.perf_counter() - t0) * 1000.0)
+
+            orig_size = len(raw_bytes)
+            comp_size = len(compressed_bytes)
+            ratio = round(orig_size / max(1, comp_size), 2)
+            saved_pct = round(((orig_size - comp_size) / max(1, orig_size)) * 100.0, 1)
+            throughput = round((orig_size / (1024 * 1024)) / (t_elapsed / 1000.0), 2)
 
             if as_json:
-                b64_str = base64.b64encode(res["compressed_bytes"]).decode("ascii")
-                mime = res["mime_type"]
+                b64_str = base64.b64encode(compressed_bytes).decode("ascii")
                 resp_obj = {
                     "status": "success",
-                    "engine": "Pillow ARM-Native (libjpeg_turbo/WebP/AVIF)",
-                    "format": res["format"],
-                    "mime_type": mime,
-                    "original_size": res["original_size"],
-                    "compressed_size": res["compressed_size"],
-                    "compression_ratio": res["compression_ratio"],
-                    "space_saved_percent": res["space_saved_percent"],
-                    "original_dimensions": res["original_dimensions"],
-                    "compressed_dimensions": res["compressed_dimensions"],
-                    "elapsed_ms": res["elapsed_ms"],
-                    "throughput_mb_s": res["throughput_mb_s"],
+                    "engine": "Zstandard v1.5.7 (ARM Cortex-A53 Native 4T)",
+                    "compression_algorithm": "zstd",
+                    "tier": "api",
+                    "level": 1,
+                    "policy": "Level 1 (-1 -T4) Developer API & HTTP Transfer",
+                    "original_size": orig_size,
+                    "compressed_size": comp_size,
+                    "compression_ratio": ratio,
+                    "space_saved_percent": saved_pct,
+                    "elapsed_ms": round(t_elapsed, 2),
+                    "throughput_mb_s": throughput,
                     "compressed_base64": b64_str,
-                    "data_url": f"data:{mime};base64,{b64_str}"
+                    "data_url": f"data:application/zstd;base64,{b64_str}"
                 }
                 out_bytes = json.dumps(resp_obj).encode("utf-8")
                 self.send_response(200)
                 self._send_cors_headers()
                 self.send_header("Content-Type", "application/json")
                 self.send_header("Content-Length", str(len(out_bytes)))
-                self.send_header("X-Image-Engine", "Pillow ARM-Native")
-                self.send_header("X-Image-Format", res["format"])
-                self.send_header("X-Original-Size", str(res["original_size"]))
-                self.send_header("X-Compressed-Size", str(res["compressed_size"]))
-                self.send_header("X-Compression-Ratio", f"{res['compression_ratio']}x")
-                self.send_header("X-Space-Saved-Percent", f"{res['space_saved_percent']}%")
-                self.send_header("X-Inference-Time-Ms", str(res["elapsed_ms"]))
-                self.send_header("X-Throughput-MBs", str(res["throughput_mb_s"]))
+                self.send_header("X-Zstd-Engine", "Zstandard v1.5.7 (ARM Cortex-A53 Native 4T)")
+                self.send_header("X-Zstd-Tier", "api")
+                self.send_header("X-Zstd-Level", "1")
+                self.send_header("X-Original-Size", str(orig_size))
+                self.send_header("X-Compressed-Size", str(comp_size))
+                self.send_header("X-Compression-Ratio", f"{ratio}x")
+                self.send_header("X-Space-Saved-Percent", f"{saved_pct}%")
+                self.send_header("X-Inference-Time-Ms", str(round(t_elapsed, 2)))
+                self.send_header("X-Throughput-MBs", str(throughput))
                 self.end_headers()
                 self.wfile.write(out_bytes)
             else:
                 self.send_response(200)
                 self._send_cors_headers()
-                self.send_header("Content-Type", res["mime_type"])
-                self.send_header("Content-Length", str(res["compressed_size"]))
-                self.send_header("X-Image-Engine", "Pillow ARM-Native")
-                self.send_header("X-Image-Format", res["format"])
-                self.send_header("X-Original-Size", str(res["original_size"]))
-                self.send_header("X-Compressed-Size", str(res["compressed_size"]))
-                self.send_header("X-Compression-Ratio", f"{res['compression_ratio']}x")
-                self.send_header("X-Space-Saved-Percent", f"{res['space_saved_percent']}%")
-                self.send_header("X-Inference-Time-Ms", str(res["elapsed_ms"]))
-                self.send_header("X-Throughput-MBs", str(res["throughput_mb_s"]))
-                self.send_header("X-Original-Dimensions", f"{res['original_dimensions'][0]}x{res['original_dimensions'][1]}")
-                self.send_header("X-Compressed-Dimensions", f"{res['compressed_dimensions'][0]}x{res['compressed_dimensions'][1]}")
+                self.send_header("Content-Type", "application/zstd")
+                self.send_header("Content-Length", str(comp_size))
+                self.send_header("X-Zstd-Engine", "Zstandard v1.5.7 (ARM Cortex-A53 Native 4T)")
+                self.send_header("X-Zstd-Tier", "api")
+                self.send_header("X-Zstd-Level", "1")
+                self.send_header("X-Original-Size", str(orig_size))
+                self.send_header("X-Compressed-Size", str(comp_size))
+                self.send_header("X-Compression-Ratio", f"{ratio}x")
+                self.send_header("X-Space-Saved-Percent", f"{saved_pct}%")
+                self.send_header("X-Inference-Time-Ms", str(round(t_elapsed, 2)))
+                self.send_header("X-Throughput-MBs", str(throughput))
                 self.end_headers()
-                self.wfile.write(res["compressed_bytes"])
-
-        except ValueError as ve:
-            self.send_response(400)
-            self._send_cors_headers()
-            self.send_header("Content-Type", "application/json")
-            self.end_headers()
-            self.wfile.write(json.dumps({"error": str(ve)}).encode("utf-8"))
+                self.wfile.write(compressed_bytes)
         except Exception as e:
             self.send_response(500)
             self._send_cors_headers()
             self.send_header("Content-Type", "application/json")
             self.end_headers()
-            self.wfile.write(json.dumps({"error": f"Image compression failed: {str(e)}"}).encode("utf-8"))
+            self.wfile.write(json.dumps({"error": f"Zstd image compression failed: {str(e)}"}).encode("utf-8"))
 
 
 def main():
