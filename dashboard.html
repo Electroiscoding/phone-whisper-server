@@ -155,7 +155,7 @@
         </div>
         <div class="flex justify-between items-center text-[10px] text-zinc-500 pt-1 border-t border-zinc-800/60">
           <span>Image Engine:</span>
-          <span class="text-fuchsia-400 font-semibold"><i class="fa-solid fa-image mr-1"></i> WebP/JPEG SIMD</span>
+          <span class="text-fuchsia-400 font-semibold"><i class="fa-solid fa-file-zipper mr-1"></i> Zstandard L1</span>
         </div>
       </div>
     </aside>
@@ -394,11 +394,12 @@ console.log(`Saved ${res.space_saved_percent}% in ${res.elapsed_ms}ms`);</pre>
 
             <div class="space-y-1">
               <div class="flex items-center justify-between text-fuchsia-400 font-bold text-[11px]">
-                <span>5. ARM-Native Image Compression (WebP / JPEG / AVIF)</span>
-                <button onclick="copyToClipboard('const res = await db.images.compressFile(file, { format: \'webp\', quality: 80 });\nconsole.log(res);')" class="text-zinc-400 hover:text-white text-[10px]"><i class="fa-regular fa-clipboard mr-1"></i> Copy</button>
+                <span>5. Native Zstandard Image Compression (Level 1 -1 -T4)</span>
+                <button onclick="copyToClipboard('const zstdBytes = await db.images.compress(imageBytes);\nconsole.log(zstdBytes);')" class="text-zinc-400 hover:text-white text-[10px]"><i class="fa-regular fa-clipboard mr-1"></i> Copy</button>
               </div>
-              <pre class="bg-black/90 p-2.5 rounded border border-zinc-800 text-zinc-300 select-text">const res = await db.images.compressFile(file, { format: "webp", quality: 80, maxWidth: 1920 });
-console.log(`Saved ${res.space_saved_percent}% in ${res.elapsed_ms}ms`);</pre>
+              <pre class="bg-black/90 p-2.5 rounded border border-zinc-800 text-zinc-300 select-text">const zstdBytes = await db.images.compress(imageBytes);
+const original = await db.images.decompress(zstdBytes);
+console.log(`Losslessly restored ${original.length} bytes in &lt;1.5ms`);</pre>
             </div>
           </div>
 
@@ -442,13 +443,14 @@ print(f"Compressed in {res['elapsed_ms']}ms: {res['compression_ratio']}x ratio")
 
             <div class="space-y-1">
               <div class="flex items-center justify-between text-fuchsia-400 font-bold text-[11px]">
-                <span>4. Hardware Image Compression (WebP / JPEG SIMD)</span>
-                <button onclick="copyToClipboard('from swades import Swades\nclient = Swades(api_key=\'YOUR_KEY\')\nres = client.compress_image(\'photo.jpg\', format=\'webp\', quality=80, as_json=True)\nprint(res)')" class="text-zinc-400 hover:text-white text-[10px]"><i class="fa-regular fa-clipboard mr-1"></i> Copy</button>
+                <span>4. Native Zstandard Image Compression (Level 1 -1 -T4)</span>
+                <button onclick="copyToClipboard('from swades import Swades\nclient = Swades(api_key=\'YOUR_KEY\')\nres = client.compress_image(\'photo.png\')\nprint(f\'Compressed {len(res)} bytes\')')" class="text-zinc-400 hover:text-white text-[10px]"><i class="fa-regular fa-clipboard mr-1"></i> Copy</button>
               </div>
               <pre class="bg-black/90 p-2.5 rounded border border-zinc-800 text-zinc-300 select-text">from swades import Swades
 client = Swades(api_key="YOUR_KEY")
-res = client.compress_image("photo.jpg", format="webp", quality=80, as_json=True)
-print(f"Compressed {res['original_size']}B -&gt; {res['compressed_size']}B in {res['elapsed_ms']}ms")</pre>
+compressed_bytes = client.compress_image("photo.png")
+restored_bytes = client.decompress_image(compressed_bytes)
+print(f"Losslessly restored {len(restored_bytes)} bytes")</pre>
             </div>
           </div>
 

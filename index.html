@@ -2561,26 +2561,26 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
             </div>
             <div class="feature-tags-row" style="margin: 0;">
               <span class="feature-tag"><i class="fa-solid fa-bolt mr-1 text-amber-400"></i> ARM Cortex-A53 Native</span>
-              <span class="feature-tag"><i class="fa-solid fa-image mr-1 text-fuchsia-400"></i> WebP / AVIF / JPEG SIMD</span>
-              <span class="feature-tag"><i class="fa-solid fa-gauge-high mr-1 text-cyan-400"></i> &lt;10ms Inference</span>
-              <span class="feature-tag"><i class="fa-solid fa-shield-halved mr-1 text-purple-400"></i> Metadata Stripping</span>
+              <span class="feature-tag"><i class="fa-solid fa-file-zipper mr-1 text-fuchsia-400"></i> Zstandard v1.5.7 L1</span>
+              <span class="feature-tag"><i class="fa-solid fa-gauge-high mr-1 text-cyan-400"></i> &lt;1.5ms Inference</span>
+              <span class="feature-tag"><i class="fa-solid fa-shield-halved mr-1 text-emerald-400"></i> 100% Bit-Exact Lossless</span>
             </div>
           </div>
           <div class="endpoint-body">
             <div style="background: rgba(192, 132, 252, 0.08); border-left: 3px solid #c084fc; padding: 0.75rem 1rem; border-radius: 0 8px 8px 0; margin-bottom: 1rem;">
-              <strong style="color: #c084fc;"><i class="fa-solid fa-lightbulb mr-1 text-amber-400"></i> Newbie 101: What is this?</strong>
+              <strong style="color: #c084fc;"><i class="fa-solid fa-lightbulb mr-1 text-amber-400"></i> Native Zstandard Image Compression</strong>
               <p style="margin: 0.25rem 0 0; font-size: 0.88rem; color: var(--text-muted); line-height: 1.4;">
-                Hardware-accelerated image compression and modern format conversion directly on phone silicon. Converts heavy JPEG and PNG assets into high-efficiency <strong>Google WebP</strong> (saving 60%–90% bandwidth) or accelerates baseline JPEG via <strong>libjpeg_turbo ARM NEON SIMD</strong>. Supports resizing, quality scaling, and automated EXIF stripping for user privacy.
+                Native Zstandard (zstd v1.5.7) hardware image compression running directly on physical phone ARM Cortex-A53 silicon. Compresses PNG, JPEG, WebP, SVG, and raw bitmap image payloads using <strong>Level 1 (-1 -T4)</strong> in sub-millisecond execution. Zero external conversion bloat, zero transcoding degradation, and 100% bit-exact lossless recovery.
               </p>
             </div>
 
             <h4 style="font-size: 0.82rem; text-transform: uppercase; color: var(--text-subtle); letter-spacing: 0.05em; margin-bottom: 0.4rem;">Image Compression Endpoints</h4>
             <div style="overflow-x: auto;">
               <table style="width: 100%; font-size: 0.85rem;">
-                <thead><tr><th>Method</th><th>Endpoint</th><th>Supported Formats</th><th>Description</th></tr></thead>
+                <thead><tr><th>Method</th><th>Endpoint</th><th>Compression Tier</th><th>Description</th></tr></thead>
                 <tbody>
-                  <tr><td><code>POST</code></td><td><code>/v1/images/compress</code></td><td><strong style="color: #c084fc;">WebP, JPEG, PNG, AVIF</strong></td><td>Compresses binary stream or Base64 image with quality &amp; resize controls (&lt;10ms).</td></tr>
-                  <tr><td><code>GET</code></td><td><code>/v1/images/info</code></td><td><strong style="color: #34d399;">Public Telemetry</strong></td><td>Returns Zstandard v1.5.7 engine specifications, dual-tier allocation, and image binary compression policies.</td></tr>
+                  <tr><td><code>POST</code></td><td><code>/v1/images/compress</code></td><td><strong style="color: #c084fc;">Zstandard Level 1 (-1 -T4)</strong></td><td>Compresses binary stream or Base64 image payload losslessly (&lt;1.5ms).</td></tr>
+                  <tr><td><code>GET</code></td><td><code>/v1/images/info</code></td><td><strong style="color: #34d399;">Public Telemetry</strong></td><td>Returns Zstandard v1.5.7 engine specs, dual-tier allocation, and image compression policy.</td></tr>
                 </tbody>
               </table>
             </div>
@@ -2593,43 +2593,42 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
                 <button class="docs-tab" onclick="switchSnippetTab(this, 'snip-img-js')">JavaScript</button>
               </div>
               <div id="snip-img-curl" class="snippet-pane active">
-                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code># Compress image to WebP with 80% quality and resize:
+                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code># 1. Direct binary image compression via Zstandard Level 1 (-1 -T4):
+curl -X POST "https://phone-whisper-server.pages.dev/v1/images/compress" \
+  -H "Content-Type: application/octet-stream" \
+  --data-binary "@photo.png" \
+  -o "photo.png.zst"
+
+# 2. JSON Base64 image compression:
 curl -X POST "https://phone-whisper-server.pages.dev/v1/images/compress" \
   -H "Content-Type: application/json" \
   -H "Accept: application/json" \
-  -d '{"image": "data:image/png;base64,iVBORw0KGgo...", "format": "webp", "quality": 80, "max_width": 1920}'
-
-# Direct binary streaming optimization:
-curl -X POST "https://phone-whisper-server.pages.dev/v1/images/compress?format=webp&amp;quality=80" \
-  --data-binary "@photo.jpg" \
-  -o "optimized.webp"</code></pre>
+  -d '{"image": "iVBORw0KGgoAAAANSUhEUgAA...", "as_json": true}'</code></pre>
               </div>
               <div id="snip-img-py" class="snippet-pane">
                 <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>from swades import Swades
 
 client = Swades()
-# 1-line image compression (returns dict with compressed_base64 &amp; metrics):
-res = client.compress_image("photo.jpg", format="webp", quality=80, max_width=1920, as_json=True)
-print(f"Compressed {res['original_size']}B -&gt; {res['compressed_size']}B ({res['space_saved_percent']}% saved in {res['elapsed_ms']}ms)")
 
-# Or get raw compressed bytes directly:
-webp_bytes = client.compress_image("photo.png", format="webp", quality=85)
-with open("optimized.webp", "wb") as f:
-    f.write(webp_bytes)</code></pre>
+# 1-line Zstandard image compression (returns compressed .zst bytes):
+compressed_bytes = client.compress_image("photo.png")
+with open("photo.png.zst", "wb") as f:
+    f.write(compressed_bytes)
+
+# Lossless decompression (bit-exact recovery):
+restored_bytes = client.decompress_image(compressed_bytes)</code></pre>
               </div>
               <div id="snip-img-js" class="snippet-pane">
                 <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>import { Swades } from './swades.js';
 
 const client = Swades.init();
 
-// Compress DOM File directly in browser:
-const res = await client.images.compressFile(fileInput.files[0], {
-  format: 'webp',
-  quality: 80,
-  maxWidth: 1920
-});
-console.log(`Saved ${res.space_saved_percent}% in ${res.elapsed_ms}ms`);
-imgPreview.src = res.data_url;</code></pre>
+// Compress image binary losslessly via Level 1 (-1 -T4):
+const zstdBytes = await client.images.compress(imageUint8Array);
+
+// Restore original image bytes:
+const originalBytes = await client.images.decompress(zstdBytes);
+console.log(`Restored ${originalBytes.length} bytes losslessly`);</code></pre>
               </div>
             </div>
           </div>
