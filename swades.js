@@ -413,6 +413,156 @@ class SwadesClient {
     }
   };
 
+  // --- ADVANCED CHARGING CONTROLLER (ACC) ---
+  acc = {
+    // Returns live ACC battery telemetry, active thresholds, switch status, and thermal guard state
+    info: async () => {
+      const res = await fetch(`${this.endpoint}/v1/acc/info`, {
+        headers: { 'x-api-key': this.apiKey, 'x-project-id': this.projectId }
+      });
+      if (!res.ok) {
+        const err = await res.text();
+        throw new Error(`ACC info failed (HTTP ${res.status}): ${err}`);
+      }
+      return await res.json();
+    },
+
+    // Configures thresholds or triggers actions (pause, resume, reset)
+    control: async (options = {}) => {
+      const payload = {};
+      if (options.pause !== undefined) payload.pause_capacity = options.pause;
+      if (options.pause_capacity !== undefined) payload.pause_capacity = options.pause_capacity;
+      if (options.resume !== undefined) payload.resume_capacity = options.resume;
+      if (options.resume_capacity !== undefined) payload.resume_capacity = options.resume_capacity;
+      if (options.maxTemp !== undefined) payload.max_temp_c = options.maxTemp;
+      if (options.max_temp_c !== undefined) payload.max_temp_c = options.max_temp_c;
+      if (options.action !== undefined) payload.action = options.action;
+      if (options.enabled !== undefined) payload.enabled = options.enabled;
+
+      const res = await fetch(`${this.endpoint}/v1/acc/control`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': this.apiKey,
+          'x-project-id': this.projectId
+        },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) {
+        const err = await res.text();
+        throw new Error(`ACC control failed (HTTP ${res.status}): ${err}`);
+      }
+      return await res.json();
+    },
+
+    pause: async () => {
+      return this.acc.control({ action: 'pause' });
+    },
+
+    resume: async () => {
+      return this.acc.control({ action: 'resume' });
+    },
+
+    reset: async () => {
+      return this.acc.control({ action: 'reset' });
+    }
+  };
+
+  // --- HARDWARE IMAGE COMPRESSION (WebP, JPEG, PNG, AVIF) ---
+  images = {
+    // Compress image using phone hardware engine
+    compress: async (imageData, options = {}) => {
+      const format = options.format || 'webp';
+      const quality = options.quality !== undefined ? options.quality : 80;
+      const maxWidth = options.maxWidth || options.max_width;
+      const maxHeight = options.maxHeight || options.max_height;
+      const lossless = !!options.lossless;
+      const asJson = options.asJson !== false;
+
+      const headers = {
+        'x-api-key': this.apiKey,
+        'x-project-id': this.projectId
+      };
+
+      if (typeof imageData === 'string') {
+        headers['Content-Type'] = 'application/json';
+        headers['Accept'] = 'application/json';
+        const payload = {
+          image: imageData,
+          format,
+          quality,
+          max_width: maxWidth,
+          max_height: maxHeight,
+          lossless,
+          as_json: asJson
+        };
+        const res = await fetch(`${this.endpoint}/v1/images/compress`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) {
+          const err = await res.text();
+          throw new Error(`Image compression failed (HTTP ${res.status}): ${err}`);
+        }
+        return await res.json();
+      } else {
+        if (asJson) {
+          let binary = '';
+          const bytes = imageData instanceof Uint8Array ? imageData : new Uint8Array(imageData);
+          const len = bytes.byteLength;
+          for (let i = 0; i < len; i++) {
+            binary += String.fromCharCode(bytes[i]);
+          }
+          const b64 = typeof btoa === 'function' ? btoa(binary) : (typeof Buffer !== 'undefined' ? Buffer.from(bytes).toString('base64') : '');
+          return this.images.compress(b64, options);
+        } else {
+          headers['Content-Type'] = 'application/octet-stream';
+          headers['X-Image-Format'] = format;
+          headers['X-Image-Quality'] = String(quality);
+          if (maxWidth) headers['X-Image-Max-Width'] = String(maxWidth);
+          if (maxHeight) headers['X-Image-Max-Height'] = String(maxHeight);
+
+          const bodyBytes = imageData instanceof Uint8Array ? imageData : new Uint8Array(imageData);
+          const res = await fetch(`${this.endpoint}/v1/images/compress`, {
+            method: 'POST',
+            headers,
+            body: bodyBytes
+          });
+          if (!res.ok) {
+            const err = await res.text();
+            throw new Error(`Image compression failed (HTTP ${res.status}): ${err}`);
+          }
+          const arrayBuf = await res.arrayBuffer();
+          return new Uint8Array(arrayBuf);
+        }
+      }
+    },
+
+    // Helper to compress a DOM File or Blob directly
+    compressFile: async (file, options = {}) => {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = async () => {
+          try {
+            const res = await this.images.compress(reader.result, options);
+            resolve(res);
+          } catch (e) {
+            reject(e);
+          }
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    },
+
+    // Returns image compression engine specifications and supported hardware codecs
+    info: async () => {
+      const res = await fetch(`${this.endpoint}/v1/images/info`);
+      return await res.json();
+    }
+  };
+
   // Top-level convenience helpers
   async speak(text, options) {
     return this.tts.speak(text, options);
@@ -431,6 +581,27 @@ class SwadesClient {
   }
   async zstdInfo() {
     return this.zstd.info();
+  }
+  async accInfo() {
+    return this.acc.info();
+  }
+  async accControl(options) {
+    return this.acc.control(options);
+  }
+  async accPause() {
+    return this.acc.pause();
+  }
+  async accResume() {
+    return this.acc.resume();
+  }
+  async accReset() {
+    return this.acc.reset();
+  }
+  async compressImage(imageData, options) {
+    return this.images.compress(imageData, options);
+  }
+  async imageInfo() {
+    return this.images.info();
   }
 }
 

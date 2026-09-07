@@ -24,6 +24,10 @@ import json
 import secrets
 import urllib.request
 import urllib.error
+import io
+import base64
+from PIL import Image, ImageDraw
+from swades import Swades
 
 BASE_URL = os.environ.get("TARGET_HOST", "http://192.168.29.2:8080")
 
@@ -68,9 +72,12 @@ def http_req(path: str, method: str = "GET", data: dict = None, raw_body: bytes 
     body_bytes = None
     if raw_body is not None:
         body_bytes = raw_body
+    elif isinstance(data, (bytes, bytearray)):
+        body_bytes = bytes(data)
     elif data is not None:
         body_bytes = json.dumps(data).encode("utf-8")
-        req_headers["Content-Type"] = "application/json"
+        if "Content-Type" not in req_headers:
+            req_headers["Content-Type"] = "application/json"
 
     t0 = time.perf_counter()
     req = urllib.request.Request(url, data=body_bytes, headers=req_headers, method=method)
@@ -480,6 +487,114 @@ res_vault_put = http_req("/v1/storage/objects/vault_zstd_test.log", method="PUT"
 res_vault_get = http_req("/v1/storage/objects/vault_zstd_test.log", method="GET", headers=auth_headers_alpha)
 vault_ok = (res_vault_put["status"] == 201 and res_vault_get["status"] == 200 and res_vault_get["body"] == vault_payload)
 report.log("Zstandard", "Sovereign Storage Vault Level 3 (-3 -T4) Persistence", vault_ok, f"Lossless Vault Recovery: {len(res_vault_get['body'])}B")
+
+# =============================================================================
+# SECTION 10: ADVANCED CHARGING CONTROLLER (ACC) BATTERY PRESERVATION
+# =============================================================================
+print(f"\n{BOLD}[10. ADVANCED CHARGING CONTROLLER (ACC) BATTERY PRESERVATION]{RESET}")
+
+# 10.1 Live ACC Telemetry & Thresholds (/v1/acc/info)
+t_start = time.perf_counter()
+res_acc_info = http_req("/v1/acc/info")
+acc_latency = (time.perf_counter() - t_start) * 1000.0
+acc_data = res_acc_info["json"] if res_acc_info["json"] else {}
+acc_info_ok = (res_acc_info["status"] == 200 and "Advanced Charging Controller" in acc_data.get("engine", "") and acc_data.get("enabled") is True)
+report.record_bench("ACC Telemetry Query Latency", acc_latency)
+report.log("ACC", "Live ACC Telemetry & Policy Query (/v1/acc/info)", acc_info_ok, f"Level: {acc_data.get('battery', {}).get('level')}% Temp: {acc_data.get('battery', {}).get('temperature_c')}C State: {acc_data.get('charging_state')}")
+
+# 10.2 Dynamic Threshold Tuning (POST /v1/acc/control)
+res_acc_ctrl = http_req("/v1/acc/control", method="POST", data={"pause_capacity": 85, "resume_capacity": 75, "max_temp_c": 39.5})
+acc_ctrl_data = res_acc_ctrl["json"] if res_acc_ctrl["json"] else {}
+acc_ctrl_ok = (res_acc_ctrl["status"] == 200 and acc_ctrl_data.get("thresholds", {}).get("pause_capacity") == 85)
+report.log("ACC", "Dynamic Threshold Tuning (POST /v1/acc/control)", acc_ctrl_ok, f"Pause: {acc_ctrl_data.get('thresholds', {}).get('pause_capacity')}% Resume: {acc_ctrl_data.get('thresholds', {}).get('resume_capacity')}%")
+
+# 10.3 Reset to Sovereign Datacenter Profile (POST /v1/acc/control action=reset)
+res_acc_reset = http_req("/v1/acc/control", method="POST", data={"action": "reset"})
+acc_reset_data = res_acc_reset["json"] if res_acc_reset["json"] else {}
+acc_reset_ok = (res_acc_reset["status"] == 200 and acc_reset_data.get("thresholds", {}).get("pause_capacity") == 80 and acc_reset_data.get("thresholds", {}).get("resume_capacity") == 70)
+report.log("ACC", "Reset to Datacenter Defaults (80/70/40C Profile)", acc_reset_ok, f"Restored 80% Pause / 70% Resume / 40.0C Thermal Guard")
+
+# 10.4 Unified Hardware Telemetry ACC Integration (GET /telemetry)
+res_tel_acc = http_req("/telemetry")
+tel_acc_data = res_tel_acc["json"] if res_tel_acc["json"] else {}
+tel_acc_ok = (res_tel_acc["status"] == 200 and "acc" in tel_acc_data and tel_acc_data["acc"].get("enabled") is True)
+report.log("ACC", "Unified Kernel Telemetry ACC Inclusion (/telemetry)", tel_acc_ok, f"Integrated in /telemetry payload (State: {tel_acc_data.get('acc', {}).get('charging_state')})")
+
+# =============================================================================
+# 11. HARDWARE IMAGE COMPRESSION TESTS (WebP / JPEG / AVIF)
+# =============================================================================
+print(f"\n{BOLD}{CYAN}--- SECTION 11: HARDWARE IMAGE COMPRESSION ENGINE ---{RESET}")
+
+# 11.1 Query Image Hardware Specifications (GET /v1/images/info)
+res_img_info = http_req("/v1/images/info")
+img_info_data = res_img_info["json"] if res_img_info["json"] else {}
+img_info_ok = (
+    res_img_info["status"] == 200 and
+    img_info_data.get("status") == "success" and
+    "webp" in img_info_data.get("supported_formats", [])
+)
+report.log("IMAGE", "Hardware Engine Telemetry (GET /v1/images/info)", img_info_ok, f"Engine: {img_info_data.get('engine', 'Unknown')}, Formats: {img_info_data.get('supported_formats')}")
+
+# Generate a synthetic test image for compression
+test_img = Image.new("RGBA", (640, 480), color=(30, 41, 59, 255))
+test_draw = ImageDraw.Draw(test_img)
+test_draw.rectangle([50, 50, 590, 430], fill=(56, 189, 248, 200), outline=(255, 255, 255, 255), width=4)
+test_buf = io.BytesIO()
+test_img.save(test_buf, format="PNG")
+raw_test_png = test_buf.getvalue()
+test_img_b64 = base64.b64encode(raw_test_png).decode("ascii")
+
+# 11.2 JSON Base64 WebP Compression (POST /v1/images/compress)
+res_img_webp = http_req(
+    "/v1/images/compress",
+    method="POST",
+    data={"image": test_img_b64, "format": "webp", "quality": 80, "as_json": True},
+    headers={"Accept": "application/json"}
+)
+img_webp_data = res_img_webp["json"] if res_img_webp["json"] else {}
+img_webp_bytes = base64.b64decode(img_webp_data.get("compressed_base64", "")) if img_webp_data.get("compressed_base64") else b""
+img_webp_ok = (
+    res_img_webp["status"] == 200 and
+    img_webp_data.get("status") == "success" and
+    img_webp_data.get("space_saved_percent", 0) > 0 and
+    img_webp_bytes[:4] == b"RIFF" and
+    img_webp_bytes[8:12] == b"WEBP"
+)
+report.log("IMAGE", "JSON Base64 WebP Compression (POST /v1/images/compress)", img_webp_ok,
+           f"Saved {img_webp_data.get('space_saved_percent')}% in {img_webp_data.get('elapsed_ms')}ms (Ratio: {img_webp_data.get('compression_ratio')}x)")
+
+# 11.3 Direct Binary Octet-Stream with Proportional Resizing (POST /v1/images/compress)
+t_b0 = time.perf_counter()
+res_img_bin = http_req(
+    "/v1/images/compress?format=jpeg&quality=85&max_width=320",
+    method="POST",
+    data=raw_test_png,
+    headers={"Content-Type": "application/octet-stream"}
+)
+t_bin_ms = (time.perf_counter() - t_b0) * 1000.0
+bin_content = res_img_bin.get("body", b"")
+img_bin_ok = False
+dims_str = ""
+if res_img_bin["status"] == 200 and bin_content[:2] == b"\xff\xd8":
+    try:
+        dec_img = Image.open(io.BytesIO(bin_content))
+        dims_str = f"{dec_img.size[0]}x{dec_img.size[1]}"
+        img_bin_ok = (dec_img.size[0] <= 320)
+    except Exception:
+        img_bin_ok = False
+report.log("IMAGE", "Binary Stream JPEG Encoding + Resize (<320px)", img_bin_ok,
+           f"Resized to {dims_str}, {len(bin_content)} bytes in {t_bin_ms:.1f}ms")
+
+# 11.4 Python SDK Integration (Swades.compress_image)
+sdk_client = Swades(endpoint=BASE_URL)
+sdk_img_res = sdk_client.compress_image(raw_test_png, format="webp", quality=80, as_json=True)
+sdk_img_ok = (
+    isinstance(sdk_img_res, dict) and
+    sdk_img_res.get("status") == "success" and
+    sdk_img_res.get("compressed_size", 0) > 0
+)
+report.log("IMAGE", "Python SDK Swades.compress_image Integration", sdk_img_ok,
+           f"SDK call passed ({sdk_img_res.get('compressed_size')} bytes in {sdk_img_res.get('elapsed_ms')}ms)")
 
 # =============================================================================
 # FINAL SUMMARY REPORT

@@ -10,6 +10,77 @@ import hashlib
 import base64
 import urllib.parse
 
+class ImageClient:
+    """Hardware-accelerated Image Compression Client (WebP, JPEG, PNG, AVIF)"""
+    def __init__(self, swades):
+        self.swades = swades
+
+    def info(self):
+        """Returns image compression engine specifications and supported hardware codecs"""
+        res = self.swades._req("GET", "/v1/images/info", timeout=10)
+        return res.json()
+
+    def compress(self, image, format="webp", quality=80, max_width=None, max_height=None,
+                 lossless=False, strip_metadata=True, as_json=False):
+        """Compresses image using ARM-native hardware engine (WebP, JPEG, PNG, AVIF).
+        
+        Args:
+            image: bytes, file-like object, or file path string.
+            format: Target format ('webp', 'jpeg', 'png', 'avif'). Default: 'webp'.
+            quality: Compression quality (1-100). Default: 80.
+            max_width: Optional maximum width constraint in pixels.
+            max_height: Optional maximum height constraint in pixels.
+            lossless: Enable lossless compression (WebP only). Default: False.
+            strip_metadata: Strip EXIF and camera metadata for privacy and size. Default: True.
+            as_json: If True, returns detailed metadata dict with Base64 payload. If False, returns raw compressed bytes.
+        """
+        if isinstance(image, str):
+            if os.path.isfile(image):
+                with open(image, "rb") as f:
+                    raw_bytes = f.read()
+            elif image.startswith("data:image/") or len(image) > 200:
+                if ";base64," in image:
+                    image = image.split(";base64,")[1]
+                raw_bytes = base64.b64decode(image)
+            else:
+                raise ValueError(f"File not found: {image}")
+        elif hasattr(image, "read"):
+            raw_bytes = image.read()
+        elif isinstance(image, (bytes, bytearray)):
+            raw_bytes = bytes(image)
+        else:
+            raise TypeError("image must be bytes, a file path, or a file-like object")
+
+        headers = {}
+        if as_json:
+            headers["Content-Type"] = "application/json"
+            headers["Accept"] = "application/json"
+            payload = {
+                "image": base64.b64encode(raw_bytes).decode("ascii"),
+                "format": format,
+                "quality": quality,
+                "max_width": max_width,
+                "max_height": max_height,
+                "lossless": lossless,
+                "strip_metadata": strip_metadata,
+                "as_json": True
+            }
+            res = self.swades._req("POST", "/v1/images/compress", headers=headers, json=payload, timeout=30)
+            if not res.ok:
+                raise RuntimeError(f"Image compression failed: HTTP {res.status_code} - {res.text}")
+            return res.json()
+        else:
+            headers["Content-Type"] = "application/octet-stream"
+            headers["X-Image-Format"] = str(format)
+            headers["X-Image-Quality"] = str(quality)
+            if max_width: headers["X-Image-Max-Width"] = str(max_width)
+            if max_height: headers["X-Image-Max-Height"] = str(max_height)
+            
+            res = self.swades._req("POST", "/v1/images/compress", headers=headers, data=raw_bytes, timeout=30)
+            if not res.ok:
+                raise RuntimeError(f"Image compression failed: HTTP {res.status_code} - {res.text}")
+            return res.content
+
 class Swades:
     def __init__(self, api_key="", project_id="default", endpoint="https://phone-whisper-server.pages.dev"):
         self.endpoint = endpoint.rstrip("/")
@@ -20,6 +91,7 @@ class Swades:
             "x-project-id": self.project_id,
             "Content-Type": "application/json"
         }
+        self.images = ImageClient(self)
         self._tts_cache = {}
         self._cache_dir = os.path.expanduser("~/.swades/tts_cache")
         try:
@@ -274,3 +346,53 @@ class Swades:
         """Returns Zstandard v1.5.7 engine telemetry, hardware architecture, and dual-tier specifications"""
         res = self._req("GET", "/v1/zstd/info", timeout=10)
         return res.json()
+
+    # =========================================================================
+    # ADVANCED CHARGING CONTROLLER (ACC) HARDWARE BATTERY ENGINE
+    # =========================================================================
+    def acc_info(self):
+        """Returns live ACC battery telemetry, active thresholds, switch status, and thermal guard state."""
+        res = self._req("GET", "/v1/acc/info", timeout=10)
+        if not res.ok:
+            raise RuntimeError(f"ACC info request failed: HTTP {res.status_code} - {res.text}")
+        return res.json()
+
+    def acc_control(self, pause: int = None, resume: int = None, max_temp: float = None, cooldown_temp: float = None, enabled: bool = None, action: str = None):
+        """Configures Advanced Charging Controller thresholds, manual pause/resume, or resets to default."""
+        payload = {}
+        if pause is not None: payload["pause_capacity"] = int(pause)
+        if resume is not None: payload["resume_capacity"] = int(resume)
+        if max_temp is not None: payload["max_temp_c"] = float(max_temp)
+        if cooldown_temp is not None: payload["cooldown_temp_c"] = float(cooldown_temp)
+        if enabled is not None: payload["enabled"] = bool(enabled)
+        if action is not None: payload["action"] = str(action)
+
+        headers = {"Content-Type": "application/json"}
+        res = self._req("POST", "/v1/acc/control", headers=headers, json=payload, timeout=10)
+        if not res.ok:
+            raise RuntimeError(f"ACC control request failed: HTTP {res.status_code} - {res.text}")
+        return res.json()
+
+    def acc_pause(self):
+        """Manually pauses charging circuit to protect battery cells."""
+        return self.acc_control(action="pause")
+
+    def acc_resume(self):
+        """Manually resumes physical charging circuit."""
+        return self.acc_control(action="resume")
+
+    def acc_reset(self):
+        """Resets ACC controller to default sovereign datacenter profile (80% pause, 70% resume, 40°C thermal cutoff)."""
+        return self.acc_control(action="reset")
+
+    # =========================================================================
+    # IMAGE COMPRESSION HARDWARE ACCELERATION
+    # =========================================================================
+    def compress_image(self, image, **kwargs):
+        """Compresses an image using the phone's native hardware engine (WebP, JPEG, PNG, AVIF)."""
+        return self.images.compress(image, **kwargs)
+
+    def image_info(self):
+        """Returns image compression engine specifications and supported hardware codecs."""
+        return self.images.info()
+

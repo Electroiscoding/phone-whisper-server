@@ -116,7 +116,7 @@ export default {
 
     // Determine if this is an API route or static asset
     const apiPrefixes = ["/v1/", "/auth/", "/s/"];
-    const apiExactPaths = ["/inference", "/telemetry", "/tts", "/speech", "/health", "/models", "/backends", "/register_tunnel", "/benchmark", "/compress", "/decompress"];
+    const apiExactPaths = ["/inference", "/telemetry", "/tts", "/speech", "/health", "/models", "/backends", "/register_tunnel", "/benchmark", "/compress", "/decompress", "/acc", "/acc/info", "/acc/status", "/acc/control", "/images/compress", "/image/compress", "/images/info", "/image/info"];
     const isApi = apiPrefixes.some(prefix => url.pathname.startsWith(prefix)) || apiExactPaths.includes(url.pathname);
 
     // If it's a static frontend request, serve through Cloudflare Pages static assets
