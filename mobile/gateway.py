@@ -7130,6 +7130,10 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                     if isinstance(img_data, str):
                         if img_data.startswith("data:") and ";base64," in img_data:
                             img_data = img_data.split(";base64,")[1]
+                        img_data = img_data.strip()
+                        missing_padding = len(img_data) % 4
+                        if missing_padding:
+                            img_data += "=" * (4 - missing_padding)
                         raw_bytes = base64.b64decode(img_data)
                     else:
                         raw_bytes = bytes(img_data)
@@ -7190,6 +7194,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 self.send_header("X-Zstd-Engine", "Zstandard v1.5.7 (ARM Cortex-A53 Native 4T)")
                 self.send_header("X-Zstd-Tier", "api")
                 self.send_header("X-Zstd-Level", "1")
+                self.send_header("X-Zstd-Policy", "Level 1 (-1 -T4) Developer API & HTTP Transfer")
+                self.send_header("X-Storage-Persistence", "none-ephemeral-in-memory")
                 self.send_header("X-Original-Size", str(orig_size))
                 self.send_header("X-Compressed-Size", str(comp_size))
                 self.send_header("X-Compression-Ratio", f"{ratio}x")
@@ -7206,6 +7212,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 self.send_header("X-Zstd-Engine", "Zstandard v1.5.7 (ARM Cortex-A53 Native 4T)")
                 self.send_header("X-Zstd-Tier", "api")
                 self.send_header("X-Zstd-Level", "1")
+                self.send_header("X-Zstd-Policy", "Level 1 (-1 -T4) Developer API & HTTP Transfer")
+                self.send_header("X-Storage-Persistence", "none-ephemeral-in-memory")
                 self.send_header("X-Original-Size", str(orig_size))
                 self.send_header("X-Compressed-Size", str(comp_size))
                 self.send_header("X-Compression-Ratio", f"{ratio}x")
