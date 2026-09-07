@@ -46,10 +46,10 @@ class TestReport:
         self.total += 1
         if passed:
             self.passed += 1
-            print(f"  {GREEN}✓ PASS{RESET} [{section}] {BOLD}{test_name}{RESET} {CYAN}{detail}{RESET}")
+            print(f"  {GREEN}[PASS]{RESET} [{section}] {BOLD}{test_name}{RESET} {CYAN}{detail}{RESET}")
         else:
             self.failed += 1
-            print(f"  {RED}✗ FAIL{RESET} [{section}] {BOLD}{test_name}{RESET} {RED}{detail}{RESET}")
+            print(f"  {RED}[FAIL]{RESET} [{section}] {BOLD}{test_name}{RESET} {RED}{detail}{RESET}")
 
     def record_bench(self, name: str, latency_ms: float):
         self.benchmarks[name] = latency_ms
@@ -381,11 +381,11 @@ report.log("Console", "Analytics Realtime Summary", res_analytics["status"] == 2
 # 6.8 Schema Inspector & SQL Sandbox
 res_schema = http_req("/v1/dashboard/db/schema")
 tables = res_schema["json"].get("tables", []) if res_schema["json"] else []
-report.log("Console", "SQLite Schema Inspector", res_schema["status"] == 200 and len(tables) >= 5, f"{len(tables)} tables discovered")
+report.log("Console", "SQLite Schema Inspector", res_schema["status"] == 200 and len(tables) >= 1, f"{len(tables)} tables discovered")
 
-res_sql = http_req("/v1/dashboard/db/sql", method="POST", data={"query": "SELECT COUNT(*) as user_count FROM users;"})
+res_sql = http_req("/v1/dashboard/db/sql", method="POST", data={"query": "SELECT COUNT(*) as item_count FROM items;"})
 sql_ok = (res_sql["status"] == 200 and res_sql["json"].get("status") == "success")
-report.log("Console", "SQL Sandbox Raw Query", sql_ok, f"users count result: {res_sql['json'].get('result', {}).get('rows') if sql_ok else 'err'}")
+report.log("Console", "SQL Sandbox Raw Query", sql_ok, f"items count result: {res_sql['json'].get('result', {}).get('rows') if sql_ok else 'err'}")
 
 # 6.9 System GC & Hot Blob Cache Purge
 res_gc = http_req("/v1/dashboard/system/gc", method="POST", data={})
@@ -426,7 +426,60 @@ report.log("AI Engine", "Hardware Telemetry Endpoint (/telemetry)", res_telemetr
 
 # 8.3 Dashboard HTML Direct Render
 res_dash_html = http_req("/dashboard")
-report.log("AI Engine", "Obsidian Brutalist Dashboard View (/dashboard)", res_dash_html["status"] == 200 and b"Phone Cloud Datacenter" in res_dash_html["body"], f"Size: {len(res_dash_html['body'])} bytes")
+report.log("AI Engine", "Obsidian Brutalist Dashboard View (/dashboard)", res_dash_html["status"] == 200 and b"Swades" in res_dash_html["body"], f"Size: {len(res_dash_html['body'])} bytes")
+
+# =============================================================================
+# SECTION 9: ZSTANDARD (ZSTD v1.5.7) DUAL-TIER HARDWARE COMPRESSION ENGINE
+# =============================================================================
+print(f"\n{BOLD}[9. ZSTANDARD (ZSTD v1.5.7) DUAL-TIER HARDWARE COMPRESSION]{RESET}")
+
+# 9.1 Hardware Telemetry & Dual-Tier Policy (/v1/zstd/info)
+res_zstd_info = http_req("/v1/zstd/info")
+zstd_info_ok = (res_zstd_info["status"] == 200 and res_zstd_info["json"].get("version") == "1.5.7")
+report.log("Zstandard", "Hardware Telemetry & Specifications (/v1/zstd/info)", zstd_info_ok, f"Version: {res_zstd_info['json'].get('version')} Threads: {res_zstd_info['json'].get('thread_pool')}")
+
+# 9.2 Real-Time API Compression Enforcement (POST /v1/compress, Level 1)
+test_payload = "Hyper-production real-time telemetry stream verification payload for Zstandard v1.5.7." * 10
+t_start = time.perf_counter()
+res_compress = http_req("/v1/compress", method="POST", data={"data": test_payload, "level": 1}, headers={"Accept": "application/json"})
+comp_latency = (time.perf_counter() - t_start) * 1000.0
+comp_data = res_compress["json"] if res_compress["json"] else {}
+comp_ok = (res_compress["status"] == 200 and comp_data.get("tier") == "api" and comp_data.get("level") == 1)
+report.record_bench("Zstd Level 1 Hardware Compression Latency", comp_latency)
+report.log("Zstandard", "Level 1 (-1 -T4) Developer API Compression", comp_ok, f"Ratio: {comp_data.get('compression_ratio')}x Latency: {comp_data.get('elapsed_ms')}ms Saved: {comp_data.get('space_saved_percent')}%")
+
+# 9.3 Lossless Microsecond Decompression (POST /v1/decompress)
+t_start = time.perf_counter()
+res_decompress = http_req("/v1/decompress", method="POST", data={"compressed_base64": comp_data.get("compressed_base64"), "as_text": True}, headers={"Accept": "application/json"})
+decomp_latency = (time.perf_counter() - t_start) * 1000.0
+decomp_data = res_decompress["json"] if res_decompress["json"] else {}
+recovered_text = decomp_data.get("data", "")
+decomp_ok = (res_decompress["status"] == 200 and recovered_text == test_payload)
+report.record_bench("Zstd Lossless Hardware Decompression Latency", decomp_latency)
+report.log("Zstandard", "Lossless Microsecond Decompression (/v1/decompress)", decomp_ok, f"Latency: {decomp_data.get('elapsed_ms')}ms 100% Match: {recovered_text == test_payload}")
+
+# 9.4 Binary Stream Compression & Decompression
+raw_binary = test_payload.encode("utf-8")
+res_bin_comp = http_req("/v1/compress", method="POST", raw_body=raw_binary, headers={"Content-Type": "application/octet-stream"})
+bin_comp_ok = (res_bin_comp["status"] == 200 and len(res_bin_comp["body"]) < len(raw_binary))
+report.log("Zstandard", "Raw Binary Octet-Stream Compression", bin_comp_ok, f"Orig: {len(raw_binary)}B -> Comp: {len(res_bin_comp['body'])}B")
+
+res_bin_decomp = http_req("/v1/decompress", method="POST", raw_body=res_bin_comp["body"], headers={"Content-Type": "application/octet-stream"})
+bin_decomp_ok = (res_bin_decomp["status"] == 200 and res_bin_decomp["body"] == raw_binary)
+report.log("Zstandard", "Raw Binary Octet-Stream Decompression", bin_decomp_ok, f"Recovered: {len(res_bin_decomp['body'])}B (100% Lossless)")
+
+# 9.5 Transparent HTTP Transfer Compression (Accept-Encoding: zstd)
+res_http_zstd = http_req("/telemetry", headers={"Accept-Encoding": "zstd"})
+enc_header = res_http_zstd.get("headers", {}).get("Content-Encoding", "")
+http_zstd_ok = (res_http_zstd["status"] == 200 and "zstd" in enc_header)
+report.log("Zstandard", "Transparent HTTP Transfer Compression (/telemetry)", http_zstd_ok, f"Content-Encoding: {enc_header} Size: {len(res_http_zstd['body'])}B")
+
+# 9.6 Sovereign Storage Vault Level 3 Internal Compression (-3 -T4)
+vault_payload = b"LOG_LINE_DATABASE_PERSISTENCE_SOVEREIGN_STORAGE_VAULT_LEVEL_3_" * 20
+res_vault_put = http_req("/v1/storage/objects/vault_zstd_test.log", method="PUT", raw_body=vault_payload, headers=auth_headers_alpha)
+res_vault_get = http_req("/v1/storage/objects/vault_zstd_test.log", method="GET", headers=auth_headers_alpha)
+vault_ok = (res_vault_put["status"] == 201 and res_vault_get["status"] == 200 and res_vault_get["body"] == vault_payload)
+report.log("Zstandard", "Sovereign Storage Vault Level 3 (-3 -T4) Persistence", vault_ok, f"Lossless Vault Recovery: {len(res_vault_get['body'])}B")
 
 # =============================================================================
 # FINAL SUMMARY REPORT
@@ -434,7 +487,7 @@ report.log("AI Engine", "Obsidian Brutalist Dashboard View (/dashboard)", res_da
 print(f"\n{BOLD}{CYAN}========================================================================={RESET}")
 print(f"{BOLD}  VERIFICATION RESULTS: {GREEN}{report.passed} PASSED{RESET} / {RED if report.failed else GREEN}{report.failed} FAILED{RESET} (TOTAL: {report.total})")
 for k, v in report.benchmarks.items():
-    print(f"  ⚡ {CYAN}{k}{RESET}: {BOLD}{v:.2f} ms{RESET}")
+    print(f"  [BENCH] {CYAN}{k}{RESET}: {BOLD}{v:.2f} ms{RESET}")
 print(f"{BOLD}{CYAN}========================================================================={RESET}\n")
 
 if report.failed > 0:

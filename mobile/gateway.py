@@ -5160,7 +5160,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             user_projs = _storage_vault.list_projects(owner_id=uid)
             if user_projs:
                 return user_projs[0]["project_id"]
-        return "sandbox"
+        return None
 
     def _get_authenticated_user(self, parsed=None):
         key_rec = self._authenticate_storage_request()
