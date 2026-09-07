@@ -80,7 +80,7 @@ The server embeds native Zstandard v1.5.7 C bindings directly linked to Android 
 
 The node provides native Zstandard (zstd v1.5.7) hardware image compression directly on phone ARM Cortex-A53 silicon:
 * **Pure Zstandard Level 1 (`-1 -T4`)**: Hardware-accelerated lossless image compression delivering sub-millisecond execution (<1.5ms).
-* **Universal Modality Ingestion**: Ingests PNG, JPEG, WebP, SVG, BMP, and raw bitmap byte buffers.
+* **Universal Modality Ingestion**: Ingests image binary payloads and raw bitmap byte buffers.
 * **100% Bit-Exact Lossless Recovery**: Decompresses back to original image bytes with zero transcoding loss, zero artifacts, and zero quality degradation.
 * **Zero Bloat & Zero Third-Party Dependencies**: Directly bound to native C `libzstd.so` with 4 worker threads. Eliminates heavy image processing libraries and prevents RAM eviction.
 

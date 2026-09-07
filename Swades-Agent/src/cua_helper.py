@@ -215,7 +215,7 @@ def take_screenshot(zoom_x1=None, zoom_y1=None, zoom_x2=None, zoom_y2=None):
             scale = MAX_WIDTH / crop_w
             new_w = MAX_WIDTH
             new_h = int(crop_h * scale)
-            im = im.resize((new_w, new_h), Image.LANCZOS)
+            im = im.resize((new_w, new_h), Image.NEAREST)
             # Scale mouse coords to match
             mx = int(mx * scale)
             my = int(my * scale)

@@ -614,7 +614,7 @@ The node provides native Zstandard (zstd v1.5.7) hardware image compression runn
 #### 4.8.1 Strict Policy & Operational Principles
 * **Pure Zstandard Level 1 (`-1 -T4`)**: Dedicated for developer API image compression requests, sub-millisecond network transfer, and CDN streaming (<1.5ms, ~180 MB/s).
 * **100% Bit-Exact Lossless**: No lossy quantization artifacts, no blurry downscaling, no color subsampling degradation.
-* **Universal Payload Support**: Ingests raw PNG, JPEG, WebP, SVG, BMP, and raw bitmap byte buffers.
+* **Universal Payload Support**: Ingests image binary payloads and raw bitmap byte buffers.
 * **Zero Bloat**: Eliminates third-party imaging dependencies and memory leaks, executing directly against `libzstd.so.1.5.7` via C-level bindings.
 
 #### 4.8.2 OpenAPI 3.1 Specification

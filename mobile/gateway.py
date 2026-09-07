@@ -7078,7 +7078,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 "internal_level": 3,
                 "policy": "Level 1 (-1 -T4) Developer API & HTTP Transfer | Level 3 (-3 -T4) Internal Storage Vault",
                 "image_compression": "Native Zstandard v1.5.7 hardware image compression",
-                "supported_modalities": ["image/png", "image/jpeg", "image/webp", "image/bmp", "image/gif", "image/svg+xml", "application/octet-stream"],
+                "supported_modalities": ["image/*", "application/octet-stream"],
                 "dual_tier": {
                     "api_level": 1,
                     "internal_vault_level": 3
