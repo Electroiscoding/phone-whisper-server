@@ -189,13 +189,13 @@ class Swades:
     def compress(self, data, level: int = 1, as_json: bool = False):
         """
         Compresses text string or binary bytes using hardware-accelerated Zstandard v1.5.7.
-        - level: Enforced at Level 1 (-1 -T4) for real-time HTTP transfer & API requests (<2ms).
-                 Levels are hard-capped at 3 (level 3 is reserved for internal sovereign storage).
+        - Strict Dual-Tier Policy: Level 1 (-1 -T4) is for API (devs) side requests & real-time HTTP transfer (<1.5ms).
+          Level 3 (-3 -T4) is reserved for internal sovereign storage vault backups only.
         - as_json: If True, returns rich dictionary with original size, compressed size, ratio, latency, throughput, and base64.
                    If False, returns raw compressed bytes.
         """
         raw_bytes = data.encode("utf-8") if isinstance(data, str) else bytes(data)
-        safe_level = max(1, min(3, int(level or 1)))
+        safe_level = 1  # Strict Dual-Tier: Level 1 (-1 -T4) enforced for developer API requests
 
         headers = {
             "x-api-key": self.api_key,
