@@ -3250,6 +3250,35 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         self.send_header("Access-Control-Expose-Headers", "*")
         self.send_header("Access-Control-Max-Age", "86400")
 
+    def _send_json_response(self, data_dict, status=200, extra_headers=None):
+        """Sends JSON response with transparent Level 1 (-1 -T4) real-time compression if requested via Accept-Encoding: zstd"""
+        resp_bytes = json.dumps(data_dict).encode("utf-8")
+        accept_enc = (self.headers.get("Accept-Encoding") or "").lower()
+        content_enc = None
+        out_bytes = resp_bytes
+        if "zstd" in accept_enc and len(resp_bytes) >= 128:
+            try:
+                c_bytes = _zstd_engine.compress(resp_bytes, level=1)
+                if len(c_bytes) < len(resp_bytes):
+                    out_bytes = c_bytes
+                    content_enc = "zstd"
+            except Exception:
+                pass
+
+        self.send_response(status)
+        self._send_cors_headers()
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(out_bytes)))
+        if content_enc:
+            self.send_header("Content-Encoding", "zstd")
+            self.send_header("X-Zstd-Level", "1")
+            self.send_header("X-Zstd-Tier", "api")
+        if extra_headers:
+            for k, v in extra_headers.items():
+                self.send_header(k, v)
+        self.end_headers()
+        self.wfile.write(out_bytes)
+
     def do_OPTIONS(self):
         self.send_response(204)
         self._send_cors_headers()
@@ -4713,17 +4742,33 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.wfile.write(err)
             return
 
+        accept_enc = (self.headers.get("Accept-Encoding") or "").lower()
+        out_data = data
+        content_enc = None
+        if not is_head and data and "zstd" in accept_enc and len(data) >= 256:
+            try:
+                c_data = _zstd_engine.compress(data, level=1)
+                if len(c_data) < len(data):
+                    out_data = c_data
+                    content_enc = "zstd"
+            except Exception:
+                pass
+
         self.send_response(200)
         self._send_cors_headers()
         self.send_header("Content-Type", meta.get("content_type", "application/octet-stream"))
-        self.send_header("Content-Length", str(meta.get("size", len(data) if data else 0)))
+        self.send_header("Content-Length", str(len(out_data) if not is_head else meta.get("size", 0)))
+        if content_enc:
+            self.send_header("Content-Encoding", "zstd")
+            self.send_header("X-Zstd-Level", "1")
+            self.send_header("X-Zstd-Tier", "api")
         self.send_header("ETag", meta.get("etag", '""'))
         self.send_header("Cache-Control", "public, max-age=86400, immutable")
         fname = os.path.basename(raw_key)
         self.send_header("Content-Disposition", f'inline; filename="{fname}"')
         self.end_headers()
-        if not is_head and data:
-            self.wfile.write(data)
+        if not is_head and out_data:
+            self.wfile.write(out_data)
 
     # === DEVELOPER DASHBOARD HANDLERS ===
 
@@ -5347,13 +5392,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 return
             res = _storage_vault.db_execute_raw_sql(query, project_id=project_id)
             _storage_vault.log_audit("developer", "RAW_SQL_EXECUTE", f"{project_id or 'system'}:database", f"query={query[:80]}")
-            resp = json.dumps({"status": "success", "result": res, "project_id": project_id}).encode("utf-8")
-            self.send_response(200)
-            self._send_cors_headers()
-            self.send_header("Content-Type", "application/json")
-            self.send_header("Content-Length", str(len(resp)))
-            self.end_headers()
-            self.wfile.write(resp)
+            self._send_json_response({"status": "success", "result": res, "project_id": project_id})
         except Exception as e:
             self.send_response(400)
             self._send_cors_headers()
@@ -5847,11 +5886,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 "timestamp": int(time.time())
             }
 
-        self.send_response(200)
-        self._send_cors_headers()
-        self.send_header("Content-Type", "application/json")
-        self.end_headers()
-        self.wfile.write(json.dumps(data).encode())
+        self._send_json_response(data)
 
     def handle_benchmark(self):
         """Runs live physical hardware benchmarks on Helio G25 SoC silicon."""
