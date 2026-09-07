@@ -1059,7 +1059,7 @@ class SwadeStorageVault:
             # Seed default remote config if empty
             if conn.execute('SELECT COUNT(*) FROM remote_config').fetchone()[0] == 0:
                 rc_defaults = [
-                    ("rc_01", "banner_announcement", "🚀 Phone AI Datacenter Active: Sub-microsecond reflection enabled across 3 storage pools.", "text", "Top global alert banner text", init_now_str),
+                    ("rc_01", "banner_announcement", "Phone AI Datacenter Active: Sub-microsecond reflection enabled across 3 storage pools.", "text", "Top global alert banner text", init_now_str),
                     ("rc_02", "primary_accent_color", "#38bdf8", "styling", "Hex color code for primary buttons and borders", init_now_str),
                     ("rc_03", "hero_headline", "Self-Hosted Enterprise Cloud on Android", "text", "Homepage main hero text headline", init_now_str),
                     ("rc_04", "cdn_edge_ttl_seconds", "86400", "performance", "Cache-Control max-age header for public CDN blobs", init_now_str),
@@ -1680,7 +1680,7 @@ class SwadeStorageVault:
             return {}
 
     # =========================================================================
-    # 📁 MULTI-TENANT PROJECT MANAGEMENT & ISOLATED DATABASE ENGINES
+    # MULTI-TENANT PROJECT MANAGEMENT & ISOLATED DATABASE ENGINES
     # =========================================================================
 
     def get_project_dir(self, project_id: str) -> str:
@@ -1863,7 +1863,7 @@ class SwadeStorageVault:
         return False
 
     # =========================================================================
-    # 🗄️ PROJECT-AWARE DATABASE BROWSER & SQL ENGINE
+    # PROJECT-AWARE DATABASE BROWSER & SQL ENGINE
     # =========================================================================
 
     def db_get_schema(self, table_name="", project_id=None):
@@ -3516,7 +3516,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
 
 
     # =========================================================================
-    # 🐙 GITHUB OAUTH HANDLERS
+    # GITHUB OAUTH HANDLERS
     # =========================================================================
     def handle_github_login(self):
         cid, _ = get_oauth_credentials()
@@ -3674,7 +3674,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
 </head>
 <body>
   <div class="box">
-    <h2>🐙 GitHub Connected!</h2>
+    <h2>GitHub Connected!</h2>
     <p>Logged in as <strong>@{user_profile.get('login', 'github_user')}</strong></p>
     <p style="font-size: 0.85rem; color: #94a3b8;">Redirecting back to PhoneWhisper...</p>
   </div>
@@ -4306,6 +4306,11 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             content_length = int(self.headers.get("Content-Length", 0))
             content_type = self.headers.get("Content-Type")
             data = self.rfile.read(content_length) if content_length > 0 else b""
+            if (self.headers.get("Content-Encoding") or "").lower() == "zstd":
+                try:
+                    data = _zstd_engine.decompress(data)
+                except Exception as de:
+                    pass
             meta = _object_store.put_object(scope_id, raw_key, data, content_type=content_type)
             meta["url"] = f"/s/{scope_id}/{meta['key']}"
             t_ns = time.perf_counter_ns() - t0
@@ -4415,10 +4420,27 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
 
         t_ns = time.perf_counter_ns() - t0
         t_ms = round(t_ns / 1_000_000, 6)
+
+        accept_enc = (self.headers.get("Accept-Encoding") or "").lower()
+        out_data = data
+        content_enc = None
+        if "zstd" in accept_enc and len(data) >= 256:
+            try:
+                c_data = _zstd_engine.compress(data, level=1)
+                if len(c_data) < len(data):
+                    out_data = c_data
+                    content_enc = "zstd"
+            except Exception:
+                pass
+
         self.send_response(200)
         self._send_cors_headers()
         self.send_header("Content-Type", meta["content_type"])
-        self.send_header("Content-Length", str(len(data)))
+        self.send_header("Content-Length", str(len(out_data)))
+        if content_enc:
+            self.send_header("Content-Encoding", content_enc)
+            self.send_header("X-Zstd-Engine", "Zstandard v1.5.7 (ARM Cortex-A53 Native)")
+            self.send_header("X-Zstd-Level", "1")
         self.send_header("ETag", meta["etag"])
         fname = os.path.basename(meta["key"])
         self.send_header("Content-Disposition", f'inline; filename="{fname}"')
@@ -4426,7 +4448,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         self.send_header("X-Reflection-Time-Ms", f"{t_ms:.6f}")
         self.send_header("X-Reflection-Time-Ns", str(t_ns))
         self.end_headers()
-        self.wfile.write(data)
+        self.wfile.write(out_data)
 
     def handle_storage_delete_object(self, raw_key):
         t0 = time.perf_counter_ns()
@@ -6533,9 +6555,12 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                     self.wfile.write(json.dumps({"error": f"Invalid JSON body: {str(ex)}"}).encode("utf-8"))
                     return
 
-            # Strict policy: API requests enforce Level 1 (-1 -T4)
-            # Level 3 is reserved for internal storage vault. Hard cap level at 3 max to protect phone silicon.
-            safe_level = max(1, min(3, requested_level))
+            # Strict Dual-Tier Policy:
+            # - Level 1 (-1 -T4): Enforced for all developer API requests (/v1/compress), real-time HTTP transfer, and live streaming (<2ms, ~180 MB/s).
+            # - Level 3 (-3 -T4): Dedicated strictly to Internal Storage Vault disk persistence and snapshot backups (~150 MB/s, 3.2x ratio).
+            # - Levels 9-19: Permanently disabled to protect phone silicon.
+            # External API requests are strictly locked to Level 1 (-1 -T4).
+            safe_level = 1
 
             t0 = time.perf_counter()
             compressed = _zstd_engine.compress(raw_bytes, level=safe_level)
@@ -6551,8 +6576,10 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 resp = {
                     "status": "success",
                     "engine": "Zstandard v1.5.7 (ARM Cortex-A53 Native)",
-                    "level": safe_level,
+                    "tier": "api",
+                    "level": 1,
                     "threads": 4,
+                    "policy": "Level 1 (-1 -T4) Developer API / Real-Time Streaming (Level 3 reserved for Internal Storage Vault)",
                     "original_size": orig_sz,
                     "compressed_size": comp_sz,
                     "compression_ratio": ratio,
@@ -6567,7 +6594,9 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 self.send_header("Content-Type", "application/json")
                 self.send_header("Content-Length", str(len(out_bytes)))
                 self.send_header("X-Zstd-Engine", "Zstandard v1.5.7 (ARM Cortex-A53 Native)")
-                self.send_header("X-Zstd-Level", str(safe_level))
+                self.send_header("X-Zstd-Tier", "api")
+                self.send_header("X-Zstd-Level", "1")
+                self.send_header("X-Zstd-Policy", "Level 1 (-1 -T4) Developer API / Real-Time Streaming")
                 self.send_header("X-Zstd-Threads", "4")
                 self.send_header("X-Original-Size", str(orig_sz))
                 self.send_header("X-Compressed-Size", str(comp_sz))
@@ -6581,7 +6610,9 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 self.send_header("Content-Type", "application/zstd")
                 self.send_header("Content-Length", str(comp_sz))
                 self.send_header("X-Zstd-Engine", "Zstandard v1.5.7 (ARM Cortex-A53 Native)")
-                self.send_header("X-Zstd-Level", str(safe_level))
+                self.send_header("X-Zstd-Tier", "api")
+                self.send_header("X-Zstd-Level", "1")
+                self.send_header("X-Zstd-Policy", "Level 1 (-1 -T4) Developer API / Real-Time Streaming")
                 self.send_header("X-Zstd-Threads", "4")
                 self.send_header("X-Original-Size", str(orig_sz))
                 self.send_header("X-Compressed-Size", str(comp_sz))
@@ -6685,7 +6716,7 @@ def main():
     server_address = ('0.0.0.0', port)
     httpd = ThreadedHTTPServer(server_address, MultiModalGatewayHandler)
     print(f"==================================================")
-    print(f"🚀 Multi-Modal Gateway & Ground-Truth Governor Active on port {port}")
+    print(f"[GATEWAY] Multi-Modal Gateway & Ground-Truth Governor Active on port {port}")
     print(f"⚡ JIT Memory Eviction Policy: {ModelGovernor.IDLE_TIMEOUT}s Idle Threshold")
     print(f"==================================================")
     try:

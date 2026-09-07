@@ -298,7 +298,8 @@ class SwadesClient {
   zstd = {
     // Compresses string or Uint8Array/ArrayBuffer. Uses Level 1 (-1 -T4) for real-time HTTP transfer
     compress: async (data, options = {}) => {
-      const level = Math.max(1, Math.min(3, parseInt(options.level || 1, 10)));
+      // Strict Dual-Tier: Level 1 (-1 -T4) is for API (devs) side requests & real-time HTTP transfer. Level 3 is for internal only us.
+      const level = 1;
       const isString = typeof data === 'string';
       const format = options.format || (isString ? 'base64' : 'binary');
 

@@ -292,9 +292,9 @@ curl -s "https://phone-whisper-server.pages.dev/v1/audio/speech?input=Welcome+to
 The physical phone node features native C-level Zstandard (zstd v1.5.7) hardware acceleration via `libzstd.so` running on MediaTek Helio G25 (8x Cortex-A53 @ 2.0GHz).
 
 #### 4.6.1 Strict Dual-Tier Routing Policy
-* **Level 1 (`-1 -T4`)**: Dedicated to Developer API requests (`POST /v1/compress`), real-time HTTP transfer (`Content-Encoding: zstd`), and live client streaming. Delivers ~180 MB/s throughput, <2ms silicon latency, and minimal ~10 MB RAM footprint.
-* **Level 3 (`-3 -T4`)**: Internal only for Sovereign Disk Storage Vault persistence (`/v1/storage`), audio disk caching, and snapshot backups. Delivers ~3.2x ratio, ~150 MB/s throughput, and optimal write endurance on eMMC flash storage (the absolute sweet spot).
-* **Levels 9–19 (Disabled)**: Permanently locked out and capped at Level 3 on phone silicon to protect against thermal throttling (45°C+) and Android Low Memory Killer (LMK) eviction.
+* **Use Level 1 (`-1 -T4`)**: For real-time HTTP transfer, API requests, and live streaming. L1 is for API (devs) side requests. Delivers ~180 MB/s throughput, <2ms silicon latency, and minimal ~10 MB RAM footprint.
+* **Use Level 3 (`-3 -T4`)**: For saving files to disk / storage vault backups (the absolute sweet spot). L3 is for internal only us. Delivers ~3.2x ratio, ~150 MB/s throughput, and optimal write endurance on eMMC flash storage.
+* **Levels 9–19 (Disabled)**: Permanently locked out on phone silicon to protect against thermal throttling (45°C+) and Android Low Memory Killer (LMK) eviction.
 
 #### 4.6.2 OpenAPI 3.1 Specification
 
