@@ -76,18 +76,20 @@ The server embeds native Zstandard v1.5.7 C bindings directly linked to Android 
 ---
 
 
-## Native Zstandard Image Compression Engine
+## Universal Zstandard (zstd v1.5.7) Compression Architecture
 
-The node provides native Zstandard (zstd v1.5.7) hardware image compression directly on phone ARM Cortex-A53 silicon:
-* **Pure Zstandard Level 1 (`-1 -T4`)**: Hardware-accelerated lossless image compression delivering sub-millisecond execution (<1.5ms).
-* **Universal Modality Ingestion**: Ingests image binary payloads and raw bitmap byte buffers.
-* **100% Bit-Exact Lossless Recovery**: Decompresses back to original image bytes with zero transcoding loss, zero artifacts, and zero quality degradation.
-* **Zero Bloat & Zero Third-Party Dependencies**: Directly bound to native C `libzstd.so` with 4 worker threads. Eliminates heavy image processing libraries and prevents RAM eviction.
+Zstandard is the exclusive, universal compression standard across the entire sovereign phone datacenter for **both file and text compression all the time, always, everywhere**:
+* **Universal File Compression**: Native hardware-accelerated compression for image binary payloads, audio buffers, documents, and disk blobs (`/v1/compress`, `/v1/images/compress`, `/v1/storage/objects/*`).
+* **Universal Text Compression**: Real-time compression for developer API requests, JSON responses, database telemetry, and dynamic HTTP streams (`Accept-Encoding: zstd`, `Content-Encoding: zstd`).
+* **Pure Zstandard Level 1 (`-1 -T4`)**: Hardware-accelerated lossless compression delivering sub-millisecond execution (<1.5ms, ~180 MB/s) for all external developer API requests, file uploads, and streaming.
+* **Pure Zstandard Level 3 (`-3 -T4`)**: Dedicated strictly for internal storage vault persistence, eMMC flash protection, and system backups (the absolute sweet spot, internal only for us).
+* **100% Bit-Exact Lossless Recovery**: Decompresses back to original file or text bytes with zero transcoding loss, zero artifacts, and zero quality degradation.
+* **Zero Bloat & Zero Third-Party Dependencies**: Directly bound to native C `libzstd.so` with 4 worker threads. Eliminates heavy third-party libraries and prevents RAM eviction.
 
-| Mode / Preset | Flag / Tier | Input | Space Saved | Silicon Latency | Throughput | Primary Application |
+| Mode / Preset | Flag / Tier | Input Modality | Space Saved | Silicon Latency | Throughput | Primary Application |
 |---|---|---|---|---|---|---|
-| **API Image Compression** | Level 1 (`-1 -T4`) | Any Image / Raw Binary | **~40% - 90%** | **<1.5 ms** | ~180 MB/s | Real-time HTTP transfer, API requests, and live streaming |
-| **Storage Vault Persistence** | Level 3 (`-3 -T4`) | Stored Image Assets | **~50% - 95%** | **<5 ms** | ~150 MB/s | Internal storage vault persistence and eMMC disk backup |
+| **API File & Text Compression** | Level 1 (`-1 -T4`) | Files, Images, Binaries, JSON, Text | **~40% - 90%** | **<1.5 ms** | ~180 MB/s | Real-time HTTP transfer, API requests, and live streaming (Devs) |
+| **Storage Vault Persistence** | Level 3 (`-3 -T4`) | Storage Vault Files & Backups | **~50% - 95%** | **<5 ms** | ~150 MB/s | Internal storage vault persistence and eMMC disk backup (Internal only) |
 
 ---
 

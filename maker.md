@@ -607,15 +607,18 @@ acc reset       # Reset to default sovereign datacenter profile
 ---
 
 
-### 4.8 Native Zstandard Image Compression Engine (`/v1/images/compress` & `/v1/images/info`)
+### 4.8 Universal Zstandard (zstd v1.5.7) File & Binary Compression Engine
 
-The node provides native Zstandard (zstd v1.5.7) hardware image compression running directly on physical phone ARM Cortex-A53 silicon. Designed for lossless asset compression, low-latency image transfer, and zero-transcoding CPU efficiency.
+Zstandard is the exclusive, universal compression standard across the entire sovereign phone datacenter for **both file and text compression all the time, always, everywhere**:
+* **Universal File Compression**: Hardware-accelerated compression for image binary payloads, audio buffers, documents, and disk blobs (`/v1/compress`, `/v1/images/compress`, `/v1/storage/objects/*`).
+* **Universal Text Compression**: Real-time compression for developer API requests, JSON responses, database telemetry, and dynamic HTTP streams (`Accept-Encoding: zstd`, `Content-Encoding: zstd`).
 
 #### 4.8.1 Strict Policy & Operational Principles
-* **Pure Zstandard Level 1 (`-1 -T4`)**: Dedicated for developer API image compression requests, sub-millisecond network transfer, and CDN streaming (<1.5ms, ~180 MB/s).
+* **Pure Zstandard Level 1 (`-1 -T4`)**: Dedicated for developer API requests, file/image compression, real-time network transfer, and CDN streaming (<1.5ms, ~180 MB/s).
+* **Pure Zstandard Level 3 (`-3 -T4`)**: Dedicated strictly for sovereign internal storage vault disk persistence, eMMC flash protection, and system backups (~150 MB/s, sweet spot, internal only for us).
 * **100% Bit-Exact Lossless**: No lossy quantization artifacts, no blurry downscaling, no color subsampling degradation.
-* **Universal Payload Support**: Ingests image binary payloads and raw bitmap byte buffers.
-* **Zero Bloat**: Eliminates third-party imaging dependencies and memory leaks, executing directly against `libzstd.so.1.5.7` via C-level bindings.
+* **Universal Payload Support**: Ingests image binary payloads, arbitrary files, and raw byte buffers.
+* **Zero Bloat**: Eliminates third-party imaging dependencies and memory leaks, executing directly against native C `libzstd.so.1.5.7` with 4 worker threads.
 
 #### 4.8.2 OpenAPI 3.1 Specification
 

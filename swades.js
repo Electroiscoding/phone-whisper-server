@@ -410,6 +410,24 @@ class SwadesClient {
     info: async () => {
       const res = await fetch(`${this.endpoint}/v1/zstd/info`);
       return await res.json();
+    },
+
+    // Compresses a File, Blob, or raw byte buffer using native Zstandard Level 1 (-1 -T4)
+    compressFile: async (fileOrBlob, options = {}) => {
+      if (typeof Blob !== 'undefined' && fileOrBlob instanceof Blob) {
+        const arrayBuf = await fileOrBlob.arrayBuffer();
+        return await this.zstd.compress(new Uint8Array(arrayBuf), { format: 'binary', ...options });
+      }
+      return await this.zstd.compress(fileOrBlob, { format: 'binary', ...options });
+    },
+
+    // Decompresses a Zstandard-compressed File, Blob, or byte buffer
+    decompressFile: async (compressedFileOrBlob, options = {}) => {
+      if (typeof Blob !== 'undefined' && compressedFileOrBlob instanceof Blob) {
+        const arrayBuf = await compressedFileOrBlob.arrayBuffer();
+        return await this.zstd.decompress(new Uint8Array(arrayBuf), { asText: false, ...options });
+      }
+      return await this.zstd.decompress(compressedFileOrBlob, { asText: false, ...options });
     }
   };
 
@@ -519,6 +537,12 @@ class SwadesClient {
   }
   async decompress(compressedData, options) {
     return this.zstd.decompress(compressedData, options);
+  }
+  async compressFile(fileOrBlob, options) {
+    return this.zstd.compressFile(fileOrBlob, options);
+  }
+  async decompressFile(compressedFileOrBlob, options) {
+    return this.zstd.decompressFile(compressedFileOrBlob, options);
   }
   async zstdInfo() {
     return this.zstd.info();

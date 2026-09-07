@@ -335,6 +335,42 @@ class Swades:
         res = self._req("GET", "/v1/zstd/info", timeout=10)
         return res.json()
 
+    def compress_file(self, file_path: str, output_path: str = None) -> str:
+        """
+        Compresses any file (images, binaries, text, audio, logs) using native Zstandard Level 1 (-1 -T4).
+        Saves output to output_path or file_path + '.zst' and returns the saved file path.
+        """
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f"File not found: {file_path}")
+        with open(file_path, "rb") as f:
+            data = f.read()
+        compressed = self.compress(data, level=1, as_json=False)
+        out = output_path or (file_path + ".zst")
+        with open(out, "wb") as f:
+            f.write(compressed)
+        return out
+
+    def decompress_file(self, zst_path: str, output_path: str = None) -> str:
+        """
+        Decompresses any Zstandard .zst file losslessly back to its original binary or text.
+        Saves output to output_path and returns the saved file path.
+        """
+        if not os.path.exists(zst_path):
+            raise FileNotFoundError(f"File not found: {zst_path}")
+        with open(zst_path, "rb") as f:
+            compressed = f.read()
+        decompressed = self.decompress(compressed, as_text=False)
+        if output_path is None:
+            if zst_path.endswith(".zst"):
+                out = zst_path[:-4]
+            else:
+                out = zst_path + ".decompressed"
+        else:
+            out = output_path
+        with open(out, "wb") as f:
+            f.write(decompressed)
+        return out
+
     # =========================================================================
     # ADVANCED CHARGING CONTROLLER (ACC) HARDWARE BATTERY ENGINE
     # =========================================================================
