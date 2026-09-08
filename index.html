@@ -2707,7 +2707,8 @@ curl -X POST "https://phone-whisper-server.pages.dev/v1/images/compress" \
   -d '{"image": "iVBORw0KGgoAAAANSUhEUgAA...", "as_json": true}'</code></pre>
               </div>
               <div id="snip-img-py" class="snippet-pane">
-                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>from swades import Swades
+                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code># Local standalone module (swades.py in project root):
+from swades import Swades
 
 client = Swades()
 
@@ -2789,7 +2790,8 @@ curl -X POST "https://phone-whisper-server.pages.dev/v1/decompress" \
   -d '{"data": "KLUv/SCpLQQAcskdHXA1..."}'</code></pre>
               </div>
               <div id="snip-zstd-py" class="snippet-pane">
-                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>from swades import Swades
+                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code># Local standalone module (swades.py in project root):
+from swades import Swades
 
 client = Swades()
 # 1-line Level 1 compression:

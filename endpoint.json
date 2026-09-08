@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://magazines-unto-seed-larry.trycloudflare.com",
-  "inference": "https://magazines-unto-seed-larry.trycloudflare.com/inference",
-  "telemetry": "https://magazines-unto-seed-larry.trycloudflare.com/telemetry",
+  "endpoint": "https://education-adjustable-leo-tear.trycloudflare.com",
+  "inference": "https://education-adjustable-leo-tear.trycloudflare.com/inference",
+  "telemetry": "https://education-adjustable-leo-tear.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-09-08T12:05:00Z"
+  "updated_at": "2026-09-08T12:12:00Z"
 }
