@@ -1968,7 +1968,7 @@ proot-distro login alpine -- node /root/Swades-Agent/worker.js --job job_a9f8224
               <span class="text-zinc-400 text-[11px]">Native Ctypes (libzstd.so.1.5.7)</span>
             </div>
             <p class="text-zinc-300 text-[11px] leading-relaxed mb-3">
-              High-throughput lossless compression engine utilizing Finite State Entropy (FSE) and Huffman coding executing directly on ARM Cortex-A53 silicon. Enforces a strict dual-tier policy: <strong class="text-neonemerald">Level 1 (-1 -T4)</strong> for developer API requests and real-time streaming (&lt;2ms, ~180 MB/s); <strong class="text-neoncyan">Level 3 (-3 -T4)</strong> internally for Sovereign Storage Vault persistence (the absolute sweet spot on eMMC flash, ~3.2x ratio). Compression levels 9-19 are permanently disabled to prevent phone thermal throttling.
+              High-throughput lossless compression engine utilizing Finite State Entropy (FSE) and Huffman coding executing directly on ARM Cortex-A53 silicon. Offers two open public compression tiers: <strong class="text-neonemerald">Level 1 (-1 -T4)</strong> for fast developer API requests and real-time streaming (&lt;2ms, ~180 MB/s); <strong class="text-neoncyan">Level 3 (-3 -T4)</strong> for storage vault backups, disk persistence, and high-ratio payload compression (the absolute sweet spot on eMMC flash, ~3.2x ratio). Both levels are 100% open and accessible to all developers. Compression levels 9-19 are permanently disabled to prevent phone thermal throttling.
             </p>
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px] text-zinc-400">
               <div class="bg-zinc-950 p-2 rounded border border-cardborder">Throughput: ~180 MB/s</div>
@@ -2010,7 +2010,7 @@ proot-distro login alpine -- node /root/Swades-Agent/worker.js --job job_a9f8224
                       <td class="p-2 text-white">~300 MB</td>
                       <td class="p-2 text-neoncyan font-bold">~25 sec</td>
                       <td class="p-2 text-zinc-400">~30 MB</td>
-                      <td class="p-2 text-neoncyan font-bold">Internal Storage Vault Backups (/v1/storage) • The Sweet Spot</td>
+                      <td class="p-2 text-neoncyan font-bold">Storage Vault &amp; Disk Backups (High-Ratio Persistence) • The Sweet Spot</td>
                     </tr>
                     <tr class="text-zinc-500">
                       <td class="p-2">Level 9 (Medium)</td>
@@ -2052,7 +2052,7 @@ proot-distro login alpine -- node /root/Swades-Agent/worker.js --job job_a9f8224
               <span class="text-zinc-400 text-[11px]">Level 1 (-1 -T4) API | Level 3 (-3 -T4) Vault</span>
             </div>
             <p class="text-zinc-300 text-[11px] leading-relaxed mb-3">
-              Sole compression standard across the entire sovereign phone datacenter for <strong>both file and text compression all the time, always, everywhere</strong>. Compresses image binary payloads, arbitrary files, audio, documents, JSON payloads, and dynamic HTTP streams with sub-millisecond execution (&lt;1.5ms, ~180 MB/s). Pure Level 1 (-1 -T4) for API / Developer requests and streaming; Pure Level 3 (-3 -T4) for internal storage vault persistence and disk backups (internal only for us). 100% bit-exact lossless recovery, zero transcoding artifacts, zero RAM bloat.
+              Sole compression standard across the entire sovereign phone datacenter for <strong>both file and text compression all the time, always, everywhere</strong>. Compresses image binary payloads, arbitrary files, audio, documents, JSON payloads, and dynamic HTTP streams with sub-millisecond execution (&lt;1.5ms, ~180 MB/s). Pure Level 1 (-1 -T4) for API / Developer requests and streaming; Pure Level 3 (-3 -T4) for storage vault persistence, disk backups, and high-ratio compressed storage (open to all developers). 100% bit-exact lossless recovery, zero transcoding artifacts, zero RAM bloat.
             </p>
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px] text-zinc-400">
               <div class="bg-zinc-950 p-2 rounded border border-cardborder">Latency: &lt;1.5ms (-1 -T4)</div>

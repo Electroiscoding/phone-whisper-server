@@ -48,11 +48,11 @@ To support continuous 24/7 plugged-in server operation without battery swelling,
 The server embeds native Zstandard v1.5.7 C bindings directly linked to Android Termux userland (`/data/data/com.termux/files/usr/lib/libzstd.so`). To guarantee 24/7 uptime without thermal throttling or out-of-memory crashes on 2GB–4GB RAM phones, the system enforces a strict dual-tier policy:
 
 * **Level 1 (`-1 -T4`) — Developer API & Live Streaming:**
-  * **Scope:** All external developer requests to `POST /v1/compress`, real-time HTTP `Content-Encoding: zstd`, and live client streaming.
+  * **Scope:** Real-time HTTP transfer, API requests, and live client streaming.
   * **Performance:** ~150 to 190 MB/s compression throughput, <1.5ms latency, ~10 MB RAM footprint.
-  * **Enforcement:** External API requests requesting levels 2–19 are automatically clamped to Level 1.
+  * **Enforcement:** Level 1 is optimized for developer API requests and real-time streaming.
 * **Level 3 (`-3 -T4`) — Sovereign Storage Vault & High-Ratio Backups:**
-  * **Scope:** Storage vault persistence (`POST /v1/storage`), disk backups, and high-ratio compression requirements.
+  * **Scope:** Storage vault persistence (`POST /v1/storage`), disk backups, and high-ratio payload compression requests (`level: 3`).
   * **Performance:** ~120 to 155 MB/s throughput, ~30 MB RAM footprint, ~3.2x compression ratio (up to 97.4% space savings on text and logs).
   * **Flash Longevity:** Reduces eMMC flash memory write wear by up to 75%.
 * **Levels 9 to 19 — Permanently Disabled on Silicon:**
@@ -81,15 +81,15 @@ The server embeds native Zstandard v1.5.7 C bindings directly linked to Android 
 Zstandard is the exclusive, universal compression standard across the entire sovereign phone datacenter for **both file and text compression all the time, always, everywhere**:
 * **Universal File Compression**: Native hardware-accelerated compression for image binary payloads, audio buffers, documents, and disk blobs (`/v1/compress`, `/v1/images/compress`, `/v1/storage/objects/*`).
 * **Universal Text Compression**: Real-time compression for developer API requests, JSON responses, database telemetry, and dynamic HTTP streams (`Accept-Encoding: zstd`, `Content-Encoding: zstd`).
-* **Pure Zstandard Level 1 (`-1 -T4`)**: Hardware-accelerated lossless compression delivering sub-millisecond execution (<1.5ms, ~180 MB/s) for all external developer API requests, file uploads, and streaming.
-* **Pure Zstandard Level 3 (`-3 -T4`)**: Dedicated strictly for internal storage vault persistence, eMMC flash protection, and system backups (the absolute sweet spot, internal only for us).
+* **Pure Zstandard Level 1 (`-1 -T4`)**: Hardware-accelerated lossless compression delivering sub-millisecond execution (<1.5ms, ~180 MB/s) for developer API requests, file uploads, and streaming.
+* **Pure Zstandard Level 3 (`-3 -T4`)**: Dedicated for storage vault persistence, eMMC flash protection, disk backups, and high-ratio compressed storage (the absolute sweet spot, open to all developers).
 * **100% Bit-Exact Lossless Recovery**: Decompresses back to original file or text bytes with zero transcoding loss, zero artifacts, and zero quality degradation.
 * **Zero Bloat & Zero Third-Party Dependencies**: Directly bound to native C `libzstd.so` with 4 worker threads. Eliminates heavy third-party libraries and prevents RAM eviction.
 
 | Mode / Preset | Flag / Tier | Input Modality | Space Saved | Silicon Latency | Throughput | Primary Application |
 |---|---|---|---|---|---|---|
 | **API File & Text Compression** | Level 1 (`-1 -T4`) | Files, Images, Binaries, JSON, Text | **~40% - 90%** | **<1.5 ms** | ~180 MB/s | Real-time HTTP transfer, API requests, and live streaming (Devs) |
-| **Storage Vault Persistence** | Level 3 (`-3 -T4`) | Storage Vault Files & Backups | **~50% - 95%** | **<5 ms** | ~150 MB/s | Internal storage vault persistence and eMMC disk backup (Internal only) |
+| **Storage Vault Persistence** | Level 3 (`-3 -T4`) | Storage Vault Files & Backups | **~50% - 95%** | **<5 ms** | ~150 MB/s | Storage vault persistence, eMMC disk backup, and high-ratio storage |
 
 ---
 

@@ -310,7 +310,7 @@ The system enforces an uncompromising dual-tier compression policy on phone sili
 | **Level 19 (Max Safe)** | 1,000 MB | ~230 MB | ~8+ minutes | ~500 MB | *Disabled Permanently on Phone Silicon (LMK Eviction Risk)* |
 
 ##### Key Architectural Takeaways for Phone Silicon
-1. **The Sweet Spot**: Moving from Level 1 to Level 3 takes only 10 seconds more per GB, but saves an extra 50 MB of flash storage. That is why **Level 3 (`-3 -T4`) is strictly used internally for sovereign storage vault backups**.
+1. **The Sweet Spot**: Moving from Level 1 to Level 3 takes only 10 seconds more per GB, but saves an extra 50 MB of flash storage. That is why **Level 3 (`-3 -T4`) is available and recommended for storage vault backups, disk persistence, and high-ratio compression**.
 2. **The Real-Time Requirement**: Level 1 (`-1 -T4`) takes only 15 seconds per 1 GB (~180 MB/s, <1.5ms per API request) with an ultra-low ~10 MB RAM footprint, making it the ideal fit for **developer API requests and live streaming**.
 3. **The Penalty Zone**: Moving from Level 3 to Level 19 saves only 70 MB more per 1 GB, but takes 8+ minutes and requires 500 MB RAM, causing immediate CPU thermal throttling (45°C+) and Android Low Memory Killer (LMK) eviction on 2GB–4GB RAM devices.
 
@@ -615,7 +615,7 @@ Zstandard is the exclusive, universal compression standard across the entire sov
 
 #### 4.8.1 Strict Policy & Operational Principles
 * **Pure Zstandard Level 1 (`-1 -T4`)**: Dedicated for developer API requests, file/image compression, real-time network transfer, and CDN streaming (<1.5ms, ~180 MB/s).
-* **Pure Zstandard Level 3 (`-3 -T4`)**: Dedicated strictly for sovereign internal storage vault disk persistence, eMMC flash protection, and system backups (~150 MB/s, sweet spot, internal only for us).
+* **Pure Zstandard Level 3 (`-3 -T4`)**: Dedicated for storage vault disk persistence, eMMC flash protection, system backups, and high-ratio payload compression (~150 MB/s, sweet spot, open to all developers).
 * **100% Bit-Exact Lossless**: No lossy quantization artifacts, no blurry downscaling, no color subsampling degradation.
 * **Universal Payload Support**: Ingests image binary payloads, arbitrary files, and raw byte buffers.
 * **Zero Bloat**: Eliminates third-party imaging dependencies and memory leaks, executing directly against native C `libzstd.so.1.5.7` with 4 worker threads.

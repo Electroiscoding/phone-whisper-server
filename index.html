@@ -7018,6 +7018,7 @@ const blob = await cdnStream.blob();`;
       if (decompStatus) decompStatus.innerText = 'Compressing on ARM CPU...';
 
       try {
+        const selectedLevel = parseInt(document.getElementById('zstdLevelSelect')?.value || '1', 10);
         const endpoint = (window.activeOrigin || window.location.origin).replace(/\/+$/, '');
         const res = await fetch(`${endpoint}/v1/images/compress`, {
           method: 'POST',
@@ -7027,6 +7028,7 @@ const blob = await cdnStream.blob();`;
           },
           body: JSON.stringify({
             image: uploadedImageB64,
+            level: selectedLevel,
             as_json: true
           })
         });
@@ -7054,11 +7056,11 @@ const blob = await cdnStream.blob();`;
         if (downloadBtn) downloadBtn.style.display = 'inline-flex';
         if (verifyBtn) verifyBtn.style.display = 'inline-flex';
 
-        if (decompStatus) decompStatus.innerText = `Compressed in ${data.elapsed_ms}ms (${formatBytes(data.compressed_size)})`;
+        if (decompStatus) decompStatus.innerText = `Compressed Level ${data.level} in ${data.elapsed_ms}ms (${formatBytes(data.compressed_size)})`;
 
         if (outEl) {
           const entropyNote = (data.compression_ratio <= 1.05) ? '\n\n[TECHNICAL NOTE] Pre-compressed binary images (JPEG/PNG) are already entropy-coded. Zstandard operates losslessly and protects high-entropy binary data from payload inflation while preserving 100% bit-exact byte recovery.' : '';
-          outEl.innerText = `[DEMO ONLY • 100% IN-MEMORY STREAM • ZERO FILES STORED ON DISK]\nZstandard v1.5.7 Level 1 (-1 -T4) Image Compression:\nOriginal Size:   ${formatBytes(data.original_size)} (${data.original_size} B)\nCompressed Size: ${formatBytes(data.compressed_size)} (${data.compressed_size} B)\nCompression Ratio: ${data.compression_ratio}x\nSpace Saved:     ${data.space_saved_percent}%\nSilicon Latency: ${data.elapsed_ms} ms on ARM Cortex-A53\nThroughput:      ${data.throughput_mb_s || 0} MB/s${entropyNote}\n\nZstd Frame Base64:\n${lastImageCompressedB64.slice(0, 300)}...`;
+          outEl.innerText = `[DEMO ONLY • 100% IN-MEMORY STREAM • ZERO FILES STORED ON DISK]\nZstandard v1.5.7 Level ${data.level} (-${data.level} -T4) Image Compression:\nOriginal Size:   ${formatBytes(data.original_size)} (${data.original_size} B)\nCompressed Size: ${formatBytes(data.compressed_size)} (${data.compressed_size} B)\nCompression Ratio: ${data.compression_ratio}x\nSpace Saved:     ${data.space_saved_percent}%\nSilicon Latency: ${data.elapsed_ms} ms on ARM Cortex-A53\nThroughput:      ${data.throughput_mb_s || 0} MB/s${entropyNote}\n\nZstd Frame Base64:\n${lastImageCompressedB64.slice(0, 300)}...`;
         }
       } catch (err) {
         if (outEl) outEl.innerText = 'Image compression error: ' + err.message;
@@ -7261,7 +7263,7 @@ INSERT INTO sensor_telemetry (node, cpu_temp) VALUES ('redmi_9i_core3', 33.1);`
         document.getElementById('zstdMetricThroughput').innerText = (data.throughput_mb_s || 0) + ' MB/s';
 
         if (outEl) {
-          outEl.innerText = `[Zstandard v1.5.7 Frame Base64] (${data.compressed_size} bytes, ${data.compression_ratio}x ratio, ${data.elapsed_ms}ms latency on Helio G25 silicon)\n\n${lastZstdCompressedB64}`;
+          outEl.innerText = `[Zstandard v1.5.7 Level ${data.level} (-${data.level} -T4) Base64 Payload] (${data.compressed_size} bytes, ${data.compression_ratio}x ratio, ${data.elapsed_ms}ms latency on Helio G25 silicon)\n\n${lastZstdCompressedB64}`;
         }
       } catch (err) {
         if (outEl) outEl.innerText = 'Compression error: ' + err.message;
