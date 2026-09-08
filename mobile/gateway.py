@@ -2326,7 +2326,7 @@ class SwadeObjectStore:
                 action, path, payload = item
                 if action == "write":
                     os.makedirs(os.path.dirname(path), exist_ok=True)
-                    # Level 3 (-3 -T4) Dedicated Internal Storage Compression
+                    # Level 3 (-3 -T4) Dedicated Storage Vault & Backup Compression
                     try:
                         compressed_data = _zstd_engine.compress(payload, level=3)
                         with open(path, "wb") as f:
@@ -7081,16 +7081,16 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 "status": "success",
                 "engine": "Zstandard v1.5.7 (ARM Cortex-A53 Native 4T)",
                 "compression_algorithm": "zstd",
-                "tier": "api",
+                "tier": "public_dual_tier",
                 "level": 1,
                 "api_level": 1,
-                "internal_level": 3,
-                "policy": "Level 1 (-1 -T4) Developer API & HTTP Transfer | Level 3 (-3 -T4) Internal Storage Vault",
+                "storage_vault_level": 3,
+                "policy": "Level 1 (-1 -T4) Developer Real-Time API | Level 3 (-3 -T4) Storage Vault & Backups (Open to All)",
                 "image_compression": "Native Zstandard v1.5.7 hardware image compression",
                 "supported_modalities": ["image/*", "application/octet-stream"],
                 "dual_tier": {
-                    "api_level": 1,
-                    "internal_vault_level": 3
+                    "api_realtime_level": 1,
+                    "storage_backup_level": 3
                 },
                 "features": {
                     "lossless": True,

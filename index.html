@@ -2753,7 +2753,7 @@ console.log(`Restored ${originalBytes.length} bytes losslessly`);</code></pre>
             <div style="background: rgba(16, 185, 129, 0.08); border-left: 3px solid #10b981; padding: 0.75rem 1rem; border-radius: 0 8px 8px 0; margin-bottom: 1rem;">
               <strong style="color: #34d399;"><i class="fa-solid fa-lightbulb mr-1 text-amber-400"></i> Newbie 101: What is this?</strong>
               <p style="margin: 0.25rem 0 0; font-size: 0.88rem; color: var(--text-muted); line-height: 1.4;">
-                Hardware-accelerated Zstandard compression running directly on phone CPU silicon. Enforces strict dual-tier routing: <strong>Level 1 (-1 -T4)</strong> for sub-millisecond API responses and HTTP streaming (&lt;2ms); <strong>Level 3 (-3 -T4)</strong> internally for Sovereign Storage Vault backups. High levels 9-19 are permanently locked out to eliminate phone CPU thermal throttling.
+                Hardware-accelerated Zstandard compression running directly on phone CPU silicon. Dual-tier public architecture: <strong>Level 1 (-1 -T4)</strong> for sub-millisecond developer API responses and real-time HTTP streaming (&lt;2ms); <strong>Level 3 (-3 -T4)</strong> publicly available for storage vault backups, disk persistence, and high-ratio file saving (~3.2x ratio). High levels 9-19 are permanently locked out to eliminate phone CPU thermal throttling.
               </p>
             </div>
 
@@ -7180,7 +7180,7 @@ const blob = await cdnStream.blob();`;
       ], null, 2),
       log: `2026-09-07 22:30:01.102 [INFO] kernel_governor: Helio G25 8x Cortex-A53 load balanced across cluster 0-7
 2026-09-07 22:30:01.215 [INFO] zstd_engine: Native libzstd v1.5.7 linked directly via ctypes (32-bit armv7l)
-2026-09-07 22:30:01.320 [INFO] router: Dual-tier policy engaged. Level 1 (-1 -T4) for API requests; Level 3 (-3 -T4) for internal vault.
+2026-09-07 22:30:01.320 [INFO] router: Dual-tier public policy engaged. Level 1 (-1 -T4) for API requests & streaming; Level 3 (-3 -T4) for storage vault backups & disk persistence (open to all developers).
 2026-09-07 22:30:02.040 [INFO] thermal_shield: Battery temp 32.8C within optimal threshold (<45C). Levels 9-19 permanently disabled.`,
       sql: `CREATE TABLE sensor_telemetry (id INTEGER PRIMARY KEY AUTOINCREMENT, node TEXT, cpu_temp REAL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
 INSERT INTO sensor_telemetry (node, cpu_temp) VALUES ('redmi_9i_core0', 32.8);
