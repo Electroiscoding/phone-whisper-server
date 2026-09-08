@@ -2411,12 +2411,12 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
             <i class="fa-solid fa-align-left mr-1.5"></i> Text / Raw Payload
           </button>
           <button id="zstdModeBtn_image" onclick="switchZstdInputMode('image')" class="btn-action" style="padding: 0.4rem 1rem; font-size: 0.82rem; background: rgba(192, 132, 252, 0.15); border: 1px solid rgba(192, 132, 252, 0.45); color: #e9d5ff; font-weight: 700; border-radius: 8px;">
-            <i class="fa-solid fa-cloud-arrow-up mr-1.5 text-fuchsia-400"></i> Upload Image / File (Demo Only • No Storing)
+            <i class="fa-solid fa-cloud-arrow-up mr-1.5 text-fuchsia-400"></i> Upload Any File / Image (Demo Only • No Storing)
           </button>
         </div>
 
         <!-- Hidden Global File Input for Instant Upload -->
-        <input type="file" id="zstdFileInput" accept="image/*,.png,.jpg,.jpeg,.gif,.webp,.bmp,.svg,.bin" style="display: none;" onchange="handleZstdImageSelect(event)">
+        <input type="file" id="zstdFileInput" style="display: none;" onchange="handleZstdImageSelect(event)">
 
         <!-- TEXT / RAW PAYLOAD SECTION -->
         <div id="zstdTextSection">
@@ -2428,7 +2428,7 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
               <button onclick="loadZstdSample('log')" class="btn-action" style="padding: 0.3rem 0.65rem; font-size: 0.78rem;"><i class="fa-solid fa-terminal mr-1 text-amber-400"></i> Server Logs</button>
               <button onclick="loadZstdSample('sql')" class="btn-action" style="padding: 0.3rem 0.65rem; font-size: 0.78rem;"><i class="fa-solid fa-database mr-1 text-emerald-400"></i> SQL Dump</button>
               <button onclick="loadZstdSample('image')" class="btn-action" style="padding: 0.3rem 0.65rem; font-size: 0.78rem;"><i class="fa-solid fa-image mr-1 text-fuchsia-400"></i> Base64 Sample</button>
-              <button onclick="triggerZstdImageUpload()" class="btn-action" style="padding: 0.3rem 0.75rem; font-size: 0.78rem; background: rgba(192, 132, 252, 0.18); border: 1px solid rgba(192, 132, 252, 0.5); color: #e9d5ff; font-weight: 700;"><i class="fa-solid fa-cloud-arrow-up mr-1 text-fuchsia-400"></i> Upload Image</button>
+              <button onclick="triggerZstdImageUpload()" class="btn-action" style="padding: 0.3rem 0.75rem; font-size: 0.78rem; background: rgba(192, 132, 252, 0.18); border: 1px solid rgba(192, 132, 252, 0.5); color: #e9d5ff; font-weight: 700;"><i class="fa-solid fa-cloud-arrow-up mr-1 text-fuchsia-400"></i> Upload Any File</button>
             </div>
             <span id="zstdInputCharCount" style="font-size: 0.75rem; color: var(--text-subtle); font-family: monospace;">0 bytes</span>
           </div>
@@ -2445,7 +2445,7 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
             <div style="display: flex; align-items: center; gap: 0.65rem;">
               <i class="fa-solid fa-shield-halved text-purple-400" style="font-size: 1.1rem;"></i>
               <div style="font-size: 0.82rem; color: #e9d5ff; line-height: 1.4;">
-                <strong>Demo Only • Ephemeral In-Memory Compression:</strong> Uploaded image is processed 100% in phone RAM via native Zstandard Level 1 (-1 -T4). <strong>Zero files are stored or written to disk.</strong>
+                <strong>Demo Only • Ephemeral In-Memory Compression:</strong> Uploaded file is processed 100% in phone RAM via native Zstandard Level 1 (-1 -T4) or Level 3 (-3 -T4). <strong>Zero files are stored or written to disk.</strong>
               </div>
             </div>
             <span style="font-family: monospace; font-size: 0.72rem; background: rgba(168, 85, 247, 0.25); color: #d8b4fe; border: 1px solid rgba(168, 85, 247, 0.45); padding: 0.2rem 0.6rem; border-radius: 6px; white-space: nowrap;">
@@ -2458,10 +2458,10 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
                style="border: 2px dashed rgba(192, 132, 252, 0.45); border-radius: 12px; background: rgba(0,0,0,0.5); padding: 2rem 1.5rem; text-align: center; cursor: pointer; transition: all 0.2s ease;">
             <i class="fa-solid fa-cloud-arrow-up text-fuchsia-400" style="font-size: 2.4rem; margin-bottom: 0.75rem; display: block;"></i>
             <div style="font-weight: 700; color: #f1f5f9; font-size: 1rem; margin-bottom: 0.35rem;">
-              Click or Drag &amp; Drop Image Here
+              Click or Drag &amp; Drop Any File Here
             </div>
             <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem;">
-              Supports PNG, JPEG, WebP, GIF, SVG, BMP, or Raw Binary (Max 50 MB)
+              Supports Any File Format: PNG, JPEG, WebP, PDF, Audio, Video, ZIP, CSV, Logs, or Raw Binary (Max 50 MB)
             </div>
             <span class="btn-action" style="padding: 0.35rem 0.9rem; font-size: 0.78rem; background: rgba(192, 132, 252, 0.2); border: 1px solid rgba(192, 132, 252, 0.5); color: #e9d5ff; pointer-events: none;">
               <i class="fa-solid fa-folder-open mr-1 text-purple-400"></i> Browse Device Files

@@ -712,10 +712,10 @@ _security_shield = SwadesSecurityShield(max_attempts=15, window_seconds=60, lock
 
 # =========================================================================
 # HYPER PROD-GRADE ZSTANDARD (ZSTD v1.5.7) NATIVE ENGINE (DUAL-TIER)
-# Level 1 (-1 -T4): Dedicated to Developer API requests (/v1/compress),
-#                   real-time HTTP Content-Encoding, and live streaming.
-# Level 3 (-3 -T4): Dedicated strictly to Internal Storage Vault (/v1/storage)
-#                   persistence, audio caching, and snapshot backups.
+# Level 1 (-1 -T4): Real-time HTTP transfer, API requests (/v1/compress),
+#                   Content-Encoding: zstd, and live client streaming.
+# Level 3 (-3 -T4): Open for Storage Vault persistence (/v1/storage), disk backups,
+#                   high-ratio compressed storage, and developer requests (level: 3).
 # Levels 9-19:     Permanently disabled to safeguard phone silicon against
 #                   thermal throttling (45°C+) and Android LMK termination.
 # =========================================================================
@@ -6910,11 +6910,19 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                     self.wfile.write(json.dumps({"error": f"Invalid JSON body: {str(ex)}"}).encode("utf-8"))
                     return
 
+            if self.headers.get("X-Zstd-Level"):
+                try:
+                    requested_level = int(self.headers.get("X-Zstd-Level"))
+                except Exception:
+                    pass
+            elif "level=3" in self.path:
+                requested_level = 3
+
             # Dual-Tier Policy:
             # - Level 1 (-1 -T4): Dedicated for real-time HTTP transfer, API requests, live SDK calls, and streaming responses (<2ms, ~180 MB/s).
-            # - Level 3 (-3 -T4): Dedicated for storage vault backups, disk persistence, and high-ratio compression (~150 MB/s, ~3.2x ratio).
+            # - Level 3 (-3 -T4): Open for storage vault backups, disk persistence, high-ratio compression, and developer requests (~150 MB/s, ~3.2x ratio).
             # - Levels 9-19: Permanently disabled to protect phone silicon from thermal throttling and LMK eviction.
-            safe_level = 3 if requested_level == 3 else 1
+            safe_level = 3 if requested_level >= 3 else 1
             tier_name = "storage_vault" if safe_level == 3 else "api"
             policy_desc = "Level 3 (-3 -T4) Storage Vault & High-Ratio Compression" if safe_level == 3 else "Level 1 (-1 -T4) Real-Time API & Live Streaming"
 
