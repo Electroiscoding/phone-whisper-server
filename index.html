@@ -2379,7 +2379,7 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
           <span>Mode 8: Zstandard (zstd v1.5.7) Studio</span>
         </span>
         <h2 class="section-title">Zstandard Real-Time Hardware Compression Studio</h2>
-        <p class="section-desc">Hardware-accelerated lossless compression running natively on phone ARM Cortex-A53 silicon. Dedicated <strong>Level 1 (-1 -T4)</strong> for sub-millisecond API streaming &amp; HTTP payloads (&lt;2ms); <strong>Level 3 (-3 -T4)</strong> for Sovereign Disk Vault persistence.</p>
+        <p class="section-desc">Hardware-accelerated lossless compression running natively on phone ARM Cortex-A53 silicon. Dual-Tier Architecture: <strong>Level 1 (-1 -T4)</strong> for real-time HTTP transfer &amp; API requests (&lt;2ms); <strong>Level 3 (-3 -T4)</strong> for Storage Vault persistence, disk backups, and high-ratio compression (&lt;10ms, 3.2x ratio).</p>
       </div>
 
       <div class="studio-card" style="background: rgba(10, 15, 26, 0.85); border: 1px solid var(--card-border); border-radius: 16px; padding: 1.75rem;">
@@ -2396,11 +2396,11 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
           </div>
           <div style="background: rgba(56, 189, 248, 0.06); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 12px; padding: 1rem;">
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
-              <span style="font-weight: 700; color: #38bdf8; font-size: 0.85rem;"><i class="fa-solid fa-database mr-1.5"></i> Level 3: Internal Storage Vault</span>
-              <span style="font-family: monospace; font-size: 0.75rem; background: rgba(56,189,248,0.2); color: #7dd3fc; padding: 0.15rem 0.5rem; border-radius: 6px;">-3 -T4 Internal</span>
+              <span style="font-weight: 700; color: #38bdf8; font-size: 0.85rem;"><i class="fa-solid fa-database mr-1.5"></i> Level 3: Storage Vault &amp; Backups</span>
+              <span style="font-family: monospace; font-size: 0.75rem; background: rgba(56,189,248,0.2); color: #7dd3fc; padding: 0.15rem 0.5rem; border-radius: 6px;">-3 -T4 Active</span>
             </div>
             <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0; line-height: 1.4;">
-              For saving files to flash disk &amp; backups (the absolute sweet spot). ~3.2x ratio, ~150 MB/s throughput, preserves phone flash lifespan.
+              For saving files to flash disk, storage vault persistence, &amp; backups (the absolute sweet spot). ~3.2x ratio, ~150 MB/s throughput.
             </p>
           </div>
         </div>
@@ -2506,24 +2506,30 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
 
             <!-- Image Action Buttons -->
             <div style="display: flex; gap: 0.6rem; justify-content: flex-end; margin-top: 1rem; flex-wrap: wrap;">
-              <button id="zstdDownloadZstBtn" onclick="downloadZstdCompressedImage()" class="btn-action" style="padding: 0.45rem 1rem; font-size: 0.82rem; background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.4); color: #6ee7b7; font-weight: 700;">
-                <i class="fa-solid fa-download mr-1.5"></i> Download .zst File
-              </button>
-              <button id="zstdVerifyDecompressBtn" onclick="verifyZstdImageDecompress()" class="btn-action" style="padding: 0.45rem 1rem; font-size: 0.82rem; background: rgba(56,189,248,0.15); border: 1px solid rgba(56,189,248,0.4); color: #7dd3fc; font-weight: 700;">
-                <i class="fa-solid fa-rotate-left mr-1.5"></i> Verify Lossless In-Memory
-              </button>
-            </div>
+          <button id="zstdModeBtn_text" onclick="switchZstdInputMode('text')" class="btn-action" style="padding: 0.4rem 1rem; font-size: 0.82rem; background: var(--primary); color: #000; font-weight: 700; border-radius: 8px;">Text Input Mode</button>
+          <button id="zstdModeBtn_file" onclick="switchZstdInputMode('file')" class="btn-action" style="padding: 0.4rem 1rem; font-size: 0.82rem; background: rgba(255,255,255,0.05); color: var(--text-muted); border-radius: 8px;">File / Image Mode</button>
+        </div>
+
+        <!-- Input Text / File Area -->
+        <div id="zstdTextInputArea">
+          <textarea id="zstdInputText" rows="5" style="width: 100%; background: rgba(0,0,0,0.5); border: 1px solid var(--card-border); border-radius: 12px; color: var(--text-main); font-family: monospace; padding: 0.75rem; font-size: 0.85rem;" placeholder="Enter text or JSON payload to compress..."></textarea>
+        </div>
+        <div id="zstdFileInputArea" style="display: none;">
+          <div style="border: 2px dashed var(--card-border); border-radius: 12px; padding: 1.5rem; text-align: center; background: rgba(0,0,0,0.3);">
+            <i class="fa-solid fa-cloud-arrow-up text-2xl text-cyan-400 mb-2"></i>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">Select image or arbitrary binary file to compress with Zstandard Level 1 or Level 3</p>
+            <input type="file" id="zstdFileInput" style="font-size: 0.8rem; color: var(--text-subtle);">
           </div>
         </div>
 
-        <!-- Controls & Action Buttons -->
+        <!-- Controls Bar -->
         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; flex-wrap: wrap; gap: 0.75rem;">
           <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
             <div style="display: flex; align-items: center; gap: 0.4rem;">
               <span style="font-size: 0.8rem; color: var(--text-subtle);">Level:</span>
               <select id="zstdLevelSelect" style="background: rgba(0,0,0,0.7); border: 1px solid var(--card-border); color: #34d399; font-family: monospace; font-size: 0.82rem; padding: 0.45rem 0.7rem; border-radius: 8px;">
                 <option value="1">Level 1 (-1 -T4) • Real-Time HTTP &amp; API Requests (Devs, &lt;2ms)</option>
-                <option value="3" disabled>Level 3 (-3 -T4) • Disk Storage Vault Backups (Internal Only Us)</option>
+                <option value="3">Level 3 (-3 -T4) • Storage Vault &amp; Disk Backups (Sweet Spot, 3.2x ratio)</option>
               </select>
             </div>
             <div style="display: flex; align-items: center; gap: 0.4rem;">

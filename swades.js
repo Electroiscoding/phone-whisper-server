@@ -298,8 +298,8 @@ class SwadesClient {
   zstd = {
     // Compresses string or Uint8Array/ArrayBuffer. Uses Level 1 (-1 -T4) for real-time HTTP transfer
     compress: async (data, options = {}) => {
-      // Strict Dual-Tier: Level 1 (-1 -T4) is for API (devs) side requests & real-time HTTP transfer. Level 3 is for internal only us.
-      const level = 1;
+      // Dual-Tier Policy: Level 1 (-1 -T4) for real-time API requests (<1.5ms). Level 3 (-3 -T4) for high-ratio storage vault disk persistence (~3.2x ratio).
+      const safeLevel = (options.level === 3 || options.level === '3') ? 3 : 1;
       const isString = typeof data === 'string';
       const format = options.format || (isString ? 'base64' : 'binary');
 
@@ -327,7 +327,7 @@ class SwadesClient {
 
         const payload = {
           data: b64Payload,
-          level: level,
+          level: safeLevel,
           format: 'base64'
         };
         if (!isString) payload.encoding = 'base64';
@@ -344,7 +344,7 @@ class SwadesClient {
         return await res.json();
       } else {
         headers['Content-Type'] = 'application/octet-stream';
-        headers['X-Zstd-Level'] = String(level);
+        headers['X-Zstd-Level'] = String(safeLevel);
         const bodyBytes = data instanceof Uint8Array ? data : new Uint8Array(data);
         const res = await fetch(`${this.endpoint}/v1/compress`, {
           method: 'POST',

@@ -51,8 +51,8 @@ The server embeds native Zstandard v1.5.7 C bindings directly linked to Android 
   * **Scope:** All external developer requests to `POST /v1/compress`, real-time HTTP `Content-Encoding: zstd`, and live client streaming.
   * **Performance:** ~150 to 190 MB/s compression throughput, <1.5ms latency, ~10 MB RAM footprint.
   * **Enforcement:** External API requests requesting levels 2–19 are automatically clamped to Level 1.
-* **Level 3 (`-3 -T4`) — Internal Sovereign Storage Vault:**
-  * **Scope:** Internal storage persistence (`POST /v1/storage`), disk backups, and cached neural audio buffers. Internal only.
+* **Level 3 (`-3 -T4`) — Sovereign Storage Vault & High-Ratio Backups:**
+  * **Scope:** Storage vault persistence (`POST /v1/storage`), disk backups, and high-ratio compression requirements.
   * **Performance:** ~120 to 155 MB/s throughput, ~30 MB RAM footprint, ~3.2x compression ratio (up to 97.4% space savings on text and logs).
   * **Flash Longevity:** Reduces eMMC flash memory write wear by up to 75%.
 * **Levels 9 to 19 — Permanently Disabled on Silicon:**
@@ -63,13 +63,13 @@ The server embeds native Zstandard v1.5.7 C bindings directly linked to Android 
 | Compression Level Group | Original Size | Estimated After Size | Time to Finish | RAM Needed | Operational Tier & Enforcement |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Level 1 (Fastest, `-1 -T4`)** | 1,000 MB | ~350 MB | ~15 seconds | ~10 MB | **Developer API (`/v1/compress`) & Live Streaming** |
-| **Level 3 (Sweet Spot, `-3 -T4`)** | 1,000 MB | ~300 MB | ~25 seconds | ~30 MB | **Internal Storage Vault & Disk Backups (Internal Only Us)** |
+| **Level 3 (Sweet Spot, `-3 -T4`)** | 1,000 MB | ~300 MB | ~25 seconds | ~30 MB | **Storage Vault & Disk Backups (High-Ratio Persistence)** |
 | **Level 9 (Medium)** | 1,000 MB | ~270 MB | ~1.5 minutes | ~70 MB | *Disabled Permanently on Phone Silicon (Thermal Risk)* |
 | **Level 15 (High)** | 1,000 MB | ~250 MB | ~4 minutes | ~150 MB | *Disabled Permanently on Phone Silicon (Thermal Risk)* |
 | **Level 19 (Max Safe)** | 1,000 MB | ~230 MB | ~8+ minutes | ~500 MB | *Disabled Permanently on Phone Silicon (LMK Eviction Risk)* |
 
 #### Key Silicon Takeaways
-* **The Sweet Spot**: Moving from Level 1 to Level 3 takes only 10 seconds more per GB, saving an extra 50 MB of flash storage. That is why **Level 3 (`-3 -T4`) is strictly used internally for sovereign storage vault backups**.
+* **The Sweet Spot**: Moving from Level 1 to Level 3 takes only 10 seconds more per GB, saving an extra 50 MB of flash storage. That is why **Level 3 (`-3 -T4`) is the sweet spot for storage vault persistence and disk backups**.
 * **The Real-Time Requirement**: Level 1 (`-1 -T4`) takes only 15 seconds per 1 GB (~180 MB/s, <1.5ms per API request) with an ultra-low ~10 MB RAM footprint, making it the ideal fit for **developer API requests and live streaming**.
 * **The Penalty Zone**: Moving from Level 3 to Level 19 saves only 70 MB more per 1 GB, but takes 8+ minutes and requires 500 MB RAM, causing immediate CPU thermal throttling (45°C+) and Android Low Memory Killer (LMK) eviction on 2GB–4GB RAM devices.
 

@@ -295,8 +295,8 @@ The physical phone node features native C-level Zstandard (zstd v1.5.7) hardware
 
 The system enforces an uncompromising dual-tier compression policy on phone silicon based on empirical MediaTek Helio G25 multi-core benchmarks (-T4):
 
-* **Use Level 1 (`-1 -T4`)**: Dedicated for real-time HTTP transfer, API requests, and live streaming (**L1 is for API / devs side requests**). Delivers ~180 MB/s throughput, <1.5ms silicon latency, and a minimal ~10 MB RAM footprint.
-* **Use Level 3 (`-3 -T4`)**: Dedicated for saving files to disk / storage vault backups (**the absolute sweet spot; L3 is for internal only us**). Delivers ~3.2x ratio (up to 97.4% on logs), ~150 MB/s throughput, and optimal write endurance on eMMC flash storage.
+* **Use Level 1 (`-1 -T4`)**: Dedicated for real-time HTTP transfer, API requests, and live streaming. Delivers ~180 MB/s throughput, <1.5ms silicon latency, and a minimal ~10 MB RAM footprint.
+* **Use Level 3 (`-3 -T4`)**: Dedicated for saving files to disk / storage vault backups (**the absolute sweet spot**). Delivers ~3.2x ratio (up to 97.4% on logs), ~150 MB/s throughput, and optimal write endurance on eMMC flash storage.
 * **Levels 9–19 (Permanently Disabled)**: Locked out on phone silicon to protect against thermal throttling (45°C+) and Android Low Memory Killer (LMK) eviction.
 
 ##### Hardware Benchmark Breakdown (Per 1 GB of Data on 4 CPU Cores -T4)
@@ -304,7 +304,7 @@ The system enforces an uncompromising dual-tier compression policy on phone sili
 | Compression Level Group | Original Size | Estimated After Size | Time to Finish | RAM Needed | Operational Tier & Enforcement |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Level 1 (Fastest, `-1 -T4`)** | 1,000 MB | ~350 MB | ~15 seconds | ~10 MB | **Developer API (`/v1/compress`) & Live Streaming** |
-| **Level 3 (Sweet Spot, `-3 -T4`)** | 1,000 MB | ~300 MB | ~25 seconds | ~30 MB | **Internal Storage Vault & Disk Backups (Internal Only Us)** |
+| **Level 3 (Sweet Spot, `-3 -T4`)** | 1,000 MB | ~300 MB | ~25 seconds | ~30 MB | **Storage Vault & Disk Backups (High-Ratio Persistence)** |
 | **Level 9 (Medium)** | 1,000 MB | ~270 MB | ~1.5 minutes | ~70 MB | *Disabled Permanently on Phone Silicon (Thermal Risk)* |
 | **Level 15 (High)** | 1,000 MB | ~250 MB | ~4 minutes | ~150 MB | *Disabled Permanently on Phone Silicon (Thermal Risk)* |
 | **Level 19 (Max Safe)** | 1,000 MB | ~230 MB | ~8+ minutes | ~500 MB | *Disabled Permanently on Phone Silicon (LMK Eviction Risk)* |

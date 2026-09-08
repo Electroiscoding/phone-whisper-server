@@ -6848,10 +6848,10 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                     "ram_footprint": "~10 MB",
                     "latency": "<5ms"
                 },
-                "internal_storage": {
+                "storage_vault": {
                     "level": 3,
                     "flag": "-3 -T4",
-                    "role": "Internal only: Sovereign Storage Vault persistence (/v1/storage), audio disk caching, and snapshot backups",
+                    "role": "Public & Internal Storage Vault persistence (/v1/storage), disk backups, high-ratio compression, and audio caches",
                     "throughput_mb_s": "~120 - 155 MB/s",
                     "ram_footprint": "~30 MB",
                     "compression_ratio": "~2.8x - 3.5x",
@@ -6910,12 +6910,13 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                     self.wfile.write(json.dumps({"error": f"Invalid JSON body: {str(ex)}"}).encode("utf-8"))
                     return
 
-            # Strict Dual-Tier Policy:
-            # - Level 1 (-1 -T4): Enforced for all developer API requests (/v1/compress), real-time HTTP transfer, and live streaming (<2ms, ~180 MB/s).
-            # - Level 3 (-3 -T4): Dedicated strictly to Internal Storage Vault disk persistence and snapshot backups (~150 MB/s, 3.2x ratio).
-            # - Levels 9-19: Permanently disabled to protect phone silicon.
-            # External API requests are strictly locked to Level 1 (-1 -T4).
-            safe_level = 1
+            # Dual-Tier Policy:
+            # - Level 1 (-1 -T4): Dedicated for real-time HTTP transfer, API requests, live SDK calls, and streaming responses (<2ms, ~180 MB/s).
+            # - Level 3 (-3 -T4): Dedicated for storage vault backups, disk persistence, and high-ratio compression (~150 MB/s, ~3.2x ratio).
+            # - Levels 9-19: Permanently disabled to protect phone silicon from thermal throttling and LMK eviction.
+            safe_level = 3 if requested_level == 3 else 1
+            tier_name = "storage_vault" if safe_level == 3 else "api"
+            policy_desc = "Level 3 (-3 -T4) Storage Vault & High-Ratio Compression" if safe_level == 3 else "Level 1 (-1 -T4) Real-Time API & Live Streaming"
 
             t0 = time.perf_counter()
             compressed = _zstd_engine.compress(raw_bytes, level=safe_level)
@@ -6931,10 +6932,10 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 resp = {
                     "status": "success",
                     "engine": "Zstandard v1.5.7 (ARM Cortex-A53 Native)",
-                    "tier": "api",
-                    "level": 1,
+                    "tier": tier_name,
+                    "level": safe_level,
                     "threads": 4,
-                    "policy": "Level 1 (-1 -T4) Developer API / Real-Time Streaming (Level 3 reserved for Internal Storage Vault)",
+                    "policy": policy_desc,
                     "original_size": orig_sz,
                     "compressed_size": comp_sz,
                     "compression_ratio": ratio,
@@ -6949,9 +6950,9 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 self.send_header("Content-Type", "application/json")
                 self.send_header("Content-Length", str(len(out_bytes)))
                 self.send_header("X-Zstd-Engine", "Zstandard v1.5.7 (ARM Cortex-A53 Native)")
-                self.send_header("X-Zstd-Tier", "api")
-                self.send_header("X-Zstd-Level", "1")
-                self.send_header("X-Zstd-Policy", "Level 1 (-1 -T4) Developer API / Real-Time Streaming")
+                self.send_header("X-Zstd-Tier", tier_name)
+                self.send_header("X-Zstd-Level", str(safe_level))
+                self.send_header("X-Zstd-Policy", policy_desc)
                 self.send_header("X-Zstd-Threads", "4")
                 self.send_header("X-Original-Size", str(orig_sz))
                 self.send_header("X-Compressed-Size", str(comp_sz))
@@ -6965,9 +6966,9 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 self.send_header("Content-Type", "application/zstd")
                 self.send_header("Content-Length", str(comp_sz))
                 self.send_header("X-Zstd-Engine", "Zstandard v1.5.7 (ARM Cortex-A53 Native)")
-                self.send_header("X-Zstd-Tier", "api")
-                self.send_header("X-Zstd-Level", "1")
-                self.send_header("X-Zstd-Policy", "Level 1 (-1 -T4) Developer API / Real-Time Streaming")
+                self.send_header("X-Zstd-Tier", tier_name)
+                self.send_header("X-Zstd-Level", str(safe_level))
+                self.send_header("X-Zstd-Policy", policy_desc)
                 self.send_header("X-Zstd-Threads", "4")
                 self.send_header("X-Original-Size", str(orig_sz))
                 self.send_header("X-Compressed-Size", str(comp_sz))
@@ -7121,10 +7122,12 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             as_json = False
             raw_bytes = body
 
+            requested_level = 1
             if "application/json" in content_type:
                 try:
                     payload = json.loads(body.decode("utf-8"))
                     img_data = payload.get("image") or payload.get("data") or ""
+                    requested_level = int(payload.get("level", 1))
                     as_json = bool(payload.get("as_json", True))
 
                     if isinstance(img_data, str):
@@ -7157,9 +7160,12 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             if "application/json" in accept and "image/" not in accept and "application/zstd" not in accept:
                 as_json = True
 
-            # Use Zstandard Level 1 (-1 -T4) ONLY for API image compression
+            safe_level = 3 if requested_level == 3 else 1
+            tier_name = "storage_vault" if safe_level == 3 else "api"
+            policy_desc = "Level 3 (-3 -T4) Storage Vault & High-Ratio Compression" if safe_level == 3 else "Level 1 (-1 -T4) Real-Time API & Live Streaming"
+
             t0 = time.perf_counter()
-            compressed_bytes = _zstd_engine.compress(raw_bytes, level=1)
+            compressed_bytes = _zstd_engine.compress(raw_bytes, level=safe_level)
             t_elapsed = max(0.01, (time.perf_counter() - t0) * 1000.0)
 
             orig_size = len(raw_bytes)
@@ -7174,9 +7180,9 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                     "status": "success",
                     "engine": "Zstandard v1.5.7 (ARM Cortex-A53 Native 4T)",
                     "compression_algorithm": "zstd",
-                    "tier": "api",
-                    "level": 1,
-                    "policy": "Level 1 (-1 -T4) Developer API & HTTP Transfer",
+                    "tier": tier_name,
+                    "level": safe_level,
+                    "policy": policy_desc,
                     "original_size": orig_size,
                     "compressed_size": comp_size,
                     "compression_ratio": ratio,
@@ -7192,9 +7198,9 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 self.send_header("Content-Type", "application/json")
                 self.send_header("Content-Length", str(len(out_bytes)))
                 self.send_header("X-Zstd-Engine", "Zstandard v1.5.7 (ARM Cortex-A53 Native 4T)")
-                self.send_header("X-Zstd-Tier", "api")
-                self.send_header("X-Zstd-Level", "1")
-                self.send_header("X-Zstd-Policy", "Level 1 (-1 -T4) Developer API & HTTP Transfer")
+                self.send_header("X-Zstd-Tier", tier_name)
+                self.send_header("X-Zstd-Level", str(safe_level))
+                self.send_header("X-Zstd-Policy", policy_desc)
                 self.send_header("X-Storage-Persistence", "none-ephemeral-in-memory")
                 self.send_header("X-Original-Size", str(orig_size))
                 self.send_header("X-Compressed-Size", str(comp_size))
@@ -7230,7 +7236,47 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.wfile.write(json.dumps({"error": f"Zstd image compression failed: {str(e)}"}).encode("utf-8"))
 
 
+def start_tunnel_registration_daemon():
+    def _worker():
+        last_registered = None
+        while True:
+            try:
+                tunnel_url = None
+                log_path = "/data/data/com.termux/files/home/tunnel.log"
+                if os.path.exists(log_path):
+                    with open(log_path, "r", encoding="utf-8", errors="ignore") as f:
+                        content = f.read()
+                        matches = re.findall(r"https://[a-zA-Z0-9-]+\.trycloudflare\.com", content)
+                        if matches:
+                            tunnel_url = matches[-1]
+
+                if not tunnel_url and os.path.exists("endpoint.json"):
+                    with open("endpoint.json", "r", encoding="utf-8") as f:
+                        data = json.load(f)
+                        tunnel_url = data.get("endpoint")
+
+                if tunnel_url and tunnel_url != last_registered:
+                    payload = json.dumps({"endpoint": tunnel_url, "secret": "mobile_ai_nuclear_key"}).encode("utf-8")
+                    req = urllib.request.Request(
+                        "https://phone-whisper-server.pages.dev/register_tunnel",
+                        data=payload,
+                        headers={"Content-Type": "application/json"},
+                        method="POST"
+                    )
+                    with urllib.request.urlopen(req, timeout=5) as resp:
+                        if resp.status == 200:
+                            last_registered = tunnel_url
+                            print(f"[TUNNEL-SYNC] Registered live origin with Cloudflare Edge: {tunnel_url}")
+            except Exception:
+                pass
+            time.sleep(15)
+
+    t = threading.Thread(target=_worker, daemon=True)
+    t.start()
+
+
 def main():
+    start_tunnel_registration_daemon()
     port = 8080
     server_address = ('0.0.0.0', port)
     httpd = ThreadedHTTPServer(server_address, MultiModalGatewayHandler)
