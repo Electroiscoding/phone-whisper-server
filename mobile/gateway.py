@@ -2713,6 +2713,43 @@ class ModelGovernor:
         except Exception:
             return False
 
+    def _resolve_cmd(self, cfg):
+        cmd = list(cfg["cmd"])
+        binary = cmd[0]
+        if not os.path.exists(binary):
+            bin_name = os.path.basename(binary)
+            candidates = [
+                f"{self.home}/llama.cpp/build/bin/{bin_name}",
+                f"{self.home}/llama.cpp/{bin_name}",
+                f"{self.home}/whisper.cpp/build/bin/{bin_name}",
+                f"{self.home}/whisper.cpp/{bin_name}",
+                f"{self.home}/{bin_name}",
+                f"{self.prefix}/bin/{bin_name}",
+                f"/data/data/com.termux/files/usr/bin/{bin_name}",
+                shutil.which(bin_name)
+            ]
+            for cand in candidates:
+                if cand and os.path.exists(cand):
+                    cmd[0] = cand
+                    break
+
+        if "-m" in cmd:
+            m_idx = cmd.index("-m") + 1
+            model_path = cmd[m_idx]
+            if not os.path.exists(model_path):
+                m_name = os.path.basename(model_path)
+                m_candidates = [
+                    f"{self.home}/models/{m_name}",
+                    f"{self.home}/whisper.cpp/models/{m_name}",
+                    f"{self.home}/whisper.cpp/build/bin/models/{m_name}",
+                    f"/sdcard/models/{m_name}",
+                ]
+                for cand in m_candidates:
+                    if cand and os.path.exists(cand):
+                        cmd[m_idx] = cand
+                        break
+        return cmd
+
     def acquire(self, model_key):
         """Acquires a model, booting it if evicted/idle, and marks it busy."""
         with self.lock:
@@ -2736,12 +2773,20 @@ class ModelGovernor:
                     except Exception:
                         pass
 
+                cmd = self._resolve_cmd(cfg)
+                if not os.path.exists(cmd[0]):
+                    raise FileNotFoundError(f"Binary executable not found: {cmd[0]}")
+                if "-m" in cmd:
+                    m_path = cmd[cmd.index("-m") + 1]
+                    if not os.path.exists(m_path):
+                        raise FileNotFoundError(f"Model weights file not found: {m_path}")
+
                 log_f = open(cfg["log"], "a")
                 env = os.environ.copy()
                 env.update(cfg.get("env", {}))
 
                 proc = subprocess.Popen(
-                    cfg["cmd"],
+                    cmd,
                     stdout=log_f,
                     stderr=log_f,
                     env=env
@@ -2754,6 +2799,9 @@ class ModelGovernor:
                     if self._is_service_ready(model_key, port):
                         break
                     time.sleep(0.1)
+
+                if not self._is_service_ready(model_key, port):
+                    raise TimeoutError(f"Model service {model_key} failed to start on port {port} within 15s")
 
             self.access_times[model_key] = time.time()
             return port
@@ -6357,8 +6405,10 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             _active_inferences += 1
             _active_daemon = "Qwen 2.5 SLM (Chat)"
 
-        port = _governor.acquire("qwen_chat")
+        acquired = False
         try:
+            port = _governor.acquire("qwen_chat")
+            acquired = True
             content_length = int(self.headers.get("Content-Length", 0))
             body = self.rfile.read(content_length) if content_length > 0 else b"{}"
 
@@ -6410,13 +6460,14 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(err_body)
         except Exception as e:
-            self.send_response(502)
+            self.send_response(503)
             self._send_cors_headers()
             self.send_header("Content-Type", "application/json")
             self.end_headers()
-            self.wfile.write(json.dumps({"error": f"LLM backend unreachable: {str(e)}"}).encode())
+            self.wfile.write(json.dumps({"error": f"LLM backend error: {str(e)}", "status": 503}).encode())
         finally:
-            _governor.release("qwen_chat")
+            if acquired:
+                _governor.release("qwen_chat")
             with _state_lock:
                 _active_inferences = max(0, _active_inferences - 1)
                 if _active_inferences == 0:
@@ -6430,8 +6481,10 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             _active_inferences += 1
             _active_daemon = "BGE-Reranker (Cross-Encoder)"
 
-        port = _governor.acquire("bge_rerank")
+        acquired = False
         try:
+            port = _governor.acquire("bge_rerank")
+            acquired = True
             content_length = int(self.headers.get("Content-Length", 0))
             body = self.rfile.read(content_length) if content_length > 0 else b"{}"
             headers = {"Content-Type": "application/json"}
@@ -6466,13 +6519,14 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(err_body)
         except Exception as e:
-            self.send_response(502)
+            self.send_response(503)
             self._send_cors_headers()
             self.send_header("Content-Type", "application/json")
             self.end_headers()
-            self.wfile.write(json.dumps({"error": f"Reranker backend unreachable: {str(e)}"}).encode())
+            self.wfile.write(json.dumps({"error": f"Reranker backend error: {str(e)}", "status": 503}).encode())
         finally:
-            _governor.release("bge_rerank")
+            if acquired:
+                _governor.release("bge_rerank")
             with _state_lock:
                 _active_inferences = max(0, _active_inferences - 1)
                 if _active_inferences == 0:
@@ -6486,8 +6540,10 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             _active_inferences += 1
             _active_daemon = "BGE-Small (Embeddings)"
 
-        port = _governor.acquire("bge_embed")
+        acquired = False
         try:
+            port = _governor.acquire("bge_embed")
+            acquired = True
             content_length = int(self.headers.get("Content-Length", 0))
             body = self.rfile.read(content_length) if content_length > 0 else b"{}"
             headers = {"Content-Type": "application/json"}
@@ -6510,13 +6566,14 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(err_body)
         except Exception as e:
-            self.send_response(502)
+            self.send_response(503)
             self._send_cors_headers()
             self.send_header("Content-Type", "application/json")
             self.end_headers()
-            self.wfile.write(json.dumps({"error": f"Embeddings backend unreachable: {str(e)}"}).encode())
+            self.wfile.write(json.dumps({"error": f"Embeddings backend error: {str(e)}", "status": 503}).encode())
         finally:
-            _governor.release("bge_embed")
+            if acquired:
+                _governor.release("bge_embed")
             with _state_lock:
                 _active_inferences = max(0, _active_inferences - 1)
                 if _active_inferences == 0:
