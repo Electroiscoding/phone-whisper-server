@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://tiles-bears-lane-sku.trycloudflare.com",
-  "inference": "https://tiles-bears-lane-sku.trycloudflare.com/inference",
-  "telemetry": "https://tiles-bears-lane-sku.trycloudflare.com/telemetry",
+  "endpoint": "https://hammer-reasons-terry-imported.trycloudflare.com",
+  "inference": "https://hammer-reasons-terry-imported.trycloudflare.com/inference",
+  "telemetry": "https://hammer-reasons-terry-imported.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-09-09T11:07:02Z"
+  "updated_at": "2026-09-11T07:02:11Z"
 }
