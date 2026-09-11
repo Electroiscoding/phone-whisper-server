@@ -2618,8 +2618,25 @@ class ModelGovernor:
 
     def __init__(self):
         self.lock = threading.Lock()
-        self.home = os.environ.get("HOME", "/data/data/com.termux/files/home")
-        self.prefix = os.environ.get("PREFIX", "/data/data/com.termux/files/usr")
+        
+        # Determine actual Termux home directory reliably
+        termux_home_candidates = [
+            "/data/data/com.termux/files/home",
+            "/data/user/0/com.termux/files/home",
+            os.environ.get("HOME", ""),
+            os.path.expanduser("~")
+        ]
+        self.home = "/data/data/com.termux/files/home"
+        for cand in termux_home_candidates:
+            if cand and os.path.exists(f"{cand}/models"):
+                self.home = cand
+                break
+
+        self.prefix = "/data/data/com.termux/files/usr"
+        for cand_p in ["/data/data/com.termux/files/usr", "/data/user/0/com.termux/files/usr", os.environ.get("PREFIX", "")]:
+            if cand_p and os.path.exists(cand_p):
+                self.prefix = cand_p
+                break
 
         self.registry = {
             "whisper": {
@@ -2647,6 +2664,7 @@ class ModelGovernor:
                     "--port", "8001",
                     "--host", "127.0.0.1",
                     "-t", "4",
+                    "-np", "1",
                     "-b", "256",
                     "-ub", "128",
                     "-c", "768",
@@ -2665,6 +2683,7 @@ class ModelGovernor:
                     "--port", "8002",
                     "--host", "127.0.0.1",
                     "-t", "4",
+                    "-np", "1",
                     "-c", "512",
                     "--embedding",
                     "--pooling", "cls",
@@ -2683,6 +2702,7 @@ class ModelGovernor:
                     "--port", "8003",
                     "--host", "127.0.0.1",
                     "-t", "4",
+                    "-np", "1",
                     "-c", "512",
                     "--reranking",
                     "--pooling", "rank",
@@ -2716,38 +2736,42 @@ class ModelGovernor:
     def _resolve_cmd(self, cfg):
         cmd = list(cfg["cmd"])
         binary = cmd[0]
-        if not os.path.exists(binary):
-            bin_name = os.path.basename(binary)
-            candidates = [
-                f"{self.home}/llama.cpp/build/bin/{bin_name}",
-                f"{self.home}/llama.cpp/{bin_name}",
-                f"{self.home}/whisper.cpp/build/bin/{bin_name}",
-                f"{self.home}/whisper.cpp/{bin_name}",
-                f"{self.home}/{bin_name}",
-                f"{self.prefix}/bin/{bin_name}",
-                f"/data/data/com.termux/files/usr/bin/{bin_name}",
-                shutil.which(bin_name)
-            ]
-            for cand in candidates:
-                if cand and os.path.exists(cand):
-                    cmd[0] = cand
-                    break
+        bin_name = os.path.basename(binary)
+        candidates = [
+            binary,
+            f"{self.home}/llama.cpp/build/bin/{bin_name}",
+            f"{self.home}/llama.cpp/{bin_name}",
+            f"{self.home}/whisper.cpp/build/bin/{bin_name}",
+            f"{self.home}/whisper.cpp/{bin_name}",
+            f"/data/data/com.termux/files/home/llama.cpp/build/bin/{bin_name}",
+            f"/data/data/com.termux/files/home/whisper.cpp/build/bin/{bin_name}",
+            f"{self.home}/{bin_name}",
+            f"{self.prefix}/bin/{bin_name}",
+            f"/data/data/com.termux/files/usr/bin/{bin_name}",
+            shutil.which(bin_name)
+        ]
+        for cand in candidates:
+            if cand and os.path.exists(cand):
+                cmd[0] = cand
+                break
 
         if "-m" in cmd:
             m_idx = cmd.index("-m") + 1
             model_path = cmd[m_idx]
-            if not os.path.exists(model_path):
-                m_name = os.path.basename(model_path)
-                m_candidates = [
-                    f"{self.home}/models/{m_name}",
-                    f"{self.home}/whisper.cpp/models/{m_name}",
-                    f"{self.home}/whisper.cpp/build/bin/models/{m_name}",
-                    f"/sdcard/models/{m_name}",
-                ]
-                for cand in m_candidates:
-                    if cand and os.path.exists(cand):
-                        cmd[m_idx] = cand
-                        break
+            m_name = os.path.basename(model_path)
+            m_candidates = [
+                model_path,
+                f"{self.home}/models/{m_name}",
+                f"/data/data/com.termux/files/home/models/{m_name}",
+                f"{self.home}/whisper.cpp/models/{m_name}",
+                f"{self.home}/whisper.cpp/build/bin/models/{m_name}",
+                f"/data/data/com.termux/files/home/whisper.cpp/models/{m_name}",
+                f"/sdcard/models/{m_name}",
+            ]
+            for cand in m_candidates:
+                if cand and os.path.exists(cand):
+                    cmd[m_idx] = cand
+                    break
         return cmd
 
     def acquire(self, model_key):
@@ -2793,15 +2817,15 @@ class ModelGovernor:
                 )
                 self.spawned_processes[model_key] = proc
 
-                # Wait for service to become fully initialized (up to 15s)
+                # Wait for service to become fully initialized (up to 35s)
                 start_w = time.time()
-                while time.time() - start_w < 15.0:
+                while time.time() - start_w < 35.0:
                     if self._is_service_ready(model_key, port):
                         break
                     time.sleep(0.1)
 
                 if not self._is_service_ready(model_key, port):
-                    raise TimeoutError(f"Model service {model_key} failed to start on port {port} within 15s")
+                    raise TimeoutError(f"Model service {model_key} failed to start on port {port} within 35s")
 
             self.access_times[model_key] = time.time()
             return port
