@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://receptor-affects-pdt-consciousness.trycloudflare.com",
-  "inference": "https://receptor-affects-pdt-consciousness.trycloudflare.com/inference",
-  "telemetry": "https://receptor-affects-pdt-consciousness.trycloudflare.com/telemetry",
+  "endpoint": "https://packet-subsequent-jennifer-preventing.trycloudflare.com",
+  "inference": "https://packet-subsequent-jennifer-preventing.trycloudflare.com/inference",
+  "telemetry": "https://packet-subsequent-jennifer-preventing.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-09-11T07:14:31Z"
+  "updated_at": "2026-09-11T07:20:00Z"
 }
