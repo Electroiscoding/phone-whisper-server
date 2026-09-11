@@ -7283,7 +7283,30 @@ def start_tunnel_registration_daemon():
     t.start()
 
 
+def setup_scifi_hud():
+    try:
+        home = "/data/data/com.termux/files/home"
+        termux_dir = f"{home}/.termux"
+        os.makedirs(termux_dir, exist_ok=True)
+        props_file = f"{termux_dir}/termux.properties"
+        with open(props_file, "w") as f:
+            f.write("extra-keys = []\nfullscreen = true\n")
+        
+        bashrc_file = f"{home}/.bashrc"
+        hud_cmd = "python /sdcard/hud.py"
+        content = ""
+        if os.path.exists(bashrc_file):
+            with open(bashrc_file, "r") as f:
+                content = f.read()
+        if hud_cmd not in content:
+            with open(bashrc_file, "a") as f:
+                f.write(f"\n# Auto-launch Sci-Fi Mainframe HUD\nif [ -z \"$HUD_ACTIVE\" ]; then\n  export HUD_ACTIVE=1\n  python /sdcard/hud.py\nfi\n")
+    except Exception as e:
+        print(f"[HUD-SETUP ERROR] {e}")
+
+
 def main():
+    setup_scifi_hud()
     start_tunnel_registration_daemon()
     port = 8080
     server_address = ('0.0.0.0', port)
