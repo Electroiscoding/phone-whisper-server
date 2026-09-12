@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://packet-subsequent-jennifer-preventing.trycloudflare.com",
-  "inference": "https://packet-subsequent-jennifer-preventing.trycloudflare.com/inference",
-  "telemetry": "https://packet-subsequent-jennifer-preventing.trycloudflare.com/telemetry",
+  "endpoint": "https://butler-church-breakdown-treated.trycloudflare.com",
+  "inference": "https://butler-church-breakdown-treated.trycloudflare.com/inference",
+  "telemetry": "https://butler-church-breakdown-treated.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-09-11T07:20:00Z"
+  "updated_at": "2026-09-12T12:59:40Z"
 }
