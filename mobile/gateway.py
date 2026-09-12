@@ -6962,8 +6962,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
     def handle_zstd_compress(self):
         try:
             content_length = int(self.headers.get("Content-Length", 0))
-            if content_length > 50 * 1024 * 1024:
-                self.send_error(413, "Payload exceeds 50MB limit")
+            if content_length > 500 * 1024 * 1024:
+                self.send_error(413, "Payload exceeds 500MB limit")
                 return
             body = self.rfile.read(content_length) if content_length > 0 else b""
             content_type = (self.headers.get("Content-Type") or "").lower()
@@ -7076,8 +7076,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
     def handle_zstd_decompress(self):
         try:
             content_length = int(self.headers.get("Content-Length", 0))
-            if content_length > 50 * 1024 * 1024:
-                self.send_error(413, "Payload exceeds 50MB limit")
+            if content_length > 500 * 1024 * 1024:
+                self.send_error(413, "Payload exceeds 500MB limit")
                 return
             body = self.rfile.read(content_length) if content_length > 0 else b""
             content_type = (self.headers.get("Content-Type") or "").lower()
@@ -7201,7 +7201,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
     def handle_image_compress(self):
         try:
             content_length = int(self.headers.get("Content-Length", 0))
-            if content_length > 50 * 1024 * 1024:
+            if content_length > 500 * 1024 * 1024:
                 self.send_error(413, "Image payload exceeds 50MB limit")
                 return
 
