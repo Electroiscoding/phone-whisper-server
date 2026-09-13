@@ -13,6 +13,7 @@ Features:
 """
 
 import os
+import platform
 import sqlite3
 import uuid
 import collections
@@ -2090,6 +2091,56 @@ class SwadeStorageVault:
         return rows
 
 
+    def _get_dynamic_device_info(self):
+        brand = ""
+        model = ""
+        cores = os.cpu_count() or 8
+        mem_total_gb = 0.0
+
+        try:
+            brand = subprocess.check_output(["getprop", "ro.product.manufacturer"], timeout=1).decode().strip()
+        except Exception:
+            brand = ""
+        try:
+            model = subprocess.check_output(["getprop", "ro.product.marketname"], timeout=1).decode().strip()
+            if not model:
+                model = subprocess.check_output(["getprop", "ro.product.model"], timeout=1).decode().strip()
+        except Exception:
+            model = ""
+
+        if not brand:
+            try:
+                brand = subprocess.check_output(["getprop", "ro.product.brand"], timeout=1).decode().strip()
+            except Exception:
+                pass
+
+        device_name = f"{brand} {model}".strip() if (brand or model) else platform.node()
+        if not device_name:
+            device_name = "Phone Node"
+
+        machine = platform.machine() or "arm64"
+        cpu_info = f"{machine.upper()} ({cores} cores)"
+
+        try:
+            with open("/proc/meminfo", "r") as f:
+                for line in f:
+                    if line.startswith("MemTotal:"):
+                        kb = int(line.split()[1])
+                        mem_total_gb = round(kb / (1024 * 1024), 1)
+                        break
+        except Exception:
+            pass
+
+        mem_desc = f"{mem_total_gb} GB RAM" if mem_total_gb > 0 else "LPDDR4X"
+
+        return {
+            "device_model": device_name,
+            "cpu_architecture": cpu_info,
+            "memory_architecture": mem_desc,
+            "cores": cores,
+            "platform": platform.platform()
+        }
+
     def get_dashboard_overview(self, project_id=None):
         conn = self._get_conn()
         cursor = conn.cursor()
@@ -2114,6 +2165,10 @@ class SwadeStorageVault:
         t_probe1 = time.perf_counter_ns()
         l1_reflection_ns = max(1.0, float(t_probe1 - t_probe0))
 
+        dev_info = self._get_dynamic_device_info()
+        acc_info = _acc_controller.get_live_status() if '_acc_controller' in globals() else {}
+        bat_info = _battery_watcher.get_live_stats() if '_battery_watcher' in globals() else {}
+
         return {
             "status": "OPERATIONAL",
             "users": {"total": total_users, "active": active_users},
@@ -2133,11 +2188,12 @@ class SwadeStorageVault:
             "system_health": {
                 "l1_reflection_ns": l1_reflection_ns,
                 "sub_microsecond": True,
-                "device_model": "Xiaomi Redmi 9i (Phone Node)",
-                "cpu_architecture": "ARM64 Cortex-A53 (8 cores)",
-                "memory_architecture": "LPDDR4X @ 1600MHz",
+                "device_model": dev_info["device_model"],
+                "cpu_architecture": dev_info["cpu_architecture"],
+                "memory_architecture": dev_info["memory_architecture"],
                 "uptime_seconds": int(time.time() - _START_TIME) if '_START_TIME' in globals() else 3600,
-                "battery": _battery_watcher.get_live_stats() if '_battery_watcher' in globals() else {}
+                "battery": bat_info,
+                "acc": acc_info
             }
         }
 

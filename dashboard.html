@@ -139,11 +139,11 @@
           <span>Phone Node</span>
           <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
         </div>
-        <div class="truncate text-zinc-300 font-medium" id="sidebar-device-model">Xiaomi Redmi 9i (Phone Node)</div>
-        <div class="text-zinc-500 truncate" id="sidebar-device-arch">ARM64 Cortex-A53 (8 cores)</div>
+        <div class="truncate text-zinc-300 font-medium" id="sidebar-device-model">Connecting to Phone Node...</div>
+        <div class="text-zinc-500 truncate" id="sidebar-device-arch">Detecting Silicon Architecture...</div>
         <div class="flex justify-between text-zinc-500 pt-1 border-t border-zinc-800/60">
-          <span id="sidebar-battery"><i class="fa-solid fa-battery-half text-emerald-400 mr-1"></i> 80%</span>
-          <span id="sidebar-temp" class="text-cyan-400"><i class="fa-solid fa-temperature-half mr-1"></i> 32.8°C</span>
+          <span id="sidebar-battery"><i class="fa-solid fa-battery-half text-zinc-500 mr-1"></i> --%</span>
+          <span id="sidebar-temp" class="text-zinc-500"><i class="fa-solid fa-temperature-half mr-1"></i> --°C</span>
         </div>
         <div class="flex justify-between items-center text-[10px] text-zinc-500 pt-1 border-t border-zinc-800/60">
           <span>Zstd v1.5.7:</span>
@@ -151,7 +151,7 @@
         </div>
         <div class="flex justify-between items-center text-[10px] text-zinc-500 pt-1 border-t border-zinc-800/60">
           <span>ACC Guard:</span>
-          <span id="sidebar-acc" class="text-amber-400 font-semibold"><i class="fa-solid fa-shield-halved mr-1"></i> Active (70-80%)</span>
+          <span id="sidebar-acc" class="text-amber-400 font-semibold"><i class="fa-solid fa-shield-halved mr-1"></i> Querying...</span>
         </div>
         <div class="flex justify-between items-center text-[10px] text-zinc-500 pt-1 border-t border-zinc-800/60">
           <span>Image Engine:</span>
@@ -1879,19 +1879,33 @@ print(f"Losslessly restored {len(restored_bytes)} bytes")</pre>
     async function refreshTelemetry() {
       try {
         const res = await apiFetch('/v1/dashboard/overview');
+        if (!res.ok) return;
         const data = await res.json();
         if (data.system_health) {
           const sh = data.system_health;
-          if (sh.device_model) document.getElementById('sidebar-device-model').innerText = sh.device_model;
-          if (sh.cpu_architecture) document.getElementById('sidebar-device-arch').innerText = sh.cpu_architecture;
-          if (sh.battery) {
-            document.getElementById('sidebar-battery').innerHTML = `<i class="fa-solid fa-battery-half text-emerald-400 mr-1"></i> ${sh.battery.level}% ${sh.battery.status}`;
-            document.getElementById('sidebar-temp').innerHTML = `<i class="fa-solid fa-temperature-half text-cyan-400 mr-1"></i> ${sh.battery.temperature}°C`;
+          if (sh.device_model) {
+            const devEl = document.getElementById('sidebar-device-model');
+            if (devEl) devEl.innerText = sh.device_model;
+          }
+          if (sh.cpu_architecture) {
+            const archEl = document.getElementById('sidebar-device-arch');
+            if (archEl) archEl.innerText = sh.cpu_architecture;
+          }
+          if (sh.battery && sh.battery.level !== undefined) {
+            const batEl = document.getElementById('sidebar-battery');
+            const tempEl = document.getElementById('sidebar-temp');
+            const lvl = sh.battery.level;
+            const statusRaw = sh.battery.status || (sh.battery.is_charging ? 'Charging' : 'Discharging');
+            const batColor = lvl < 20 ? 'text-rose-400' : (lvl < 50 ? 'text-amber-400' : 'text-emerald-400');
+            if (batEl) batEl.innerHTML = `<i class="fa-solid fa-battery-half ${batColor} mr-1"></i> ${lvl}% ${statusRaw}`;
+            if (tempEl && sh.battery.temperature !== undefined) {
+              tempEl.innerHTML = `<i class="fa-solid fa-temperature-half text-cyan-400 mr-1"></i> ${sh.battery.temperature}°C`;
+            }
           }
           if (sh.acc) {
             const accEl = document.getElementById('sidebar-acc');
             if (accEl) {
-              const state = sh.acc.charging_state || 'active';
+              const state = sh.acc.charging_state || (sh.acc.is_charging ? 'Charging' : 'Active');
               const p = sh.acc.thresholds?.pause_capacity || 80;
               const r = sh.acc.thresholds?.resume_capacity || 70;
               accEl.innerHTML = `<i class="fa-solid fa-shield-halved mr-1"></i> ${state} (${r}-${p}%)`;
@@ -1903,6 +1917,7 @@ print(f"Losslessly restored {len(restored_bytes)} bytes")</pre>
 
     window.addEventListener('DOMContentLoaded', () => {
       checkUserSession();
+      setInterval(refreshTelemetry, 3000);
     });
 </script>
 </body>
