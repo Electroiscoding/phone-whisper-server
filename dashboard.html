@@ -63,9 +63,9 @@
       </div>
 
       <div id="user-profile-badge" class="flex items-center gap-2 bg-zinc-900/90 border border-zinc-800 rounded-lg px-2.5 py-1 text-xs font-mono">
-        <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
-        <span id="current-username" class="text-zinc-200 font-semibold truncate max-w-[100px]">soham</span>
-        <button onclick="logoutUser()" class="text-zinc-500 hover:text-rose-400 ml-1 transition-colors" title="Sign Out"><i class="fa-solid fa-xmark"></i></button>
+        <span id="user-status-dot" class="w-2 h-2 rounded-full bg-emerald-400"></span>
+        <span id="current-username" class="text-zinc-200 font-semibold truncate max-w-[120px] cursor-pointer" onclick="if(!currentUser) openAuthModal()">Sign In</span>
+        <button id="logout-btn" onclick="logoutUser()" class="text-zinc-500 hover:text-rose-400 ml-1 transition-colors hidden" title="Sign Out"><i class="fa-solid fa-arrow-right-from-bracket"></i></button>
       </div>
     </div>
   </header>
@@ -685,6 +685,7 @@ print(f"Losslessly restored {len(restored_bytes)} bytes")</pre>
           <span class="text-cyan-400 text-base"><i class="fa-solid fa-bolt"></i></span>
           <span class="font-bold text-white text-sm space-grotesk">Swades Cloud Login</span>
         </div>
+        <button onclick="document.getElementById('auth-modal').classList.add('hidden')" class="text-zinc-500 hover:text-white transition-colors" title="Close"><i class="fa-solid fa-xmark"></i></button>
       </div>
 
       <div class="flex rounded bg-black border border-zinc-800 p-0.5 text-xs">
@@ -695,7 +696,7 @@ print(f"Losslessly restored {len(restored_bytes)} bytes")</pre>
       <div class="space-y-3">
         <div>
           <label class="text-zinc-400 text-[11px]">Username</label>
-          <input type="text" id="auth-input-user" value="soham" placeholder="Username" class="w-full bg-black border border-zinc-800 rounded px-3 py-2 text-white outline-none focus:border-cyan-500 mt-1" />
+          <input type="text" id="auth-input-user" placeholder="Enter username" class="w-full bg-black border border-zinc-800 rounded px-3 py-2 text-white outline-none focus:border-cyan-500 mt-1" />
         </div>
         <div id="auth-email-field" class="hidden">
           <label class="text-zinc-400 text-[11px]">Email Address</label>
@@ -703,7 +704,7 @@ print(f"Losslessly restored {len(restored_bytes)} bytes")</pre>
         </div>
         <div>
           <label class="text-zinc-400 text-[11px]">Password</label>
-          <input type="password" id="auth-input-pass" value="soham123" placeholder="••••••••" class="w-full bg-black border border-zinc-800 rounded px-3 py-2 text-white outline-none focus:border-cyan-500 mt-1" />
+          <input type="password" id="auth-input-pass" placeholder="Enter password" class="w-full bg-black border border-zinc-800 rounded px-3 py-2 text-white outline-none focus:border-cyan-500 mt-1" />
         </div>
         <div id="auth-error-msg" class="text-rose-400 text-[11px] hidden"></div>
         <button onclick="submitAuth()" id="btn-auth-submit" class="w-full py-2.5 rounded bg-cyan-500 hover:bg-cyan-400 text-black font-bold transition-all">Sign In</button>
@@ -779,7 +780,13 @@ print(f"Losslessly restored {len(restored_bytes)} bytes")</pre>
       const opts = { ...options };
       opts.headers = { ...(opts.headers || {}) };
       if (activeProjectId) opts.headers['x-project-id'] = activeProjectId;
-      if (activeKey) opts.headers['x-api-key'] = activeKey;
+      if (activeKey) {
+        opts.headers['x-api-key'] = activeKey;
+        opts.headers['Authorization'] = `Bearer ${activeKey}`;
+      }
+      if (currentUser && currentUser.user_id) {
+        opts.headers['x-user-id'] = currentUser.user_id;
+      }
 
       const t0 = performance.now();
       try {
@@ -835,27 +842,33 @@ print(f"Losslessly restored {len(restored_bytes)} bytes")</pre>
         } catch (e) {}
       }
 
-      // Always Keep Users Signed In (Nir Eyal Frictionless UX Habit Loop)
-      // If no account exists in localStorage, automatically seed a frictionless developer profile
       if (!savedUser || !savedUser.username) {
-        savedUser = {
-          username: 'developer',
-          user_id: 'usr_developer',
-          role: 'developer',
-          quota_bytes: 2147483648
-        };
-        savedKey = savedKey || 'sk_live_dev_master';
-        localStorage.setItem('swades_auth_user', JSON.stringify(savedUser));
-        localStorage.setItem('swades_auth_key', savedKey);
-        localStorage.setItem('swades_account_profile', JSON.stringify(savedUser));
-        localStorage.setItem('swades_storage_api_key', savedKey);
+        currentUser = null;
+        activeKey = null;
+        const userDisplay = document.getElementById('current-username');
+        if (userDisplay) userDisplay.innerText = 'Sign In';
+        const logoutBtn = document.getElementById('logout-btn');
+        if (logoutBtn) logoutBtn.classList.add('hidden');
+        const userDot = document.getElementById('user-status-dot');
+        if (userDot) userDot.className = "w-2 h-2 rounded-full bg-zinc-600";
+        const pName = document.getElementById('current-project-name');
+        const pId = document.getElementById('current-project-id');
+        if (pName) pName.innerText = 'No Project Selected';
+        if (pId) pId.innerText = '--';
+        const authModal = document.getElementById('auth-modal');
+        if (authModal) authModal.classList.remove('hidden');
+        return;
       }
 
       currentUser = savedUser;
       activeKey = savedKey;
 
       const userDisplay = document.getElementById('current-username');
-      if (userDisplay) userDisplay.innerText = currentUser?.username || 'developer';
+      if (userDisplay) userDisplay.innerText = currentUser.username;
+      const logoutBtn = document.getElementById('logout-btn');
+      if (logoutBtn) logoutBtn.classList.remove('hidden');
+      const userDot = document.getElementById('user-status-dot');
+      if (userDot) userDot.className = "w-2 h-2 rounded-full bg-emerald-400";
       const authModal = document.getElementById('auth-modal');
       if (authModal) authModal.classList.add('hidden');
 
@@ -870,6 +883,14 @@ print(f"Losslessly restored {len(restored_bytes)} bytes")</pre>
       const err = document.getElementById('auth-error-msg');
       if (err) err.classList.add('hidden');
 
+      if (!u || !p) {
+        if (err) {
+          err.innerText = "Please enter both username and password";
+          err.classList.remove('hidden');
+        }
+        return;
+      }
+
       const endpoint = currentAuthTab === 'login' ? '/v1/storage/auth/login' : '/v1/storage/auth/register';
       const body = { username: u, password: p };
       if (currentAuthTab === 'register') body.email = document.getElementById('auth-input-email').value.trim();
@@ -881,27 +902,41 @@ print(f"Losslessly restored {len(restored_bytes)} bytes")</pre>
           body: JSON.stringify(body)
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Authentication failed");
+        if (!res.ok || (data.status && data.status !== 'success' && !data.user_id && !data.user)) {
+          throw new Error(data.error || "Authentication failed");
+        }
 
-        currentUser = data.user || {
-          username: data.username || u || 'developer',
-          user_id: data.user_id || 'usr_' + Date.now().toString(36),
-          quota_bytes: data.quota_bytes || 2147483648,
-          role: data.role || 'developer'
+        const username = (data.user && data.user.username) || data.username || u;
+        const userId = (data.user && data.user.user_id) || data.user_id;
+        const role = (data.user && data.user.role) || data.role || 'user';
+        const quota = (data.user && data.user.quota_bytes) || data.quota_bytes || 2147483648;
+        const apiKey = data.api_key || data.new_api_key || (data.keys && data.keys[0] ? data.keys[0].api_key : '');
+
+        currentUser = {
+          username: username,
+          user_id: userId,
+          quota_bytes: quota,
+          role: role,
+          keys: data.keys || []
         };
-        activeKey = data.api_key || data.new_api_key || (data.keys && data.keys[0] ? data.keys[0].api_key : '') || activeKey || 'sk_live_dev_master';
+        activeKey = apiKey;
 
         localStorage.setItem('swades_auth_user', JSON.stringify(currentUser));
         localStorage.setItem('swades_auth_key', activeKey);
         localStorage.setItem('swades_account_profile', JSON.stringify({ username: currentUser.username, user_id: currentUser.user_id, api_key: activeKey }));
         localStorage.setItem('swades_storage_api_key', activeKey);
+        localStorage.setItem('swades_storage_tenant_id', currentUser.user_id);
 
         const userDisplay = document.getElementById('current-username');
-        if (userDisplay) userDisplay.innerText = currentUser?.username || 'developer';
+        if (userDisplay) userDisplay.innerText = currentUser.username;
+        const logoutBtn = document.getElementById('logout-btn');
+        if (logoutBtn) logoutBtn.classList.remove('hidden');
+        const userDot = document.getElementById('user-status-dot');
+        if (userDot) userDot.className = "w-2 h-2 rounded-full bg-emerald-400";
         const authModal = document.getElementById('auth-modal');
         if (authModal) authModal.classList.add('hidden');
 
-        showToast(`Welcome, ${currentUser?.username || 'developer'}!`, 'success');
+        showToast(`Welcome back, ${currentUser.username}!`, 'success');
         await loadUserProjects();
         switchView('db');
         refreshTelemetry();
@@ -914,7 +949,44 @@ print(f"Losslessly restored {len(restored_bytes)} bytes")</pre>
     }
 
     function logoutUser() {
-      // Allow switching account without losing session state
+      localStorage.removeItem('swades_auth_user');
+      localStorage.removeItem('swades_auth_key');
+      localStorage.removeItem('swades_account_profile');
+      localStorage.removeItem('swades_storage_api_key');
+      localStorage.removeItem('swades_storage_tenant_id');
+      localStorage.removeItem('active_project_id');
+      currentUser = null;
+      activeKey = null;
+      userProjects = [];
+      activeProjectId = null;
+
+      const userDisplay = document.getElementById('current-username');
+      if (userDisplay) userDisplay.innerText = 'Sign In';
+      const logoutBtn = document.getElementById('logout-btn');
+      if (logoutBtn) logoutBtn.classList.add('hidden');
+      const userDot = document.getElementById('user-status-dot');
+      if (userDot) userDot.className = "w-2 h-2 rounded-full bg-zinc-600";
+
+      const pName = document.getElementById('current-project-name');
+      const pId = document.getElementById('current-project-id');
+      if (pName) pName.innerText = 'No Project Selected';
+      if (pId) pId.innerText = '--';
+
+      const tbody = document.getElementById('keys-table-body');
+      if (tbody) tbody.innerHTML = '<tr><td colspan="6" class="text-center py-6 text-zinc-500">Sign in to view project API keys.</td></tr>';
+
+      const gridTbody = document.getElementById('db-grid-tbody');
+      if (gridTbody) gridTbody.innerHTML = '<tr><td colspan="10" class="text-center py-8 text-zinc-500 font-mono text-xs">Please sign in to view database records.</td></tr>';
+
+      const mediaGrid = document.getElementById('storage-media-grid');
+      if (mediaGrid) mediaGrid.innerHTML = '<div class="col-span-full text-center py-12 text-zinc-500 font-mono text-xs">Please sign in to view storage files.</div>';
+
+      const authModal = document.getElementById('auth-modal');
+      if (authModal) authModal.classList.remove('hidden');
+      showToast("Signed out successfully", "info");
+    }
+
+    function openAuthModal() {
       const authModal = document.getElementById('auth-modal');
       if (authModal) authModal.classList.remove('hidden');
     }

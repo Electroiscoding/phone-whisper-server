@@ -6286,6 +6286,8 @@ python3 mobile/nuclear_watchdog.py</code></pre>
           localStorage.setItem("swades_account_profile", JSON.stringify(profile));
           localStorage.setItem("swades_storage_api_key", data.api_key);
           localStorage.setItem("swades_storage_tenant_id", data.user_id);
+          localStorage.setItem("swades_auth_user", JSON.stringify(profile));
+          localStorage.setItem("swades_auth_key", data.api_key);
           currentAccount = profile;
           currentStorageApiKey = data.api_key;
           currentTenantId = data.user_id;
@@ -6341,6 +6343,8 @@ python3 mobile/nuclear_watchdog.py</code></pre>
           }
           localStorage.setItem("swades_account_profile", JSON.stringify(profile));
           localStorage.setItem("swades_storage_tenant_id", data.user_id);
+          localStorage.setItem("swades_auth_user", JSON.stringify(profile));
+          localStorage.setItem("swades_auth_key", currentStorageApiKey);
           currentAccount = profile;
           currentTenantId = data.user_id;
 
@@ -6364,6 +6368,8 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       localStorage.removeItem("swades_account_profile");
       localStorage.removeItem("swades_storage_api_key");
       localStorage.removeItem("swades_storage_tenant_id");
+      localStorage.removeItem("swades_auth_user");
+      localStorage.removeItem("swades_auth_key");
       currentAccount = null;
       currentStorageApiKey = "";
       currentTenantId = "";

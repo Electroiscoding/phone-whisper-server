@@ -5538,7 +5538,11 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         key_rec = self._authenticate_storage_request()
         if key_rec and isinstance(key_rec, dict) and not key_rec.get("expired"):
             tenant_id = key_rec.get("tenant_id")
-            return {"user_id": tenant_id, "username": tenant_id, "role": "developer"}
+            if tenant_id:
+                user = _storage_vault.get_user_by_id(tenant_id)
+                if user:
+                    return user
+                return {"user_id": tenant_id, "username": tenant_id, "role": "user"}
         
         uid = self.headers.get("X-User-Id")
         if uid:
@@ -5552,11 +5556,20 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 user = _storage_vault.get_user_by_id(uid)
                 if user: return user
 
-        return {"user_id": "usr_admin", "username": "admin", "role": "admin"}
+        return None
 
     def handle_projects_list(self, parsed=None):
         user = self._get_authenticated_user(parsed)
-        owner_id = user.get("user_id", "admin")
+        if not user or not user.get("user_id"):
+            resp = json.dumps({"status": "success", "projects": []}).encode("utf-8")
+            self.send_response(200)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(resp)))
+            self.end_headers()
+            self.wfile.write(resp)
+            return
+        owner_id = user["user_id"]
         projects = _storage_vault.list_projects(owner_id)
         resp = json.dumps({"status": "success", "projects": projects}).encode("utf-8")
         self.send_response(200)
@@ -5573,8 +5586,16 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             name = body.get("name", "").strip()
             desc = body.get("description", "").strip()
             user = self._get_authenticated_user()
-            owner_id = user.get("user_id", "admin")
-            
+            if not user or not user.get("user_id"):
+                err = json.dumps({"error": "Unauthorized - Login required to create project"}).encode("utf-8")
+                self.send_response(401)
+                self._send_cors_headers()
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(err)))
+                self.end_headers()
+                self.wfile.write(err)
+                return
+            owner_id = user["user_id"]
             project = _storage_vault.create_project(owner_id, name, desc)
             resp = json.dumps({"status": "created", "project": project}).encode("utf-8")
             self.send_response(201)
@@ -5607,7 +5628,16 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
 
     def handle_project_delete(self, project_id):
         user = self._get_authenticated_user()
-        owner_id = user.get("user_id", "admin")
+        if not user or not user.get("user_id"):
+            err = json.dumps({"error": "Unauthorized"}).encode("utf-8")
+            self.send_response(401)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(err)))
+            self.end_headers()
+            self.wfile.write(err)
+            return
+        owner_id = user["user_id"]
         ok = _storage_vault.delete_project(project_id, owner_id)
         resp = json.dumps({"status": "deleted" if ok else "not_found", "project_id": project_id}).encode("utf-8")
         self.send_response(200 if ok else 404)
