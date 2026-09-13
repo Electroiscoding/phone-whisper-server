@@ -1167,11 +1167,11 @@ class SwadeStorageVault:
         return pwd_hash, salt
 
     def register_user(self, username: str, password: str, quota_bytes=2147483648):
-        uname = username.strip().lower()
-        if not uname or len(uname) < 3 or not re.match(r'^[a-zA-Z0-9_\-\.]+$', uname):
-            raise ValueError("Invalid username. Use 3+ alphanumeric characters, dots, or dashes.")
-        if not password or len(password) < 6:
-            raise ValueError("Password must be at least 6 characters.")
+        uname = (username or "").strip().lower()
+        if not uname:
+            raise ValueError("Username cannot be empty.")
+        if not password:
+            raise ValueError("Password cannot be empty.")
 
         with self.lock:
             if uname in self._user_cache:
