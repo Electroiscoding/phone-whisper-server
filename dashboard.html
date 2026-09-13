@@ -274,10 +274,28 @@
             <p class="text-xs text-zinc-400 mt-0.5">Upload images, audio, videos, and documents with instant public CDN links hosted on phone storage.</p>
           </div>
           <div class="flex items-center gap-2">
-            <input type="file" id="media-upload-input" onchange="uploadMediaFile(event)" class="hidden" />
+            <input type="file" id="media-upload-input" onchange="uploadMediaFiles(event)" class="hidden" multiple />
             <button onclick="document.getElementById('media-upload-input').click()" class="text-xs font-mono px-3.5 py-1.5 rounded bg-emerald-500 hover:bg-emerald-400 text-black font-bold flex items-center gap-1.5 shadow-lg shadow-emerald-950/50 transition-all">
-              <i class="fa-solid fa-cloud-arrow-up mr-1 text-cyan-400"></i> Upload File / Asset
+              <i class="fa-solid fa-cloud-arrow-up mr-1 text-cyan-400"></i> Upload Files / Assets
             </button>
+          </div>
+        </div>
+
+        <!-- Drag & Drop Zone -->
+        <div id="storage-drop-zone" 
+             ondragover="handleStorageDragOver(event)" 
+             ondragleave="handleStorageDragLeave(event)" 
+             ondrop="handleStorageDrop(event)"
+             onclick="document.getElementById('media-upload-input').click()"
+             class="border-2 border-dashed border-zinc-800 hover:border-emerald-500/60 rounded-xl p-5 text-center cursor-pointer bg-zinc-950/40 hover:bg-zinc-900/30 transition-all flex flex-col items-center justify-center gap-1.5 group">
+          <div class="w-10 h-10 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-lg group-hover:scale-110 transition-transform">
+            <i class="fa-solid fa-cloud-arrow-up"></i>
+          </div>
+          <div class="text-xs font-semibold text-white">
+            Drag & drop multiple files here, or <span class="text-emerald-400 underline">browse files</span>
+          </div>
+          <div class="text-[10px] text-zinc-500 font-mono">
+            Supports multi-upload for images, videos, audio, PDFs, code, archives & any file format
           </div>
         </div>
 
@@ -293,7 +311,7 @@
 
             <div class="flex flex-wrap items-center gap-2">
               <button onclick="document.getElementById('media-upload-input').click()" class="text-xs font-mono px-3 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-white font-semibold flex items-center gap-1">
-                <i class="fa-solid fa-cloud-arrow-up mr-1"></i> Upload
+                <i class="fa-solid fa-cloud-arrow-up mr-1 text-emerald-400"></i> Multi-Upload
               </button>
             </div>
           </div>
@@ -1430,6 +1448,11 @@ print(f"Losslessly restored {len(restored_bytes)} bytes")</pre>
       }
     }
 
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+    }
+
     function renderMediaFiles() {
       const grid = document.getElementById('media-files-grid');
       let filtered = cachedMediaFiles;
@@ -1441,7 +1464,7 @@ print(f"Losslessly restored {len(restored_bytes)} bytes")</pre>
             <div class="text-sm font-semibold text-white">No Assets in this Project</div>
             <p class="text-xs text-zinc-400 max-w-sm mx-auto">Upload images, audio, video, or documents to get instant public CDN URLs hosted directly on phone storage.</p>
             <button onclick="document.getElementById('media-upload-input').click()" class="px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs transition-all">
-              <i class="fa-solid fa-cloud-arrow-up mr-2 text-cyan-400"></i> Upload Your First File / Asset
+              <i class="fa-solid fa-cloud-arrow-up mr-2 text-cyan-400"></i> Multi-Upload Assets
             </button>
           </div>
         `;
@@ -1449,30 +1472,106 @@ print(f"Losslessly restored {len(restored_bytes)} bytes")</pre>
       }
 
       grid.innerHTML = filtered.map(f => {
-        const ext = f.key.split('.').pop().toLowerCase();
-        const isImg = ['png', 'jpg', 'jpeg', 'gif', 'svg'].includes(ext);
-        const isVid = ['mp4', 'webm', 'mov'].includes(ext);
-        const isAud = ['mp3', 'wav', 'ogg'].includes(ext);
-        const icon = isImg ? '<i class="fa-solid fa-image text-cyan-400"></i>' : (isVid ? '<i class="fa-solid fa-film text-purple-400"></i>' : (isAud ? '<i class="fa-solid fa-music text-pink-400"></i>' : '<i class="fa-solid fa-file text-zinc-400"></i>'));
+        const ext = (f.key.split('.').pop() || '').toLowerCase();
+        const fname = f.key.split('/').pop() || f.key;
+        const isImg = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'ico', 'avif', 'tiff'].includes(ext);
+        const isVid = ['mp4', 'webm', 'mov', 'mkv', 'avi', 'ogg', 'm4v', '3gp'].includes(ext);
+        const isAud = ['mp3', 'wav', 'ogg', 'm4a', 'flac', 'aac', 'wma', 'opus'].includes(ext);
+        const isPdf = ext === 'pdf';
+        const isCode = ['json', 'js', 'ts', 'py', 'html', 'css', 'md', 'txt', 'sh', 'sql', 'yaml', 'yml', 'xml', 'c', 'cpp', 'rs', 'go', 'java', 'php', 'log', 'env', 'csv'].includes(ext);
+        const isZip = ['zip', 'tar', 'gz', '7z', 'rar', 'zst', 'bz2', 'xz', 'tgz'].includes(ext);
         const cdnUrl = f.cdn_url || (f.url ? `${BASE_URL}${f.url}` : `${BASE_URL}/s/${activeProjectId || 'default'}/${f.key}`);
 
-        return `
-          <div class="p-3 rounded bg-black/60 border border-zinc-800/80 hover:border-cyan-500/50 flex flex-col justify-between font-mono text-xs space-y-2 transition-all">
-            <div>
-              <div class="flex items-center justify-between text-[10px] mb-1">
-                <span class="text-emerald-400 font-bold uppercase text-[9px]">LIVE CDN</span>
-                <span class="text-zinc-500">${Math.round(f.size/1024)} KB</span>
+        let thumbHtml = '';
+        if (isImg) {
+          thumbHtml = `
+            <div class="w-full h-28 bg-black/60 rounded-lg flex items-center justify-center overflow-hidden relative group/thumb border border-zinc-800">
+              <img src="${cdnUrl}" alt="${escapeHtml(fname)}" loading="lazy" class="w-full h-full object-cover transition-transform duration-300 group-hover/thumb:scale-110" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+              <div class="hidden w-full h-full items-center justify-center text-cyan-400 text-2xl"><i class="fa-solid fa-image"></i></div>
+              <div class="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded bg-black/80 backdrop-blur text-[9px] font-mono text-cyan-400 border border-cyan-500/30 uppercase">${ext}</div>
+            </div>
+          `;
+        } else if (isVid) {
+          thumbHtml = `
+            <div class="w-full h-28 bg-zinc-950 rounded-lg flex items-center justify-center overflow-hidden relative group/thumb border border-purple-900/40">
+              <video src="${cdnUrl}#t=0.5" preload="metadata" muted playsinline class="w-full h-full object-cover opacity-70 group-hover/thumb:opacity-100 transition-opacity"></video>
+              <div class="absolute inset-0 flex items-center justify-center bg-black/30 group-hover/thumb:bg-transparent transition-colors">
+                <div class="w-8 h-8 rounded-full bg-purple-500/30 border border-purple-400/50 flex items-center justify-center text-purple-300 text-xs shadow-lg group-hover/thumb:scale-110 transition-transform"><i class="fa-solid fa-play ml-0.5"></i></div>
               </div>
-              <div onclick="openPreview('${f.key}', '${cdnUrl}', '${ext}', ${f.size})" class="cursor-pointer space-y-1">
-                <div class="text-2xl text-center py-2">${icon}</div>
-                <div class="font-bold text-white truncate" title="${f.key}">${f.key.split('/').pop()}</div>
+              <div class="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded bg-black/80 backdrop-blur text-[9px] font-mono text-purple-400 border border-purple-500/30 uppercase">${ext}</div>
+            </div>
+          `;
+        } else if (isAud) {
+          thumbHtml = `
+            <div class="w-full h-28 bg-gradient-to-br from-pink-950/40 via-zinc-950 to-black rounded-lg flex flex-col items-center justify-center p-2 relative group/thumb border border-pink-900/30">
+              <div class="w-9 h-9 rounded-full bg-pink-500/20 border border-pink-500/40 flex items-center justify-center text-pink-400 text-base mb-1 group-hover/thumb:scale-110 transition-transform">
+                <i class="fa-solid fa-music"></i>
+              </div>
+              <span class="text-[9px] text-pink-300/80 font-bold uppercase tracking-wider">${ext} AUDIO</span>
+              <div class="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded bg-black/80 backdrop-blur text-[9px] font-mono text-pink-400 border border-pink-500/30 uppercase">${ext}</div>
+            </div>
+          `;
+        } else if (isPdf) {
+          thumbHtml = `
+            <div class="w-full h-28 bg-gradient-to-br from-red-950/40 via-zinc-950 to-black rounded-lg flex flex-col items-center justify-center p-2 relative group/thumb border border-red-900/30">
+              <div class="w-9 h-9 rounded-lg bg-red-500/20 border border-red-500/40 flex items-center justify-center text-red-400 text-base mb-1 group-hover/thumb:scale-110 transition-transform">
+                <i class="fa-solid fa-file-pdf"></i>
+              </div>
+              <span class="text-[9px] text-red-300/80 font-bold uppercase tracking-wider">PDF DOC</span>
+              <div class="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded bg-black/80 backdrop-blur text-[9px] font-mono text-red-400 border border-red-500/30 uppercase">PDF</div>
+            </div>
+          `;
+        } else if (isCode) {
+          thumbHtml = `
+            <div class="w-full h-28 bg-gradient-to-br from-emerald-950/40 via-zinc-950 to-black rounded-lg flex flex-col items-center justify-center p-2 relative group/thumb border border-emerald-900/30">
+              <div class="w-9 h-9 rounded-lg bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 text-base mb-1 group-hover/thumb:scale-110 transition-transform">
+                <i class="fa-solid fa-code"></i>
+              </div>
+              <span class="text-[9px] text-emerald-300/80 font-bold uppercase tracking-wider">${ext} CODE</span>
+              <div class="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded bg-black/80 backdrop-blur text-[9px] font-mono text-emerald-400 border border-emerald-500/30 uppercase">${ext}</div>
+            </div>
+          `;
+        } else if (isZip) {
+          thumbHtml = `
+            <div class="w-full h-28 bg-gradient-to-br from-amber-950/40 via-zinc-950 to-black rounded-lg flex flex-col items-center justify-center p-2 relative group/thumb border border-amber-900/30">
+              <div class="w-9 h-9 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 text-base mb-1 group-hover/thumb:scale-110 transition-transform">
+                <i class="fa-solid fa-file-zipper"></i>
+              </div>
+              <span class="text-[9px] text-amber-300/80 font-bold uppercase tracking-wider">ARCHIVE</span>
+              <div class="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded bg-black/80 backdrop-blur text-[9px] font-mono text-amber-400 border border-amber-500/30 uppercase">${ext}</div>
+            </div>
+          `;
+        } else {
+          thumbHtml = `
+            <div class="w-full h-28 bg-gradient-to-br from-zinc-900 via-zinc-950 to-black rounded-lg flex flex-col items-center justify-center p-2 relative group/thumb border border-zinc-800">
+              <div class="w-9 h-9 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center text-cyan-400 text-base mb-1 group-hover/thumb:scale-110 transition-transform">
+                <i class="fa-solid fa-file-lines"></i>
+              </div>
+              <span class="text-[9px] text-zinc-400 font-bold uppercase tracking-wider">${ext || 'FILE'}</span>
+              <div class="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded bg-black/80 backdrop-blur text-[9px] font-mono text-zinc-400 border border-zinc-700 uppercase">${ext || 'BLOB'}</div>
+            </div>
+          `;
+        }
+
+        const sizeFormatted = f.size < 1024 ? `${f.size} B` : (f.size < 1048576 ? `${Math.round(f.size/1024)} KB` : `${(f.size/1048576).toFixed(1)} MB`);
+
+        return `
+          <div class="p-2.5 rounded-xl bg-black/70 border border-zinc-800/80 hover:border-cyan-500/50 flex flex-col justify-between font-mono text-xs space-y-2 transition-all shadow-lg hover:shadow-cyan-950/20">
+            <div>
+              <div class="flex items-center justify-between text-[10px] mb-1.5">
+                <span class="text-emerald-400 font-bold uppercase text-[8px] tracking-wider">LIVE CDN</span>
+                <span class="text-zinc-500">${sizeFormatted}</span>
+              </div>
+              <div onclick="openPreview('${escapeHtml(f.key)}', '${cdnUrl}', '${ext}', ${f.size})" class="cursor-pointer space-y-1.5">
+                ${thumbHtml}
+                <div class="font-bold text-white truncate text-[11px] pt-1" title="${escapeHtml(fname)}">${escapeHtml(fname)}</div>
               </div>
             </div>
 
-            <div class="space-y-1 pt-1 border-t border-zinc-800/80">
+            <div class="space-y-1 pt-1.5 border-t border-zinc-800/80">
               <div class="flex items-center justify-between text-[10px]">
-                <button onclick="copyToClipboard('${cdnUrl}')" class="text-cyan-400 hover:text-cyan-300">Copy CDN</button>
-                <button onclick="deleteObject('${f.key}')" class="text-rose-400 hover:text-rose-300">Delete</button>
+                <button onclick="copyToClipboard('${cdnUrl}')" class="text-cyan-400 hover:text-cyan-300 font-semibold flex items-center gap-1"><i class="fa-regular fa-copy"></i> Copy CDN</button>
+                <button onclick="deleteObject('${escapeHtml(f.key)}')" class="text-rose-400 hover:text-rose-300 font-semibold flex items-center gap-1"><i class="fa-regular fa-trash-can"></i> Delete</button>
               </div>
             </div>
           </div>
@@ -1480,27 +1579,72 @@ print(f"Losslessly restored {len(restored_bytes)} bytes")</pre>
       }).join('');
     }
 
-    async function uploadMediaFile(e) {
-      const file = e.target.files[0];
-      if (!file) return;
+    async function uploadMediaFiles(e) {
+      const files = Array.from(e.target.files || (e.dataTransfer && e.dataTransfer.files) || []);
+      if (files.length === 0) return;
 
-      const cleanFileName = file.name.replace(/[^\w.-]/g, '_');
-      const key = `uploads/${Date.now()}_${cleanFileName}`;
-      try {
-        const res = await apiFetch(`/v1/storage/objects/${encodeURI(key)}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': file.type || 'application/octet-stream' },
-          body: file
-        });
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          throw new Error(errData.error || `Upload failed (Status ${res.status})`);
+      const total = files.length;
+      let successCount = 0;
+      let failedCount = 0;
+
+      showToast(`Uploading ${total} asset${total > 1 ? 's' : ''} to phone storage...`, 'info', '<i class="fa-solid fa-cloud-arrow-up text-cyan-400"></i>');
+
+      for (let i = 0; i < total; i++) {
+        const file = files[i];
+        const cleanFileName = file.name.replace(/[^\w.-]/g, '_');
+        const key = `uploads/${Date.now()}_${cleanFileName}`;
+
+        try {
+          const res = await apiFetch(`/v1/storage/objects/${encodeURI(key)}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': file.type || 'application/octet-stream' },
+            body: file
+          });
+
+          if (res.ok) {
+            successCount++;
+          } else {
+            failedCount++;
+            const errData = await res.json().catch(() => ({}));
+            console.error(`Upload error for ${file.name}:`, errData.error);
+          }
+        } catch (err) {
+          failedCount++;
+          console.error(`Upload network error for ${file.name}:`, err);
         }
-        showToast(`Uploaded ${file.name}!`, 'success', '<i class="fa-solid fa-folder text-amber-400"></i>');
-        loadMediaFiles();
-      } catch (err) {
-        showToast(err.message, 'error');
       }
+
+      if (e.target && e.target.value !== undefined) {
+        e.target.value = '';
+      }
+
+      if (successCount > 0) {
+        showToast(`Uploaded ${successCount} file${successCount > 1 ? 's' : ''}!${failedCount > 0 ? ` (${failedCount} failed)` : ''}`, successCount === total ? 'success' : 'warning', '<i class="fa-solid fa-folder-check text-emerald-400"></i>');
+        loadMediaFiles();
+      } else {
+        showToast(`Failed to upload assets. Check network & API key credentials.`, 'error');
+      }
+    }
+
+    function handleStorageDragOver(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      const dropZone = document.getElementById('storage-drop-zone');
+      if (dropZone) dropZone.classList.add('border-emerald-400', 'bg-emerald-950/20');
+    }
+
+    function handleStorageDragLeave(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      const dropZone = document.getElementById('storage-drop-zone');
+      if (dropZone) dropZone.classList.remove('border-emerald-400', 'bg-emerald-950/20');
+    }
+
+    function handleStorageDrop(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      handleStorageDragLeave(e);
+      uploadMediaFiles(e);
     }
 
     async function deleteObject(key) {
@@ -1510,20 +1654,72 @@ print(f"Losslessly restored {len(restored_bytes)} bytes")</pre>
       loadMediaFiles();
     }
 
-    function openPreview(key, cdnUrl, ext, size) {
-      document.getElementById('preview-file-name').innerText = key;
-      document.getElementById('preview-file-size').innerText = `(${Math.round(size/1024)} KB)`;
+    async function openPreview(key, cdnUrl, ext, size) {
+      const fname = key.split('/').pop() || key;
+      document.getElementById('preview-file-name').innerText = fname;
+      document.getElementById('preview-file-size').innerText = size < 1024 ? `(${size} B)` : (size < 1048576 ? `(${Math.round(size/1024)} KB)` : `(${(size/1048576).toFixed(1)} MB)`);
       document.getElementById('preview-cdn-link').href = cdnUrl;
 
       const container = document.getElementById('preview-container');
-      if (['png', 'jpg', 'jpeg', 'gif'].includes(ext)) {
-        container.innerHTML = `<img src="${cdnUrl}" class="max-h-80 object-contain rounded" />`;
-      } else if (['mp4', 'webm'].includes(ext)) {
-        container.innerHTML = `<video src="${cdnUrl}" controls class="max-h-80 w-full rounded"></video>`;
-      } else if (['mp3', 'wav', 'ogg'].includes(ext)) {
-        container.innerHTML = `<audio src="${cdnUrl}" controls class="w-full"></audio>`;
+      container.innerHTML = '<div class="text-zinc-500 py-12 font-mono text-xs text-center"><i class="fa-solid fa-spinner fa-spin mr-2 text-cyan-400"></i> Loading preview...</div>';
+
+      const isImg = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'ico', 'avif', 'tiff'].includes(ext);
+      const isVid = ['mp4', 'webm', 'mov', 'mkv', 'avi', 'ogg', 'm4v', '3gp'].includes(ext);
+      const isAud = ['mp3', 'wav', 'ogg', 'm4a', 'flac', 'aac', 'wma', 'opus'].includes(ext);
+      const isPdf = ext === 'pdf';
+      const isCode = ['json', 'js', 'ts', 'py', 'html', 'css', 'md', 'txt', 'sh', 'sql', 'yaml', 'yml', 'xml', 'c', 'cpp', 'rs', 'go', 'java', 'php', 'log', 'env', 'csv'].includes(ext);
+
+      if (isImg) {
+        container.innerHTML = `<img src="${cdnUrl}" class="max-h-96 w-full object-contain rounded-lg shadow-lg" />`;
+      } else if (isVid) {
+        container.innerHTML = `<video src="${cdnUrl}" controls autoplay playsinline class="max-h-96 w-full rounded-lg bg-black shadow-lg"></video>`;
+      } else if (isAud) {
+        container.innerHTML = `
+          <div class="w-full py-8 px-4 space-y-4 text-center">
+            <div class="w-16 h-16 mx-auto rounded-full bg-pink-500/20 border border-pink-500/40 flex items-center justify-center text-pink-400 text-2xl shadow-lg">
+              <i class="fa-solid fa-music"></i>
+            </div>
+            <div class="text-white font-bold text-xs">${escapeHtml(fname)}</div>
+            <audio src="${cdnUrl}" controls autoplay class="w-full max-w-md mx-auto"></audio>
+          </div>
+        `;
+      } else if (isPdf) {
+        container.innerHTML = `<iframe src="${cdnUrl}" class="w-full h-96 rounded-lg border border-zinc-800 bg-white"></iframe>`;
+      } else if (isCode) {
+        try {
+          const res = await fetch(cdnUrl);
+          if (res.ok) {
+            const txt = await res.text();
+            container.innerHTML = `
+              <div class="w-full text-left space-y-2">
+                <div class="flex items-center justify-between text-[11px] text-zinc-400 border-b border-zinc-800 pb-1.5">
+                  <span class="text-emerald-400 font-bold">${ext.toUpperCase()} Source Content</span>
+                  <button onclick="copyToClipboard(\`${txt.replace(/`/g, '\\`').replace(/\\/g, '\\\\')}\`)" class="text-cyan-400 hover:text-cyan-300 flex items-center gap-1 font-semibold">
+                    <i class="fa-regular fa-clipboard mr-1"></i> Copy Raw Text
+                  </button>
+                </div>
+                <pre class="bg-black/90 p-3 rounded-lg border border-zinc-800/80 text-emerald-400 text-xs overflow-auto max-h-80 select-text font-mono leading-relaxed">${escapeHtml(txt.slice(0, 50000))}${txt.length > 50000 ? '\n...[Content truncated for preview]...' : ''}</pre>
+              </div>
+            `;
+          } else {
+            container.innerHTML = `<div class="text-center py-10 text-zinc-400">Could not fetch code preview. Click 'Open Public CDN Link' to view.</div>`;
+          }
+        } catch (e) {
+          container.innerHTML = `<div class="text-center py-10 text-zinc-400">Preview error: ${escapeHtml(e.message)}</div>`;
+        }
       } else {
-        container.innerHTML = `<div class="text-center py-10 text-zinc-400">File preview not supported inline. Click 'Open Public CDN Link' to view.</div>`;
+        container.innerHTML = `
+          <div class="text-center py-8 space-y-3">
+            <div class="w-16 h-16 mx-auto rounded-xl bg-zinc-800 border border-zinc-700 flex items-center justify-center text-cyan-400 text-2xl shadow-lg">
+              <i class="fa-solid fa-file-arrow-down"></i>
+            </div>
+            <div class="text-white font-bold text-sm">${escapeHtml(fname)}</div>
+            <p class="text-xs text-zinc-400">Binary format (${ext.toUpperCase() || 'FILE'}). Direct download ready from phone storage.</p>
+            <a href="${cdnUrl}" download target="_blank" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs transition-all shadow-lg shadow-emerald-950/40">
+              <i class="fa-solid fa-download"></i> Download Asset
+            </a>
+          </div>
+        `;
       }
       document.getElementById('preview-modal').classList.remove('hidden');
     }

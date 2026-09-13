@@ -2308,9 +2308,9 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
             <div style="font-weight: 700; color: #fff; font-size: 1.05rem; margin-bottom: 0.3rem;">Drag &amp; Drop Files Here or Select File</div>
             <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">Instant streaming upload to phone NVMe/eMMC flash storage with public CDN permalink</div>
             <div style="display: flex; justify-content: center; gap: 0.75rem; flex-wrap: wrap; align-items: center;">
-              <input type="file" id="storageFileInput" style="display: none;" onchange="handleStorageFileSelect(event)">
+              <input type="file" id="storageFileInput" style="display: none;" onchange="handleStorageFileSelect(event)" multiple>
               <button onclick="document.getElementById('storageFileInput').click()" class="btn-action" style="padding: 0.5rem 1.2rem; background: rgba(56, 189, 248, 0.15); border-color: #38bdf8; color: #fff;">
-                <span>Choose File to Upload</span>
+                <span>Choose Files (Multi-Upload)</span>
               </button>
               <input type="text" id="storageCustomKeyInput" placeholder="Custom Object Key (optional, e.g. avatars/logo.png)" 
                      style="background: rgba(0,0,0,0.5); border: 1px solid var(--card-border); color: #fff; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; padding: 0.5rem 0.8rem; border-radius: 6px; width: 280px;">
@@ -6590,13 +6590,26 @@ Status: ${data.status} (Sub-Microsecond Reflection Achieved: ${r.sub_microsecond
                             obj.size < 1024*1024 ? `${(obj.size/1024).toFixed(1)} KB` :
                             `${(obj.size/(1024*1024)).toFixed(2)} MB`;
             const cdnUrl = `${BASE_ENDPOINT}${obj.url}`;
-            const isImg = (obj.content_type || "").startsWith("image/");
-            const icon = isImg ? '<i class="fa-solid fa-image text-cyan-400"></i>' : '<i class="fa-solid fa-file-lines text-zinc-400"></i>';
+            const ext = (obj.key.split('.').pop() || '').toLowerCase();
+            const isImg = (obj.content_type || "").startsWith("image/") || ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'ico', 'avif'].includes(ext);
+            const isVid = ['mp4', 'webm', 'mov'].includes(ext);
+            const isAud = ['mp3', 'wav', 'ogg'].includes(ext);
+            const isPdf = ext === 'pdf';
+            const isCode = ['json', 'js', 'ts', 'py', 'html', 'css', 'md', 'txt', 'sh', 'sql', 'yaml', 'yml', 'xml', 'c', 'cpp', 'rs', 'go', 'java'].includes(ext);
+            const isZip = ['zip', 'tar', 'gz', '7z', 'rar', 'zst'].includes(ext);
+
+            let thumbEl = '';
+            if (isImg) {
+              thumbEl = `<img src="${cdnUrl}" alt="${obj.key}" loading="lazy" style="width: 34px; height: 34px; object-fit: cover; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); margin-right: 0.6rem; vertical-align: middle; display: inline-block;" onerror="this.style.display='none';" />`;
+            } else {
+              const iconClass = isVid ? 'fa-solid fa-film text-purple-400' : (isAud ? 'fa-solid fa-music text-pink-400' : (isPdf ? 'fa-solid fa-file-pdf text-red-400' : (isCode ? 'fa-solid fa-code text-emerald-400' : (isZip ? 'fa-solid fa-file-zipper text-amber-400' : 'fa-solid fa-file text-zinc-400'))));
+              thumbEl = `<span style="display: inline-flex; width: 34px; height: 34px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; align-items: center; justify-content: center; margin-right: 0.6rem; vertical-align: middle;"><i class="${iconClass}"></i></span>`;
+            }
 
             rows += `
               <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); transition: background 0.15s;">
                 <td style="padding: 0.75rem 1rem; font-family: 'JetBrains Mono', monospace; color: #fff;">
-                  <span style="margin-right: 0.4rem;">${icon}</span>
+                  ${thumbEl}
                   <strong>${obj.key}</strong>
                 </td>
                 <td style="padding: 0.75rem 1rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace;">${sizeStr}</td>
@@ -6630,6 +6643,8 @@ Status: ${data.status} (Sub-Microsecond Reflection Achieved: ${r.sub_microsecond
     }
     window.loadStorageObjects = loadStorageObjects;
 
+    let selectedStorageFiles = [];
+
     function handleStorageDragOver(e) {
       e.preventDefault();
       e.stopPropagation();
@@ -6651,37 +6666,41 @@ Status: ${data.status} (Sub-Microsecond Reflection Achieved: ${r.sub_microsecond
       e.stopPropagation();
       handleStorageDragLeave(e);
       if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-        setSelectedStorageFile(e.dataTransfer.files[0]);
+        setSelectedStorageFiles(Array.from(e.dataTransfer.files));
       }
     }
     window.handleStorageDrop = handleStorageDrop;
 
     function handleStorageFileSelect(e) {
       if (e.target.files && e.target.files.length > 0) {
-        setSelectedStorageFile(e.target.files[0]);
+        setSelectedStorageFiles(Array.from(e.target.files));
       }
     }
     window.handleStorageFileSelect = handleStorageFileSelect;
 
-    function setSelectedStorageFile(file) {
-      selectedStorageFile = file;
+    function setSelectedStorageFiles(files) {
+      selectedStorageFiles = files;
       const customKeyInput = document.getElementById("storageCustomKeyInput");
       const uploadBtn = document.getElementById("storageUploadBtn");
       const progText = document.getElementById("storageUploadProgressText");
 
-      if (customKeyInput && !customKeyInput.value.trim()) {
-        customKeyInput.value = file.name;
+      if (customKeyInput && files.length === 1 && !customKeyInput.value.trim()) {
+        customKeyInput.value = files[0].name;
       }
-      if (uploadBtn) uploadBtn.disabled = false;
+      if (uploadBtn) uploadBtn.disabled = files.length === 0;
       if (progText) {
         progText.style.display = "block";
-        progText.innerText = `Selected: ${file.name} (${(file.size / 1024).toFixed(1)} KB, type: ${file.type || "unknown"})`;
+        if (files.length === 1) {
+          progText.innerText = `Selected: ${files[0].name} (${(files[0].size / 1024).toFixed(1)} KB)`;
+        } else {
+          progText.innerText = `Selected ${files.length} files (${(files.reduce((a, b) => a + b.size, 0) / 1024).toFixed(1)} KB total)`;
+        }
       }
     }
 
     async function uploadSelectedStorageFile() {
-      if (!selectedStorageFile) {
-        alert("Please select a file to upload first!");
+      if (!selectedStorageFiles || selectedStorageFiles.length === 0) {
+        alert("Please select files to upload first!");
         return;
       }
       if (!currentStorageApiKey) {
@@ -6690,52 +6709,51 @@ Status: ${data.status} (Sub-Microsecond Reflection Achieved: ${r.sub_microsecond
       }
 
       const customKeyInput = document.getElementById("storageCustomKeyInput");
-      let objectKey = (customKeyInput && customKeyInput.value.trim()) ? customKeyInput.value.trim() : selectedStorageFile.name;
-      objectKey = objectKey.replace(/^\/+/, '');
-
       const uploadBtn = document.getElementById("storageUploadBtn");
       const progText = document.getElementById("storageUploadProgressText");
 
       if (uploadBtn) uploadBtn.disabled = true;
-      if (progText) {
-        progText.style.display = "block";
-        progText.innerHTML = `<i class="fa-solid fa-bolt mr-1 text-amber-400"></i> Uploading "${objectKey}" to phone NVMe/eMMC flash storage...`;
-      }
 
-      const t0 = performance.now();
-      try {
-        const res = await nuclearFetch(`${BASE_ENDPOINT}/v1/storage/objects/${encodeURIComponent(objectKey)}`, {
-          method: "PUT",
-          headers: {
-            "x-api-key": currentStorageApiKey,
-            "Content-Type": selectedStorageFile.type || "application/octet-stream"
-          },
-          body: selectedStorageFile
-        });
+      const total = selectedStorageFiles.length;
+      let successCount = 0;
 
-        const elapsed = (performance.now() - t0).toFixed(1);
-        if (res.ok) {
-          const data = await res.json();
-          if (progText) {
-            progText.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400 mr-1"></i> <span style="color: #10b981;">Uploaded in ${elapsed}ms! Live RAM reflection complete.</span> CDN: <a href="${BASE_ENDPOINT}${data.object.url}" target="_blank" style="color: #38bdf8;">${data.object.url}</a>`;
-          }
-          selectedStorageFile = null;
-          if (customKeyInput) customKeyInput.value = "";
-          await loadStorageUsage();
-          await loadStorageObjects();
-        } else {
-          const errData = await res.json().catch(() => ({}));
-          if (progText) {
-            progText.innerHTML = `<i class="fa-solid fa-circle-xmark text-rose-500 mr-1"></i> <span style="color: #ef4444;">Upload failed (${res.status}): ${errData.error || "Unknown error"}</span>`;
-          }
-        }
-      } catch (err) {
+      for (let i = 0; i < total; i++) {
+        const file = selectedStorageFiles[i];
+        let objectKey = (total === 1 && customKeyInput && customKeyInput.value.trim()) ? customKeyInput.value.trim() : file.name;
+        objectKey = objectKey.replace(/^\/+/, '');
+
         if (progText) {
-          progText.innerHTML = `<i class="fa-solid fa-circle-xmark text-rose-500 mr-1"></i> <span style="color: #ef4444;">Upload network error: ${err.message}</span>`;
+          progText.style.display = "block";
+          progText.innerHTML = `<i class="fa-solid fa-bolt mr-1 text-amber-400"></i> [${i+1}/${total}] Uploading "${objectKey}" to phone storage...`;
         }
-      } finally {
-        if (uploadBtn) uploadBtn.disabled = false;
+
+        try {
+          const res = await nuclearFetch(`${BASE_ENDPOINT}/v1/storage/objects/${encodeURIComponent(objectKey)}`, {
+            method: "PUT",
+            headers: {
+              "x-api-key": currentStorageApiKey,
+              "Content-Type": file.type || "application/octet-stream"
+            },
+            body: file
+          });
+
+          if (res.ok) successCount++;
+        } catch (err) {
+          console.error(`Upload error for ${file.name}:`, err);
+        }
       }
+
+      if (progText) {
+        progText.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400 mr-1"></i> <span style="color: #10b981;">Uploaded ${successCount}/${total} file(s) to sovereign cloud!</span>`;
+      }
+      selectedStorageFiles = [];
+      if (customKeyInput) customKeyInput.value = "";
+      const fileInp = document.getElementById("storageFileInput");
+      if (fileInp) fileInp.value = "";
+      if (uploadBtn) uploadBtn.disabled = true;
+
+      await loadStorageUsage();
+      await loadStorageObjects();
     }
     window.uploadSelectedStorageFile = uploadSelectedStorageFile;
 
