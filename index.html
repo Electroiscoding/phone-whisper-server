@@ -6208,8 +6208,12 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       } else {
         showLoggedOutState();
       }
+      if (currentStorageApiKey) {
+        loadStorageUsage();
+        loadStorageObjects();
+      }
       updateSnippetCode();
-    updateZstdSnippetCode();
+      updateZstdSnippetCode();
 
       // Hydrate genuine hardware benchmarks & free storage dynamically
       nuclearFetch(`${BASE_ENDPOINT}/v1/storage/benchmark`)
