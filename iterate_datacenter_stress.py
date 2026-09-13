@@ -212,6 +212,19 @@ class DatacenterStressIterator:
             if ok_decomp: self.latencies["zstd_decompress"].append(r_decomp["elapsed_ms"])
             else: round_passed = False
 
+        # 4.3 Native Image Compression & Decompression
+        raw_rgb = b"\xFF\x00\x00\x00\xFF\x00\x00\x00\xFF\x80\x80\x80" * 256 # 3072 bytes
+        r_img_c = self.request("/v1/images/compress", method="POST", data=raw_rgb, headers={"Content-Type": "application/octet-stream"})
+        ok_img_c = (r_img_c["status"] == 200 and len(r_img_c["body"]) > 0 and len(r_img_c["body"]) < len(raw_rgb))
+        self._record_op("Native Image Zstd Stream Compression", ok_img_c, f"{r_img_c['elapsed_ms']:.2f}ms (ratio: {len(raw_rgb)/max(1, len(r_img_c['body'])):.1f}x)")
+        if not ok_img_c: round_passed = False
+
+        if ok_img_c:
+            r_img_d = self.request("/v1/images/decompress", method="POST", data=r_img_c["body"], headers={"Content-Type": "application/octet-stream"})
+            ok_img_d = (r_img_d["status"] == 200 and r_img_d["body"] == raw_rgb)
+            self._record_op("Native Image Zstd Stream Decompression", ok_img_d, f"{r_img_d['elapsed_ms']:.2f}ms")
+            if not ok_img_d: round_passed = False
+
         # ---------------------------------------------------------------------
         # 5. PIPER VITS NEURAL TTS (/v1/audio/speech)
         # ---------------------------------------------------------------------
