@@ -2572,6 +2572,45 @@ class SwadeObjectStore:
             return content, meta
         return None, None
 
+    def find_object(self, tenant_id: str, raw_key: str):
+        """Finds object across tenant or universal bucket namespaces for zero-failure CDN retrieval"""
+        if tenant_id and raw_key:
+            data, meta = self.get_object(tenant_id, raw_key)
+            if meta:
+                return data, meta
+
+        clean_key = raw_key.replace("\\", "/").strip("/ ") if raw_key else ""
+        if not clean_key and tenant_id:
+            clean_key = tenant_id.replace("\\", "/").strip("/ ")
+
+        if clean_key:
+            for t_id, t_dict in self._meta_index.items():
+                meta = t_dict.get(clean_key) or t_dict.get(raw_key) or t_dict.get(raw_key.strip("/ "))
+                if meta:
+                    data, _ = self.get_object(t_id, meta.get("key", clean_key))
+                    if meta:
+                        return data, meta
+
+            combined = f"{tenant_id}/{raw_key}".strip("/ ") if (tenant_id and raw_key) else ""
+            if combined:
+                for t_id, t_dict in self._meta_index.items():
+                    meta = t_dict.get(combined)
+                    if meta:
+                        data, _ = self.get_object(t_id, meta.get("key", combined))
+                        if meta:
+                            return data, meta
+
+            base = os.path.basename(clean_key)
+            if base:
+                for t_id, t_dict in self._meta_index.items():
+                    for k, meta in t_dict.items():
+                        if k.endswith("/" + base) or k == base:
+                            data, _ = self.get_object(t_id, k)
+                            if meta:
+                                return data, meta
+
+        return None, None
+
     def delete_object(self, tenant_id: str, raw_key: str):
         """Microsecond RAM Index Purge + Background File Unlink"""
         if not raw_key:
@@ -3691,12 +3730,20 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
     def do_HEAD(self):
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path
-        if path.startswith("/s/"):
-            sub = path[len("/s/"):]
+        if path == "/s" or path == "/s/":
+            self.send_response(200)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            return
+        elif path.startswith("/s/"):
+            sub = path[len("/s/"):].strip("/")
             parts = sub.split("/", 1)
-            if len(parts) == 2 and parts[0] and parts[1]:
-                self.handle_public_cdn_stream(parts[0], parts[1], is_head=True)
-                return
+            t_id = parts[0] if len(parts) == 2 else ""
+            r_key = parts[1] if len(parts) == 2 else parts[0]
+            self.handle_public_cdn_stream(t_id, r_key, is_head=True)
+            return
         elif path.startswith("/v1/storage/objects/"):
             raw_key = path[len("/v1/storage/objects/"):]
             self.handle_storage_head_object(raw_key)
@@ -3724,13 +3771,30 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_benchmark()
         elif path in ["/health", "/v1/health", "/v1/models"]:
             self.handle_health()
+        elif parsed.path == "/s" or parsed.path == "/s/":
+            self.send_response(200)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            msg = json.dumps({"status": "ready", "service": "Swades Sovereign CDN", "format": "/s/<tenant_or_project_id>/<file_key>"}).encode("utf-8")
+            self.send_header("Content-Length", str(len(msg)))
+            self.end_headers()
+            self.wfile.write(msg)
+            return
         elif parsed.path.startswith("/s/"):
-            sub = parsed.path[len("/s/"):]
+            sub = parsed.path[len("/s/"):].strip("/")
+            if not sub:
+                self.send_response(200)
+                self._send_cors_headers()
+                self.send_header("Content-Type", "application/json")
+                msg = json.dumps({"status": "ready", "service": "Swades Sovereign CDN"}).encode("utf-8")
+                self.send_header("Content-Length", str(len(msg)))
+                self.end_headers()
+                self.wfile.write(msg)
+                return
             parts = sub.split("/", 1)
-            if len(parts) == 2 and parts[0] and parts[1]:
-                self.handle_public_cdn_stream(parts[0], parts[1], is_head=False)
-            else:
-                self.send_error(400, "Invalid CDN path format. Use /s/<tenant_id>/<file_key>")
+            t_id = parts[0] if len(parts) == 2 else ""
+            r_key = parts[1] if len(parts) == 2 else parts[0]
+            self.handle_public_cdn_stream(t_id, r_key, is_head=False)
         elif path == "/v1/storage/objects":
             self.handle_storage_list_objects()
         elif parsed.path.startswith("/v1/storage/objects/"):
@@ -5159,15 +5223,16 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
 
     def handle_public_cdn_stream(self, tenant_id, raw_key, is_head=False):
         """Worldwide Zero-Tassel Public CDN Stream (/s/<tenant_id>/<file>)"""
-        data, meta = _object_store.get_object(tenant_id, raw_key)
+        data, meta = _object_store.find_object(tenant_id, raw_key)
         if not meta or (not is_head and data is None):
             self.send_response(404)
             self._send_cors_headers()
             self.send_header("Content-Type", "application/json")
-            err = b'{"error":"CDN Object Not Found"}'
+            err = b'{"error":"CDN Object Not Found","status":404}'
             self.send_header("Content-Length", str(len(err)))
             self.end_headers()
-            self.wfile.write(err)
+            if not is_head:
+                self.wfile.write(err)
             return
 
         accept_enc = (self.headers.get("Accept-Encoding") or "").lower()
