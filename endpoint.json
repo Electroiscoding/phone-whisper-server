@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://smooth-conversation-dividend-suspension.trycloudflare.com",
-  "inference": "https://smooth-conversation-dividend-suspension.trycloudflare.com/inference",
-  "telemetry": "https://smooth-conversation-dividend-suspension.trycloudflare.com/telemetry",
+  "endpoint": "https://jewel-pharmaceutical-cooperation-bestsellers.trycloudflare.com",
+  "inference": "https://jewel-pharmaceutical-cooperation-bestsellers.trycloudflare.com/inference",
+  "telemetry": "https://jewel-pharmaceutical-cooperation-bestsellers.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-09-13T14:31:00Z"
+  "updated_at": "2026-09-13T15:09:00Z"
 }
