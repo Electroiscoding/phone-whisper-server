@@ -1669,8 +1669,8 @@ print(f"Losslessly restored {len(restored_bytes)} bytes")</pre>
 
       for (let i = 0; i < total; i++) {
         const file = files[i];
-        const cleanFileName = file.name.replace(/[^\w.-]/g, '_');
-        const key = `uploads/${Date.now()}_${cleanFileName}`;
+        const rawName = file.name.replace(/[^\w.-]/g, '_');
+        const key = `${Date.now()}_${rawName}`;
 
         try {
           const res = await apiFetch(`/v1/storage/objects/${encodeURI(key)}`, {

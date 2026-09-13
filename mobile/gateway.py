@@ -2574,37 +2574,43 @@ class SwadeObjectStore:
 
     def find_object(self, tenant_id: str, raw_key: str):
         """Finds object across tenant or universal bucket namespaces for zero-failure CDN retrieval"""
-        if tenant_id and raw_key:
-            data, meta = self.get_object(tenant_id, raw_key)
-            if meta:
-                return data, meta
+        candidates = []
+        raw_clean = (raw_key or "").replace("\\", "/").strip("/ ")
+        unquoted = urllib.parse.unquote(raw_clean)
+        t_clean = (tenant_id or "").replace("\\", "/").strip("/ ")
 
-        clean_key = raw_key.replace("\\", "/").strip("/ ") if raw_key else ""
-        if not clean_key and tenant_id:
-            clean_key = tenant_id.replace("\\", "/").strip("/ ")
+        if raw_clean:
+            candidates.extend([raw_clean, unquoted])
+        if t_clean and raw_clean:
+            candidates.extend([f"{t_clean}/{raw_clean}", f"{t_clean}/{unquoted}"])
+        if not raw_clean and t_clean:
+            candidates.extend([t_clean, urllib.parse.unquote(t_clean)])
 
-        if clean_key:
-            for t_id, t_dict in self._meta_index.items():
-                meta = t_dict.get(clean_key) or t_dict.get(raw_key) or t_dict.get(raw_key.strip("/ "))
+        # 1. Direct tenant lookup
+        if tenant_id:
+            for cand in candidates:
+                data, meta = self.get_object(tenant_id, cand)
                 if meta:
-                    data, _ = self.get_object(t_id, meta.get("key", clean_key))
-                    if meta:
-                        return data, meta
+                    return data, meta
 
-            combined = f"{tenant_id}/{raw_key}".strip("/ ") if (tenant_id and raw_key) else ""
-            if combined:
+        # 2. Universal meta index lookup across all registered tenants
+        with self.lock:
+            for cand in candidates:
                 for t_id, t_dict in self._meta_index.items():
-                    meta = t_dict.get(combined)
+                    meta = t_dict.get(cand)
                     if meta:
-                        data, _ = self.get_object(t_id, meta.get("key", combined))
+                        data, _ = self.get_object(t_id, meta.get("key", cand))
                         if meta:
                             return data, meta
 
-            base = os.path.basename(clean_key)
-            if base:
+            # 3. Base filename / partial suffix match
+            for cand in candidates:
+                base = os.path.basename(cand)
+                if not base:
+                    continue
                 for t_id, t_dict in self._meta_index.items():
                     for k, meta in t_dict.items():
-                        if k.endswith("/" + base) or k == base:
+                        if k == base or k.endswith("/" + base) or base.endswith("/" + k) or k.endswith(base):
                             data, _ = self.get_object(t_id, k)
                             if meta:
                                 return data, meta
