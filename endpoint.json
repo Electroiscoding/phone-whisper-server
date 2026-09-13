@@ -1,7 +1,7 @@
 {
-  "endpoint": "https://jewel-pharmaceutical-cooperation-bestsellers.trycloudflare.com",
-  "inference": "https://jewel-pharmaceutical-cooperation-bestsellers.trycloudflare.com/inference",
-  "telemetry": "https://jewel-pharmaceutical-cooperation-bestsellers.trycloudflare.com/telemetry",
+  "endpoint": "https://eden-upcoming-dense-adopt.trycloudflare.com",
+  "inference": "https://eden-upcoming-dense-adopt.trycloudflare.com/inference",
+  "telemetry": "https://eden-upcoming-dense-adopt.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
