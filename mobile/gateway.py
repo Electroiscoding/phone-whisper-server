@@ -632,7 +632,7 @@ def _get_storage_pools():
 
     return pools
 
-_SAFE_KEY_CHARS = frozenset("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.-/")
+
 
 
 class SwadesSecurityShield:
@@ -2388,12 +2388,16 @@ class SwadeObjectStore:
         """Enforces strict multi-tenant boundary. Prohibits directory traversal ('..', leading slashes, null bytes)"""
         if not raw_key:
             raise ValueError("Empty object key")
-        clean = raw_key.replace("\\", "/").strip("/ ")
-        if not clean or "\0" in clean or ".." in clean:
+        unquoted = urllib.parse.unquote(str(raw_key))
+        clean = unquoted.replace("\\", "/").strip("/ ")
+        if not clean or "\0" in clean:
+            raise ValueError("Illegal object key")
+        segments = [s.strip() for s in clean.split("/") if s.strip()]
+        if not segments or any(s in ("..", ".") for s in segments):
             raise ValueError("Illegal path traversal sequence in object key")
-        if not set(clean).issubset(_SAFE_KEY_CHARS):
-            raise ValueError("Object key contains invalid characters")
-        return clean
+        if any(ord(c) < 32 for c in clean):
+            raise ValueError("Object key contains invalid control characters")
+        return "/".join(segments)
 
     def _resolve_pool_path(self, pool_pref: str, tenant_id: str, clean_key: str) -> tuple:
         """Determines target physical hardware storage pool (NVMe/eMMC, shared /sdcard, external USB/SD)"""
@@ -2474,21 +2478,28 @@ class SwadeObjectStore:
         t_dict = self._meta_index.get(tenant_id)
         if not t_dict or not raw_key:
             return None
-        return t_dict.get(raw_key) or t_dict.get(raw_key.strip("/ "))
+        try:
+            clean_key = self._sanitize_key(raw_key)
+        except Exception:
+            clean_key = raw_key.replace("\\", "/").strip("/ ")
+        return t_dict.get(clean_key) or t_dict.get(raw_key) or t_dict.get(raw_key.strip("/ "))
 
     def get_object(self, tenant_id: str, raw_key: str):
         """Retrieves object bytes from Hot RAM Cache or Flash Disk"""
         if not raw_key:
             return None, None
-        clean_key = raw_key if (not raw_key.startswith("/") and "\\" not in raw_key) else raw_key.replace("\\", "/").strip("/ ")
+        try:
+            clean_key = self._sanitize_key(raw_key)
+        except Exception:
+            clean_key = raw_key.replace("\\", "/").strip("/ ")
         t_dict = self._meta_index.get(tenant_id)
         if not t_dict:
             return None, None
-        meta = t_dict.get(clean_key)
+        meta = t_dict.get(clean_key) or t_dict.get(raw_key) or t_dict.get(raw_key.strip("/ "))
         if not meta:
             return None, None
 
-        cache_key = f"{tenant_id}:{clean_key}"
+        cache_key = f"{tenant_id}:{meta.get('key', clean_key)}"
         if cache_key in self._hot_blob_cache:
             return self._hot_blob_cache[cache_key], meta
 
@@ -2509,22 +2520,26 @@ class SwadeObjectStore:
         """Microsecond RAM Index Purge + Background File Unlink"""
         if not raw_key:
             return False
-        clean_key = raw_key if (not raw_key.startswith("/") and "\\" not in raw_key) else raw_key.replace("\\", "/").strip("/ ")
+        try:
+            clean_key = self._sanitize_key(raw_key)
+        except Exception:
+            clean_key = raw_key.replace("\\", "/").strip("/ ")
         t_dict = self._meta_index.get(tenant_id)
         if t_dict is None:
             return False
 
-        meta = t_dict.pop(clean_key, None)
+        meta = t_dict.pop(clean_key, None) or t_dict.pop(raw_key, None) or t_dict.pop(raw_key.strip("/ "), None)
         if meta is None:
             return False
 
+        actual_key = meta.get("key", clean_key)
         sz = meta.get("size", 0)
-        self._tenant_used_bytes[tenant_id] -= sz
-        self._tenant_object_count[tenant_id] -= 1
+        self._tenant_used_bytes[tenant_id] = max(0, self._tenant_used_bytes[tenant_id] - sz)
+        self._tenant_object_count[tenant_id] = max(0, self._tenant_object_count[tenant_id] - 1)
 
-        cache_key = f"{tenant_id}:{clean_key}"
+        cache_key = f"{tenant_id}:{actual_key}"
         if cache_key in self._hot_blob_cache:
-            self._current_hot_bytes -= len(self._hot_blob_cache.pop(cache_key))
+            self._current_hot_bytes = max(0, self._current_hot_bytes - len(self._hot_blob_cache.pop(cache_key)))
 
         disk_path = meta.get("_disk_path")
         if disk_path:

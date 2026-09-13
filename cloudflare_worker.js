@@ -159,9 +159,16 @@ export default {
     const isTts = ["/v1/audio/speech", "/speech", "/tts", "/v1/tts"].includes(url.pathname);
     const isVoices = ["/v1/audio/voices", "/v1/voices", "/voices"].includes(url.pathname);
 
+    // Buffer the request body once so it is safe to reuse across proxy retry attempts
+    let reqBodyArrayBuffer = null;
+    if (!["GET", "HEAD"].includes(request.method)) {
+      try {
+        reqBodyArrayBuffer = await request.arrayBuffer();
+      } catch (e) {}
+    }
+
     let edgeCacheKey = null;
     let ttsVoice = "amy";
-    let reqBodyText = null;
 
     if (isVoices && request.method === "GET") {
       try {
@@ -182,9 +189,9 @@ export default {
         ttsInput = url.searchParams.get("input") || url.searchParams.get("text") || "";
         ttsVoice = (url.searchParams.get("voice") || "amy").trim().toLowerCase();
         ttsSpeed = url.searchParams.get("speed") || "1.0";
-      } else if (request.method === "POST") {
+      } else if (request.method === "POST" && reqBodyArrayBuffer) {
         try {
-          reqBodyText = await request.text();
+          const reqBodyText = new TextDecoder().decode(reqBodyArrayBuffer);
           const parsedBody = JSON.parse(reqBodyText);
           ttsInput = parsedBody.input || parsedBody.text || "";
           ttsVoice = (parsedBody.voice || "amy").trim().toLowerCase();
@@ -224,8 +231,15 @@ export default {
                           url.pathname.includes("/transcriptions") || 
                           url.pathname.includes("/chat") || 
                           url.pathname.includes("/agent") ||
-                          url.pathname.includes("/inference");
-    const timeoutMs = isLongRunning ? 30000 : 8000;
+                          url.pathname.includes("/inference") ||
+                          url.pathname.includes("/storage") ||
+                          url.pathname.includes("/s/") ||
+                          url.pathname.includes("/rerank") ||
+                          url.pathname.includes("/embeddings") ||
+                          url.pathname.includes("/compress") ||
+                          url.pathname.includes("/decompress") ||
+                          url.pathname.includes("/vision");
+    const timeoutMs = isLongRunning ? 60000 : 15000;
 
     while (attempt < maxAttempts) {
       attempt++;
@@ -246,7 +260,7 @@ export default {
         const proxyReq = new Request(targetUrl, {
           method: request.method,
           headers: proxyHeaders,
-          body: ["GET", "HEAD"].includes(request.method) ? undefined : (reqBodyText !== null ? reqBodyText : request.body),
+          body: reqBodyArrayBuffer ? reqBodyArrayBuffer.slice(0) : undefined,
           redirect: "follow",
           signal: controller.signal
         });

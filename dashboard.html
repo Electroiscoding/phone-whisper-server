@@ -1484,14 +1484,18 @@ print(f"Losslessly restored {len(restored_bytes)} bytes")</pre>
       const file = e.target.files[0];
       if (!file) return;
 
-      const key = `uploads/${Date.now()}_${file.name}`;
+      const cleanFileName = file.name.replace(/[^\w.-]/g, '_');
+      const key = `uploads/${Date.now()}_${cleanFileName}`;
       try {
-        const res = await apiFetch(`/v1/storage/objects/${key}`, {
+        const res = await apiFetch(`/v1/storage/objects/${encodeURI(key)}`, {
           method: 'PUT',
           headers: { 'Content-Type': file.type || 'application/octet-stream' },
           body: file
         });
-        if (!res.ok) throw new Error("Upload failed");
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.error || `Upload failed (Status ${res.status})`);
+        }
         showToast(`Uploaded ${file.name}!`, 'success', '<i class="fa-solid fa-folder text-amber-400"></i>');
         loadMediaFiles();
       } catch (err) {
@@ -1501,7 +1505,7 @@ print(f"Losslessly restored {len(restored_bytes)} bytes")</pre>
 
     async function deleteObject(key) {
       if (!confirm(`Delete ${key}?`)) return;
-      await apiFetch(`/v1/storage/objects/${key}`, { method: 'DELETE' });
+      await apiFetch(`/v1/storage/objects/${encodeURI(key)}`, { method: 'DELETE' });
       showToast("File deleted", 'info');
       loadMediaFiles();
     }
