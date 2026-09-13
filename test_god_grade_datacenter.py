@@ -30,7 +30,7 @@ import zlib
 import struct
 from swades import Swades
 
-BASE_URL = os.environ.get("TARGET_HOST", "http://192.168.29.2:8080")
+BASE_URL = os.environ.get("TARGET_HOST", "http://127.0.0.1:8080")
 
 # Color formatting for terminal
 GREEN = "\033[92m"

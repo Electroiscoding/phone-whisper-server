@@ -4,14 +4,36 @@ import re
 import json
 import os
 
+PAGES_REG_URL = "https://phone-whisper-server.pages.dev/register_tunnel"
+SHARED_SECRET = "mobile_ai_nuclear_key"
+
+def register_with_pages(url):
+    try:
+        import urllib.request
+        payload = json.dumps({"endpoint": url, "secret": SHARED_SECRET}).encode()
+        headers = {
+            "Content-Type": "application/json",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+        }
+        req = urllib.request.Request(PAGES_REG_URL, data=payload, headers=headers)
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            data = json.loads(resp.read().decode())
+            print(f"[EDGE-REG] Cloudflare Pages status: {data.get('status')} (origin: {data.get('active_origin')})", flush=True)
+            return True
+    except Exception as e:
+        print(f"[EDGE-REG ERROR] {e}", flush=True)
+        return False
+
 def update_workers_and_push(new_url):
     try:
+        register_with_pages(new_url)
+
         # 1. Update endpoint.json
         data = {
             "endpoint": new_url,
             "inference": f"{new_url}/inference",
             "telemetry": f"{new_url}/telemetry",
-            "phone_lan_ip": "http://192.168.29.2:8080",
+            "phone_lan_ip": "http://127.0.0.1:8080",
             "mode": "dual_worldwide_and_local",
             "port": 8080,
             "updated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
@@ -43,8 +65,9 @@ def main():
     print("Starting Self-Healing Cloudflare Tunnel Watchdog...", flush=True)
     while True:
         try:
+            target_port = 8080
             proc = subprocess.Popen(
-                ['/tmp/cloudflared', 'tunnel', '--url', 'http://192.168.29.2:8080'],
+                ['/tmp/cloudflared', 'tunnel', '--url', f'http://127.0.0.1:{target_port}', '--protocol', 'http2', '--edge-ip-version', '4', '--no-autoupdate'],
                 stderr=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 text=True,

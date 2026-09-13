@@ -4450,6 +4450,12 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 raise ValueError("Username and password are required")
             
             res = _storage_vault.register_user(username, password)
+            user_obj = {
+                "user_id": res["user_id"],
+                "username": res["username"],
+                "quota_bytes": res["quota_bytes"],
+                "role": "developer"
+            }
             resp = json.dumps({
                 "success": True,
                 "user_id": res["user_id"],
@@ -4458,6 +4464,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 "key_id": res["key_id"],
                 "quota_bytes": res["quota_bytes"],
                 "created_at": res["created_at"],
+                "user": user_obj,
                 "message": "Account created successfully! Save your primary API key safely."
             }).encode("utf-8")
             self.send_response(201)
@@ -4499,13 +4506,22 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 raise ValueError("Username and password are required")
 
             res = _storage_vault.login_user(username, password)
+            user_obj = {
+                "user_id": res["user_id"],
+                "username": res["username"],
+                "quota_bytes": res["quota_bytes"],
+                "role": "developer"
+            }
+            primary_key = (res["keys"][0]["api_key"] if res.get("keys") else res.get("new_api_key")) or ""
             resp = json.dumps({
                 "success": True,
                 "user_id": res["user_id"],
                 "username": res["username"],
                 "quota_bytes": res["quota_bytes"],
                 "keys": res["keys"],
+                "api_key": primary_key,
                 "new_api_key": res.get("new_api_key"),
+                "user": user_obj,
                 "message": "Login successful!"
             }).encode("utf-8")
             self.send_response(200)

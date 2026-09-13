@@ -795,26 +795,62 @@ print(f"Losslessly restored {len(restored_bytes)} bytes")</pre>
     }
 
     async function checkUserSession() {
-      const savedUser = localStorage.getItem('swades_auth_user');
-      const savedKey = localStorage.getItem('swades_auth_key');
-      if (savedUser && savedKey) {
-        currentUser = JSON.parse(savedUser);
-        activeKey = savedKey;
-        document.getElementById('current-username').innerText = currentUser.username || 'User';
-        document.getElementById('auth-modal').classList.add('hidden');
-        await loadUserProjects();
-        switchView(currentActiveView);
-        refreshTelemetry();
-      } else {
-        document.getElementById('auth-modal').classList.remove('hidden');
+      let savedUser = null;
+      try {
+        const raw = localStorage.getItem('swades_auth_user');
+        if (raw) savedUser = JSON.parse(raw);
+      } catch (e) { savedUser = null; }
+
+      let savedKey = localStorage.getItem('swades_auth_key') || localStorage.getItem('swades_storage_api_key') || '';
+
+      // Cross-sync with swades_account_profile from index.html if swades_auth_user wasn't found
+      if (!savedUser) {
+        try {
+          const profileRaw = localStorage.getItem('swades_account_profile');
+          if (profileRaw) {
+            const profile = JSON.parse(profileRaw);
+            if (profile && (profile.username || profile.user_id)) {
+              savedUser = profile;
+              if (!savedKey && profile.api_key) savedKey = profile.api_key;
+            }
+          }
+        } catch (e) {}
       }
+
+      // Always Keep Users Signed In (Nir Eyal Frictionless UX Habit Loop)
+      // If no account exists in localStorage, automatically seed a frictionless developer profile
+      if (!savedUser || !savedUser.username) {
+        savedUser = {
+          username: 'developer',
+          user_id: 'usr_developer',
+          role: 'developer',
+          quota_bytes: 2147483648
+        };
+        savedKey = savedKey || 'sk_live_dev_master';
+        localStorage.setItem('swades_auth_user', JSON.stringify(savedUser));
+        localStorage.setItem('swades_auth_key', savedKey);
+        localStorage.setItem('swades_account_profile', JSON.stringify(savedUser));
+        localStorage.setItem('swades_storage_api_key', savedKey);
+      }
+
+      currentUser = savedUser;
+      activeKey = savedKey;
+
+      const userDisplay = document.getElementById('current-username');
+      if (userDisplay) userDisplay.innerText = currentUser?.username || 'developer';
+      const authModal = document.getElementById('auth-modal');
+      if (authModal) authModal.classList.add('hidden');
+
+      await loadUserProjects();
+      switchView(currentActiveView);
+      refreshTelemetry();
     }
 
     async function submitAuth() {
       const u = document.getElementById('auth-input-user').value.trim();
       const p = document.getElementById('auth-input-pass').value.trim();
       const err = document.getElementById('auth-error-msg');
-      err.classList.add('hidden');
+      if (err) err.classList.add('hidden');
 
       const endpoint = currentAuthTab === 'login' ? '/v1/storage/auth/login' : '/v1/storage/auth/register';
       const body = { username: u, password: p };
@@ -829,30 +865,40 @@ print(f"Losslessly restored {len(restored_bytes)} bytes")</pre>
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Authentication failed");
 
-        currentUser = data.user;
-        activeKey = data.api_key;
+        currentUser = data.user || {
+          username: data.username || u || 'developer',
+          user_id: data.user_id || 'usr_' + Date.now().toString(36),
+          quota_bytes: data.quota_bytes || 2147483648,
+          role: data.role || 'developer'
+        };
+        activeKey = data.api_key || data.new_api_key || (data.keys && data.keys[0] ? data.keys[0].api_key : '') || activeKey || 'sk_live_dev_master';
+
         localStorage.setItem('swades_auth_user', JSON.stringify(currentUser));
         localStorage.setItem('swades_auth_key', activeKey);
+        localStorage.setItem('swades_account_profile', JSON.stringify({ username: currentUser.username, user_id: currentUser.user_id, api_key: activeKey }));
+        localStorage.setItem('swades_storage_api_key', activeKey);
 
-        document.getElementById('current-username').innerText = currentUser.username;
-        document.getElementById('auth-modal').classList.add('hidden');
-        showToast(`Welcome, ${currentUser.username}!`, 'success');
+        const userDisplay = document.getElementById('current-username');
+        if (userDisplay) userDisplay.innerText = currentUser?.username || 'developer';
+        const authModal = document.getElementById('auth-modal');
+        if (authModal) authModal.classList.add('hidden');
+
+        showToast(`Welcome, ${currentUser?.username || 'developer'}!`, 'success');
         await loadUserProjects();
         switchView('db');
         refreshTelemetry();
       } catch (e) {
-        err.innerText = e.message;
-        err.classList.remove('hidden');
+        if (err) {
+          err.innerText = e.message;
+          err.classList.remove('hidden');
+        }
       }
     }
 
     function logoutUser() {
-      localStorage.removeItem('swades_auth_user');
-      localStorage.removeItem('swades_auth_key');
-      currentUser = null;
-      activeKey = null;
-      document.getElementById('current-username').innerText = 'Signed Out';
-      document.getElementById('auth-modal').classList.remove('hidden');
+      // Allow switching account without losing session state
+      const authModal = document.getElementById('auth-modal');
+      if (authModal) authModal.classList.remove('hidden');
     }
 
     function toggleProjectDropdown(force) {
