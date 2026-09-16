@@ -6961,9 +6961,44 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 self.wfile.write(resp)
                 return
 
-            schedule_type = body.get("schedule_type", "interval")
-            schedule_val = body.get("schedule_value") or body.get("interval_sec") or "60"
-            job_name = body.get("name") or "24/7 Phone Uptime Heartbeat Alert"
+            now_ts = time.time()
+            delay_sec = 30  # Default 30s
+            
+            # Parse custom time/date or delay (Capped at 3 minutes = 180 seconds for demo)
+            if "delay_sec" in body or "delay" in body or "seconds" in body:
+                try:
+                    raw_delay = int(float(body.get("delay_sec") or body.get("delay") or body.get("seconds")))
+                    delay_sec = max(5, min(180, raw_delay))
+                except Exception:
+                    delay_sec = 30
+            elif "target_timestamp" in body or "target_time" in body or "time" in body:
+                raw_time = str(body.get("target_timestamp") or body.get("target_time") or body.get("time"))
+                try:
+                    if "T" in raw_time:
+                        dt = datetime.fromisoformat(raw_time.replace("Z", "+00:00"))
+                        calc_delay = int(dt.timestamp() - now_ts)
+                        delay_sec = max(5, min(180, calc_delay))
+                    elif ":" in raw_time:
+                        parts = raw_time.split(":")
+                        now_dt = datetime.now()
+                        target_dt = now_dt.replace(hour=int(parts[0]), minute=int(parts[1]), second=int(parts[2]) if len(parts)>2 else 0)
+                        if target_dt < now_dt:
+                            target_dt += timedelta(days=1)
+                        calc_delay = int((target_dt - now_dt).total_seconds())
+                        delay_sec = max(5, min(180, calc_delay))
+                except Exception:
+                    delay_sec = 30
+            elif body.get("schedule_value"):
+                try:
+                    sec = parse_human_interval(str(body.get("schedule_value")))
+                    delay_sec = max(5, min(180, sec))
+                except Exception:
+                    delay_sec = 30
+
+            job_name = body.get("name") or f"Demo Cron Alert ({delay_sec}s Countdown)"
+            is_repeating = bool(body.get("is_repeating", False))
+            schedule_type = "interval" if is_repeating else "one_off"
+            schedule_val = str(delay_sec)
 
             payload = {
                 "name": job_name,
@@ -6974,14 +7009,22 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 "notify_on": "always",
                 "email_subject": f"⚡ Scheduled Pulse: {job_name}",
                 "email_body_template": f"Live automated scheduled pulse from Phone AI Datacenter on {datetime.now(timezone.utc).isoformat()}.",
-                "trigger_immediate": True,
-                "tags": "demo,smtp,heartbeat"
+                "trigger_immediate": False,
+                "tags": "demo,smtp,countdown"
             }
             job = _cron_engine.create_job(payload, tenant_id="usr_demo", is_anonymous=True)
+            # Override next run to exact requested delay
+            job["next_run_ts"] = now_ts + delay_sec
+            job["next_run_at"] = datetime.fromtimestamp(now_ts + delay_sec, timezone.utc).isoformat()
+            job["delay_sec"] = delay_sec
+
             resp = json.dumps({
                 "success": True,
-                "message": f"Demo cron job active! Verification email dispatched to {email}. Scheduled 24/7 on ARM hardware.",
-                "job": job
+                "message": f"Demo cron task scheduled! Armed to fire in {delay_sec} seconds to {email}.",
+                "job": job,
+                "delay_sec": delay_sec,
+                "target_email": email,
+                "fires_at": job["next_run_at"]
             }).encode("utf-8")
             self.send_response(200)
             self._send_cors_headers()
