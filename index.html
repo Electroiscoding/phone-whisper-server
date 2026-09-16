@@ -3395,14 +3395,14 @@ if (res.hands && res.hands[0]) {
             <span class="telemetry-badge" id="ramBadge">Kernel MemInfo</span>
           </div>
           <div class="telemetry-big-val">
-            <span id="ramUsedVal">1.75</span> <span class="telemetry-unit">/ <span id="ramTotalVal">3.79</span> GB</span>
+            <span id="ramUsedVal">--</span> <span class="telemetry-unit">/ <span id="ramTotalVal">--</span> GB</span>
           </div>
           <div class="progress-bar-bg">
-            <div class="progress-bar-fill" id="ramProgressFill" style="width: 46.2%;"></div>
+            <div class="progress-bar-fill" id="ramProgressFill" style="width: 0%;"></div>
           </div>
           <div class="telemetry-footer-stats">
-            <span>Available: <strong id="ramAvailVal">2.04 GB</strong></span>
-            <span>Buffer: 95.5 MB</span>
+            <span>Available: <strong id="ramAvailVal">-- GB</strong></span>
+            <span id="ramBufferVal">Buffer: -- MB</span>
           </div>
         </div>
 
@@ -3413,18 +3413,18 @@ if (res.hands && res.hands[0]) {
             <span class="telemetry-badge success" id="batteryBadge">Live HW</span>
           </div>
           <div class="telemetry-big-val">
-            <span id="tempVal">34.0</span> <span class="telemetry-unit">°C</span>
+            <span id="tempVal">--</span> <span class="telemetry-unit">°C</span>
           </div>
           <div class="progress-bar-bg">
-            <div class="progress-bar-fill" id="tempProgressFill" style="width: 42%; background: linear-gradient(90deg, #10b981, #38bdf8);"></div>
+            <div class="progress-bar-fill" id="tempProgressFill" style="width: 0%; background: linear-gradient(90deg, #10b981, #38bdf8);"></div>
           </div>
           <div class="telemetry-footer-stats">
-            <span>Battery: <strong id="batteryVal">60%</strong> (<span id="chargeStatus">Discharging</span>)</span>
-            <span id="voltageVal">3850 mV</span>
+            <span>Battery: <strong id="batteryVal">--%</strong> (<span id="chargeStatus">--</span>)</span>
+            <span id="voltageVal">-- mV</span>
           </div>
           <div class="telemetry-footer-stats" style="margin-top: 4px; padding-top: 4px; border-top: 1px solid rgba(255,255,255,0.06);">
-            <span>ACC Guard: <strong id="accStatusVal" class="text-amber-400">70-80% Active</strong></span>
-            <span id="accSwitchVal">dumpsys</span>
+            <span>ACC Guard: <strong id="accStatusVal" class="text-amber-400">--</strong></span>
+            <span id="accSwitchVal">--</span>
           </div>
         </div>
 
@@ -4893,11 +4893,11 @@ python3 mobile/nuclear_watchdog.py</code></pre>
     const pingGraphCtx = pingGraphCanvas.getContext("2d");
 
     const GRAPH_POINTS = 30;
-    let cpuHistory = Array(GRAPH_POINTS).fill(4.5);
-    let pingHistory = Array(GRAPH_POINTS).fill(38);
+    let cpuHistory = Array(GRAPH_POINTS).fill(0);
+    let pingHistory = Array(GRAPH_POINTS).fill(0);
 
     const BAR_COUNT = 52;
-    let smoothBars = Array(BAR_COUNT).fill(4);
+    let smoothBars = Array(BAR_COUNT).fill(0);
     let idlePhase = 0;
 
     function drawFluidWaveform() {
@@ -5437,6 +5437,12 @@ python3 mobile/nuclear_watchdog.py</code></pre>
             ramTotalVal.innerText = totalGb;
             ramAvailVal.innerText = `${availGb} GB`;
             ramProgressFill.style.width = `${((data.memory.used_mb / data.memory.total_mb) * 100).toFixed(1)}%`;
+            const bufferEl = document.getElementById("ramBufferVal");
+            if (bufferEl) {
+              const bufMb = data.memory.buffer_mb || 0;
+              const cacheMb = data.memory.cached_mb || 0;
+              bufferEl.innerText = (bufMb + cacheMb > 0) ? `Buffer: ${bufMb + cacheMb} MB` : `Reclaimable: ${availGb} GB`;
+            }
           }
 
           // 2b. Elastic Memory Governor Live State
