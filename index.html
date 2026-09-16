@@ -2282,6 +2282,16 @@
         <div style="margin-bottom: 1rem;">
           <textarea id="ttsInputText" class="chat-input" style="width: 100%; height: 100px; resize: vertical;" placeholder="Enter text to speak...">Welcome to the world's first autonomous multi-modal edge AI datacenter running on a phone.</textarea>
         </div>
+        <div style="margin-bottom: 0.85rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+          <button class="action-chip chip-cyan" onclick="auditionVoice('amy')" style="padding: 0.35rem 0.75rem; font-size: 0.78rem;">
+            <i class="fa-solid fa-play text-cyan-400"></i>
+            <span>Audition Amy (Natural)</span>
+          </button>
+          <button class="action-chip chip-emerald" onclick="auditionVoice('lessac')" style="padding: 0.35rem 0.75rem; font-size: 0.78rem;">
+            <i class="fa-solid fa-play text-emerald-400"></i>
+            <span>Audition Lessac (Resonant)</span>
+          </button>
+        </div>
         <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; justify-content: space-between;">
           <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
             <label style="font-size: 0.85rem; color: var(--text-muted);">Voice:</label>
@@ -2910,6 +2920,54 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
             </div>
           </div>
           <pre id="zstdSnippetBlock" style="margin: 0; background: #030712; border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 0.85rem; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; color: #e2e8f0; overflow-x: auto;"></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- INTERACTIVE HARDWARE COST & LATENCY SAVINGS SIMULATOR -->
+    <section id="savings-simulator" style="margin-top: 3.5rem;">
+      <div class="section-head">
+        <span class="section-tag" style="background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.3); color: #34d399;">
+          <i class="fa-solid fa-calculator"></i>
+          <span>Interactive Developer ROI Engine</span>
+        </span>
+        <h2 class="section-title">Cloud GPU vs Sovereign Silicon Savings</h2>
+        <p class="section-desc">Estimate how much your team saves by eliminating centralized cloud API markups and running inference on dedicated ARM hardware.</p>
+      </div>
+
+      <div class="card-glow" style="padding: 1.75rem; border-radius: 16px;">
+        <div style="margin-bottom: 1.5rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
+            <label style="font-size: 0.9rem; font-weight: 700; color: #fff;">Monthly API Inferences / Queries:</label>
+            <span id="sliderValueLabel" style="font-family: 'JetBrains Mono', monospace; font-size: 1.1rem; font-weight: 800; color: #38bdf8;">100,000 requests / mo</span>
+          </div>
+          <input type="range" id="savingsSlider" min="5000" max="1000000" step="5000" value="100000" style="width: 100%; cursor: pointer;" oninput="updateSavingsSimulator(this.value)" />
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+          <div style="background: #0b0f19; border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 12px; padding: 1.25rem; text-align: center;">
+            <div style="font-size: 0.75rem; text-transform: uppercase; color: #f87171; font-weight: 700; margin-bottom: 0.4rem;">Traditional Cloud GPU</div>
+            <div id="cloudCostVal" style="font-size: 1.75rem; font-weight: 800; color: #f87171; font-family: 'JetBrains Mono', monospace;">$360 / mo</div>
+            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.3rem;">Cold starts: ~250–800ms</div>
+          </div>
+
+          <div style="background: #0b0f19; border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 12px; padding: 1.25rem; text-align: center; box-shadow: 0 0 20px rgba(16, 185, 129, 0.15);">
+            <div style="font-size: 0.75rem; text-transform: uppercase; color: #34d399; font-weight: 700; margin-bottom: 0.4rem;">Sovereign Phone AI Node</div>
+            <div style="font-size: 1.75rem; font-weight: 800; color: #34d399; font-family: 'JetBrains Mono', monospace;">$0.00 / mo</div>
+            <div style="font-size: 0.75rem; color: #6ee7b7; margin-top: 0.3rem;">In-Memory RAM: ~0.1–18ms</div>
+          </div>
+
+          <div style="background: #0b0f19; border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 12px; padding: 1.25rem; text-align: center;">
+            <div style="font-size: 0.75rem; text-transform: uppercase; color: #38bdf8; font-weight: 700; margin-bottom: 0.4rem;">Annual Capital Saved</div>
+            <div id="annualSavedVal" style="font-size: 1.75rem; font-weight: 800; color: #38bdf8; font-family: 'JetBrains Mono', monospace;">$4,320 / yr</div>
+            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.3rem;">100% Data Sovereignty</div>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: center;">
+          <a href="#cloud-storage" class="btn-send-chat" style="padding: 0.75rem 2rem; font-size: 0.95rem; text-decoration: none; border-radius: 30px; box-shadow: 0 0 20px rgba(56, 189, 248, 0.4);">
+            <i class="fa-solid fa-key mr-2"></i> <span>Get Free Tenant API Key &amp; Start Building</span>
+          </a>
         </div>
       </div>
     </section>
@@ -7823,6 +7881,35 @@ console.log("Recovered:", text);`;
         levelEl.style.color = color;
       }
     }
+
+    function auditionVoice(voice) {
+      const voiceSelect = document.getElementById("ttsVoiceSelect");
+      if (voiceSelect) voiceSelect.value = voice;
+      const textEl = document.getElementById("ttsInputText");
+      if (textEl) {
+        textEl.value = voice === 'amy' 
+          ? "Hello! I am Amy, a crystal-clear native neural voice running in real-time."
+          : "Greetings! I am Lessac, a resonant deep voice synthesized directly on phone silicon.";
+      }
+      generateSpeech();
+    }
+    window.auditionVoice = auditionVoice;
+
+    function updateSavingsSimulator(val) {
+      const num = parseInt(val, 10);
+      const label = document.getElementById('sliderValueLabel');
+      const cloudCostEl = document.getElementById('cloudCostVal');
+      const annualSavedEl = document.getElementById('annualSavedVal');
+      if (label) label.innerText = `${num.toLocaleString()} requests / mo`;
+
+      // Cloud cost estimate: approx $0.0036 per multi-modal inference
+      const monthlyCloudCost = Math.round(num * 0.0036);
+      const annualSaved = monthlyCloudCost * 12;
+
+      if (cloudCostEl) cloudCostEl.innerText = `$${monthlyCloudCost.toLocaleString()} / mo`;
+      if (annualSavedEl) annualSavedEl.innerText = `$${annualSaved.toLocaleString()} / yr`;
+    }
+    window.updateSavingsSimulator = updateSavingsSimulator;
 
     async function triggerQuickAction(mode) {
       hapticFeedback([15]);
