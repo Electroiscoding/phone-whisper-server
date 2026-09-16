@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://rand-interface-exhaust-starring.trycloudflare.com",
-  "inference": "https://rand-interface-exhaust-starring.trycloudflare.com/inference",
-  "telemetry": "https://rand-interface-exhaust-starring.trycloudflare.com/telemetry",
+  "endpoint": "https://cheapest-marine-twice-waters.trycloudflare.com",
+  "inference": "https://cheapest-marine-twice-waters.trycloudflare.com/inference",
+  "telemetry": "https://cheapest-marine-twice-waters.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-09-16T09:15:30Z"
+  "updated_at": "2026-09-16T09:17:30Z"
 }
