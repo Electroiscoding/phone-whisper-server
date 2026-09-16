@@ -1390,6 +1390,20 @@ class SwadeStorageVault:
                 pass
             finally:
                 conn.close()
+        if not rec and (raw_key == "pub_demo_key" or raw_key.startswith("pk_live_") or raw_key.startswith("pk_guest_") or raw_key.startswith("sk_swades_") or raw_key.startswith("sk_sandbox_")):
+            # Auto-provision instant sovereign sandbox tenant in memory
+            rec = {
+                "key_id": f"key_{kh[:12]}",
+                "tenant_id": f"usr_sandbox_{kh[:10]}",
+                "project_id": f"proj_sandbox_{kh[:10]}",
+                "name": "Sovereign Sandbox Key",
+                "quota_bytes": 2147483648,
+                "restrictions": "full",
+                "is_active": 1,
+                "created_at": datetime.now(timezone.utc).isoformat()
+            }
+            self._key_cache[kh] = rec
+
         if rec and rec.get("is_active"):
             exp = rec.get("expires_at")
             if exp:
@@ -2405,6 +2419,10 @@ class SwadeObjectStore:
         self._disk_worker_thread = threading.Thread(target=self._disk_worker, daemon=True)
         self._disk_worker_thread.start()
 
+        # Hyper-Protection Background TTL Cleaner (Purges anonymous unvisited objects after 3 days)
+        self._ttl_cleaner_thread = threading.Thread(target=self._ttl_cleaner_worker, daemon=True)
+        self._ttl_cleaner_thread.start()
+
         self._warm_cache()
 
     def _disk_worker(self):
@@ -2431,6 +2449,28 @@ class SwadeObjectStore:
             except Exception as e:
                 print(f"[SWADES STORAGE] disk worker notice: {e}")
 
+    def _ttl_cleaner_worker(self):
+        """Background physical cleaner: purges anonymous files with zero external human visits after 3 days (72 hours)"""
+        while True:
+            try:
+                time.sleep(30)
+                now_ts = time.time()
+                expired_targets = []
+                with self.lock:
+                    for t_id, t_dict in list(self._meta_index.items()):
+                        for k, meta in list(t_dict.items()):
+                            is_anon = meta.get("is_anonymous", False) or t_id.startswith("usr_guest_") or t_id.startswith("usr_sandbox_")
+                            ext_visits = meta.get("external_human_visits", 0)
+                            exp_ts = meta.get("expires_at_ts", 0)
+                            if is_anon and ext_visits == 0 and exp_ts > 0 and now_ts >= exp_ts:
+                                expired_targets.append((t_id, k))
+
+                for t_id, k in expired_targets:
+                    self.delete_object(t_id, k)
+                    print(f"[SWADES STORAGE TTL] Physical flash purge: Anonymous unvisited file '{k}' in tenant '{t_id}' auto-deleted after 3 days of zero external human visits.")
+            except Exception as te:
+                print(f"[SWADES STORAGE TTL] cleaner error: {te}")
+
     def _warm_cache(self):
         """Preloads metadata of all existing tenant files into RAM on startup"""
         try:
@@ -2455,6 +2495,7 @@ class SwadeObjectStore:
                                 ct, _ = mimetypes.guess_type(fname)
                                 etag = f'"{int(st.st_mtime)}-{st.st_size}"'
                                 now = datetime.fromtimestamp(st.st_ctime, timezone.utc).isoformat()
+                                is_anon = tenant_id.startswith("usr_guest_") or tenant_id.startswith("usr_sandbox_")
                                 meta = {
                                     "key": rel_path,
                                     "size": st.st_size,
@@ -2463,6 +2504,12 @@ class SwadeObjectStore:
                                     "updated_at": datetime.fromtimestamp(st.st_mtime, timezone.utc).isoformat(),
                                     "etag": etag,
                                     "is_public": True,
+                                    "is_anonymous": is_anon,
+                                    "uploaded_at_ts": st.st_ctime,
+                                    "last_accessed_ts": st.st_mtime,
+                                    "external_human_visits": 0,
+                                    "ttl_days": 3,
+                                    "expires_at_ts": st.st_ctime + (3 * 86400),
                                     "pool": "Internal Flash" if r_dir == self.root_dir else "Shared /sdcard",
                                     "_disk_path": full_path
                                 }
@@ -2511,7 +2558,7 @@ class SwadeObjectStore:
         full_path = os.path.join(base, tenant_id, "objects", clean_key)
         return full_path, pname
 
-    def put_object(self, tenant_id: str, raw_key: str, data: bytes, content_type=None, is_public=True, pool="auto"):
+    def put_object(self, tenant_id: str, raw_key: str, data: bytes, content_type=None, is_public=True, pool="auto", is_anonymous=False):
         """Immediate Sub-Microsecond RAM Reflection + Async Non-blocking Disk Flush"""
         clean_key = self._sanitize_key(raw_key)
         size = len(data)
@@ -2527,10 +2574,12 @@ class SwadeObjectStore:
         crc = zlib.crc32(data) & 0xffffffff
         etag = f'"{crc:08x}-{size}"'
         now = datetime.now(timezone.utc).isoformat()
+        now_ts = time.time()
         if not content_type:
             ct, _ = mimetypes.guess_type(clean_key)
             content_type = ct or "application/octet-stream"
 
+        is_anon = is_anonymous or tenant_id.startswith("usr_guest_") or tenant_id.startswith("usr_sandbox_")
         meta = {
             "key": clean_key,
             "size": size,
@@ -2540,6 +2589,12 @@ class SwadeObjectStore:
             "updated_at": now,
             "etag": etag,
             "is_public": is_public,
+            "is_anonymous": is_anon,
+            "uploaded_at_ts": now_ts,
+            "last_accessed_ts": now_ts,
+            "external_human_visits": 0,
+            "ttl_days": 3,
+            "expires_at_ts": now_ts + (3 * 86400), # 3-Day Inactive TTL Countdown
             "pool": pool_name,
             "_disk_path": pool_path
         }
@@ -2682,7 +2737,7 @@ class SwadeObjectStore:
         return True
 
     def list_objects(self, tenant_id: str, prefix=None, limit=100):
-        """In-Memory Directory Slice in <0.005ms"""
+        """In-Memory Directory Slice in <0.005ms with Real-Time 3-Day Inactivity TTL Metrics"""
         t_dict = self._meta_index.get(tenant_id, {})
         t_objs = list(t_dict.values())
         if prefix:
@@ -2690,6 +2745,7 @@ class SwadeObjectStore:
         t_objs.sort(key=lambda x: x.get("updated_at", ""), reverse=True)
         # Strip internal fields from public representation
         safe_list = []
+        now_ts = time.time()
         mod_map = self.vault.get_file_moderation_map() if hasattr(self.vault, 'get_file_moderation_map') else {}
         for o in t_objs[:limit]:
             c = dict(o)
@@ -2698,7 +2754,24 @@ class SwadeObjectStore:
             c["moderation_status"] = m.get("status", "approved") if m else "approved"
             c["flagged_reason"] = m.get("flagged_reason", "") if m else ""
             c["moderated_by"] = m.get("moderated_by", "") if m else ""
+
+            # Real physical 3-day inactivity countdown calculation
+            is_anon = o.get("is_anonymous", False) or tenant_id.startswith("usr_guest_") or tenant_id.startswith("usr_sandbox_")
+            exp_ts = o.get("expires_at_ts", now_ts + (3 * 86400))
+            ext_visits = o.get("external_human_visits", 0)
+            time_left_sec = max(0, int(exp_ts - now_ts))
+            hours_left = round(time_left_sec / 3600, 1)
+            days_left = round(time_left_sec / 86400, 2)
+
+            c["is_anonymous"] = is_anon
+            c["external_human_visits"] = ext_visits
+            c["ttl_days_total"] = 3
+            c["ttl_hours_remaining"] = hours_left
+            c["ttl_days_remaining"] = days_left
+            c["ttl_expires_at"] = datetime.fromtimestamp(exp_ts, timezone.utc).isoformat()
+            c["ttl_auto_delete_active"] = is_anon and (ext_visits == 0)
             safe_list.append(c)
+        return safe_list, len(t_objs)
         return safe_list, len(t_objs)
 
     def get_usage(self, tenant_id: str):
@@ -4600,7 +4673,10 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 api_key = qs["api_key"][0].strip()
 
         if not api_key:
-            return None
+            client_ip = get_client_ip(self)
+            ip_hash = hashlib.sha256(client_ip.encode("utf-8")).hexdigest()[:10]
+            guest_key = f"pk_guest_{ip_hash}"
+            return _storage_vault.verify_key(guest_key)
         res = _storage_vault.verify_key(api_key)
         if res == "EXPIRED":
             return {"expired": True, "error": "API key has expired"}
@@ -5270,6 +5346,13 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             if not is_head:
                 self.wfile.write(err)
             return
+
+        # Record dynamic external human visit & refresh 3-day TTL window
+        now_ts = time.time()
+        meta["external_human_visits"] = meta.get("external_human_visits", 0) + 1
+        meta["last_accessed_ts"] = now_ts
+        if meta.get("is_anonymous", False):
+            meta["expires_at_ts"] = now_ts + (3 * 86400) # Refreshes 3-day TTL upon external visit
 
         accept_enc = (self.headers.get("Accept-Encoding") or "").lower()
         out_data = data

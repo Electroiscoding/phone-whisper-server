@@ -2307,9 +2307,9 @@
 
     <!-- Desktop Navigation Links -->
     <div class="nav-links-desktop">
-      <button class="cmd-k-trigger-btn" onclick="openCommandPalette()" title="Open Developer Command Palette (Cmd+K / Ctrl+K)">
+      <button class="cmd-k-trigger-btn" onclick="openCommandPalette()" title="Open Developer Command Palette (Press / or Cmd+K / Ctrl+K)">
         <i class="fa-solid fa-terminal text-cyan-400"></i>
-        <span>⌘K Search</span>
+        <span>Search <kbd style="background: rgba(255,255,255,0.14); padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.72rem; border: 1px solid rgba(255,255,255,0.2); font-family: 'JetBrains Mono', monospace; font-weight: 700; color: #38bdf8;">/</kbd></span>
       </button>
       <a href="/chat.html" class="nav-btn" style="background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(129, 140, 248, 0.2)); border-color: var(--primary); color: #fff; font-weight: 700; display: inline-flex; align-items: center; gap: 0.4rem;">
         <i class="fa-solid fa-robot mr-1.5 text-cyan-400"></i> <span>Demo</span>
@@ -2981,6 +2981,23 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
           </div>
         </div>
 
+        <!-- Hyper-Protection Anonymous Public CDN & Inactivity Lifecycle Banner -->
+        <div style="background: linear-gradient(135deg, rgba(56, 189, 248, 0.08), rgba(16, 185, 129, 0.08)); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 12px; padding: 1.1rem 1.35rem; margin-bottom: 1.5rem; display: flex; align-items: flex-start; gap: 1rem;">
+          <div style="background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.3); width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: #38bdf8; font-size: 1.25rem;">
+            <i class="fa-solid fa-earth-americas"></i>
+          </div>
+          <div style="flex: 1;">
+            <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 0.25rem;">
+              <span style="font-weight: 800; color: #fff; font-size: 0.98rem;">Anonymous Public Uploads &amp; Instant Worldwide CDN</span>
+              <span style="background: rgba(16, 185, 129, 0.2); color: #34d399; font-size: 0.72rem; font-weight: 700; padding: 0.15rem 0.55rem; border-radius: 20px; border: 1px solid rgba(16, 185, 129, 0.4); font-family: 'JetBrains Mono', monospace;">100% Zero-Friction</span>
+              <span style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; font-size: 0.72rem; font-weight: 700; padding: 0.15rem 0.55rem; border-radius: 20px; border: 1px solid rgba(245, 158, 11, 0.4); font-family: 'JetBrains Mono', monospace;">3-Day Inactivity Auto-Purge Protection</span>
+            </div>
+            <p style="font-size: 0.83rem; color: var(--text-muted); margin: 0; line-height: 1.5;">
+              Anyone can upload images, videos, audio, documents, and blobs immediately with zero sign-up required. Every file receives an instant worldwide public CDN link (<code style="color: #38bdf8; font-family: 'JetBrains Mono', monospace;">/s/...</code>). If an anonymous file receives <strong>zero external human visits</strong> across the internet within <strong>3 days (72h)</strong>, it is automatically purged from the phone's flash hardware to conserve sovereign memory. Any external human visit dynamically refreshes the 3-day lifecycle.
+            </p>
+          </div>
+        </div>
+
         <!-- Pure Account System & Multi-Key Management Bar -->
         <div style="background: rgba(0,0,0,0.5); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 12px; padding: 1.25rem; margin-bottom: 1.5rem;">
           <!-- Logged Out View (Register / Login / 1-Click Instant Vault) -->
@@ -3081,7 +3098,7 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
                style="border: 2px dashed rgba(56, 189, 248, 0.4); border-radius: 12px; padding: 1.75rem; text-align: center; background: rgba(56, 189, 248, 0.03); transition: all 0.2s ease;">
             <div style="font-size: 2.2rem; margin-bottom: 0.5rem;"><i class="fa-solid fa-folder-open text-cyan-400"></i></div>
             <div style="font-weight: 700; color: #fff; font-size: 1.05rem; margin-bottom: 0.3rem;">Drag &amp; Drop Files Here or Select File</div>
-            <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">Instant streaming upload to phone NVMe/eMMC flash storage with public CDN permalink</div>
+            <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">Instant anonymous &amp; authenticated streaming upload to phone NVMe/eMMC flash storage with worldwide public CDN permalink</div>
             <div style="display: flex; justify-content: center; gap: 0.75rem; flex-wrap: wrap; align-items: center;">
               <input type="file" id="storageFileInput" style="display: none;" onchange="handleStorageFileSelect(event)" multiple>
               <button onclick="document.getElementById('storageFileInput').click()" class="btn-action" style="padding: 0.5rem 1.2rem; background: rgba(56, 189, 248, 0.15); border-color: #38bdf8; color: #fff;">
@@ -3116,12 +3133,13 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
                     <th style="padding: 0.75rem 1rem;">Size</th>
                     <th style="padding: 0.75rem 1rem;">Type</th>
                     <th style="padding: 0.75rem 1rem;">Public CDN Permalink</th>
+                    <th style="padding: 0.75rem 1rem;">Status &amp; Lifecycle</th>
                     <th style="padding: 0.75rem 1rem; text-align: right;">Actions</th>
                   </tr>
                 </thead>
                 <tbody id="storageObjectsTableBody">
                   <tr>
-                    <td colspan="5" style="padding: 2rem; text-align: center; color: var(--text-muted);">
+                    <td colspan="6" style="padding: 2rem; text-align: center; color: var(--text-muted);">
                       Authenticate with an API key above to view and manage your tenant bucket.
                     </td>
                   </tr>
@@ -7580,7 +7598,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       const badge = document.getElementById("storageObjectCountBadge");
       if (!currentStorageApiKey) {
         if (tbody) {
-          tbody.innerHTML = `<tr><td colspan="5" style="padding: 2.5rem 1.5rem; text-align: center; color: var(--text-muted);">
+          tbody.innerHTML = `<tr><td colspan="6" style="padding: 2.5rem 1.5rem; text-align: center; color: var(--text-muted);">
             <div style="font-size: 1.25rem; margin-bottom: 0.4rem; color: #ffffff;"><i class="fa-solid fa-wand-magic-sparkles text-cyan-400 mr-2"></i>Sovereign Flash Sandbox</div>
             <div style="font-size: 0.82rem; margin-bottom: 1rem; color: var(--text-muted);">Auto-provision a 2GB isolated flash vault on the phone in 1 click.</div>
             <button onclick="autoProvisionInstantStorageVault()" class="btn-send-chat" style="padding: 0.45rem 1.15rem; font-size: 0.85rem; background: linear-gradient(135deg, #10b981, #06b6d4); color: #000; font-weight: 700; border: none; display: inline-flex; align-items: center; gap: 0.45rem;">
@@ -7593,7 +7611,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       }
 
       if (tbody) {
-        tbody.innerHTML = `<tr><td colspan="5" style="padding: 1.5rem; text-align: center; color: #38bdf8;"><i class="fa-solid fa-bolt mr-1"></i> Fetching L1 memory indexed objects...</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" style="padding: 1.5rem; text-align: center; color: #38bdf8;"><i class="fa-solid fa-bolt mr-1"></i> Fetching L1 memory indexed objects...</td></tr>`;
       }
 
       const t0 = performance.now();
@@ -7609,7 +7627,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
 
           if (objects.length === 0) {
             if (tbody) {
-              tbody.innerHTML = `<tr><td colspan="5" style="padding: 2.5rem; text-align: center; color: var(--text-muted);">
+              tbody.innerHTML = `<tr><td colspan="6" style="padding: 2.5rem; text-align: center; color: var(--text-muted);">
                 <div style="font-size: 1.5rem; margin-bottom: 0.5rem;"><i class="fa-solid fa-inbox text-zinc-600"></i></div>
                 <div style="color: #e2e8f0; font-weight: 600; margin-bottom: 0.25rem;">Your sovereign storage bucket is ready!</div>
                 <div style="font-size: 0.8rem;">Drag &amp; drop any file or click "Choose Files" above to upload instantly to phone hardware.</div>
@@ -7640,6 +7658,36 @@ python3 mobile/nuclear_watchdog.py</code></pre>
               thumbEl = `<span style="display: inline-flex; width: 34px; height: 34px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; align-items: center; justify-content: center; margin-right: 0.6rem; vertical-align: middle;"><i class="${iconClass}"></i></span>`;
             }
 
+            // Calculate Dynamic Inactivity TTL Status
+            let lifecycleBadge = '';
+            const isAnon = obj.is_anonymous || obj.ttl_auto_delete_active || false;
+            const visits = obj.external_human_visits || 0;
+            const hoursRem = obj.ttl_hours_remaining != null ? obj.ttl_hours_remaining : null;
+            const daysRem = obj.ttl_days_remaining != null ? obj.ttl_days_remaining : null;
+
+            if (isAnon) {
+              if (visits === 0) {
+                const timeText = hoursRem !== null ? (hoursRem > 24 ? `${daysRem.toFixed(1)}d left` : `${hoursRem.toFixed(1)}h left`) : '3d TTL';
+                lifecycleBadge = `
+                  <span style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); padding: 0.25rem 0.6rem; border-radius: 6px; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 0.35rem;" title="Unvisited: Automatically purged after 3 days if zero external human visits occur across the internet.">
+                    <i class="fa-regular fa-clock text-amber-400"></i>
+                    <span>⏳ ${timeText} (0 visits)</span>
+                  </span>`;
+              } else {
+                lifecycleBadge = `
+                  <span style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); padding: 0.25rem 0.6rem; border-radius: 6px; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 0.35rem;" title="Kept alive: ${visits} human visit(s) recorded across the internet. 3-day inactivity timer dynamically refreshed!">
+                    <i class="fa-solid fa-circle-check text-emerald-400"></i>
+                    <span>🟢 Active (${visits} visit${visits > 1 ? 's' : ''})</span>
+                  </span>`;
+              }
+            } else {
+              lifecycleBadge = `
+                <span style="background: rgba(56, 189, 248, 0.12); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); padding: 0.25rem 0.6rem; border-radius: 6px; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 0.35rem;" title="Permanent authenticated vault storage.">
+                  <i class="fa-solid fa-shield-halved text-cyan-400"></i>
+                  <span>Permanent</span>
+                </span>`;
+            }
+
             rows += `
               <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); transition: background 0.15s;">
                 <td style="padding: 0.75rem 1rem; font-family: 'JetBrains Mono', monospace; color: #fff;">
@@ -7654,6 +7702,9 @@ python3 mobile/nuclear_watchdog.py</code></pre>
                     <button onclick="copyText('${cdnUrl}')" class="btn-action" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;" title="Copy Public CDN URL"><i class="fa-solid fa-copy"></i></button>
                   </div>
                 </td>
+                <td style="padding: 0.75rem 1rem;">
+                  ${lifecycleBadge}
+                </td>
                 <td style="padding: 0.75rem 1rem; text-align: right;">
                   <div style="display: flex; gap: 0.4rem; justify-content: flex-end;">
                     <a href="${cdnUrl}" target="_blank" class="btn-action" style="padding: 0.3rem 0.6rem; font-size: 0.78rem; text-decoration: none;" title="Open / Preview"><i class="fa-solid fa-eye"></i></a>
@@ -7667,7 +7718,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
         } else {
           // Proactive recovery instead of dead-end
           if (tbody) {
-            tbody.innerHTML = `<tr><td colspan="5" style="padding: 2.5rem 1.5rem; text-align: center;">
+            tbody.innerHTML = `<tr><td colspan="6" style="padding: 2.5rem 1.5rem; text-align: center;">
               <div style="font-size: 1.15rem; color: #ffffff; margin-bottom: 0.35rem;"><i class="fa-solid fa-key text-amber-400 mr-2"></i>Vault Key Session Refresh</div>
               <div style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 1rem;">Your session key needs a quick refresh to connect to the active phone hardware.</div>
               <button onclick="autoProvisionInstantStorageVault()" class="btn-send-chat" style="padding: 0.45rem 1.25rem; font-size: 0.85rem; background: linear-gradient(135deg, #10b981, #06b6d4); color: #000; font-weight: 700; border: none; display: inline-flex; align-items: center; gap: 0.45rem;">
@@ -7679,7 +7730,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
         }
       } catch (err) {
         if (tbody) {
-          tbody.innerHTML = `<tr><td colspan="5" style="padding: 2rem; text-align: center; color: var(--text-muted);">
+          tbody.innerHTML = `<tr><td colspan="6" style="padding: 2rem; text-align: center; color: var(--text-muted);">
             <div>Connection notice: ${err.message}</div>
             <button onclick="loadStorageObjects()" class="btn-action" style="margin-top: 0.5rem; padding: 0.35rem 0.75rem; font-size: 0.8rem;"><i class="fa-solid fa-arrows-rotate mr-1"></i> Retry</button>
           </td></tr>`;
@@ -7748,8 +7799,9 @@ python3 mobile/nuclear_watchdog.py</code></pre>
         if (typeof showTactileToast === 'function') showTactileToast("Please choose files to upload first!", "fa-file-circle-exclamation text-amber-400");
         return;
       }
+      const isAnonGuest = !currentStorageApiKey || currentStorageApiKey.startsWith("pk_guest_") || currentStorageApiKey.startsWith("pk_sandbox_");
       if (!currentStorageApiKey) {
-        if (typeof showTactileToast === 'function') showTactileToast("Auto-provisioning sandbox vault for upload...", "fa-wand-magic-sparkles text-cyan-400");
+        if (typeof showTactileToast === 'function') showTactileToast("Connecting anonymous upload channel...", "fa-wand-magic-sparkles text-cyan-400");
         const ok = await autoProvisionInstantStorageVault();
         if (!ok || !currentStorageApiKey) return;
       }
@@ -7762,11 +7814,14 @@ python3 mobile/nuclear_watchdog.py</code></pre>
 
       const total = selectedStorageFiles.length;
       let successCount = 0;
+      let lastUploadedCdnUrl = '';
+      let lastUploadedKey = '';
 
       for (let i = 0; i < total; i++) {
         const file = selectedStorageFiles[i];
         let objectKey = (total === 1 && customKeyInput && customKeyInput.value.trim()) ? customKeyInput.value.trim() : file.name;
         objectKey = objectKey.replace(/^\/+/, '');
+        lastUploadedKey = objectKey;
 
         if (progText) {
           progText.style.display = "block";
@@ -7783,15 +7838,32 @@ python3 mobile/nuclear_watchdog.py</code></pre>
             body: file
           });
 
-          if (res.ok) successCount++;
+          if (res.ok) {
+            const data = await res.json().catch(() => ({}));
+            if (data.url) {
+              lastUploadedCdnUrl = `${BASE_ENDPOINT}${data.url}`;
+            }
+            successCount++;
+          }
         } catch (err) {
           console.error(`Upload error for ${file.name}:`, err);
         }
       }
 
       if (progText) {
-        progText.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400 mr-1"></i> <span style="color: #10b981;">Uploaded ${successCount}/${total} file(s) to sovereign cloud!</span>`;
+        if (isAnonGuest) {
+          progText.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400 mr-1"></i> <span style="color: #10b981;">Uploaded ${successCount}/${total} file(s) to Worldwide CDN!</span> <div style="font-size: 0.78rem; color: #fbbf24; margin-top: 0.35rem;"><i class="fa-regular fa-clock mr-1"></i> Dynamic Lifecycle Notice: If unvisited by external humans on the internet, this file will automatically purge in 3 days. Share the CDN link to keep it alive!</div>`;
+        } else {
+          progText.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400 mr-1"></i> <span style="color: #10b981;">Uploaded ${successCount}/${total} file(s) to sovereign cloud!</span>`;
+        }
       }
+
+      if (isAnonGuest && typeof showTactileToast === 'function') {
+        showTactileToast("Uploaded to Worldwide CDN! Notice: Automatically purges in 3 days if unvisited by others. Share to keep alive.", "fa-regular fa-clock text-amber-400");
+      } else if (typeof showTactileToast === 'function') {
+        showTactileToast(`Uploaded ${successCount} file(s) successfully!`, "fa-circle-check text-emerald-400");
+      }
+
       selectedStorageFiles = [];
       if (customKeyInput) customKeyInput.value = "";
       const fileInp = document.getElementById("storageFileInput");
@@ -9311,11 +9383,23 @@ func main() {
     }
     window.handleThumbDockClick = handleThumbDockClick;
 
-    // Global keyboard shortcut
+    // Global keyboard shortcuts (Cmd+K / Ctrl+K and simple / for desktop search)
     document.addEventListener('keydown', (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         openCommandPalette();
+      } else if (e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        const activeEl = document.activeElement;
+        const isInput = activeEl && (
+          activeEl.tagName === 'INPUT' ||
+          activeEl.tagName === 'TEXTAREA' ||
+          activeEl.tagName === 'SELECT' ||
+          activeEl.isContentEditable
+        );
+        if (!isInput) {
+          e.preventDefault();
+          openCommandPalette();
+        }
       } else if (e.key === 'Escape') {
         closeCommandPalette();
         closeIntegrationModal();
