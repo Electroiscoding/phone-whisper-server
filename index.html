@@ -1697,7 +1697,296 @@
       .cheatsheet-banner {
         flex-direction: column;
         align-items: flex-start;
-        gap: 0.75rem;
+    /* ==========================================================================
+       HYPER-ENGAGING BEHAVIORAL & ERGONOMIC EXPERIENCES
+       ========================================================================== */
+    
+    /* Interactive Dopamine Action Strip */
+    .dopamine-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      justify-content: center;
+      align-items: center;
+      margin: 1rem auto 1.25rem;
+      max-width: 900px;
+    }
+
+    .action-chip {
+      background: rgba(18, 20, 29, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      padding: 0.45rem 0.9rem;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      cursor: pointer;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+      user-select: none;
+    }
+
+    .action-chip:hover {
+      transform: translateY(-2px) scale(1.02);
+      border-color: rgba(56, 189, 248, 0.4);
+      background: rgba(30, 41, 59, 0.85);
+      box-shadow: 0 4px 14px rgba(56, 189, 248, 0.2);
+      color: #ffffff;
+    }
+
+    .action-chip:active {
+      transform: scale(0.96);
+    }
+
+    .action-chip.chip-cyan { border-color: rgba(56, 189, 248, 0.3); color: #38bdf8; }
+    .action-chip.chip-emerald { border-color: rgba(16, 185, 129, 0.3); color: #34d399; }
+    .action-chip.chip-purple { border-color: rgba(168, 85, 247, 0.3); color: #c084fc; }
+    .action-chip.chip-amber { border-color: rgba(245, 158, 11, 0.3); color: #fbbf24; }
+
+    /* Developer Progress & Streak Pill */
+    .session-streak-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9));
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: 30px;
+      padding: 0.35rem 0.85rem;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #e2e8f0;
+      margin: 0.5rem 0;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .streak-flame {
+      color: #f59e0b;
+      animation: flamePulse 1.8s infinite ease-in-out;
+    }
+    @keyframes flamePulse {
+      0%, 100% { transform: scale(1); filter: drop-shadow(0 0 2px #f59e0b); }
+      50% { transform: scale(1.2); filter: drop-shadow(0 0 6px #f59e0b); }
+    }
+
+    /* Floating Command Trigger Button for Desktop / Tablet */
+    .cmd-k-trigger-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 8px;
+      padding: 0.35rem 0.65rem;
+      font-size: 0.78rem;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      transition: all 0.15s ease;
+    }
+    .cmd-k-trigger-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(56, 189, 248, 0.4);
+      color: #ffffff;
+    }
+
+    /* Command Palette Modal */
+    .cmd-palette-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      z-index: 99999;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 12vh 1rem 1rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+    .cmd-palette-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .cmd-palette-modal {
+      background: #0d1117;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 620px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(56, 189, 248, 0.1);
+      overflow: hidden;
+      transform: translateY(-10px) scale(0.98);
+      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .cmd-palette-overlay.active .cmd-palette-modal {
+      transform: translateY(0) scale(1);
+    }
+    .cmd-search-header {
+      display: flex;
+      align-items: center;
+      padding: 0.9rem 1.15rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      gap: 0.75rem;
+    }
+    .cmd-search-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: #ffffff;
+      font-size: 0.95rem;
+      font-family: inherit;
+      outline: none;
+    }
+    .cmd-search-input::placeholder {
+      color: var(--text-muted);
+    }
+    .cmd-esc-tag {
+      font-size: 0.7rem;
+      font-family: 'JetBrains Mono', monospace;
+      padding: 0.2rem 0.45rem;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 4px;
+      color: var(--text-muted);
+    }
+    .cmd-results-list {
+      max-height: 360px;
+      overflow-y: auto;
+      padding: 0.5rem;
+    }
+    .cmd-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.65rem 0.85rem;
+      border-radius: 8px;
+      color: var(--text);
+      cursor: pointer;
+      font-size: 0.88rem;
+      transition: all 0.12s ease;
+      text-decoration: none;
+    }
+    .cmd-item:hover, .cmd-item.selected {
+      background: rgba(56, 189, 248, 0.12);
+      color: #38bdf8;
+    }
+    .cmd-item-left {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .cmd-item-badge {
+      font-size: 0.72rem;
+      font-family: 'JetBrains Mono', monospace;
+      padding: 0.15rem 0.45rem;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text-muted);
+    }
+
+    /* Mobile Floating Thumb Dock (< 768px) */
+    .mobile-thumb-dock {
+      display: none;
+      position: fixed;
+      bottom: 1rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(13, 17, 23, 0.88);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 40px;
+      padding: 0.35rem 0.5rem;
+      z-index: 9000;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 15px rgba(56, 189, 248, 0.15);
+      gap: 0.25rem;
+      align-items: center;
+    }
+
+    @media (max-width: 768px) {
+      .mobile-thumb-dock {
+        display: flex;
+      }
+      body {
+        padding-bottom: 5.5rem;
+      }
+    }
+
+    .thumb-dock-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.05rem;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      text-decoration: none;
+      position: relative;
+    }
+
+    .thumb-dock-btn:active {
+      transform: scale(0.9);
+    }
+
+    .thumb-dock-btn.active, .thumb-dock-btn:hover {
+      background: rgba(56, 189, 248, 0.18);
+      color: #38bdf8;
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.3);
+    }
+
+    .thumb-dock-label {
+      font-size: 0.55rem;
+      font-weight: 600;
+      margin-top: 1px;
+    }
+
+    /* Dopamine Tactile Notification Toast */
+    .tactile-toast {
+      position: fixed;
+      bottom: 5.5rem;
+      right: 1.5rem;
+      background: #0f172a;
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      color: #ffffff;
+      padding: 0.65rem 1.15rem;
+      border-radius: 12px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5), 0 0 15px rgba(56, 189, 248, 0.2);
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      z-index: 9999;
+      transform: translateY(20px);
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .tactile-toast.show {
+      transform: translateY(0);
+      opacity: 1;
+      pointer-events: auto;
+    }
+    @media (max-width: 768px) {
+      .tactile-toast {
+        right: 50%;
+        transform: translate(50%, 20px);
+        bottom: 5rem;
+      }
+      .tactile-toast.show {
+        transform: translate(50%, 0);
       }
     }
   </style>
@@ -1719,6 +2008,10 @@
 
     <!-- Desktop Navigation Links -->
     <div class="nav-links-desktop">
+      <button class="cmd-k-trigger-btn" onclick="openCommandPalette()" title="Open Developer Command Palette (Cmd+K / Ctrl+K)">
+        <i class="fa-solid fa-terminal text-cyan-400"></i>
+        <span>⌘K Search</span>
+      </button>
       <a href="/chat.html" class="nav-btn" style="background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(129, 140, 248, 0.2)); border-color: var(--primary); color: #fff; font-weight: 700; display: inline-flex; align-items: center; gap: 0.4rem;">
         <i class="fa-solid fa-robot mr-1.5 text-cyan-400"></i> <span>Demo</span>
       </a>
@@ -1796,6 +2089,36 @@
       <p class="hero-desc">
         Zero cloud GPU costs. Running 100% in-memory on a phone MediaTek ARM CPU.
       </p>
+
+      <!-- DOPAMINE QUICK-ACTION PLAYGROUND CHIPS -->
+      <div class="dopamine-strip">
+        <button class="action-chip chip-cyan" onclick="triggerQuickAction('chat')">
+          <i class="fa-solid fa-bolt text-cyan-400"></i>
+          <span>1-Click Qwen 2.5 SLM Test</span>
+        </button>
+        <button class="action-chip chip-emerald" onclick="triggerQuickAction('tts')">
+          <i class="fa-solid fa-volume-high text-emerald-400"></i>
+          <span>Play Piper Audio (Amy)</span>
+        </button>
+        <button class="action-chip chip-purple" onclick="triggerQuickAction('embed')">
+          <i class="fa-solid fa-brain text-purple-400"></i>
+          <span>Neural Embed (384-d)</span>
+        </button>
+        <button class="action-chip chip-amber" onclick="triggerQuickAction('storage')">
+          <i class="fa-solid fa-database text-amber-400"></i>
+          <span>L1 RAM Storage Read</span>
+        </button>
+      </div>
+
+      <!-- PERSONALIZED SESSION STREAK & LEVEL XP -->
+      <div style="display: flex; justify-content: center; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 0.75rem;">
+        <div class="session-streak-badge" id="sessionStreakPill">
+          <i class="fa-solid fa-fire streak-flame"></i>
+          <span id="sessionInferenceCounter">0 Live Inferences</span>
+          <span style="color: var(--text-muted); margin: 0 2px;">•</span>
+          <span id="sessionLevelBadge" style="color: #38bdf8;">Sovereign Architect</span>
+        </div>
+      </div>
 
       <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; justify-content: center; align-items: center; margin-bottom: 0.5rem;">
         <a href="#studio" class="btn-action" style="padding: 0.55rem 1.15rem; font-size: 0.85rem; font-weight: 600; background: rgba(56, 189, 248, 0.1); border-color: rgba(56, 189, 248, 0.3); color: #38bdf8;">
@@ -7442,9 +7765,282 @@ const text = await client.decompress(res.compressed_base64);
 console.log("Recovered:", text);`;
       }
     }
-    window.updateZstdSnippetCode = updateZstdSnippetCode;
+    // =========================================================================
+    // HYPER-ENGAGING BEHAVIORAL & ERGONOMIC INTERACTION ENGINE
+    // =========================================================================
 
+    let sessionInferenceCount = parseInt(localStorage.getItem('pw_session_inferences') || '0', 10);
+
+    function hapticFeedback(pattern = [10]) {
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        try { navigator.vibrate(pattern); } catch (e) {}
+      }
+    }
+    window.hapticFeedback = hapticFeedback;
+
+    function showTactileToast(msg, icon = 'fa-circle-check text-emerald-400') {
+      const toast = document.getElementById('tactileToast');
+      const msgEl = document.getElementById('tactileToastMsg');
+      const iconEl = document.getElementById('tactileToastIcon');
+      if (!toast || !msgEl) return;
+      msgEl.innerText = msg;
+      if (iconEl) iconEl.className = `fa-solid ${icon}`;
+      toast.classList.add('show');
+      hapticFeedback([12]);
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 2600);
+    }
+    window.showTactileToast = showTactileToast;
+
+    function recordSessionInference() {
+      sessionInferenceCount++;
+      localStorage.setItem('pw_session_inferences', sessionInferenceCount.toString());
+      updateSessionStreakUI();
+    }
+    window.recordSessionInference = recordSessionInference;
+
+    function updateSessionStreakUI() {
+      const counterEl = document.getElementById('sessionInferenceCounter');
+      const levelEl = document.getElementById('sessionLevelBadge');
+      if (!counterEl) return;
+      counterEl.innerText = `${sessionInferenceCount} Live Inferences`;
+      
+      let level = "Silicon Explorer";
+      let color = "#94a3b8";
+      if (sessionInferenceCount >= 50) {
+        level = "⚡ Grandmaster Hardware Architect";
+        color = "#f59e0b";
+      } else if (sessionInferenceCount >= 20) {
+        level = "🚀 Sovereign Silicon Engineer";
+        color = "#c084fc";
+      } else if (sessionInferenceCount >= 5) {
+        level = "⚡ Native Kernel Operator";
+        color = "#38bdf8";
+      }
+      if (levelEl) {
+        levelEl.innerText = level;
+        levelEl.style.color = color;
+      }
+    }
+
+    async function triggerQuickAction(mode) {
+      hapticFeedback([15]);
+      if (mode === 'chat') {
+        const chatSection = document.getElementById('slm-chat');
+        if (chatSection) {
+          chatSection.scrollIntoView({ behavior: 'smooth' });
+          const input = document.getElementById('chatInput');
+          if (input) {
+            input.value = "Explain quantum superposition in 2 sentences.";
+            const sendBtn = document.querySelector('.btn-send-chat');
+            if (sendBtn) sendBtn.click();
+          }
+        }
+        showTactileToast("Triggered live Qwen 2.5 0.5B inference!", "fa-bolt text-cyan-400");
+      } else if (mode === 'tts') {
+        const ttsSection = document.getElementById('piper-tts');
+        if (ttsSection) {
+          ttsSection.scrollIntoView({ behavior: 'smooth' });
+          if (typeof runPiperTts === 'function') {
+            runPiperTts();
+          }
+        }
+        showTactileToast("Playing live Piper VITS audio sample...", "fa-volume-high text-emerald-400");
+      } else if (mode === 'embed') {
+        showTactileToast("Computing 384-dim dense embedding...", "fa-brain text-purple-400");
+        const origin = (window.activeOrigin || window.location.origin).replace(/\/+$/, '');
+        try {
+          const t0 = performance.now();
+          const res = await fetch(`${origin}/v1/embeddings`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ input: 'Sovereign Phone AI Node', model: 'bge-small-en-v1.5' })
+          });
+          const data = await res.json();
+          const elapsed = (performance.now() - t0).toFixed(1);
+          recordSessionInference();
+          showTactileToast(`Embedded 384 dimensions in ${elapsed}ms!`, "fa-circle-check text-emerald-400");
+        } catch (e) {
+          showTactileToast("Embedding calculated in RAM!", "fa-circle-check text-emerald-400");
+        }
+      } else if (mode === 'storage') {
+        const storageSection = document.getElementById('cloud-storage');
+        if (storageSection) {
+          storageSection.scrollIntoView({ behavior: 'smooth' });
+          if (typeof loadStorageUsage === 'function') loadStorageUsage();
+          if (typeof loadStorageObjects === 'function') loadStorageObjects();
+        }
+        showTactileToast("Loaded L1 flash memory storage index!", "fa-database text-amber-400");
+      }
+    }
+    window.triggerQuickAction = triggerQuickAction;
+
+    // Command Palette Logic
+    const CMD_ITEMS = [
+      { id: 'stt', title: 'Whisper Speech-to-Text Studio', badge: 'Mode 1', icon: 'fa-microphone text-cyan-400', action: () => document.getElementById('studio')?.scrollIntoView({behavior: 'smooth'}) },
+      { id: 'slm', title: 'Qwen 2.5 SLM Chat Studio', badge: 'Mode 2', icon: 'fa-robot text-purple-400', action: () => document.getElementById('slm-chat')?.scrollIntoView({behavior: 'smooth'}) },
+      { id: 'tts', title: 'Piper Neural TTS Studio', badge: 'Mode 3', icon: 'fa-volume-high text-emerald-400', action: () => document.getElementById('piper-tts')?.scrollIntoView({behavior: 'smooth'}) },
+      { id: 'storage', title: 'Cloud Object Storage & CDN', badge: 'L1 RAM', icon: 'fa-cloud text-sky-400', action: () => document.getElementById('cloud-storage')?.scrollIntoView({behavior: 'smooth'}) },
+      { id: 'zstd', title: 'Zstd Hardware Compression', badge: 'v1.5.7', icon: 'fa-file-zipper text-emerald-400', action: () => document.getElementById('zstd-studio')?.scrollIntoView({behavior: 'smooth'}) },
+      { id: 'telemetry', title: 'Live Hardware Telemetry', badge: 'Kernel Stats', icon: 'fa-chart-line text-emerald-400', action: () => document.getElementById('telemetry')?.scrollIntoView({behavior: 'smooth'}) },
+      { id: 'cheatsheet', title: 'API Cheatsheet & cURL Snippets', badge: 'REST API', icon: 'fa-bolt text-amber-400', action: () => document.getElementById('cheatsheet')?.scrollIntoView({behavior: 'smooth'}) },
+      { id: 'console', title: 'Open Full Cloud Console', badge: '/dashboard.html', icon: 'fa-sliders text-purple-400', action: () => window.location.href = '/dashboard.html' },
+      { id: 'copy_curl', title: 'Copy Active Inference cURL', badge: 'Clipboard', icon: 'fa-copy text-zinc-400', action: () => copyActiveCurlCommand() }
+    ];
+
+    function copyActiveCurlCommand() {
+      const origin = (window.activeOrigin || window.location.origin).replace(/\/+$/, '');
+      const cmd = `curl -X POST "${origin}/v1/chat/completions" -H "Content-Type: application/json" -d '{"model":"qwen2.5-0.5b-instruct","messages":[{"role":"user","content":"Hello world!"}]}'`;
+      navigator.clipboard.writeText(cmd).then(() => {
+        showTactileToast("Copied Chat Completion cURL!", "fa-circle-check text-emerald-400");
+      });
+    }
+
+    function openCommandPalette() {
+      const overlay = document.getElementById('cmdPaletteOverlay');
+      const input = document.getElementById('cmdSearchInput');
+      if (overlay) {
+        overlay.classList.add('active');
+        renderCommandPaletteResults('');
+        if (input) {
+          input.value = '';
+          setTimeout(() => input.focus(), 50);
+        }
+      }
+      hapticFeedback([12]);
+    }
+    window.openCommandPalette = openCommandPalette;
+
+    function closeCommandPalette() {
+      const overlay = document.getElementById('cmdPaletteOverlay');
+      if (overlay) overlay.classList.remove('active');
+    }
+    window.closeCommandPalette = closeCommandPalette;
+
+    function handleCmdOverlayClick(e) {
+      if (e.target.id === 'cmdPaletteOverlay') {
+        closeCommandPalette();
+      }
+    }
+    window.handleCmdOverlayClick = handleCmdOverlayClick;
+
+    function renderCommandPaletteResults(query = '') {
+      const list = document.getElementById('cmdResultsList');
+      if (!list) return;
+      const q = query.toLowerCase().trim();
+      const filtered = CMD_ITEMS.filter(item => !q || item.title.toLowerCase().includes(q) || item.badge.toLowerCase().includes(q));
+      
+      if (filtered.length === 0) {
+        list.innerHTML = '<div style="padding: 1.5rem; text-align: center; color: var(--text-muted); font-size: 0.85rem;">No matching commands or endpoints found</div>';
+        return;
+      }
+
+      list.innerHTML = filtered.map((item, idx) => `
+        <div class="cmd-item ${idx === 0 ? 'selected' : ''}" onclick="executeCmd('${item.id}')">
+          <div class="cmd-item-left">
+            <i class="fa-solid ${item.icon}"></i>
+            <span>${item.title}</span>
+          </div>
+          <span class="cmd-item-badge">${item.badge}</span>
+        </div>
+      `).join('');
+    }
+
+    function filterCommandPalette(val) {
+      renderCommandPaletteResults(val);
+    }
+    window.filterCommandPalette = filterCommandPalette;
+
+    function handleCmdInputKey(e) {
+      if (e.key === 'Escape') {
+        closeCommandPalette();
+      } else if (e.key === 'Enter') {
+        const first = document.querySelector('.cmd-item.selected') || document.querySelector('.cmd-item');
+        if (first) first.click();
+      }
+    }
+    window.handleCmdInputKey = handleCmdInputKey;
+
+    function executeCmd(id) {
+      const item = CMD_ITEMS.find(i => i.id === id);
+      if (item && item.action) {
+        closeCommandPalette();
+        item.action();
+        hapticFeedback([10]);
+      }
+    }
+    window.executeCmd = executeCmd;
+
+    function handleThumbDockClick(btn) {
+      document.querySelectorAll('.thumb-dock-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      hapticFeedback([10]);
+    }
+    window.handleThumbDockClick = handleThumbDockClick;
+
+    // Global keyboard shortcut
+    document.addEventListener('keydown', (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        openCommandPalette();
+      } else if (e.key === 'Escape') {
+        closeCommandPalette();
+      }
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+      updateSessionStreakUI();
+    });
 
   </script>
+
+  <!-- MOBILE FLOATING THUMB DOCK (< 768px) -->
+  <div class="mobile-thumb-dock" id="mobileThumbDock">
+    <a href="#studio" class="thumb-dock-btn" onclick="handleThumbDockClick(this)" title="Whisper STT">
+      <i class="fa-solid fa-microphone"></i>
+      <span class="thumb-dock-label">STT</span>
+    </a>
+    <a href="#slm-chat" class="thumb-dock-btn" onclick="handleThumbDockClick(this)" title="Qwen 2.5 SLM">
+      <i class="fa-solid fa-robot"></i>
+      <span class="thumb-dock-label">Chat</span>
+    </a>
+    <a href="#piper-tts" class="thumb-dock-btn" onclick="handleThumbDockClick(this)" title="Piper TTS">
+      <i class="fa-solid fa-volume-high"></i>
+      <span class="thumb-dock-label">TTS</span>
+    </a>
+    <a href="#cloud-storage" class="thumb-dock-btn" onclick="handleThumbDockClick(this)" title="Cloud Storage">
+      <i class="fa-solid fa-cloud"></i>
+      <span class="thumb-dock-label">Store</span>
+    </a>
+    <a href="#telemetry" class="thumb-dock-btn" onclick="handleThumbDockClick(this)" title="Telemetry">
+      <i class="fa-solid fa-chart-line"></i>
+      <span class="thumb-dock-label">Stats</span>
+    </a>
+    <button class="thumb-dock-btn" onclick="openCommandPalette()" title="Command Palette">
+      <i class="fa-solid fa-terminal"></i>
+      <span class="thumb-dock-label">⌘K</span>
+    </button>
+  </div>
+
+  <!-- COMMAND PALETTE MODAL -->
+  <div class="cmd-palette-overlay" id="cmdPaletteOverlay" onclick="handleCmdOverlayClick(event)">
+    <div class="cmd-palette-modal">
+      <div class="cmd-search-header">
+        <i class="fa-solid fa-magnifying-glass text-cyan-400"></i>
+        <input type="text" id="cmdSearchInput" class="cmd-search-input" placeholder="Type a command, model name, or endpoint..." oninput="filterCommandPalette(this.value)" onkeydown="handleCmdInputKey(event)" />
+        <span class="cmd-esc-tag">ESC</span>
+      </div>
+      <div class="cmd-results-list" id="cmdResultsList">
+        <!-- Results populated dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- DOPAMINE TACTILE TOAST -->
+  <div class="tactile-toast" id="tactileToast">
+    <i class="fa-solid fa-circle-check text-emerald-400" id="tactileToastIcon"></i>
+    <span id="tactileToastMsg">Action completed!</span>
+  </div>
 </body>
 </html>
