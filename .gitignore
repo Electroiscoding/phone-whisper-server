@@ -37,4 +37,8 @@ Thumbs.db
 *.key
 .swades_jobs/
 .swades_scratch/
+.swades_storage/
+*.db
+*.sqlite
+*.sqlite3
 .openrouter_keys.json
