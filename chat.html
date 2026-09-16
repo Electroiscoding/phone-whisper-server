@@ -702,6 +702,10 @@
       </div>
     </div>
     <div class="header-right">
+      <div class="hardware-pill" style="background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.3); color: #34d399;">
+        <i class="fa-solid fa-coins text-amber-400"></i>
+        <span>Saved: <strong id="chatSavedDollarsVal" style="color: #ffffff; font-family: monospace;">$0.00</strong></span>
+      </div>
       <div class="hardware-pill" id="telemetryBadge">
         <div class="status-dot"></div>
         <span id="telemetryStatusText">Redmi 9i Online</span>
@@ -726,7 +730,10 @@
   <!-- BOTTOM INPUT CAPSULE DOCK -->
   <div class="input-dock-container">
     <div class="input-capsule-bar">
-      <input type="text" id="mainChatInput" class="chat-text-input" placeholder="Ask anything..." onkeydown="if(event.key==='Enter') submitUserPrompt();" />
+      <button class="btn-icon-head" onclick="rollChatPromptDice()" title="Surprise Me (Roll Intriguing Prompt)" style="background: rgba(56, 189, 248, 0.12); border-color: rgba(56, 189, 248, 0.3); color: #38bdf8; width: 32px; height: 32px; font-size: 0.85rem;">
+        <i class="fa-solid fa-dice text-amber-400"></i>
+      </button>
+      <input type="text" id="mainChatInput" class="chat-text-input" placeholder="Ask anything, or tap 🎲 to surprise..." onkeydown="if(event.key==='Enter') submitUserPrompt();" />
       
       <div class="input-actions-right">
         <!-- Mic Button for Speech-to-Text -->
@@ -739,10 +746,9 @@
           </svg>
         </button>
 
-        <!-- Pure Voice Chat Button (5th image white circular waveform) -->
+        <!-- Pure Voice Chat Button -->
         <button class="btn-voice-chat-circle" onclick="openPureVoiceMode()" title="Pure Voice Mode (Conversational Audio Loop)">
           <svg viewBox="0 0 24 24">
-            <!-- Audio Waveform Bars Icon -->
             <rect x="4" y="9" width="2.5" height="6" rx="1.25"></rect>
             <rect x="8" y="5" width="2.5" height="14" rx="1.25"></rect>
             <rect x="12" y="3" width="2.5" height="18" rx="1.25"></rect>
@@ -870,9 +876,65 @@
       if (welcome) welcome.style.display = "flex";
     }
 
+    const INTRIGUING_CHAT_PROMPTS = [
+      "Explain how speculative decoding works on mobile ARM CPUs.",
+      "Write a lock-free ring buffer in Rust without mutexes.",
+      "What is the exact difference between Cosine similarity and Dot product?",
+      "Design a zero-copy network packet pipeline in C for edge Linux.",
+      "Explain quantum superposition using a simple thought experiment."
+    ];
+    let chatDiceIdx = 0;
+
+    function playCrystalChime(freq = 659.25, duration = 0.15) {
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(freq * 1.5, ctx.currentTime + duration);
+        gain.gain.setValueAtTime(0.08, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + duration);
+      } catch (e) {}
+    }
+
+    function rollChatPromptDice() {
+      const input = document.getElementById("mainChatInput");
+      if (input) {
+        chatDiceIdx = (chatDiceIdx + 1) % INTRIGUING_CHAT_PROMPTS.length;
+        input.value = INTRIGUING_CHAT_PROMPTS[chatDiceIdx];
+        input.focus();
+        playCrystalChime(784);
+        if (navigator.vibrate) navigator.vibrate([15]);
+      }
+    }
+    window.rollChatPromptDice = rollChatPromptDice;
+
+    function updateChatDollarsSaved() {
+      let count = parseInt(localStorage.getItem('pw_session_inferences') || '0', 10);
+      count++;
+      localStorage.setItem('pw_session_inferences', count.toString());
+      const el = document.getElementById('chatSavedDollarsVal');
+      if (el) {
+        el.innerText = `$${(count * 0.042).toFixed(2)}`;
+      }
+      playCrystalChime(659.25);
+    }
+
     // Set clean initial state on page load
     applyRandomTitle();
     clearChatHistory();
+    const initCostEl = document.getElementById('chatSavedDollarsVal');
+    if (initCostEl) {
+      const initCount = parseInt(localStorage.getItem('pw_session_inferences') || '0', 10);
+      initCostEl.innerText = `$${(initCount * 0.042).toFixed(2)}`;
+    }
 
     async function submitUserPrompt() {
       const input = document.getElementById("mainChatInput");
@@ -967,6 +1029,7 @@
         // Append assistant response to in-memory session history
         if (fullText) {
           chatSessionHistory.push({ role: "assistant", content: fullText });
+          updateChatDollarsSaved();
         }
 
         const elapsed = ((performance.now() - t0) / 1000).toFixed(2);
