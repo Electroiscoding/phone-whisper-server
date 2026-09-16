@@ -3432,7 +3432,7 @@ if (res.hands && res.hands[0]) {
         <div class="telemetry-card col-4">
           <div class="telemetry-card-header">
             <span class="telemetry-title"><i class="fa-solid fa-gauge-high mr-1.5 text-emerald-400"></i> Inference Velocity</span>
-            <span class="telemetry-badge">Tiny.en</span>
+            <span class="telemetry-badge" id="velocityModelBadge">Auto-JIT</span>
           </div>
           <div class="telemetry-big-val">
             <span id="speedVal">--</span> <span class="telemetry-unit">tok/sec</span>
@@ -5519,6 +5519,29 @@ python3 mobile/nuclear_watchdog.py</code></pre>
           if (typeof data.total_requests === "number") {
             totalInferences = data.total_requests;
             if (totalInferencesVal) totalInferencesVal.innerText = totalInferences;
+          }
+
+          // 4. Real Hardware Inference Velocity & Model Metrics
+          if (data.inference_metrics) {
+            const m = data.inference_metrics;
+            if (speedVal) {
+              speedVal.innerText = (m.velocity_tok_s && m.velocity_tok_s > 0) ? m.velocity_tok_s.toFixed(1) : "--";
+            }
+            const speedFill = document.getElementById("speedProgressFill");
+            if (speedFill) {
+              speedFill.style.width = `${Math.min(100, Math.round(((m.velocity_tok_s || 0) / 25) * 100))}%`;
+            }
+            const velBadge = document.getElementById("velocityModelBadge");
+            if (velBadge && m.last_model) {
+              velBadge.innerText = m.last_model;
+            }
+            const avgRtEl = document.getElementById("avgRtVal");
+            if (avgRtEl) {
+              avgRtEl.innerText = m.avg_rt_sec > 0 ? `Avg RT: ~${m.avg_rt_sec.toFixed(2)}s` : "Avg RT: --";
+            }
+            if (totalInferencesVal && m.total_inferences !== undefined) {
+              totalInferencesVal.innerText = m.total_inferences;
+            }
           }
 
           pingVal.innerText = pingMs;
