@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://highlights-manual-connect-cad.trycloudflare.com",
-  "inference": "https://highlights-manual-connect-cad.trycloudflare.com/inference",
-  "telemetry": "https://highlights-manual-connect-cad.trycloudflare.com/telemetry",
+  "endpoint": "https://rand-interface-exhaust-starring.trycloudflare.com",
+  "inference": "https://rand-interface-exhaust-starring.trycloudflare.com/inference",
+  "telemetry": "https://rand-interface-exhaust-starring.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-09-16T09:00:00Z"
+  "updated_at": "2026-09-16T09:15:30Z"
 }

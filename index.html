@@ -6541,15 +6541,18 @@ Status: ${data.status} (Sub-Microsecond Reflection Achieved: ${r.sub_microsecond
     window.copyCurrentStorageApiKey = copyCurrentStorageApiKey;
 
     async function loadStorageUsage() {
-      if (!currentStorageApiKey) return;
       try {
-        const res = await nuclearFetch(`${BASE_ENDPOINT}/v1/storage/usage`, {
-          headers: { "x-api-key": currentStorageApiKey }
-        });
+        const headers = {};
+        if (currentStorageApiKey) {
+          headers["x-api-key"] = currentStorageApiKey;
+        }
+        const res = await nuclearFetch(`${BASE_ENDPOINT}/v1/storage/usage`, { headers });
         if (res.ok) {
           const data = await res.json();
-          currentTenantId = data.tenant_id;
-          localStorage.setItem("swades_storage_tenant_id", currentTenantId);
+          if (data.tenant_id && !currentTenantId) {
+            currentTenantId = data.tenant_id;
+            localStorage.setItem("swades_storage_tenant_id", currentTenantId);
+          }
 
           const freeEl = document.getElementById("storageDeviceFree");
           if (freeEl && data.device_free_gb !== undefined) {
@@ -6578,9 +6581,12 @@ Status: ${data.status} (Sub-Microsecond Reflection Achieved: ${r.sub_microsecond
       const badge = document.getElementById("storageObjectCountBadge");
       if (!currentStorageApiKey) {
         if (tbody) {
-          tbody.innerHTML = `<tr><td colspan="5" style="padding: 2rem; text-align: center; color: var(--text-muted);">Authenticate with an API key above to view and manage your tenant bucket.</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="5" style="padding: 2rem; text-align: center; color: var(--text-muted);">
+            <div style="font-size: 1.25rem; margin-bottom: 0.35rem; color: #a1a1aa;"><i class="fa-solid fa-lock text-zinc-500 mr-2"></i>Guest Mode</div>
+            <div style="font-size: 0.82rem;">Create or login to an account above to manage your private hardware bucket.</div>
+          </td></tr>`;
         }
-        if (badge) badge.innerText = "0 items";
+        if (badge) badge.innerText = "Guest Mode";
         return;
       }
 
