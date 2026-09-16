@@ -3770,14 +3770,41 @@ class SovereignCronEngine:
   </div>
 </body>
 </html>"""
+                job_user = job_copy.get("smtp_user") or (self.notifier.smtp_user if self.notifier else None)
+                job_pass = job_copy.get("smtp_pass") or (self.notifier.smtp_pass if self.notifier else None)
+                job_host = job_copy.get("smtp_host") or "smtp.gmail.com"
+                job_port = int(job_copy.get("smtp_port") or 465)
+
                 try:
-                    if self.notifier and self.notifier.smtp_user:
+                    if job_user and job_pass:
+                        import email.mime.multipart
+                        import email.mime.text
+                        msg = email.mime.multipart.MIMEMultipart("alternative")
+                        msg["Subject"] = sub
+                        msg["From"] = f"PhoneWhisper Datacenter <{job_user}>"
+                        msg["To"] = to_addr
+                        msg.attach(email.mime.text.MIMEText(body_content, "plain"))
+                        msg.attach(email.mime.text.MIMEText(html_body, "html"))
+
+                        ctx = ssl.create_default_context()
+                        if job_port == 465:
+                            with smtplib.SMTP_SSL(job_host, job_port, context=ctx, timeout=15) as server:
+                                server.login(job_user, job_pass)
+                                server.sendmail(job_user, [to_addr], msg.as_string())
+                        else:
+                            with smtplib.SMTP(job_host, job_port, timeout=15) as server:
+                                server.starttls(context=ctx)
+                                server.login(job_user, job_pass)
+                                server.sendmail(job_user, [to_addr], msg.as_string())
+                        status = "SUCCESS"
+                        response_snippet = f"Dispatched email to {to_addr} via {job_host}:{job_port}"
+                    elif self.notifier and self.notifier.smtp_user and self.notifier.smtp_pass:
                         self.notifier.send_email_async(to_addr, sub, html_body, body_content)
                         status = "SUCCESS"
                         response_snippet = f"Queued email to {to_addr}"
                     else:
                         status = "FAILED"
-                        error_message = "SMTP credentials unconfigured on phone."
+                        error_message = "SMTP credentials unconfigured. Pass smtp_user and smtp_pass in job payload or configure server."
                 except Exception as ex:
                     status = "FAILED"
                     error_message = str(ex)
@@ -7010,7 +7037,11 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 "email_subject": f"⚡ Scheduled Pulse: {job_name}",
                 "email_body_template": f"Live automated scheduled pulse from Phone AI Datacenter on {datetime.now(timezone.utc).isoformat()}.",
                 "trigger_immediate": False,
-                "tags": "demo,smtp,countdown"
+                "tags": "demo,smtp,countdown",
+                "smtp_user": body.get("smtp_user", ""),
+                "smtp_pass": body.get("smtp_pass", ""),
+                "smtp_host": body.get("smtp_host", "smtp.gmail.com"),
+                "smtp_port": body.get("smtp_port", 465)
             }
             job = _cron_engine.create_job(payload, tenant_id="usr_demo", is_anonymous=True)
             # Override next run to exact requested delay
