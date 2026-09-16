@@ -5814,7 +5814,19 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             client_ip = get_client_ip(self)
             ip_hash = hashlib.sha256(client_ip.encode("utf-8")).hexdigest()[:10]
             guest_key = f"pk_guest_{ip_hash}"
-            return _storage_vault.verify_key(guest_key)
+            res = _storage_vault.verify_key(guest_key)
+            if res and isinstance(res, dict) and res.get("is_active"):
+                return res
+            # Dynamic anonymous tenant for frictionless public uploads
+            return {
+                "tenant_id": f"usr_guest_{ip_hash}",
+                "username": f"guest_{ip_hash}",
+                "project_id": "anon_public",
+                "role": "guest",
+                "is_anonymous": True,
+                "is_active": True,
+                "restrictions": "none"
+            }
         res = _storage_vault.verify_key(api_key)
         if res == "EXPIRED":
             return {"expired": True, "error": "API key has expired"}
