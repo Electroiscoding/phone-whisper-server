@@ -2811,7 +2811,7 @@
           <span>Mode 2: Small Language Model (SLM)</span>
         </span>
         <h2 class="section-title">On-Device SLM Chat (Qwen 2.5 0.5B)</h2>
-        <p class="section-desc">Runs quantized Qwen 2.5 0.5B Instruct locally in phone RAM via <code>llama.cpp</code>. Streams tokens on 4 ARM CPU threads (~10–20 tok/sec, ~8–12s total compute).</p>
+        <p class="section-desc">Runs quantized Qwen 2.5 0.5B Instruct locally in phone RAM via <code>llama.cpp</code>. Streams live tokens on 4 ARM CPU threads directly from physical device memory.</p>
       </div>
 
       <div class="chat-container-card">
@@ -2819,7 +2819,7 @@
           <div style="display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap;">
             <span id="qwenMemoryBadge" style="color: var(--primary); font-weight: 600;"><i class="fa-solid fa-brain mr-1.5"></i> In-Memory Context: Active</span>
             <span id="qwenTokenVelocityBadge" style="color: #34d399; font-family: var(--font-mono); font-size: 0.75rem; background: rgba(16,185,129,0.12); padding: 2px 8px; border-radius: 6px; border: 1px solid rgba(16,185,129,0.25);">
-              <i class="fa-solid fa-gauge-high text-emerald-400 mr-1"></i> <span id="qwenTokSecLabel">14.2 tok/s</span>
+              <i class="fa-solid fa-gauge-high text-emerald-400 mr-1"></i> <span id="qwenTokSecLabel">Live Hardware</span>
             </span>
           </div>
           <button class="btn-action" style="padding: 0.25rem 0.65rem; font-size: 0.75rem;" onclick="clearQwenChatMemory()"><i class="fa-solid fa-broom mr-1"></i> Clear Memory</button>
@@ -5886,6 +5886,9 @@ python3 mobile/nuclear_watchdog.py</code></pre>
 
         const memBadge = document.getElementById("qwenMemoryBadge");
         if (memBadge) memBadge.innerHTML = `<i class="fa-solid fa-brain text-cyan-400 mr-1.5"></i> Memory: ${turnCount} turn(s) active`;
+
+        const tokLabel = document.getElementById("qwenTokSecLabel");
+        if (tokLabel) tokLabel.innerText = `${tokPerSec} tok/s`;
 
         const metaDiv = document.createElement("div");
         metaDiv.style.fontSize = "0.75rem";
