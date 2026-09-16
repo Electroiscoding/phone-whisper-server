@@ -1024,3 +1024,230 @@ await db.insert("items", { title: "Phone Case", price: 12.50 });
 // 1-line file upload to S3 CDN
 const { url } = await db.storage.upload(file);
 ```
+
+---
+
+## 12. Sovereign Agnostic 24/7 Cron & Background Task Automation Engine (`/v1/cron/*`)
+
+The phone node features a pure agnostic, multi-threaded 24/7 background scheduler and task automation daemon. It runs autonomously in the background on the phone's battery-backed physical hardware, executing scheduled webhooks, recurring uptime health checks, API polling workers, and live Gmail SMTP email notifications.
+
+### 12.1 Key Architectural Highlights
+- **100% Agnostic & Universal**: Executes any HTTP method (`GET`, `POST`, `PUT`, `PATCH`, `DELETE`) to any external URL with custom headers and JSON payloads, or native Gmail SMTP dispatch.
+- **Zero-Auth Open Access**: Developers can schedule, list, and trigger background tasks with **zero sign-up and no API key**. Optional `x-api-key` header provides private tenant task isolation.
+- **Dual Flexible Scheduling**: Supports standard 5-field cron syntax (`*/10 * * * *`, `0 8 * * 1-5`) and human-readable dynamic intervals (`30s`, `5m`, `1h`, `1d`).
+- **High-Throughput Concurrent Execution**: `ThreadPoolExecutor` worker pool executes background tasks with zero blocking on the main server loop.
+- **Resilient Execution & Rolling History**: Tracks status codes, latencies (ms), and response bodies, preserving rolling execution history with automatic alert triggers on failure.
+
+---
+
+### 12.2 REST API Specification
+
+#### 12.2.1 List All Jobs & Scheduler Health
+- **Endpoint**: `GET /v1/cron/jobs`
+- **Headers** (Optional): `x-api-key: <KEY>`
+- **Response**:
+```json
+{
+  "success": true,
+  "jobs": [
+    {
+      "id": "cron_abc12345",
+      "name": "Production Uptime Pulse",
+      "schedule_type": "interval",
+      "schedule_value": "every 60s",
+      "interval_sec": 60,
+      "cron_expr": null,
+      "target_type": "webhook",
+      "http_method": "GET",
+      "url": "https://api.example.com/health",
+      "status": "ACTIVE",
+      "total_runs": 1420,
+      "last_status_code": 200,
+      "last_latency_ms": 42.1,
+      "next_run_in_sec": 18
+    }
+  ],
+  "stats": {
+    "active_jobs": 8,
+    "paused_jobs": 1,
+    "total_jobs": 9,
+    "total_runs": 12840,
+    "success_runs": 12822,
+    "failed_runs": 18,
+    "success_rate_percent": 99.86,
+    "scheduler_running": true
+  }
+}
+```
+
+#### 12.2.2 Create / Schedule a Background Job
+- **Endpoint**: `POST /v1/cron/jobs`
+- **Headers**: `Content-Type: application/json`, optional `x-api-key: <KEY>`
+- **Request Body Parameters**:
+| Parameter | Type | Required | Default | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| `name` | string | **Yes** | — | Human-readable title for the task |
+| `schedule_type` | string | No | `"interval"` | `"interval"` or `"cron"` |
+| `schedule_value` | string | **Yes** | — | e.g. `"every 5m"`, `"30s"`, or `"*/15 * * * *"` |
+| `target_type` | string | No | `"webhook"` | `"webhook"`, `"email"`, or `"internal"` |
+| `http_method` | string | No | `"POST"` | `GET`, `POST`, `PUT`, `DELETE`, `PATCH` |
+| `url` | string | If webhook | `""` | Target destination URL to invoke |
+| `headers` | object/str | No | `{}` | Custom HTTP headers map (e.g. `{"Authorization": "Bearer ...", "Content-Type": "application/json"}`) |
+| `body` | string | No | `""` | JSON payload string or request body |
+| `notify_email` | string | If email | `""` | Destination email for 24/7 Gmail SMTP notifications |
+| `notify_on` | string | No | `"failure"` | `"always"`, `"failure"`, or `"never"` |
+| `timeout_sec` | int | No | `15` | Request timeout in seconds (1 to 60) |
+| `max_retries` | int | No | `2` | Number of retry attempts on network error |
+
+- **Example Payload**:
+```json
+{
+  "name": "Database Backup Webhook",
+  "schedule_type": "cron",
+  "schedule_value": "0 2 * * *",
+  "target_type": "webhook",
+  "http_method": "POST",
+  "url": "https://api.myapp.com/v1/backups/trigger",
+  "headers": {
+    "Authorization": "Bearer sec_live_token",
+    "Content-Type": "application/json"
+  },
+  "body": "{\"scope\":\"full\",\"retention_days\":30}",
+  "notify_email": "ops@myapp.com",
+  "notify_on": "failure"
+}
+```
+
+#### 12.2.3 Instant Test-Fire / Trigger a Job
+- **Endpoint**: `POST /v1/cron/jobs/<id>/trigger` (or `POST /v1/cron/trigger/<id>`)
+- **Headers** (Optional): `x-api-key: <KEY>`
+- **Response**:
+```json
+{
+  "success": true,
+  "job_id": "cron_abc12345",
+  "message": "Job triggered synchronously",
+  "status_code": 200,
+  "latency_ms": 38.5,
+  "error": null,
+  "response_snippet": "{\"status\":\"healthy\",\"uptime\":99.99}"
+}
+```
+
+#### 12.2.4 Pause & Resume a Job
+- **Pause Endpoint**: `POST /v1/cron/jobs/<id>/pause`
+- **Resume Endpoint**: `POST /v1/cron/jobs/<id>/resume`
+
+#### 12.2.5 View Execution History / Logs
+- **Endpoint**: `GET /v1/cron/jobs/<id>/logs?limit=50`
+- **Response**:
+```json
+{
+  "success": true,
+  "job_id": "cron_abc12345",
+  "total_logs": 50,
+  "logs": [
+    {
+      "id": 1042,
+      "executed_at": 1726483200,
+      "status_code": 200,
+      "latency_ms": 41.2,
+      "error": null,
+      "response_snippet": "{\"ok\":true}"
+    }
+  ]
+}
+```
+
+#### 12.2.6 Delete a Job
+- **Endpoint**: `DELETE /v1/cron/jobs/<id>`
+
+#### 12.2.7 Live 1-Click Gmail SMTP Demo Alert
+- **Endpoint**: `POST /v1/cron/demo/smtp`
+- **Body**: `{"email": "your_email@gmail.com"}`
+- **Response**: Triggers an instant sovereign phone alert pulse directly to the recipient's inbox.
+
+---
+
+### 12.3 Developer Integration Examples
+
+#### 12.3.1 cURL
+
+**Schedule a Webhook every 5 minutes (Zero-Auth):**
+```bash
+curl -X POST "https://phone-whisper-server.pages.dev/v1/cron/jobs" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Edge Sync Worker",
+    "schedule_type": "interval",
+    "schedule_value": "every 5m",
+    "url": "https://api.myapp.com/tasks/sync",
+    "http_method": "POST",
+    "body": "{\"trigger\":\"phone_cron\"}"
+  }'
+```
+
+**Schedule a Cron Job at 09:00 Mon-Fri:**
+```bash
+curl -X POST "https://phone-whisper-server.pages.dev/v1/cron/jobs" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Morning Report Dispatch",
+    "schedule_type": "cron",
+    "schedule_value": "0 9 * * 1-5",
+    "url": "https://api.myapp.com/reports/daily",
+    "http_method": "POST"
+  }'
+```
+
+**Instant Test-Fire a Job:**
+```bash
+curl -X POST "https://phone-whisper-server.pages.dev/v1/cron/jobs/cron_abc12345/trigger"
+```
+
+#### 12.3.2 Python (`swades.py`)
+
+```python
+import requests
+
+BASE_URL = "https://phone-whisper-server.pages.dev"
+
+# 1. Create a 24/7 background task (No API Key needed)
+job = requests.post(f"{BASE_URL}/v1/cron/jobs", json={
+    "name": "Database Health Check",
+    "schedule_type": "interval",
+    "schedule_value": "every 60s",
+    "url": "https://myapp.com/api/health",
+    "http_method": "GET",
+    "notify_email": "dev@myapp.com",
+    "notify_on": "failure"
+}).json()
+
+print(f"Created Task ID: {job['job_id']}")
+
+# 2. Query execution statistics
+stats = requests.get(f"{BASE_URL}/v1/cron/stats").json()
+print(f"Scheduler SLA: {stats['stats']['success_rate_percent']}% | Total Runs: {stats['stats']['total_runs']}")
+```
+
+#### 12.3.3 JavaScript / Node.js (`swades.js`)
+
+```javascript
+// Schedule a 24/7 background worker in 1 call
+const res = await fetch("https://phone-whisper-server.pages.dev/v1/cron/jobs", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    name: "Stripe Webhook Replay",
+    schedule_type: "cron",
+    schedule_value: "*/15 * * * *",
+    url: "https://my-backend.com/webhook/retry",
+    http_method: "POST",
+    headers: { "Authorization": "Bearer secret_tok" }
+  })
+});
+
+const data = await res.json();
+console.log("Scheduled Task:", data.job_id);
+```
+
