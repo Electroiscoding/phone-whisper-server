@@ -6766,9 +6766,9 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             api_key = self.headers.get("x-api-key") or self.headers.get("Authorization", "").replace("Bearer ", "").strip()
             tenant_id = None
             if api_key and '_storage_vault' in globals():
-                t_id, _, _ = _storage_vault.authenticate(api_key)
-                if t_id:
-                    tenant_id = t_id
+                auth_res = _storage_vault.verify_key(api_key)
+                if isinstance(auth_res, dict) and auth_res.get("tenant_id"):
+                    tenant_id = auth_res["tenant_id"]
             
             jobs = _cron_engine.list_jobs(tenant_id=tenant_id, status=status, tag=tag, limit=limit)
             stats = _cron_engine.get_stats()
@@ -6813,9 +6813,9 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             tenant_id = "usr_anonymous"
             is_anon = True
             if api_key and '_storage_vault' in globals():
-                t_id, _, _ = _storage_vault.authenticate(api_key)
-                if t_id:
-                    tenant_id = t_id
+                auth_res = _storage_vault.verify_key(api_key)
+                if isinstance(auth_res, dict) and auth_res.get("tenant_id"):
+                    tenant_id = auth_res["tenant_id"]
                     is_anon = False
 
             job = _cron_engine.create_job(body, tenant_id=tenant_id, is_anonymous=is_anon)
