@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://headers-hazardous-assessing-counting.trycloudflare.com",
-  "inference": "https://headers-hazardous-assessing-counting.trycloudflare.com/inference",
-  "telemetry": "https://headers-hazardous-assessing-counting.trycloudflare.com/telemetry",
+  "endpoint": "https://franchise-brands-burning-hence.trycloudflare.com",
+  "inference": "https://franchise-brands-burning-hence.trycloudflare.com/inference",
+  "telemetry": "https://franchise-brands-burning-hence.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-09-16T07:30:00Z"
+  "updated_at": "2026-09-16T08:04:00Z"
 }
