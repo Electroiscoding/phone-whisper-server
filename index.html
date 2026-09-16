@@ -2267,7 +2267,58 @@
       display: block;
     }
 
-    /* Deep Universal Screen Ergonomics */
+    /* Deep Universal Screen Ergonomics & Mobile UI/UX Optimization */
+    html, body {
+      max-width: 100vw;
+      overflow-x: hidden;
+    }
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+
+    .storage-stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .storage-banner-card {
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.08), rgba(16, 185, 129, 0.08));
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 12px;
+      padding: 1.1rem 1.35rem;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+
+    .storage-upload-controls {
+      display: flex;
+      justify-content: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      align-items: center;
+      width: 100%;
+    }
+
+    .storage-table-wrapper {
+      background: rgba(0,0,0,0.6);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      width: 100%;
+    }
+
+    .storage-table-wrapper table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.85rem;
+    }
+
     @media (min-width: 1440px) {
       .container {
         max-width: 1320px;
@@ -2276,6 +2327,70 @@
         padding: 2rem;
       }
     }
+
+    @media (max-width: 768px) {
+      .container {
+        padding: 0 0.75rem !important;
+        max-width: 100vw !important;
+        overflow-x: hidden !important;
+      }
+      .chat-container-card, .studio-card, .card {
+        padding: 1rem 0.75rem !important;
+        border-radius: 12px !important;
+        max-width: 100% !important;
+      }
+      .storage-stats-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 0.5rem !important;
+      }
+      .storage-banner-card {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        padding: 0.9rem !important;
+        gap: 0.65rem !important;
+      }
+      .storage-upload-controls {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0.5rem !important;
+        width: 100% !important;
+      }
+      .storage-upload-controls > *,
+      .storage-upload-controls input,
+      .storage-upload-controls button,
+      #storageCustomKeyInput,
+      #storageNotifyEmailInput,
+      #loginUsername,
+      #loginPassword,
+      #registerUsername,
+      #registerPassword,
+      #storageAccountKeySelect {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+      }
+      #storageDropZone {
+        padding: 1.1rem 0.65rem !important;
+      }
+      .storage-table-wrapper table {
+        min-width: 580px !important;
+      }
+      .mobile-thumb-dock {
+        max-width: calc(100vw - 1rem) !important;
+        padding: 0.25rem 0.35rem !important;
+        gap: 0.15rem !important;
+      }
+      .thumb-dock-btn {
+        width: 38px !important;
+        height: 38px !important;
+        font-size: 0.95rem !important;
+      }
+      .thumb-dock-label {
+        font-size: 0.5rem !important;
+      }
+    }
+
     @media (max-width: 480px) {
       .hero-title {
         font-size: 1.65rem !important;
@@ -2285,6 +2400,9 @@
         justify-content: center;
       }
       .benchmark-pings-grid {
+        grid-template-columns: 1fr !important;
+      }
+      .storage-stats-grid {
         grid-template-columns: 1fr !important;
       }
     }
@@ -2956,7 +3074,7 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
 
       <div class="chat-container-card" style="border: 1px solid rgba(56, 189, 248, 0.3); background: rgba(10, 15, 29, 0.85);">
         <!-- Top Stats / Quota HUD -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+        <div class="storage-stats-grid">
           <div style="background: rgba(0,0,0,0.4); border: 1px solid var(--card-border); border-radius: 12px; padding: 1rem;">
             <div style="font-size: 0.75rem; color: var(--text-subtle); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.3rem;">Phone Free Flash Storage</div>
             <div id="storageDeviceFree" style="font-size: 1.5rem; font-weight: 800; color: #10b981; font-family: 'JetBrains Mono', monospace;">--</div>
@@ -2982,7 +3100,7 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
         </div>
 
         <!-- Hyper-Protection Anonymous Public CDN & Inactivity Lifecycle Banner -->
-        <div style="background: linear-gradient(135deg, rgba(56, 189, 248, 0.08), rgba(16, 185, 129, 0.08)); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 12px; padding: 1.1rem 1.35rem; margin-bottom: 1.5rem; display: flex; align-items: flex-start; gap: 1rem;">
+        <div class="storage-banner-card">
           <div style="background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.3); width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: #38bdf8; font-size: 1.25rem;">
             <i class="fa-solid fa-earth-americas"></i>
           </div>
@@ -3019,9 +3137,9 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
             <!-- Login Form -->
             <form id="storageLoginForm" onsubmit="handleStorageLogin(event)" style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
               <input type="text" id="loginUsername" placeholder="Username" required
-                     style="background: rgba(0,0,0,0.6); border: 1px solid var(--card-border); color: #fff; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; padding: 0.55rem 0.8rem; border-radius: 8px; width: 180px;">
+                     style="background: rgba(0,0,0,0.6); border: 1px solid var(--card-border); color: #fff; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; padding: 0.55rem 0.8rem; border-radius: 8px;">
               <input type="password" id="loginPassword" placeholder="Password" required
-                     style="background: rgba(0,0,0,0.6); border: 1px solid var(--card-border); color: #fff; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; padding: 0.55rem 0.8rem; border-radius: 8px; width: 220px;">
+                     style="background: rgba(0,0,0,0.6); border: 1px solid var(--card-border); color: #fff; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; padding: 0.55rem 0.8rem; border-radius: 8px;">
               <button type="submit" class="btn-send-chat" style="padding: 0.55rem 1.1rem; font-size: 0.85rem; background: #38bdf8; color: #000; font-weight: 700;">
                 <span>Sign In &amp; Unlock Keys</span>
               </button>
@@ -3030,9 +3148,9 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
             <!-- Register Form (hidden by default) -->
             <form id="storageRegisterForm" onsubmit="handleStorageRegister(event)" style="display: none; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
               <input type="text" id="registerUsername" placeholder="Choose Username" required
-                     style="background: rgba(0,0,0,0.6); border: 1px solid var(--card-border); color: #fff; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; padding: 0.55rem 0.8rem; border-radius: 8px; width: 210px;">
+                     style="background: rgba(0,0,0,0.6); border: 1px solid var(--card-border); color: #fff; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; padding: 0.55rem 0.8rem; border-radius: 8px;">
               <input type="password" id="registerPassword" placeholder="Choose Password" required
-                     style="background: rgba(0,0,0,0.6); border: 1px solid var(--card-border); color: #fff; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; padding: 0.55rem 0.8rem; border-radius: 8px; width: 220px;">
+                     style="background: rgba(0,0,0,0.6); border: 1px solid var(--card-border); color: #fff; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; padding: 0.55rem 0.8rem; border-radius: 8px;">
               <button type="submit" class="btn-send-chat" style="padding: 0.55rem 1.1rem; font-size: 0.85rem; background: #10b981; color: #000; font-weight: 700;">
                 <i class="fa-solid fa-wand-magic-sparkles mr-1.5"></i> <span>Register &amp; Get Primary Key</span>
               </button>
@@ -3066,7 +3184,7 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
             <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; margin-top: 0.5rem;">
               <span style="font-size: 0.8rem; color: var(--text-subtle);">Active Key:</span>
               <select id="storageAccountKeySelect" onchange="onSelectedAccountKeyChanged(this.value)"
-                      style="flex: 1; min-width: 260px; background: rgba(0,0,0,0.7); border: 1px solid var(--card-border); color: #38bdf8; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; padding: 0.5rem 0.8rem; border-radius: 8px;">
+                      style="flex: 1; background: rgba(0,0,0,0.7); border: 1px solid var(--card-border); color: #38bdf8; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; padding: 0.5rem 0.8rem; border-radius: 8px;">
               </select>
               <button onclick="copyCurrentStorageApiKey()" class="btn-action" style="padding: 0.5rem 0.8rem; font-size: 0.82rem;">
                 <i class="fa-solid fa-copy mr-1"></i> <span>Copy Active Key</span>
@@ -3099,15 +3217,15 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
             <div style="font-size: 2.2rem; margin-bottom: 0.5rem;"><i class="fa-solid fa-folder-open text-cyan-400"></i></div>
             <div style="font-weight: 700; color: #fff; font-size: 1.05rem; margin-bottom: 0.3rem;">Drag &amp; Drop Files Here or Select File</div>
             <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">Instant anonymous &amp; authenticated streaming upload to phone NVMe/eMMC flash storage with worldwide public CDN permalink</div>
-            <div style="display: flex; justify-content: center; gap: 0.75rem; flex-wrap: wrap; align-items: center;">
+            <div class="storage-upload-controls">
               <input type="file" id="storageFileInput" style="display: none;" onchange="handleStorageFileSelect(event)" multiple>
               <button onclick="document.getElementById('storageFileInput').click()" class="btn-action" style="padding: 0.5rem 1.2rem; background: rgba(56, 189, 248, 0.15); border-color: #38bdf8; color: #fff;">
                 <span>Choose Files (Multi-Upload)</span>
               </button>
               <input type="text" id="storageCustomKeyInput" placeholder="Custom Key (optional)" 
-                     style="background: rgba(0,0,0,0.5); border: 1px solid var(--card-border); color: #fff; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; padding: 0.5rem 0.8rem; border-radius: 6px; width: 220px;">
+                     style="background: rgba(0,0,0,0.5); border: 1px solid var(--card-border); color: #fff; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; padding: 0.5rem 0.8rem; border-radius: 6px;">
               <input type="email" id="storageNotifyEmailInput" placeholder="Email for 24/7 Gmail Alerts (optional)" 
-                     style="background: rgba(0,0,0,0.5); border: 1px solid rgba(56, 189, 248, 0.3); color: #fff; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; padding: 0.5rem 0.8rem; border-radius: 6px; width: 270px;">
+                     style="background: rgba(0,0,0,0.5); border: 1px solid rgba(56, 189, 248, 0.3); color: #fff; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; padding: 0.5rem 0.8rem; border-radius: 6px;">
               <button id="storageUploadBtn" onclick="uploadSelectedStorageFile()" class="btn-send-chat" style="padding: 0.5rem 1.25rem; font-size: 0.85rem;" disabled>
                 <i class="fa-solid fa-cloud-arrow-up mr-1.5"></i> <span>Upload to Phone</span>
               </button>
@@ -3127,8 +3245,8 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
               </button>
             </div>
             
-            <div style="background: rgba(0,0,0,0.6); border: 1px solid var(--card-border); border-radius: 10px; overflow-x: auto;">
-              <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem;">
+            <div class="storage-table-wrapper">
+              <table>
                 <thead>
                   <tr style="border-bottom: 1px solid var(--card-border); background: rgba(255,255,255,0.03); color: var(--text-subtle);">
                     <th style="padding: 0.75rem 1rem;">Key / Name</th>
