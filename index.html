@@ -2424,7 +2424,7 @@
         </button>
       </div>
 
-      <!-- PERSONALIZED SESSION STREAK & LEVEL XP -->
+      <!-- PERSONALIZED SESSION STREAK & SAVED CLOUD DOLLARS -->
       <div style="display: flex; justify-content: center; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 0.75rem;">
         <div class="session-streak-badge" id="sessionStreakPill" onclick="openDevWorkspaceModal()" style="cursor: pointer;" title="Click to open Developer Workspace & Investment Lab">
           <i class="fa-solid fa-fire streak-flame"></i>
@@ -2432,6 +2432,11 @@
           <span style="color: var(--text-muted); margin: 0 2px;">•</span>
           <span id="sessionLevelBadge" style="color: #38bdf8;">Sovereign Architect</span>
           <i class="fa-solid fa-flask-vial ml-1.5 text-cyan-400" style="font-size: 0.75rem;"></i>
+        </div>
+
+        <div class="session-streak-badge" id="cloudDollarsPill" onclick="openDevWorkspaceModal()" style="cursor: pointer; background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.35); color: #34d399;" title="Direct compute savings vs centralized cloud GPU bills">
+          <i class="fa-solid fa-coins text-amber-400"></i>
+          <span>Saved Cloud GPU: <strong id="savedCloudCostVal" style="color: #ffffff; font-family: var(--font-mono);">$0.00</strong></span>
         </div>
       </div>
 
@@ -2634,8 +2639,13 @@
       </div>
 
       <div class="chat-container-card">
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 1rem; border-bottom: 1px solid var(--card-border); font-size: 0.8rem;">
-          <span id="qwenMemoryBadge" style="color: var(--primary); font-weight: 600;"><i class="fa-solid fa-brain mr-1.5"></i> Hyper-Temporary In-Memory Context: Active</span>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 1rem; border-bottom: 1px solid var(--card-border); font-size: 0.8rem; flex-wrap: wrap; gap: 0.5rem;">
+          <div style="display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap;">
+            <span id="qwenMemoryBadge" style="color: var(--primary); font-weight: 600;"><i class="fa-solid fa-brain mr-1.5"></i> In-Memory Context: Active</span>
+            <span id="qwenTokenVelocityBadge" style="color: #34d399; font-family: var(--font-mono); font-size: 0.75rem; background: rgba(16,185,129,0.12); padding: 2px 8px; border-radius: 6px; border: 1px solid rgba(16,185,129,0.25);">
+              <i class="fa-solid fa-gauge-high text-emerald-400 mr-1"></i> <span id="qwenTokSecLabel">14.2 tok/s</span>
+            </span>
+          </div>
           <button class="btn-action" style="padding: 0.25rem 0.65rem; font-size: 0.75rem;" onclick="clearQwenChatMemory()"><i class="fa-solid fa-broom mr-1"></i> Clear Memory</button>
         </div>
         <div class="chat-box-area" id="chatBoxArea">
@@ -8269,15 +8279,23 @@ console.log("Recovered:", text);`;
     function recordSessionInference() {
       sessionInferenceCount++;
       localStorage.setItem('pw_session_inferences', sessionInferenceCount.toString());
+      localStorage.setItem('phone_ai_inference_count', sessionInferenceCount.toString());
       updateSessionStreakUI();
+      updateMasteryBadgesUI();
+      playChimeFeedback(659.25, 0.15); // E5 crystal harmonic
     }
     window.recordSessionInference = recordSessionInference;
 
     function updateSessionStreakUI() {
       const counterEl = document.getElementById('sessionInferenceCounter');
       const levelEl = document.getElementById('sessionLevelBadge');
-      if (!counterEl) return;
-      counterEl.innerText = `${sessionInferenceCount} Live Inferences`;
+      const costEl = document.getElementById('savedCloudCostVal');
+      
+      if (counterEl) counterEl.innerText = `${sessionInferenceCount} Live Inferences`;
+      if (costEl) {
+        const savedDollars = (sessionInferenceCount * 0.042).toFixed(2);
+        costEl.innerText = `$${savedDollars}`;
+      }
       
       let level = "Silicon Explorer";
       let color = "#94a3b8";
