@@ -69,6 +69,108 @@ class ImageClient:
         """Decompresses Zstandard-compressed image data losslessly."""
         return self.swades.decompress(compressed_data, as_text=as_text)
 
+class CronClient:
+    """Sovereign Agnostic 24/7 Background Cron & Task Automation Client.
+    Supports dynamic intervals ('every 30s', '5m', '1h'), standard 5-field cron syntax,
+    zero-auth public access, and 1-line triggers.
+    """
+    def __init__(self, swades):
+        self.swades = swades
+
+    def list(self):
+        """Lists all active and paused background tasks."""
+        headers = {}
+        if self.swades.api_key:
+            headers["x-api-key"] = self.swades.api_key
+        res = self.swades._req("GET", "/v1/cron/jobs", headers=headers)
+        if not res.ok:
+            raise RuntimeError(f"Failed to list cron jobs: {res.text}")
+        return res.json()
+
+    def create(self, name: str, schedule_value: str, schedule_type: str = "interval", 
+               url: str = "", http_method: str = "POST", headers: dict = None, 
+               body: str = "", notify_email: str = "", notify_on: str = "failure", 
+               target_type: str = "webhook", **kwargs):
+        """Creates a background scheduled task. Zero auth or optional API key."""
+        payload = {
+            "name": name,
+            "schedule_type": schedule_type,
+            "schedule_value": schedule_value,
+            "url": url,
+            "http_method": http_method,
+            "headers": headers or {},
+            "body": body,
+            "notify_email": notify_email,
+            "notify_on": notify_on,
+            "target_type": target_type,
+            **kwargs
+        }
+        req_headers = {"Content-Type": "application/json"}
+        if self.swades.api_key:
+            req_headers["x-api-key"] = self.swades.api_key
+        res = self.swades._req("POST", "/v1/cron/jobs", headers=req_headers, json=payload)
+        if not res.ok:
+            raise RuntimeError(f"Failed to create cron task: {res.text}")
+        return res.json()
+
+    def get(self, job_id: str):
+        """Gets metadata and latest logs for a background task."""
+        headers = {}
+        if self.swades.api_key:
+            headers["x-api-key"] = self.swades.api_key
+        res = self.swades._req("GET", f"/v1/cron/jobs/{job_id}", headers=headers)
+        return res.json()
+
+    def trigger(self, job_id: str):
+        """Synchronously test-fires a background task immediately."""
+        headers = {}
+        if self.swades.api_key:
+            headers["x-api-key"] = self.swades.api_key
+        res = self.swades._req("POST", f"/v1/cron/jobs/{job_id}/trigger", headers=headers)
+        return res.json()
+
+    def pause(self, job_id: str):
+        """Pauses a background task."""
+        headers = {}
+        if self.swades.api_key:
+            headers["x-api-key"] = self.swades.api_key
+        res = self.swades._req("POST", f"/v1/cron/jobs/{job_id}/pause", headers=headers)
+        return res.json()
+
+    def resume(self, job_id: str):
+        """Resumes a paused background task."""
+        headers = {}
+        if self.swades.api_key:
+            headers["x-api-key"] = self.swades.api_key
+        res = self.swades._req("POST", f"/v1/cron/jobs/{job_id}/resume", headers=headers)
+        return res.json()
+
+    def delete(self, job_id: str):
+        """Deletes a background task and its execution history."""
+        headers = {}
+        if self.swades.api_key:
+            headers["x-api-key"] = self.swades.api_key
+        res = self.swades._req("DELETE", f"/v1/cron/jobs/{job_id}", headers=headers)
+        return res.json()
+
+    def logs(self, job_id: str, limit: int = 50):
+        """Fetches execution logs for a task."""
+        headers = {}
+        if self.swades.api_key:
+            headers["x-api-key"] = self.swades.api_key
+        res = self.swades._req("GET", f"/v1/cron/jobs/{job_id}/logs?limit={limit}", headers=headers)
+        return res.json()
+
+    def stats(self):
+        """Fetches global scheduler health, SLA, and execution count."""
+        res = self.swades._req("GET", "/v1/cron/stats")
+        return res.json()
+
+    def test_smtp(self, email: str):
+        """Sends an instant 24/7 Gmail SMTP test alert pulse."""
+        res = self.swades._req("POST", "/v1/cron/demo/smtp", json={"email": email})
+        return res.json()
+
 class Swades:
     def __init__(self, api_key="", project_id="default", endpoint="https://phone-whisper-server.pages.dev"):
         self.endpoint = endpoint.rstrip("/")
@@ -80,6 +182,7 @@ class Swades:
             "Content-Type": "application/json"
         }
         self.images = ImageClient(self)
+        self.cron = CronClient(self)
         self._tts_cache = {}
         self._cache_dir = os.path.expanduser("~/.swades/tts_cache")
         try:
@@ -423,5 +526,21 @@ class Swades:
     def image_info(self):
         """Returns Zstandard image compression engine specifications."""
         return self.images.info()
+
+    # =========================================================================
+    # 24/7 BACKGROUND CRON & WORKER ENGINE
+    # =========================================================================
+    def schedule(self, name: str, schedule_value: str, schedule_type: str = "interval", **kwargs):
+        """1-line background task scheduler."""
+        return self.cron.create(name=name, schedule_value=schedule_value, schedule_type=schedule_type, **kwargs)
+
+    def list_jobs(self):
+        """Lists active scheduled tasks."""
+        return self.cron.list()
+
+    def trigger_job(self, job_id: str):
+        """Instant synchronous test-fire."""
+        return self.cron.trigger(job_id)
+
 
 

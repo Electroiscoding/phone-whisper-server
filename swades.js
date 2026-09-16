@@ -522,6 +522,109 @@ class SwadesClient {
     }
   };
 
+  // --- SOVEREIGN AGNOSTIC CRON & BACKGROUND WORKERS ---
+  cron = {
+    // List all scheduled tasks
+    list: async () => {
+      const headers = {};
+      if (this.apiKey) headers['x-api-key'] = this.apiKey;
+      const res = await fetch(`${this.endpoint}/v1/cron/jobs`, { headers });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to list cron tasks');
+      return data;
+    },
+
+    // Create a scheduled background task (1-line, zero auth or key)
+    create: async (taskOptions = {}) => {
+      const headers = { 'Content-Type': 'application/json' };
+      if (this.apiKey) headers['x-api-key'] = this.apiKey;
+      const res = await fetch(`${this.endpoint}/v1/cron/jobs`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(taskOptions)
+      });
+      const data = await res.json();
+      if (!res.ok || data.status === 'error') throw new Error(data.error || 'Failed to create cron task');
+      return data;
+    },
+
+    // Get specific job details and logs
+    get: async (jobId) => {
+      const headers = {};
+      if (this.apiKey) headers['x-api-key'] = this.apiKey;
+      const res = await fetch(`${this.endpoint}/v1/cron/jobs/${jobId}`, { headers });
+      return await res.json();
+    },
+
+    // Instant test-fire a task
+    trigger: async (jobId) => {
+      const headers = {};
+      if (this.apiKey) headers['x-api-key'] = this.apiKey;
+      const res = await fetch(`${this.endpoint}/v1/cron/jobs/${jobId}/trigger`, {
+        method: 'POST',
+        headers
+      });
+      return await res.json();
+    },
+
+    // Pause a task
+    pause: async (jobId) => {
+      const headers = {};
+      if (this.apiKey) headers['x-api-key'] = this.apiKey;
+      const res = await fetch(`${this.endpoint}/v1/cron/jobs/${jobId}/pause`, {
+        method: 'POST',
+        headers
+      });
+      return await res.json();
+    },
+
+    // Resume a paused task
+    resume: async (jobId) => {
+      const headers = {};
+      if (this.apiKey) headers['x-api-key'] = this.apiKey;
+      const res = await fetch(`${this.endpoint}/v1/cron/jobs/${jobId}/resume`, {
+        method: 'POST',
+        headers
+      });
+      return await res.json();
+    },
+
+    // Delete a task
+    delete: async (jobId) => {
+      const headers = {};
+      if (this.apiKey) headers['x-api-key'] = this.apiKey;
+      const res = await fetch(`${this.endpoint}/v1/cron/jobs/${jobId}`, {
+        method: 'DELETE',
+        headers
+      });
+      return await res.json();
+    },
+
+    // Fetch execution history / logs
+    logs: async (jobId, limit = 50) => {
+      const headers = {};
+      if (this.apiKey) headers['x-api-key'] = this.apiKey;
+      const res = await fetch(`${this.endpoint}/v1/cron/jobs/${jobId}/logs?limit=${limit}`, { headers });
+      return await res.json();
+    },
+
+    // Fetch global scheduler statistics
+    stats: async () => {
+      const res = await fetch(`${this.endpoint}/v1/cron/stats`);
+      return await res.json();
+    },
+
+    // Send instant Gmail SMTP notification test pulse
+    testSmtp: async (email) => {
+      const res = await fetch(`${this.endpoint}/v1/cron/demo/smtp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      return await res.json();
+    }
+  };
+
   // Top-level convenience helpers
   async speak(text, options) {
     return this.tts.speak(text, options);
