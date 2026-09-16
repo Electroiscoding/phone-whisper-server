@@ -4284,6 +4284,61 @@ if (res.hands && res.hands[0]) {
       </div>
     </section>
 
+    <!-- INTERACTIVE SOVEREIGN SAVINGS & ROI ENGINE -->
+    <section id="roi-calculator" style="margin-top: 2.5rem;">
+      <div class="section-head">
+        <span class="section-tag">
+          <i class="fa-solid fa-coins text-amber-400"></i>
+          <span>Zero GPU Cost Engine</span>
+        </span>
+        <h2 class="section-title">Centralized Cloud vs Sovereign Phone Hardware</h2>
+        <p class="section-desc">Estimate monthly and annual infrastructure savings by running speech, LLM, and embedding workloads directly on phone ARM silicon.</p>
+      </div>
+
+      <div class="chat-container-card" style="max-width: 820px; margin: 0 auto;">
+        <div style="margin-bottom: 1.5rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem;">
+            <span style="font-size: 0.9rem; font-weight: 600; color: #fff;">Monthly API Inferences:</span>
+            <span id="roiVolumeLabel" style="font-family: var(--font-mono); font-size: 1.15rem; font-weight: 800; color: #38bdf8;">50,000 requests/mo</span>
+          </div>
+          <input type="range" id="roiSlider" min="5000" max="500000" step="5000" value="50000" oninput="updateRoiCalculation(this.value)" style="width: 100%; accent-color: #38bdf8; cursor: pointer;" />
+          <div style="display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--text-muted); margin-top: 0.25rem;">
+            <span>5K calls</span>
+            <span>100K calls</span>
+            <span>250K calls</span>
+            <span>500K calls</span>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+          <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 12px; padding: 1.15rem;">
+            <div style="font-size: 0.8rem; color: #f87171; font-weight: 600; margin-bottom: 0.35rem;"><i class="fa-solid fa-cloud mr-1"></i> OpenAI / AWS Cloud Cost</div>
+            <div id="roiCloudCost" style="font-size: 1.6rem; font-weight: 800; color: #ef4444; font-family: var(--font-mono);">$210 / mo</div>
+            <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.25rem;">$2,520 annual cloud bill</div>
+          </div>
+
+          <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 12px; padding: 1.15rem;">
+            <div style="font-size: 0.8rem; color: #34d399; font-weight: 600; margin-bottom: 0.35rem;"><i class="fa-solid fa-mobile-screen mr-1"></i> Sovereign Phone Hardware</div>
+            <div style="font-size: 1.6rem; font-weight: 800; color: #10b981; font-family: var(--font-mono);">$0.00 / mo</div>
+            <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.25rem;">100% In-Memory Hardware</div>
+          </div>
+
+          <div style="background: linear-gradient(135deg, rgba(56, 189, 248, 0.12), rgba(16, 185, 129, 0.12)); border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 12px; padding: 1.15rem;">
+            <div style="font-size: 0.8rem; color: #38bdf8; font-weight: 600; margin-bottom: 0.35rem;"><i class="fa-solid fa-piggy-bank mr-1"></i> Total Stored Value</div>
+            <div id="roiSavingsVal" style="font-size: 1.6rem; font-weight: 800; color: #38bdf8; font-family: var(--font-mono);">Save $2,520 / yr</div>
+            <div style="font-size: 0.72rem; color: #34d399; margin-top: 0.25rem; font-weight: 600;">100% Retained Margin</div>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+          <span style="font-size: 0.75rem; color: var(--text-muted);">Zero setup fees • Works with Python, TypeScript, Go &amp; Rust</span>
+          <button class="btn-send-chat" onclick="openIntegrationModal()" style="padding: 0.55rem 1.25rem; font-size: 0.85rem;">
+            <i class="fa-solid fa-rocket mr-1.5"></i> <span>Integrate in 10 Seconds</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
     <!-- HOW IT WORKS (ARCHITECTURE PIPELINE) -->
     <section id="how-it-works">
       <div class="section-head">
@@ -8904,6 +8959,20 @@ func main() {
       }
     }
     window.rollRandomTtsPhrase = rollRandomTtsPhrase;
+
+    function updateRoiCalculation(val) {
+      const num = parseInt(val, 10);
+      const volEl = document.getElementById('roiVolumeLabel');
+      const cloudEl = document.getElementById('roiCloudCost');
+      const saveEl = document.getElementById('roiSavingsVal');
+      if (volEl) volEl.innerText = `${num.toLocaleString()} requests/mo`;
+      const monthlyCloud = Math.round(num * 0.0042);
+      const annualSave = monthlyCloud * 12;
+      if (cloudEl) cloudEl.innerText = `$${monthlyCloud.toLocaleString()} / mo`;
+      if (saveEl) saveEl.innerText = `Save $${annualSave.toLocaleString()} / yr`;
+      hapticFeedback([5]);
+    }
+    window.updateRoiCalculation = updateRoiCalculation;
 
     // Developer Investment Lab & Activity Heatmap
     function openDevWorkspaceModal() {
