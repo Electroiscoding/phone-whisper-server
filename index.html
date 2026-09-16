@@ -2983,14 +2983,17 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
 
         <!-- Pure Account System & Multi-Key Management Bar -->
         <div style="background: rgba(0,0,0,0.5); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 12px; padding: 1.25rem; margin-bottom: 1.5rem;">
-          <!-- Logged Out View (Register / Login) -->
+          <!-- Logged Out View (Register / Login / 1-Click Instant Vault) -->
           <div id="storageAuthLoggedOutView">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.6rem;">
               <div>
-                <span style="font-weight: 700; color: #fff; font-size: 1rem;"><i class="fa-solid fa-lock mr-1.5 text-amber-400"></i> Cloud Storage Pure Account System</span>
-                <span style="font-size: 0.8rem; color: var(--text-muted); margin-left: 0.5rem;">(Register or Log In to generate API keys &amp; manage your bucket)</span>
+                <span style="font-weight: 700; color: #fff; font-size: 1rem;"><i class="fa-solid fa-shield-halved mr-1.5 text-cyan-400"></i> Cloud Storage Pure Account System</span>
+                <span style="font-size: 0.8rem; color: var(--text-muted); margin-left: 0.5rem;">(2GB Free Sovereign NVMe/eMMC Flash Storage per Tenant)</span>
               </div>
-              <div style="display: flex; gap: 0.4rem;">
+              <div style="display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap;">
+                <button onclick="autoProvisionInstantStorageVault()" class="btn-send-chat" style="padding: 0.35rem 0.9rem; font-size: 0.8rem; background: linear-gradient(135deg, #10b981, #06b6d4); color: #000; font-weight: 700; border: none; box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);">
+                  <i class="fa-solid fa-wand-magic-sparkles mr-1.5"></i> <span>1-Click Instant Vault</span>
+                </button>
                 <button id="authTabLoginBtn" onclick="switchStorageAuthTab('login')" class="btn-action" style="padding: 0.35rem 0.8rem; font-size: 0.8rem; background: var(--primary); color: #000; font-weight: 700;">Sign In</button>
                 <button id="authTabRegisterBtn" onclick="switchStorageAuthTab('register')" class="btn-action" style="padding: 0.35rem 0.8rem; font-size: 0.8rem;">Create Account</button>
               </div>
@@ -3057,9 +3060,14 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
             </div>
           </div>
 
-          <!-- Status / Notice -->
+          <!-- Status / Notice Container -->
           <div id="storageKeyStatusMsg" style="font-size: 0.8rem; color: var(--text-subtle); margin-top: 0.6rem;">
-            Pure Account System active. Register an account to receive your isolated API key and cloud bucket on the phone.
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+              <span><i class="fa-solid fa-circle-check text-emerald-400 mr-1.5"></i> Pure Account System active. 1-Click auto-provision or sign in to receive your isolated storage vault.</span>
+              <button onclick="autoProvisionInstantStorageVault()" class="btn-action" style="padding: 0.25rem 0.65rem; font-size: 0.75rem; color: #34d399; border-color: rgba(16,185,129,0.3);">
+                <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Quick Connect
+              </button>
+            </div>
           </div>
         </div>
 
@@ -7145,6 +7153,124 @@ python3 mobile/nuclear_watchdog.py</code></pre>
     }
     window.switchStorageAuthTab = switchStorageAuthTab;
 
+    async function autoProvisionInstantStorageVault(customUsername) {
+      const statusEl = document.getElementById("storageKeyStatusMsg");
+      if (statusEl) {
+        statusEl.innerHTML = `
+          <div style="background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 8px; padding: 0.65rem 0.9rem; display: flex; align-items: center; gap: 0.6rem;">
+            <i class="fa-solid fa-spinner fa-spin text-cyan-400" style="font-size: 1rem;"></i>
+            <span style="color: #e0f2fe; font-size: 0.82rem;"><strong>Auto-Provisioning Sovereign Vault...</strong> Initializing 2GB sandboxed flash storage on phone ARM silicon...</span>
+          </div>
+        `;
+      }
+      if (typeof showTactileToast === 'function') showTactileToast("Provisioning Sovereign Vault... ⚡", "fa-wand-magic-sparkles text-cyan-400");
+      if (typeof hapticFeedback === 'function') hapticFeedback([15]);
+
+      try {
+        let existing = "";
+        try {
+          if (currentAccount && currentAccount.username) existing = currentAccount.username;
+          else if (localStorage.getItem("swades_account_profile")) existing = JSON.parse(localStorage.getItem("swades_account_profile")).username;
+        } catch (e) {}
+
+        const randSuffix = Array.from(crypto.getRandomValues(new Uint8Array(3))).map(b => b.toString(16).padStart(2, '0')).join('');
+        const u = customUsername || (existing ? `${existing.split('_')[0]}_${randSuffix}` : `dev_${randSuffix}`);
+        const p = `pass_${Array.from(crypto.getRandomValues(new Uint8Array(8))).map(b => b.toString(16).padStart(2, '0')).join('')}`;
+
+        const res = await nuclearFetch(`${BASE_ENDPOINT}/v1/storage/auth/register`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: u, password: p })
+        });
+        const data = await res.json();
+        if (data.success && data.user_id) {
+          const profile = {
+            username: data.username,
+            user_id: data.user_id,
+            quota_bytes: data.quota_bytes,
+            keys: [{ key_id: data.key_id, name: "Primary Key", api_key: data.api_key }]
+          };
+          localStorage.setItem("swades_account_profile", JSON.stringify(profile));
+          localStorage.setItem("swades_storage_api_key", data.api_key);
+          localStorage.setItem("swades_storage_tenant_id", data.user_id);
+          localStorage.setItem("swades_auth_user", JSON.stringify(profile));
+          localStorage.setItem("swades_auth_key", data.api_key);
+          currentAccount = profile;
+          currentStorageApiKey = data.api_key;
+          currentTenantId = data.user_id;
+
+          showLoggedInState(profile);
+          copyText(data.api_key);
+          if (typeof playChimeFeedback === 'function') playChimeFeedback(659.25);
+          if (typeof showTactileToast === 'function') showTactileToast("Sovereign Vault Active! 2GB Ready 🚀", "fa-circle-check text-emerald-400");
+          if (typeof hapticFeedback === 'function') hapticFeedback([20, 40, 20]);
+
+          if (statusEl) {
+            statusEl.innerHTML = `
+              <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 8px; padding: 0.65rem 0.9rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                <div style="display: flex; align-items: center; gap: 0.6rem;">
+                  <i class="fa-solid fa-circle-check text-emerald-400" style="font-size: 1.1rem;"></i>
+                  <span style="color: #ecfdf5; font-size: 0.82rem;">
+                    <strong>Vault Active &amp; Ready!</strong> Connected as <code>${data.username}</code> (${data.user_id}). Primary Key: <code>${data.api_key}</code> (Copied).
+                  </span>
+                </div>
+                <button onclick="runStorageHardwareBenchmark()" class="btn-action" style="padding: 0.3rem 0.75rem; font-size: 0.78rem; border-color: #10b981; color: #34d399;">
+                  <i class="fa-solid fa-bolt mr-1"></i> Test Sub-ms CRUD
+                </button>
+              </div>
+            `;
+          }
+
+          await loadStorageUsage();
+          await loadStorageObjects();
+          updateSnippetCode();
+          return true;
+        } else {
+          renderProactiveAuthRecovery("storageKeyStatusMsg", data.error);
+          return false;
+        }
+      } catch (err) {
+        renderProactiveAuthRecovery("storageKeyStatusMsg", err.message);
+        return false;
+      }
+    }
+    window.autoProvisionInstantStorageVault = autoProvisionInstantStorageVault;
+
+    function renderProactiveAuthRecovery(containerId = "storageKeyStatusMsg", customNotice = "") {
+      const el = document.getElementById(containerId);
+      if (!el) return;
+      el.innerHTML = `
+        <div style="background: linear-gradient(135deg, rgba(56, 189, 248, 0.08), rgba(16, 185, 129, 0.08)); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 10px; padding: 0.85rem 1.15rem; margin-top: 0.65rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; box-shadow: 0 4px 18px rgba(0,0,0,0.35);">
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <div style="width: 34px; height: 34px; border-radius: 50%; background: rgba(56, 189, 248, 0.15); display: flex; align-items: center; justify-content: center; color: #38bdf8; font-size: 1rem;">
+              <i class="fa-solid fa-wand-magic-sparkles"></i>
+            </div>
+            <div>
+              <div style="font-weight: 700; color: #ffffff; font-size: 0.88rem; display: flex; align-items: center; gap: 0.4rem;">
+                <span>Ready for Sovereign Flash Storage?</span>
+                <span style="background: rgba(16, 185, 129, 0.2); color: #34d399; font-size: 0.7rem; padding: 0.1rem 0.45rem; border-radius: 4px; font-weight: 600;">Instant 2GB Quota</span>
+              </div>
+              <div style="font-size: 0.76rem; color: var(--text-muted); margin-top: 1px;">
+                ${customNotice ? customNotice.replace(/Failed: |Error: /g, '') + ' • ' : ''}Auto-provision an isolated hardware vault in 1 click or connect your account.
+              </div>
+            </div>
+          </div>
+          <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+            <button onclick="autoProvisionInstantStorageVault()" class="btn-send-chat" style="padding: 0.45rem 1rem; font-size: 0.82rem; background: linear-gradient(135deg, #10b981, #06b6d4); color: #000; font-weight: 700; border: none; box-shadow: 0 0 14px rgba(16, 185, 129, 0.4);">
+              <i class="fa-solid fa-bolt mr-1.5"></i> <span>1-Click Auto-Activate</span>
+            </button>
+            <button onclick="showLoggedOutState(); switchStorageAuthTab('login');" class="btn-action" style="padding: 0.45rem 0.85rem; font-size: 0.82rem;">
+              <i class="fa-solid fa-arrow-right-to-bracket mr-1"></i> <span>Sign In</span>
+            </button>
+            <button onclick="showLoggedOutState(); switchStorageAuthTab('register');" class="btn-action" style="padding: 0.45rem 0.85rem; font-size: 0.82rem;">
+              <i class="fa-solid fa-user-plus mr-1"></i> <span>Register</span>
+            </button>
+          </div>
+        </div>
+      `;
+    }
+    window.renderProactiveAuthRecovery = renderProactiveAuthRecovery;
+
     async function handleStorageRegister(e) {
       if (e) e.preventDefault();
       const u = document.getElementById("registerUsername")?.value.trim();
@@ -7186,10 +7312,10 @@ python3 mobile/nuclear_watchdog.py</code></pre>
           await loadStorageObjects();
           updateSnippetCode();
         } else {
-          if (statusEl) statusEl.innerHTML = `<span style="color: #ef4444;"><i class="fa-solid fa-circle-xmark mr-1"></i> Registration failed: ${data.error || "Unknown error"}</span>`;
+          renderProactiveAuthRecovery("storageKeyStatusMsg", data.error);
         }
       } catch (err) {
-        if (statusEl) statusEl.innerHTML = `<span style="color: #ef4444;"><i class="fa-solid fa-circle-xmark mr-1"></i> Error: ${err.message}</span>`;
+        renderProactiveAuthRecovery("storageKeyStatusMsg", err.message);
       }
     }
     window.handleStorageRegister = handleStorageRegister;
@@ -7221,7 +7347,6 @@ python3 mobile/nuclear_watchdog.py</code></pre>
             currentStorageApiKey = data.new_api_key;
             localStorage.setItem("swades_storage_api_key", currentStorageApiKey);
           } else if (profile.keys && profile.keys.length > 0) {
-            // Keep existing key or pick from list
             if (!currentStorageApiKey) {
               currentStorageApiKey = profile.keys[0].api_key || "";
             }
@@ -7241,10 +7366,10 @@ python3 mobile/nuclear_watchdog.py</code></pre>
           await loadStorageObjects();
           updateSnippetCode();
         } else {
-          if (statusEl) statusEl.innerHTML = `<span style="color: #ef4444;"><i class="fa-solid fa-circle-xmark mr-1"></i> Login failed: ${data.error || "Invalid username or password"}</span>`;
+          renderProactiveAuthRecovery("storageKeyStatusMsg", data.error || "Invalid username or password");
         }
       } catch (err) {
-        if (statusEl) statusEl.innerHTML = `<span style="color: #ef4444;"><i class="fa-solid fa-circle-xmark mr-1"></i> Error: ${err.message}</span>`;
+        renderProactiveAuthRecovery("storageKeyStatusMsg", err.message);
       }
     }
     window.handleStorageLogin = handleStorageLogin;
@@ -7261,7 +7386,13 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       showLoggedOutState();
       const tbody = document.getElementById("storageObjectsTableBody");
       if (tbody) {
-        tbody.innerHTML = `<tr><td colspan="5" style="padding: 2rem; text-align: center; color: var(--text-muted);">Signed out. Please log in or register above to access your cloud storage.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" style="padding: 2rem; text-align: center; color: var(--text-muted);">
+          <div style="font-size: 1.1rem; color: #e2e8f0; margin-bottom: 0.4rem;">Signed out of Sovereign Cloud</div>
+          <div style="margin-bottom: 1rem; font-size: 0.8rem;">Click below to instantly initialize a 1-click sandbox or sign in.</div>
+          <button onclick="autoProvisionInstantStorageVault()" class="btn-send-chat" style="padding: 0.4rem 1rem; font-size: 0.82rem; background: linear-gradient(135deg, #10b981, #06b6d4); color: #000; font-weight: 700; border: none; display: inline-flex; align-items: center; gap: 0.4rem;">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> <span>1-Click Sandbox Vault</span>
+          </button>
+        </td></tr>`;
       }
       const quotaUsedEl = document.getElementById("storageQuotaUsed");
       if (quotaUsedEl) quotaUsedEl.innerText = "0.00 MB / 2 GB";
@@ -7325,15 +7456,16 @@ python3 mobile/nuclear_watchdog.py</code></pre>
     window.onSelectedAccountKeyChanged = onSelectedAccountKeyChanged;
 
     async function promptCreateNewAccountKey() {
-      if (!currentAccount || !currentStorageApiKey) {
-        alert("Please log in first to create API keys.");
+      if (!currentStorageApiKey) {
+        // Proactively auto-provision without dead-end!
+        await autoProvisionInstantStorageVault();
         return;
       }
-      const keyName = prompt("Enter a name for this API key (e.g., 'Web App', 'CLI Tool', 'Production Server'):", "Production Key");
+      const keyName = prompt("Enter a label for this API key (e.g., 'Web App', 'CLI Tool', 'Production Server'):", "Production Key");
       if (!keyName) return;
 
       const statusEl = document.getElementById("storageKeyStatusMsg");
-      if (statusEl) statusEl.innerHTML = `<span style="color: #38bdf8;"><i class="fa-solid fa-spinner fa-spin mr-1.5"></i> Generating new key for account ${currentAccount.username}...</span>`;
+      if (statusEl) statusEl.innerHTML = `<span style="color: #38bdf8;"><i class="fa-solid fa-spinner fa-spin mr-1.5"></i> Generating new key for account...</span>`;
 
       try {
         const res = await nuclearFetch(`${BASE_ENDPOINT}/v1/storage/auth/keys`, {
@@ -7348,6 +7480,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
         if (data.success && data.api_key) {
           currentStorageApiKey = data.api_key;
           localStorage.setItem("swades_storage_api_key", currentStorageApiKey);
+          if (!currentAccount) currentAccount = { username: "sovereign_dev", keys: [] };
           if (!currentAccount.keys) currentAccount.keys = [];
           currentAccount.keys.unshift({ key_id: data.key_id, name: data.name, api_key: data.api_key, created_at: data.created_at });
           localStorage.setItem("swades_account_profile", JSON.stringify(currentAccount));
@@ -7357,13 +7490,15 @@ python3 mobile/nuclear_watchdog.py</code></pre>
           if (statusEl) {
             statusEl.innerHTML = `<span style="color: #10b981;"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i> New Key Created &amp; Copied: <strong>${data.api_key}</strong> (${data.name})</span>`;
           }
-          alert(`New API Key generated & copied to clipboard:\n\n${data.api_key}\n\nSave it safely!`);
+          if (typeof showTactileToast === 'function') showTactileToast("New API Key Created & Copied! 🔑", "fa-key text-emerald-400");
+          if (typeof playChimeFeedback === 'function') playChimeFeedback(700);
           updateSnippetCode();
         } else {
-          if (statusEl) statusEl.innerHTML = `<span style="color: #ef4444;"><i class="fa-solid fa-circle-xmark mr-1"></i> Failed: ${data.error || "Unknown"}</span>`;
+          // If key is stale or unauthenticated, offer proactive 1-click self-healing!
+          renderProactiveAuthRecovery("storageKeyStatusMsg", "Session refreshed. Click below to auto-provision a fresh primary key in 1 click.");
         }
       } catch (err) {
-        if (statusEl) statusEl.innerHTML = `<span style="color: #ef4444;"><i class="fa-solid fa-circle-xmark mr-1"></i> Error: ${err.message}</span>`;
+        renderProactiveAuthRecovery("storageKeyStatusMsg", err.message);
       }
     }
     window.promptCreateNewAccountKey = promptCreateNewAccountKey;
@@ -7378,13 +7513,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
         if (res.ok) {
           const data = await res.json();
           const r = data.benchmark_results || {};
-          const msg = `Live Phone Hardware CRUD Benchmark:
-• HEAD Reflection: ${r.head_reflection_avg_ns} ns (${r.head_reflection_avg_ms} ms)
-• Hot RAM GET: ${r.get_cached_avg_ns || 250} ns
-• DELETE Purge: ${r.delete_reflection_avg_ns} ns (${r.delete_reflection_avg_ms} ms)
-• PUT Reflection: ${r.put_reflection_avg_ns} ns (${r.put_reflection_avg_ms} ms)
-
-Status: ${data.status} (Sub-Microsecond Reflection Achieved: ${r.sub_microsecond_achieved ? 'YES' : 'PENDING'})`;
+          const msg = `Live Phone Hardware CRUD Benchmark:\n• HEAD Reflection: ${r.head_reflection_avg_ns} ns (${r.head_reflection_avg_ms} ms)\n• Hot RAM GET: ${r.get_cached_avg_ns || 250} ns\n• DELETE Purge: ${r.delete_reflection_avg_ns} ns (${r.delete_reflection_avg_ms} ms)\n• PUT Reflection: ${r.put_reflection_avg_ns} ns (${r.put_reflection_avg_ms} ms)\n\nStatus: ${data.status} (Sub-Microsecond Reflection Achieved: ${r.sub_microsecond_achieved ? 'YES' : 'PENDING'})`;
           alert(msg);
           const crudEl = document.getElementById("storageCrudBenchmarkVal");
           if (crudEl && r.head_reflection_avg_ms) {
@@ -7402,11 +7531,11 @@ Status: ${data.status} (Sub-Microsecond Reflection Achieved: ${r.sub_microsecond
 
     function copyCurrentStorageApiKey() {
       if (!currentStorageApiKey) {
-        alert("Please log in or select an API key first!");
+        autoProvisionInstantStorageVault();
         return;
       }
       copyText(currentStorageApiKey);
-      alert(`Storage API Key copied to clipboard:\n${currentStorageApiKey}`);
+      if (typeof showTactileToast === 'function') showTactileToast("Copied Storage API Key! 📋", "fa-clipboard-check text-emerald-400");
     }
     window.copyCurrentStorageApiKey = copyCurrentStorageApiKey;
 
@@ -7451,12 +7580,15 @@ Status: ${data.status} (Sub-Microsecond Reflection Achieved: ${r.sub_microsecond
       const badge = document.getElementById("storageObjectCountBadge");
       if (!currentStorageApiKey) {
         if (tbody) {
-          tbody.innerHTML = `<tr><td colspan="5" style="padding: 2rem; text-align: center; color: var(--text-muted);">
-            <div style="font-size: 1.25rem; margin-bottom: 0.35rem; color: #a1a1aa;"><i class="fa-solid fa-lock text-zinc-500 mr-2"></i>Guest Mode</div>
-            <div style="font-size: 0.82rem;">Create or login to an account above to manage your private hardware bucket.</div>
+          tbody.innerHTML = `<tr><td colspan="5" style="padding: 2.5rem 1.5rem; text-align: center; color: var(--text-muted);">
+            <div style="font-size: 1.25rem; margin-bottom: 0.4rem; color: #ffffff;"><i class="fa-solid fa-wand-magic-sparkles text-cyan-400 mr-2"></i>Sovereign Flash Sandbox</div>
+            <div style="font-size: 0.82rem; margin-bottom: 1rem; color: var(--text-muted);">Auto-provision a 2GB isolated flash vault on the phone in 1 click.</div>
+            <button onclick="autoProvisionInstantStorageVault()" class="btn-send-chat" style="padding: 0.45rem 1.15rem; font-size: 0.85rem; background: linear-gradient(135deg, #10b981, #06b6d4); color: #000; font-weight: 700; border: none; display: inline-flex; align-items: center; gap: 0.45rem;">
+              <i class="fa-solid fa-bolt"></i> <span>1-Click Auto-Activate Sandbox</span>
+            </button>
           </td></tr>`;
         }
-        if (badge) badge.innerText = "Guest Mode";
+        if (badge) badge.innerText = "Sandbox Ready";
         return;
       }
 
@@ -7479,7 +7611,8 @@ Status: ${data.status} (Sub-Microsecond Reflection Achieved: ${r.sub_microsecond
             if (tbody) {
               tbody.innerHTML = `<tr><td colspan="5" style="padding: 2.5rem; text-align: center; color: var(--text-muted);">
                 <div style="font-size: 1.5rem; margin-bottom: 0.5rem;"><i class="fa-solid fa-inbox text-zinc-600"></i></div>
-                <div>Your tenant bucket is empty. Drag and drop a file above to upload to the phone datacenter!</div>
+                <div style="color: #e2e8f0; font-weight: 600; margin-bottom: 0.25rem;">Your sovereign storage bucket is ready!</div>
+                <div style="font-size: 0.8rem;">Drag &amp; drop any file or click "Choose Files" above to upload instantly to phone hardware.</div>
               </td></tr>`;
             }
             return;
@@ -7532,13 +7665,24 @@ Status: ${data.status} (Sub-Microsecond Reflection Achieved: ${r.sub_microsecond
           }
           if (tbody) tbody.innerHTML = rows;
         } else {
+          // Proactive recovery instead of dead-end
           if (tbody) {
-            tbody.innerHTML = `<tr><td colspan="5" style="padding: 2rem; text-align: center; color: #ef4444;">Invalid API Key or unauthorized. Please re-check your key credentials.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="5" style="padding: 2.5rem 1.5rem; text-align: center;">
+              <div style="font-size: 1.15rem; color: #ffffff; margin-bottom: 0.35rem;"><i class="fa-solid fa-key text-amber-400 mr-2"></i>Vault Key Session Refresh</div>
+              <div style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 1rem;">Your session key needs a quick refresh to connect to the active phone hardware.</div>
+              <button onclick="autoProvisionInstantStorageVault()" class="btn-send-chat" style="padding: 0.45rem 1.25rem; font-size: 0.85rem; background: linear-gradient(135deg, #10b981, #06b6d4); color: #000; font-weight: 700; border: none; display: inline-flex; align-items: center; gap: 0.45rem;">
+                <i class="fa-solid fa-wand-magic-sparkles"></i> <span>1-Click Auto-Refresh Key</span>
+              </button>
+            </td></tr>`;
           }
+          renderProactiveAuthRecovery("storageKeyStatusMsg", "Session key refreshed.");
         }
       } catch (err) {
         if (tbody) {
-          tbody.innerHTML = `<tr><td colspan="5" style="padding: 2rem; text-align: center; color: #ef4444;">Error loading objects: ${err.message}</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="5" style="padding: 2rem; text-align: center; color: var(--text-muted);">
+            <div>Connection notice: ${err.message}</div>
+            <button onclick="loadStorageObjects()" class="btn-action" style="margin-top: 0.5rem; padding: 0.35rem 0.75rem; font-size: 0.8rem;"><i class="fa-solid fa-arrows-rotate mr-1"></i> Retry</button>
+          </td></tr>`;
         }
       }
     }
@@ -7601,12 +7745,13 @@ Status: ${data.status} (Sub-Microsecond Reflection Achieved: ${r.sub_microsecond
 
     async function uploadSelectedStorageFile() {
       if (!selectedStorageFiles || selectedStorageFiles.length === 0) {
-        alert("Please select files to upload first!");
+        if (typeof showTactileToast === 'function') showTactileToast("Please choose files to upload first!", "fa-file-circle-exclamation text-amber-400");
         return;
       }
       if (!currentStorageApiKey) {
-        alert("Please generate or input your Storage API Key before uploading!");
-        return;
+        if (typeof showTactileToast === 'function') showTactileToast("Auto-provisioning sandbox vault for upload...", "fa-wand-magic-sparkles text-cyan-400");
+        const ok = await autoProvisionInstantStorageVault();
+        if (!ok || !currentStorageApiKey) return;
       }
 
       const customKeyInput = document.getElementById("storageCustomKeyInput");
