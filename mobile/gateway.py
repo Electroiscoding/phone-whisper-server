@@ -151,7 +151,7 @@ REQUEST_LOG_BUFFER = collections.deque(maxlen=2000)
 class InferenceMetricsTracker:
     def __init__(self):
         self.lock = threading.Lock()
-        self.last_velocity_tok_s = 7.4  # Hardware baseline on Cortex-A53
+        self.last_velocity_tok_s = 0.0
         self.last_model = "Auto-JIT (Ready)"
         self.total_inferences = 0
         self.total_tokens = 0
@@ -161,7 +161,7 @@ class InferenceMetricsTracker:
         with self.lock:
             self.total_inferences += 1
             self.last_model = model_name
-            self.latencies.append(max(0.05, duration_sec))
+            self.latencies.append(max(0.01, duration_sec))
             if tok_per_sec and tok_per_sec > 0:
                 self.last_velocity_tok_s = round(tok_per_sec, 1)
             elif token_count > 0 and duration_sec > 0:
@@ -170,7 +170,7 @@ class InferenceMetricsTracker:
 
     def get_stats(self):
         with self.lock:
-            avg_rt = round(sum(self.latencies) / len(self.latencies), 2) if self.latencies else 0.85
+            avg_rt = round(sum(self.latencies) / len(self.latencies), 2) if self.latencies else 0.0
             return {
                 "velocity_tok_s": self.last_velocity_tok_s,
                 "last_model": self.last_model,
