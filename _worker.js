@@ -99,7 +99,7 @@ async function getLiveOrigin(forceRefresh = false) {
     }
   } catch (err) {}
 
-  return cachedOrigin || "https://ocean-color-referrals-reg.trycloudflare.com";
+  return cachedOrigin || "";
 }
 
 export default {
