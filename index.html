@@ -3104,8 +3104,10 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
               <button onclick="document.getElementById('storageFileInput').click()" class="btn-action" style="padding: 0.5rem 1.2rem; background: rgba(56, 189, 248, 0.15); border-color: #38bdf8; color: #fff;">
                 <span>Choose Files (Multi-Upload)</span>
               </button>
-              <input type="text" id="storageCustomKeyInput" placeholder="Custom Object Key (optional, e.g. avatars/logo.png)" 
-                     style="background: rgba(0,0,0,0.5); border: 1px solid var(--card-border); color: #fff; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; padding: 0.5rem 0.8rem; border-radius: 6px; width: 280px;">
+              <input type="text" id="storageCustomKeyInput" placeholder="Custom Key (optional)" 
+                     style="background: rgba(0,0,0,0.5); border: 1px solid var(--card-border); color: #fff; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; padding: 0.5rem 0.8rem; border-radius: 6px; width: 220px;">
+              <input type="email" id="storageNotifyEmailInput" placeholder="Email for 24/7 Gmail Alerts (optional)" 
+                     style="background: rgba(0,0,0,0.5); border: 1px solid rgba(56, 189, 248, 0.3); color: #fff; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; padding: 0.5rem 0.8rem; border-radius: 6px; width: 270px;">
               <button id="storageUploadBtn" onclick="uploadSelectedStorageFile()" class="btn-send-chat" style="padding: 0.5rem 1.25rem; font-size: 0.85rem;" disabled>
                 <i class="fa-solid fa-cloud-arrow-up mr-1.5"></i> <span>Upload to Phone</span>
               </button>
@@ -7807,6 +7809,11 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       }
 
       const customKeyInput = document.getElementById("storageCustomKeyInput");
+      const emailInput = document.getElementById("storageNotifyEmailInput");
+      const notifyEmail = (emailInput?.value || "").trim();
+      if (notifyEmail) {
+        try { localStorage.setItem("swades_notify_email", notifyEmail); } catch(e) {}
+      }
       const uploadBtn = document.getElementById("storageUploadBtn");
       const progText = document.getElementById("storageUploadProgressText");
 
@@ -7829,12 +7836,17 @@ python3 mobile/nuclear_watchdog.py</code></pre>
         }
 
         try {
+          const headers = {
+            "x-api-key": currentStorageApiKey,
+            "Content-Type": file.type || "application/octet-stream"
+          };
+          if (notifyEmail) {
+            headers["x-notify-email"] = notifyEmail;
+          }
+
           const res = await nuclearFetch(`${BASE_ENDPOINT}/v1/storage/objects/${encodeURIComponent(objectKey)}`, {
             method: "PUT",
-            headers: {
-              "x-api-key": currentStorageApiKey,
-              "Content-Type": file.type || "application/octet-stream"
-            },
+            headers: headers,
             body: file
           });
 
@@ -7852,13 +7864,16 @@ python3 mobile/nuclear_watchdog.py</code></pre>
 
       if (progText) {
         if (isAnonGuest) {
-          progText.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400 mr-1"></i> <span style="color: #10b981;">Uploaded ${successCount}/${total} file(s) to Worldwide CDN!</span> <div style="font-size: 0.78rem; color: #fbbf24; margin-top: 0.35rem;"><i class="fa-regular fa-clock mr-1"></i> Dynamic Lifecycle Notice: If unvisited by external humans on the internet, this file will automatically purge in 3 days. Share the CDN link to keep it alive!</div>`;
+          const emailNotice = notifyEmail ? `<div style="font-size: 0.78rem; color: #34d399; margin-top: 0.25rem;"><i class="fa-solid fa-envelope mr-1"></i> 24/7 Gmail alert dispatched to <strong>${notifyEmail}</strong> with CDN link &amp; 3-day inactivity protection!</div>` : '';
+          progText.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400 mr-1"></i> <span style="color: #10b981;">Uploaded ${successCount}/${total} file(s) to Worldwide CDN!</span> ${emailNotice} <div style="font-size: 0.78rem; color: #fbbf24; margin-top: 0.35rem;"><i class="fa-regular fa-clock mr-1"></i> Dynamic Lifecycle Notice: If unvisited by external humans on the internet, this file will automatically purge in 3 days. Share the CDN link to keep it alive!</div>`;
         } else {
           progText.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400 mr-1"></i> <span style="color: #10b981;">Uploaded ${successCount}/${total} file(s) to sovereign cloud!</span>`;
         }
       }
 
-      if (isAnonGuest && typeof showTactileToast === 'function') {
+      if (notifyEmail && typeof showTactileToast === 'function') {
+        showTactileToast(`Uploaded to Worldwide CDN! 24/7 Gmail notification sent to ${notifyEmail}.`, "fa-envelope text-emerald-400");
+      } else if (isAnonGuest && typeof showTactileToast === 'function') {
         showTactileToast("Uploaded to Worldwide CDN! Notice: Automatically purges in 3 days if unvisited by others. Share to keep alive.", "fa-regular fa-clock text-amber-400");
       } else if (typeof showTactileToast === 'function') {
         showTactileToast(`Uploaded ${successCount} file(s) successfully!`, "fa-circle-check text-emerald-400");
@@ -9412,6 +9427,13 @@ func main() {
       initDeviceBridgeHUD();
       initSiliconActivityStream();
       updateMasteryBadgesUI();
+      try {
+        const savedEmail = localStorage.getItem("swades_notify_email");
+        if (savedEmail) {
+          const inp = document.getElementById("storageNotifyEmailInput");
+          if (inp) inp.value = savedEmail;
+        }
+      } catch(e) {}
     });
 
   </script>

@@ -40,6 +40,10 @@ import base64
 import math
 import urllib.request
 import urllib.parse
+import smtplib
+import ssl
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from socketserver import ThreadingMixIn
 
@@ -2393,6 +2397,270 @@ class SwadeStorageVault:
 
 
 
+class SwadesGmailNotifier:
+    """24/7 Sovereign Gmail SMTP Notification Engine running asynchronously in the background"""
+    def __init__(self, vault: SwadeStorageVault):
+        self.vault = vault
+        self.smtp_host = os.getenv("GMAIL_SMTP_HOST", "smtp.gmail.com")
+        self.smtp_port = int(os.getenv("GMAIL_SMTP_PORT", "465"))
+        self.smtp_user = os.getenv("GMAIL_SMTP_USER", "")
+        self.smtp_pass = os.getenv("GMAIL_SMTP_PASS", "") # 16-character App Password
+        self.sender_name = os.getenv("GMAIL_SENDER_NAME", "PhoneWhisper Datacenter")
+        self.queue = queue.Queue(maxsize=2000)
+        self.lock = threading.RLock()
+        self.total_sent = 0
+        self.total_failed = 0
+        self.last_sent_ts = 0
+        self.last_error = None
+        self._load_persisted_config()
+        self.worker_thread = threading.Thread(target=self._run_worker, daemon=True)
+        self.worker_thread.start()
+
+    def _load_persisted_config(self):
+        try:
+            with self.vault.lock:
+                with sqlite3.connect(self.vault.db_path, timeout=5) as conn:
+                    rows = conn.execute("SELECT key, value FROM secrets_vault WHERE key LIKE 'GMAIL_SMTP_%' OR key = 'GMAIL_SENDER_NAME'").fetchall()
+                    for k, v in rows:
+                        if k == "GMAIL_SMTP_HOST" and v:
+                            self.smtp_host = v
+                        elif k == "GMAIL_SMTP_PORT" and v:
+                            try:
+                                self.smtp_port = int(v)
+                            except:
+                                pass
+                        elif k == "GMAIL_SMTP_USER" and v:
+                            self.smtp_user = v
+                        elif k == "GMAIL_SMTP_PASS" and v:
+                            self.smtp_pass = v
+                        elif k == "GMAIL_SENDER_NAME" and v:
+                            self.sender_name = v
+        except Exception as e:
+            print(f"[GMAIL NOTIFIER] Config load notice: {e}")
+
+    def update_config(self, smtp_user, smtp_pass, smtp_host="smtp.gmail.com", smtp_port=465, sender_name="PhoneWhisper Datacenter"):
+        with self.lock:
+            self.smtp_user = smtp_user.strip() if smtp_user else ""
+            if smtp_pass is not None and smtp_pass != "":
+                self.smtp_pass = smtp_pass.strip()
+            self.smtp_host = smtp_host.strip() if smtp_host else "smtp.gmail.com"
+            self.smtp_port = int(smtp_port) if smtp_port else 465
+            self.sender_name = sender_name.strip() if sender_name else "PhoneWhisper Datacenter"
+            now_str = time.strftime("%Y-%m-%d %H:%M:%S")
+            try:
+                with self.vault.lock:
+                    with sqlite3.connect(self.vault.db_path, timeout=5) as conn:
+                        conn.execute("INSERT OR REPLACE INTO secrets_vault (key, value, description, is_secret, updated_at) VALUES (?, ?, ?, ?, ?)",
+                                     ("GMAIL_SMTP_HOST", self.smtp_host, "Gmail SMTP Hostname", 0, now_str))
+                        conn.execute("INSERT OR REPLACE INTO secrets_vault (key, value, description, is_secret, updated_at) VALUES (?, ?, ?, ?, ?)",
+                                     ("GMAIL_SMTP_PORT", str(self.smtp_port), "Gmail SMTP Port", 0, now_str))
+                        conn.execute("INSERT OR REPLACE INTO secrets_vault (key, value, description, is_secret, updated_at) VALUES (?, ?, ?, ?, ?)",
+                                     ("GMAIL_SMTP_USER", self.smtp_user, "Gmail Account Username", 0, now_str))
+                        if smtp_pass:
+                            conn.execute("INSERT OR REPLACE INTO secrets_vault (key, value, description, is_secret, updated_at) VALUES (?, ?, ?, ?, ?)",
+                                         ("GMAIL_SMTP_PASS", self.smtp_pass, "Gmail App Password", 1, now_str))
+                        conn.execute("INSERT OR REPLACE INTO secrets_vault (key, value, description, is_secret, updated_at) VALUES (?, ?, ?, ?, ?)",
+                                     ("GMAIL_SENDER_NAME", self.sender_name, "Gmail Sender Name", 0, now_str))
+                        conn.commit()
+            except Exception as e:
+                print(f"[GMAIL NOTIFIER] Config persist notice: {e}")
+
+    def get_status(self):
+        with self.lock:
+            configured = bool(self.smtp_user and self.smtp_pass)
+            masked_user = self.smtp_user
+            if configured and "@" in self.smtp_user:
+                parts = self.smtp_user.split("@")
+                masked_user = parts[0][:3] + "***@" + parts[1]
+            return {
+                "running_24_7": True,
+                "is_configured": configured,
+                "smtp_host": self.smtp_host,
+                "smtp_port": self.smtp_port,
+                "smtp_user": masked_user,
+                "sender_name": self.sender_name,
+                "queue_depth": self.queue.qsize(),
+                "total_sent": self.total_sent,
+                "total_failed": self.total_failed,
+                "last_sent_ts": self.last_sent_ts,
+                "last_sent_iso": datetime.fromtimestamp(self.last_sent_ts, timezone.utc).isoformat() if self.last_sent_ts else None,
+                "last_error": self.last_error
+            }
+
+    def _send_smtp_direct(self, to_email, subject, html_body, text_body=""):
+        if not self.smtp_user or not self.smtp_pass:
+            raise ValueError("Gmail SMTP credentials are not configured. Set GMAIL_SMTP_USER and GMAIL_SMTP_PASS.")
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = subject
+        msg["From"] = f"{self.sender_name} <{self.smtp_user}>"
+        msg["To"] = to_email
+        if not text_body:
+            text_body = re.sub(r'<[^>]+>', '', html_body)
+        msg.attach(MIMEText(text_body, "plain", "utf-8"))
+        msg.attach(MIMEText(html_body, "html", "utf-8"))
+
+        if self.smtp_port == 465:
+            ctx = ssl.create_default_context()
+            with smtplib.SMTP_SSL(self.smtp_host, self.smtp_port, context=ctx, timeout=15) as server:
+                server.login(self.smtp_user, self.smtp_pass)
+                server.sendmail(self.smtp_user, [to_email], msg.as_string())
+        else:
+            with smtplib.SMTP(self.smtp_host, self.smtp_port, timeout=15) as server:
+                ctx = ssl.create_default_context()
+                server.starttls(context=ctx)
+                server.login(self.smtp_user, self.smtp_pass)
+                server.sendmail(self.smtp_user, [to_email], msg.as_string())
+
+    def send_email_async(self, to_email, subject, html_body, text_body=""):
+        if not to_email or "@" not in to_email:
+            return False
+        try:
+            self.queue.put_nowait((to_email, subject, html_body, text_body))
+            return True
+        except queue.Full:
+            print(f"[GMAIL NOTIFIER 24/7] Queue full, dropped message to {to_email}")
+            return False
+
+    def _run_worker(self):
+        """24/7 background worker processing outbound notification queue"""
+        print("[GMAIL NOTIFIER 24/7] Started background SMTP notification engine.")
+        while True:
+            try:
+                item = self.queue.get()
+                if item is None:
+                    break
+                to_email, subject, html_body, text_body = item
+                if not self.smtp_user or not self.smtp_pass:
+                    self.last_error = "SMTP credentials unconfigured (waiting for GMAIL_SMTP_USER / GMAIL_SMTP_PASS)"
+                    self.queue.task_done()
+                    continue
+
+                sent = False
+                for attempt in range(3):
+                    try:
+                        self._send_smtp_direct(to_email, subject, html_body, text_body)
+                        sent = True
+                        with self.lock:
+                            self.total_sent += 1
+                            self.last_sent_ts = time.time()
+                            self.last_error = None
+                        print(f"[GMAIL NOTIFIER 24/7] Dispatched email to '{to_email}' (Subject: {subject})")
+                        break
+                    except Exception as ex:
+                        self.last_error = str(ex)
+                        print(f"[GMAIL NOTIFIER 24/7] Attempt {attempt+1}/3 failed for '{to_email}': {ex}")
+                        time.sleep(2 ** attempt)
+
+                if not sent:
+                    with self.lock:
+                        self.total_failed += 1
+                self.queue.task_done()
+            except Exception as e:
+                print(f"[GMAIL NOTIFIER 24/7] worker loop notice: {e}")
+                time.sleep(1)
+
+    def send_upload_notification(self, to_email, object_key, file_size, cdn_url, is_anonymous=True):
+        """Formats and queues upload confirmation + 3-day inactivity lifecycle alert"""
+        size_str = f"{file_size} B" if file_size < 1024 else f"{(file_size/1024):.1f} KB" if file_size < 1024*1024 else f"{(file_size/(1024*1024)):.2f} MB"
+        subject = f"🌐 CDN Permalink Ready: {object_key} (Phone AI Datacenter)"
+        html = f"""<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin: 0; padding: 0; background-color: #0b0f19; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #e2e8f0;">
+  <div style="max-width: 600px; margin: 30px auto; background: #111827; border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+    <div style="background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(16, 185, 129, 0.2)); padding: 24px; border-bottom: 1px solid rgba(56, 189, 248, 0.2); text-align: center;">
+      <h1 style="margin: 0; font-size: 22px; color: #ffffff; font-weight: 800;">Phone AI Datacenter Cloud</h1>
+      <div style="color: #38bdf8; font-size: 13px; font-weight: 600; margin-top: 4px;">Sovereign Flash Storage &amp; Worldwide Public CDN</div>
+    </div>
+    <div style="padding: 28px;">
+      <h2 style="font-size: 18px; color: #ffffff; margin-top: 0;">Your file is live on the worldwide CDN!</h2>
+      <p style="font-size: 14px; line-height: 1.6; color: #94a3b8;">Your upload has been persisted into the phone's physical flash storage and indexed in pure RAM with sub-microsecond reflection.</p>
+      
+      <div style="background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 16px; margin: 20px 0;">
+        <div style="font-size: 12px; color: #64748b; text-transform: uppercase; margin-bottom: 4px;">Object Name</div>
+        <div style="font-family: monospace; font-size: 15px; color: #38bdf8; font-weight: 700;">{object_key}</div>
+        <div style="display: flex; gap: 20px; margin-top: 10px;">
+          <div><span style="font-size: 12px; color: #64748b;">Size:</span> <span style="font-size: 13px; color: #fff;">{size_str}</span></div>
+          <div><span style="font-size: 12px; color: #64748b;">Storage:</span> <span style="font-size: 13px; color: #10b981;">Physical Flash</span></div>
+        </div>
+      </div>
+
+      <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 10px; padding: 16px; margin-bottom: 24px;">
+        <div style="font-weight: 700; color: #fbbf24; font-size: 14px; margin-bottom: 4px;">⏳ 3-Day Inactivity Auto-Purge Protection</div>
+        <p style="font-size: 13px; color: #cbd5e1; margin: 0; line-height: 1.5;">
+          To conserve sovereign phone flash memory, if this file receives <strong>0 external human visits</strong> from other internet users within <strong>3 days (72 hours)</strong>, it will be automatically and securely purged.
+          <br><br>
+          <strong>To keep it alive indefinitely:</strong> Simply share the CDN permalink below. Any external human visit dynamically resets the 3-day countdown!
+        </p>
+      </div>
+
+      <div style="text-align: center; margin: 28px 0;">
+        <a href="{cdn_url}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #38bdf8, #0ea5e9); color: #000; font-weight: 700; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-size: 15px; box-shadow: 0 4px 15px rgba(56, 189, 248, 0.4);">
+          Open Worldwide Public CDN Link
+        </a>
+      </div>
+
+      <div style="background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 12px; word-break: break-all; font-family: monospace; font-size: 12px; color: #94a3b8; text-align: center;">
+        {cdn_url}
+      </div>
+    </div>
+    <div style="background: #090d16; padding: 16px; border-top: 1px solid rgba(255,255,255,0.05); text-align: center; font-size: 12px; color: #475569;">
+      Sent 24/7 by Phone AI Sovereign Datacenter Gateway • Gmail SMTP Engine
+    </div>
+  </div>
+</body>
+</html>"""
+        return self.send_email_async(to_email, subject, html)
+
+    def send_inactivity_warning(self, to_email, object_key, cdn_url, hours_remaining=24):
+        """Sends warning when an unvisited file is near 3-day auto-purge expiration"""
+        subject = f"⚠️ Inactivity Warning: '{object_key}' auto-purges in {hours_remaining:.0f}h unless visited"
+        html = f"""<!DOCTYPE html>
+<html>
+<body style="margin: 0; padding: 0; background-color: #0b0f19; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #e2e8f0;">
+  <div style="max-width: 600px; margin: 30px auto; background: #111827; border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 16px; overflow: hidden;">
+    <div style="background: rgba(245, 158, 11, 0.15); padding: 20px; border-bottom: 1px solid rgba(245, 158, 11, 0.3); text-align: center;">
+      <h2 style="margin: 0; color: #fbbf24; font-size: 20px;">⚠️ 3-Day Inactivity Auto-Purge Warning</h2>
+    </div>
+    <div style="padding: 28px;">
+      <p style="font-size: 14px; line-height: 1.6; color: #cbd5e1;">
+        Your anonymously uploaded file <strong>{object_key}</strong> has received <strong>0 external human visits</strong> across the internet and is scheduled to be automatically deleted from phone flash memory in <strong>{hours_remaining:.1f} hours</strong>.
+      </p>
+      <div style="text-align: center; margin: 24px 0;">
+        <a href="{cdn_url}" target="_blank" style="display: inline-block; background: #fbbf24; color: #000; font-weight: 700; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-size: 14px;">
+          Visit File via CDN to Refresh 3-Day TTL
+        </a>
+      </div>
+      <p style="font-size: 12px; color: #64748b; text-align: center;">Visiting this link will immediately reset the 3-day inactivity window on the phone datacenter.</p>
+    </div>
+  </div>
+</body>
+</html>"""
+        return self.send_email_async(to_email, subject, html)
+
+    def send_purge_notification(self, to_email, object_key):
+        """Sends confirmation when an unvisited file has been physically purged"""
+        subject = f"🗑️ Inactivity Purge: '{object_key}' unlinked from phone storage"
+        html = f"""<!DOCTYPE html>
+<html>
+<body style="margin: 0; padding: 0; background-color: #0b0f19; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #e2e8f0;">
+  <div style="max-width: 600px; margin: 30px auto; background: #111827; border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 16px; overflow: hidden;">
+    <div style="background: rgba(239, 68, 68, 0.15); padding: 20px; border-bottom: 1px solid rgba(239, 68, 68, 0.2); text-align: center;">
+      <h2 style="margin: 0; color: #f87171; font-size: 18px;">File Purged Due to Inactivity</h2>
+    </div>
+    <div style="padding: 24px;">
+      <p style="font-size: 14px; line-height: 1.6; color: #94a3b8;">
+        Your anonymous file <strong>{object_key}</strong> has been physically purged from the phone's sovereign flash storage because it received 0 external human visits during its 3-day (72-hour) lifecycle.
+      </p>
+      <p style="font-size: 13px; color: #64748b;">You can re-upload this file at any time via the web studio.</p>
+    </div>
+  </div>
+</body>
+</html>"""
+        return self.send_email_async(to_email, subject, html)
+
+
+
 class SwadeObjectStore:
     """Hyper-Speed Multi-Tenant In-Memory Indexed Cloud Storage with Sub-Microsecond Reflection"""
     def __init__(self, vault: SwadeStorageVault):
@@ -2419,7 +2687,7 @@ class SwadeObjectStore:
         self._disk_worker_thread = threading.Thread(target=self._disk_worker, daemon=True)
         self._disk_worker_thread.start()
 
-        # Hyper-Protection Background TTL Cleaner (Purges anonymous unvisited objects after 3 days)
+        # Hyper-Protection Background TTL Cleaner (Purges anonymous unvisited objects after 3 days and sends 24/7 Gmail alerts)
         self._ttl_cleaner_thread = threading.Thread(target=self._ttl_cleaner_worker, daemon=True)
         self._ttl_cleaner_thread.start()
 
@@ -2450,23 +2718,36 @@ class SwadeObjectStore:
                 print(f"[SWADES STORAGE] disk worker notice: {e}")
 
     def _ttl_cleaner_worker(self):
-        """Background physical cleaner: purges anonymous files with zero external human visits after 3 days (72 hours)"""
+        """Background physical cleaner: purges anonymous files with zero external human visits after 3 days (72 hours) and sends 24/7 Gmail alerts"""
         while True:
             try:
                 time.sleep(30)
                 now_ts = time.time()
                 expired_targets = []
+                warning_targets = []
                 with self.lock:
                     for t_id, t_dict in list(self._meta_index.items()):
                         for k, meta in list(t_dict.items()):
                             is_anon = meta.get("is_anonymous", False) or t_id.startswith("usr_guest_") or t_id.startswith("usr_sandbox_")
                             ext_visits = meta.get("external_human_visits", 0)
                             exp_ts = meta.get("expires_at_ts", 0)
-                            if is_anon and ext_visits == 0 and exp_ts > 0 and now_ts >= exp_ts:
-                                expired_targets.append((t_id, k))
+                            n_email = meta.get("notify_email")
+                            if is_anon and ext_visits == 0 and exp_ts > 0:
+                                if now_ts >= exp_ts:
+                                    expired_targets.append((t_id, k, n_email))
+                                elif (exp_ts - now_ts) <= 86400 and not meta.get("warning_sent"):
+                                    warning_targets.append((t_id, k, n_email, (exp_ts - now_ts) / 3600.0))
+                                    meta["warning_sent"] = True
 
-                for t_id, k in expired_targets:
+                for t_id, k, n_email, hrs_rem in warning_targets:
+                    if n_email and '_gmail_notifier' in globals() and _gmail_notifier:
+                        cdn_link = f"https://phone-whisper-server.pages.dev/s/{t_id}/{k}"
+                        _gmail_notifier.send_inactivity_warning(n_email, k, cdn_link, hrs_rem)
+
+                for t_id, k, n_email in expired_targets:
                     self.delete_object(t_id, k)
+                    if n_email and '_gmail_notifier' in globals() and _gmail_notifier:
+                        _gmail_notifier.send_purge_notification(n_email, k)
                     print(f"[SWADES STORAGE TTL] Physical flash purge: Anonymous unvisited file '{k}' in tenant '{t_id}' auto-deleted after 3 days of zero external human visits.")
             except Exception as te:
                 print(f"[SWADES STORAGE TTL] cleaner error: {te}")
@@ -2558,7 +2839,7 @@ class SwadeObjectStore:
         full_path = os.path.join(base, tenant_id, "objects", clean_key)
         return full_path, pname
 
-    def put_object(self, tenant_id: str, raw_key: str, data: bytes, content_type=None, is_public=True, pool="auto", is_anonymous=False):
+    def put_object(self, tenant_id: str, raw_key: str, data: bytes, content_type=None, is_public=True, pool="auto", is_anonymous=False, notify_email=None):
         """Immediate Sub-Microsecond RAM Reflection + Async Non-blocking Disk Flush"""
         clean_key = self._sanitize_key(raw_key)
         size = len(data)
@@ -2580,6 +2861,16 @@ class SwadeObjectStore:
             content_type = ct or "application/octet-stream"
 
         is_anon = is_anonymous or tenant_id.startswith("usr_guest_") or tenant_id.startswith("usr_sandbox_")
+        target_email = notify_email.strip() if notify_email and "@" in notify_email else None
+        if not target_email:
+            # Check if tenant has an email in user record
+            try:
+                user_rec = self.vault.get_user_by_id(tenant_id)
+                if user_rec and user_rec.get("email"):
+                    target_email = user_rec["email"]
+            except Exception:
+                pass
+
         meta = {
             "key": clean_key,
             "size": size,
@@ -2590,6 +2881,7 @@ class SwadeObjectStore:
             "etag": etag,
             "is_public": is_public,
             "is_anonymous": is_anon,
+            "notify_email": target_email,
             "uploaded_at_ts": now_ts,
             "last_accessed_ts": now_ts,
             "external_human_visits": 0,
@@ -2616,6 +2908,12 @@ class SwadeObjectStore:
 
         # Enqueue non-blocking async disk write
         self._disk_queue.put(("write", pool_path, data))
+
+        # 24/7 Asynchronous Gmail notification dispatch
+        if target_email and '_gmail_notifier' in globals() and _gmail_notifier:
+            cdn_link = f"https://phone-whisper-server.pages.dev/s/{tenant_id}/{clean_key}"
+            _gmail_notifier.send_upload_notification(target_email, clean_key, size, cdn_link, is_anonymous=is_anon)
+
         return meta
 
     def head_object(self, tenant_id: str, raw_key: str):
@@ -2772,7 +3070,6 @@ class SwadeObjectStore:
             c["ttl_auto_delete_active"] = is_anon and (ext_visits == 0)
             safe_list.append(c)
         return safe_list, len(t_objs)
-        return safe_list, len(t_objs)
 
     def get_usage(self, tenant_id: str):
         used = self._tenant_used_bytes[tenant_id]
@@ -2780,6 +3077,7 @@ class SwadeObjectStore:
         return {"used_bytes": used, "used_mb": round(used / (1024*1024), 3), "object_count": count}
 
 _storage_vault = SwadeStorageVault()
+_gmail_notifier = SwadesGmailNotifier(_storage_vault)
 _object_store = SwadeObjectStore(_storage_vault)
 
 
@@ -3915,6 +4213,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             t_id = parts[0] if len(parts) == 2 else ""
             r_key = parts[1] if len(parts) == 2 else parts[0]
             self.handle_public_cdn_stream(t_id, r_key, is_head=False)
+        elif path in ["/v1/smtp/status", "/v1/admin/smtp/status", "/v1/notifications/smtp"]:
+            self.handle_smtp_status()
         elif path == "/v1/storage/objects":
             self.handle_storage_list_objects()
         elif parsed.path.startswith("/v1/storage/objects/"):
@@ -4078,8 +4378,10 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_dashboard_db_sql_post()
         elif path in ["/v1/dashboard/db/vacuum", "/v1/admin/db/vacuum"]:
             self.handle_dashboard_db_vacuum()
-        elif path in ["/v1/dashboard/security/reset", "/v1/admin/security/reset"]:
-            self.handle_dashboard_security_reset()
+        elif path in ["/v1/smtp/config", "/v1/admin/smtp/config"]:
+            self.handle_smtp_config()
+        elif path in ["/v1/smtp/test", "/v1/admin/smtp/test"]:
+            self.handle_smtp_test()
         elif parsed.path.startswith("/v1/storage/objects/"):
             raw_key = parsed.path[len("/v1/storage/objects/"):]
             self.handle_storage_put_object(raw_key)
@@ -4944,7 +5246,14 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             return
 
         parsed = urllib.parse.urlparse(self.path)
+        qs = urllib.parse.parse_qs(parsed.query)
         scope_id = self._extract_project_id(parsed) or tenant.get("project_id") or tenant["tenant_id"]
+        
+        notify_email = self.headers.get("x-notify-email") or self.headers.get("x-email")
+        if not notify_email and "notify_email" in qs:
+            notify_email = qs["notify_email"][0].strip()
+        if not notify_email and "email" in qs:
+            notify_email = qs["email"][0].strip()
 
         try:
             content_length = int(self.headers.get("Content-Length", 0))
@@ -4955,7 +5264,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                     data = _zstd_engine.decompress(data)
                 except Exception as de:
                     pass
-            meta = _object_store.put_object(scope_id, raw_key, data, content_type=content_type)
+            meta = _object_store.put_object(scope_id, raw_key, data, content_type=content_type, notify_email=notify_email)
             meta["url"] = f"/s/{scope_id}/{meta['key']}"
             t_ns = time.perf_counter_ns() - t0
             t_ms = round(t_ns / 1_000_000, 6)
@@ -5519,6 +5828,81 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.wfile.write(resp)
         except Exception as e:
             self.send_error(500, str(e))
+
+    def handle_smtp_status(self):
+        try:
+            status = _gmail_notifier.get_status()
+            resp = json.dumps({"success": True, "smtp": status}).encode("utf-8")
+            self.send_response(200)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(resp)))
+            self.end_headers()
+            self.wfile.write(resp)
+        except Exception as e:
+            self.send_error(500, str(e))
+
+    def handle_smtp_config(self):
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            body = json.loads(self.rfile.read(length).decode("utf-8")) if length > 0 else {}
+            smtp_user = body.get("smtp_user") or body.get("user") or ""
+            smtp_pass = body.get("smtp_pass") or body.get("password") or body.get("app_password")
+            smtp_host = body.get("smtp_host", "smtp.gmail.com")
+            smtp_port = int(body.get("smtp_port", 465))
+            sender_name = body.get("sender_name", "PhoneWhisper Datacenter")
+
+            _gmail_notifier.update_config(smtp_user, smtp_pass, smtp_host, smtp_port, sender_name)
+            status = _gmail_notifier.get_status()
+            resp = json.dumps({"success": True, "message": "Gmail SMTP configuration updated and persisted 24/7.", "smtp": status}).encode("utf-8")
+            self.send_response(200)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(resp)))
+            self.end_headers()
+            self.wfile.write(resp)
+        except Exception as e:
+            self.send_error(500, str(e))
+
+    def handle_smtp_test(self):
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            body = json.loads(self.rfile.read(length).decode("utf-8")) if length > 0 else {}
+            recipient = body.get("recipient") or body.get("email") or _gmail_notifier.smtp_user
+            if not recipient:
+                resp = json.dumps({"error": "Missing recipient email"}).encode("utf-8")
+                self.send_response(400)
+                self._send_cors_headers()
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(resp)))
+                self.end_headers()
+                self.wfile.write(resp)
+                return
+
+            subject = "🔔 Test Verification: 24/7 Gmail SMTP Active"
+            html = f"""
+            <div style="background: #111827; color: #fff; padding: 24px; border-radius: 12px; font-family: sans-serif;">
+              <h2 style="color: #10b981;">✅ 24/7 Gmail SMTP Engine Connected</h2>
+              <p>This is a real-time verification email dispatched from the sovereign Phone AI Datacenter on Termux.</p>
+              <p>Timestamp: {datetime.now(timezone.utc).isoformat()}</p>
+            </div>
+            """
+            _gmail_notifier._send_smtp_direct(recipient, subject, html)
+            resp = json.dumps({"success": True, "message": f"Test email successfully dispatched to {recipient}"}).encode("utf-8")
+            self.send_response(200)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(resp)))
+            self.end_headers()
+            self.wfile.write(resp)
+        except Exception as e:
+            resp = json.dumps({"error": f"SMTP test failed: {str(e)}"}).encode("utf-8")
+            self.send_response(500)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(resp)))
+            self.end_headers()
+            self.wfile.write(resp)
 
     def handle_dashboard_experiments_get(self):
         exps = _storage_vault.get_experiments()

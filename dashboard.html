@@ -324,6 +324,70 @@
 
           <div id="media-files-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3"></div>
         </div>
+
+        <!-- 24/7 Gmail SMTP Server Notification Engine Card -->
+        <div class="p-4 rounded-lg bg-[#07090d] border border-cyan-900/40 space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-zinc-800/80 pb-3">
+            <div class="flex items-center gap-2">
+              <div class="w-8 h-8 rounded-lg bg-cyan-950/80 border border-cyan-800/60 flex items-center justify-center text-cyan-400">
+                <i class="fa-solid fa-envelope"></i>
+              </div>
+              <div>
+                <div class="text-xs font-bold text-white flex items-center gap-2">
+                  <span>24/7 Gmail SMTP Notification Engine</span>
+                  <span id="smtp-live-status-pill" class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950/80 border border-emerald-800 text-emerald-400 font-bold">24/7 ACTIVE</span>
+                </div>
+                <div class="text-[11px] text-zinc-400">Asynchronously dispatches CDN links &amp; 3-day inactivity lifecycle alerts to anonymous strangers and tenants.</div>
+              </div>
+            </div>
+
+            <button onclick="fetchSmtpStatus(true)" class="text-xs font-mono px-2.5 py-1 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-700 flex items-center gap-1">
+              <i class="fa-solid fa-arrows-rotate"></i> Refresh
+            </button>
+          </div>
+
+          <!-- Telemetry Stats -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div class="bg-black/40 border border-zinc-800 rounded-lg p-2.5">
+              <div class="text-[10px] text-zinc-500 font-mono uppercase">Configured Account</div>
+              <div id="smtp-user-disp" class="text-xs font-mono font-bold text-cyan-400 truncate mt-0.5">Not Configured</div>
+            </div>
+            <div class="bg-black/40 border border-zinc-800 rounded-lg p-2.5">
+              <div class="text-[10px] text-zinc-500 font-mono uppercase">Queue Depth</div>
+              <div id="smtp-queue-disp" class="text-xs font-mono font-bold text-emerald-400 mt-0.5">0 queued</div>
+            </div>
+            <div class="bg-black/40 border border-zinc-800 rounded-lg p-2.5">
+              <div class="text-[10px] text-zinc-500 font-mono uppercase">Emails Sent (24/7)</div>
+              <div id="smtp-sent-disp" class="text-xs font-mono font-bold text-emerald-400 mt-0.5">0 sent</div>
+            </div>
+            <div class="bg-black/40 border border-zinc-800 rounded-lg p-2.5">
+              <div class="text-[10px] text-zinc-500 font-mono uppercase">Failures</div>
+              <div id="smtp-failed-disp" class="text-xs font-mono font-bold text-zinc-400 mt-0.5">0</div>
+            </div>
+          </div>
+
+          <!-- Configuration Form -->
+          <form onsubmit="saveSmtpConfig(event)" class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+            <div>
+              <label class="text-[10px] font-mono text-zinc-400 uppercase">Gmail Address</label>
+              <input type="email" id="smtp-cfg-user" placeholder="your-email@gmail.com" required
+                     class="w-full bg-black/60 border border-zinc-800 rounded px-3 py-1.5 text-xs text-white outline-none focus:border-cyan-500 font-mono mt-1" />
+            </div>
+            <div>
+              <label class="text-[10px] font-mono text-zinc-400 uppercase">App Password (16-chars)</label>
+              <input type="password" id="smtp-cfg-pass" placeholder="•••• •••• •••• ••••"
+                     class="w-full bg-black/60 border border-zinc-800 rounded px-3 py-1.5 text-xs text-white outline-none focus:border-cyan-500 font-mono mt-1" />
+            </div>
+            <div class="flex gap-2">
+              <button type="submit" class="flex-1 text-xs font-mono px-3 py-1.5 rounded bg-cyan-500 hover:bg-cyan-400 text-black font-bold flex items-center justify-center gap-1">
+                <i class="fa-solid fa-floppy-disk"></i> Save Config
+              </button>
+              <button type="button" onclick="testSmtpDirect()" class="text-xs font-mono px-3 py-1.5 rounded bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/40 font-bold flex items-center justify-center gap-1">
+                <i class="fa-solid fa-paper-plane"></i> Test
+              </button>
+            </div>
+          </form>
+        </div>
       </section>
 
       <!-- VIEW 3: AUTH & API KEYS -->
@@ -1921,8 +1985,77 @@ print(f"Losslessly restored {len(restored_bytes)} bytes")</pre>
       } catch (e) {}
     }
 
+    async function fetchSmtpStatus(showFeedback = false) {
+      try {
+        const res = await apiFetch('/v1/smtp/status');
+        if (res.ok) {
+          const data = await res.json();
+          const smtp = data.smtp || {};
+          const userEl = document.getElementById('smtp-user-disp');
+          const queueEl = document.getElementById('smtp-queue-disp');
+          const sentEl = document.getElementById('smtp-sent-disp');
+          const failedEl = document.getElementById('smtp-failed-disp');
+          const inputUser = document.getElementById('smtp-cfg-user');
+
+          if (userEl) userEl.innerText = smtp.is_configured ? smtp.smtp_user : 'Not Configured';
+          if (queueEl) queueEl.innerText = `${smtp.queue_depth || 0} queued`;
+          if (sentEl) sentEl.innerText = `${smtp.total_sent || 0} sent`;
+          if (failedEl) failedEl.innerText = `${smtp.total_failed || 0}`;
+          if (inputUser && smtp.smtp_user && !inputUser.value) inputUser.value = smtp.smtp_user;
+
+          if (showFeedback) showToast("Gmail SMTP 24/7 status refreshed", "info", '<i class="fa-solid fa-envelope text-cyan-400"></i>');
+        }
+      } catch(e) {
+        console.warn("SMTP status fetch notice:", e);
+      }
+    }
+
+    async function saveSmtpConfig(e) {
+      e.preventDefault();
+      const user = document.getElementById('smtp-cfg-user').value.trim();
+      const pass = document.getElementById('smtp-cfg-pass').value.trim();
+      try {
+        const res = await apiFetch('/v1/smtp/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ smtp_user: user, smtp_pass: pass })
+        });
+        if (res.ok) {
+          showToast("Gmail SMTP configuration saved 24/7!", "success", '<i class="fa-solid fa-circle-check text-emerald-400"></i>');
+          fetchSmtpStatus();
+        } else {
+          showToast("Failed to save SMTP settings", "error");
+        }
+      } catch(err) {
+        showToast(err.message, "error");
+      }
+    }
+
+    async function testSmtpDirect() {
+      const email = document.getElementById('smtp-cfg-user').value.trim() || prompt("Enter test recipient email address:");
+      if (!email) return;
+      showToast(`Dispatching test verification email to ${email}...`, "info", '<i class="fa-solid fa-paper-plane text-cyan-400"></i>');
+      try {
+        const res = await apiFetch('/v1/smtp/test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ recipient: email })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          showToast(`Test email successfully delivered to ${email}!`, "success", '<i class="fa-solid fa-circle-check text-emerald-400"></i>');
+          fetchSmtpStatus();
+        } else {
+          showToast(`SMTP test failed: ${data.error || 'Check credentials'}`, "error");
+        }
+      } catch(err) {
+        showToast(`SMTP test error: ${err.message}`, "error");
+      }
+    }
+
     window.addEventListener('DOMContentLoaded', () => {
       checkUserSession();
+      fetchSmtpStatus();
       setInterval(refreshTelemetry, 3000);
     });
 </script>
