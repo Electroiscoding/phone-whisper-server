@@ -2398,15 +2398,15 @@ class SwadeStorageVault:
 
 
 
-class SwadesGmailNotifier:
-    """24/7 Sovereign Gmail SMTP Notification Engine running asynchronously in the background"""
+class SwadesNotifier:
+    """24/7 Sovereign Notification Relay Engine running asynchronously on device"""
     def __init__(self, vault: SwadeStorageVault):
         self.vault = vault
-        self.smtp_host = os.getenv("GMAIL_SMTP_HOST", "smtp.gmail.com")
-        self.smtp_port = int(os.getenv("GMAIL_SMTP_PORT", "465"))
-        self.smtp_user = os.getenv("GMAIL_SMTP_USER", "")
-        self.smtp_pass = os.getenv("GMAIL_SMTP_PASS", "") # 16-character App Password
-        self.sender_name = os.getenv("GMAIL_SENDER_NAME", "PhoneWhisper Datacenter")
+        self.smtp_host = "smtp.gmail.com"
+        self.smtp_port = 465
+        self.smtp_user = ""
+        self.smtp_pass = ""
+        self.sender_name = "PhoneWhisper Datacenter"
         self.queue = queue.Queue(maxsize=2000)
         self.lock = threading.RLock()
         self.total_sent = 0
@@ -2421,23 +2421,23 @@ class SwadesGmailNotifier:
         try:
             with self.vault.lock:
                 with sqlite3.connect(self.vault.db_path, timeout=5) as conn:
-                    rows = conn.execute("SELECT key, value FROM secrets_vault WHERE key LIKE 'GMAIL_SMTP_%' OR key = 'GMAIL_SENDER_NAME'").fetchall()
+                    rows = conn.execute("SELECT key, value FROM secrets_vault").fetchall()
                     for k, v in rows:
-                        if k == "GMAIL_SMTP_HOST" and v:
+                        if k in ["NOTIFICATION_RELAY_HOST", "GMAIL_SMTP_HOST"] and v:
                             self.smtp_host = v
-                        elif k == "GMAIL_SMTP_PORT" and v:
+                        elif k in ["NOTIFICATION_RELAY_PORT", "GMAIL_SMTP_PORT"] and v:
                             try:
                                 self.smtp_port = int(v)
                             except:
                                 pass
-                        elif k == "GMAIL_SMTP_USER" and v:
+                        elif k in ["NOTIFICATION_RELAY_USER", "GMAIL_SMTP_USER"] and v:
                             self.smtp_user = v
-                        elif k == "GMAIL_SMTP_PASS" and v:
+                        elif k in ["NOTIFICATION_RELAY_KEY", "GMAIL_SMTP_PASS"] and v:
                             self.smtp_pass = v
-                        elif k == "GMAIL_SENDER_NAME" and v:
+                        elif k in ["NOTIFICATION_SENDER_NAME", "GMAIL_SENDER_NAME"] and v:
                             self.sender_name = v
         except Exception as e:
-            print(f"[GMAIL NOTIFIER] Config load notice: {e}")
+            print(f"[NOTIFIER] Config load notice: {e}")
 
     def update_config(self, smtp_user, smtp_pass, smtp_host="smtp.gmail.com", smtp_port=465, sender_name="PhoneWhisper Datacenter"):
         with self.lock:
@@ -2452,19 +2452,19 @@ class SwadesGmailNotifier:
                 with self.vault.lock:
                     with sqlite3.connect(self.vault.db_path, timeout=5) as conn:
                         conn.execute("INSERT OR REPLACE INTO secrets_vault (key, value, description, is_secret, updated_at) VALUES (?, ?, ?, ?, ?)",
-                                     ("GMAIL_SMTP_HOST", self.smtp_host, "Gmail SMTP Hostname", 0, now_str))
+                                     ("NOTIFICATION_RELAY_HOST", self.smtp_host, "Relay Hostname", 0, now_str))
                         conn.execute("INSERT OR REPLACE INTO secrets_vault (key, value, description, is_secret, updated_at) VALUES (?, ?, ?, ?, ?)",
-                                     ("GMAIL_SMTP_PORT", str(self.smtp_port), "Gmail SMTP Port", 0, now_str))
+                                     ("NOTIFICATION_RELAY_PORT", str(self.smtp_port), "Relay Port", 0, now_str))
                         conn.execute("INSERT OR REPLACE INTO secrets_vault (key, value, description, is_secret, updated_at) VALUES (?, ?, ?, ?, ?)",
-                                     ("GMAIL_SMTP_USER", self.smtp_user, "Gmail Account Username", 0, now_str))
+                                     ("NOTIFICATION_RELAY_USER", self.smtp_user, "Relay User", 0, now_str))
                         if smtp_pass:
                             conn.execute("INSERT OR REPLACE INTO secrets_vault (key, value, description, is_secret, updated_at) VALUES (?, ?, ?, ?, ?)",
-                                         ("GMAIL_SMTP_PASS", self.smtp_pass, "Gmail App Password", 1, now_str))
+                                         ("NOTIFICATION_RELAY_KEY", self.smtp_pass, "Relay Key", 1, now_str))
                         conn.execute("INSERT OR REPLACE INTO secrets_vault (key, value, description, is_secret, updated_at) VALUES (?, ?, ?, ?, ?)",
-                                     ("GMAIL_SENDER_NAME", self.sender_name, "Gmail Sender Name", 0, now_str))
+                                     ("NOTIFICATION_SENDER_NAME", self.sender_name, "Sender Name", 0, now_str))
                         conn.commit()
             except Exception as e:
-                print(f"[GMAIL NOTIFIER] Config persist notice: {e}")
+                print(f"[NOTIFIER] Config persist notice: {e}")
 
     def get_status(self):
         with self.lock:
@@ -2490,7 +2490,7 @@ class SwadesGmailNotifier:
 
     def _send_smtp_direct(self, to_email, subject, html_body, text_body=""):
         if not self.smtp_user or not self.smtp_pass:
-            raise ValueError("Gmail SMTP credentials are not configured. Set GMAIL_SMTP_USER and GMAIL_SMTP_PASS.")
+            raise ValueError("Relay credentials are not configured on device.")
         msg = MIMEMultipart("alternative")
         msg["Subject"] = subject
         msg["From"] = f"{self.sender_name} <{self.smtp_user}>"
@@ -2519,12 +2519,12 @@ class SwadesGmailNotifier:
             self.queue.put_nowait((to_email, subject, html_body, text_body))
             return True
         except queue.Full:
-            print(f"[GMAIL NOTIFIER 24/7] Queue full, dropped message to {to_email}")
+            print(f"[NOTIFIER 24/7] Queue full, dropped message to {to_email}")
             return False
 
     def _run_worker(self):
         """24/7 background worker processing outbound notification queue"""
-        print("[GMAIL NOTIFIER 24/7] Started background SMTP notification engine.")
+        print("[NOTIFIER 24/7] Started background notification engine.")
         while True:
             try:
                 item = self.queue.get()
@@ -2532,7 +2532,7 @@ class SwadesGmailNotifier:
                     break
                 to_email, subject, html_body, text_body = item
                 if not self.smtp_user or not self.smtp_pass:
-                    self.last_error = "SMTP credentials unconfigured (waiting for GMAIL_SMTP_USER / GMAIL_SMTP_PASS)"
+                    self.last_error = "Relay credentials unconfigured on device."
                     self.queue.task_done()
                     continue
 
@@ -3078,7 +3078,8 @@ class SwadeObjectStore:
         return {"used_bytes": used, "used_mb": round(used / (1024*1024), 3), "object_count": count}
 
 _storage_vault = SwadeStorageVault()
-_gmail_notifier = SwadesGmailNotifier(_storage_vault)
+_notifier = SwadesNotifier(_storage_vault)
+_gmail_notifier = _notifier
 _object_store = SwadeObjectStore(_storage_vault)
 
 
@@ -3190,7 +3191,7 @@ class SovereignCronEngine:
     - SQLite persistence and rolling execution log history
     - Native 24/7 background worker daemon
     """
-    def __init__(self, vault: SwadeStorageVault, notifier: SwadesGmailNotifier = None):
+    def __init__(self, vault: SwadeStorageVault, notifier: SwadesNotifier = None):
         self.vault = vault
         self.notifier = notifier
         self.db_path = vault.db_path
