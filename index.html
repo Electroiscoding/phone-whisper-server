@@ -3280,20 +3280,29 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
         </div>
 
         <!-- Categorized Vision Task Chips -->
-        <div style="margin-bottom: 1.25rem;">
-          <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-subtle); margin-bottom: 0.5rem; font-weight: 600;">Select Vision Pipeline:</div>
-          <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
-            <!-- Face -->
-            <button class="prompt-chip" id="taskBtn_face_detection" onclick="selectVisionTask('face_detection')"><i class="fa-solid fa-user mr-1 text-cyan-400"></i> Face Detection</button>
-            <button class="prompt-chip" id="taskBtn_face_mesh" onclick="selectVisionTask('face_mesh')"><i class="fa-solid fa-masks-theater mr-1 text-teal-400"></i> Face Mesh (468-Pt)</button>
-            <!-- Motion -->
-            <button class="prompt-chip" id="taskBtn_pose_landmarks" onclick="selectVisionTask('pose_landmarks')" style="background: rgba(168, 85, 247, 0.25); border-color: #c084fc; color: #fff;"><i class="fa-solid fa-person-running mr-1 text-purple-400"></i> Pose Skeleton (33-Pt)</button>
-            <button class="prompt-chip" id="taskBtn_hand_landmarks" onclick="selectVisionTask('hand_landmarks')"><i class="fa-solid fa-hand mr-1 text-emerald-400"></i> Hand Landmarks (21-Pt)</button>
-            <button class="prompt-chip" id="taskBtn_holistic" onclick="selectVisionTask('holistic')"><i class="fa-solid fa-globe mr-1 text-indigo-400"></i> Holistic Fusion (543-Pt)</button>
-            <!-- Perception & Optics -->
-            <button class="prompt-chip" id="taskBtn_object_detection" onclick="selectVisionTask('object_detection')"><i class="fa-solid fa-box mr-1 text-amber-400"></i> Object Detection</button>
-            <button class="prompt-chip" id="taskBtn_selfie_segmentation" onclick="selectVisionTask('selfie_segmentation')"><i class="fa-solid fa-scissors mr-1 text-pink-400"></i> Selfie Segmentation</button>
-            <button class="prompt-chip" id="taskBtn_background_blur" onclick="selectVisionTask('background_blur')"><i class="fa-solid fa-camera mr-1 text-sky-400"></i> Background Blur</button>
+        <div style="margin-bottom: 1.25rem; display: flex; flex-direction: column; gap: 0.6rem;">
+          <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center;">
+            <span style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-subtle); font-weight: 700; width: 68px;">Facial AI:</span>
+            <div style="display: flex; flex-wrap: wrap; gap: 0.4rem;">
+              <button class="prompt-chip" id="taskBtn_face_mesh" onclick="selectVisionTask('face_mesh')"><i class="fa-solid fa-masks-theater mr-1 text-teal-400"></i> Face Mesh (468-Pt)</button>
+              <button class="prompt-chip" id="taskBtn_face_detection" onclick="selectVisionTask('face_detection')"><i class="fa-solid fa-user mr-1 text-cyan-400"></i> Face Detection</button>
+            </div>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center;">
+            <span style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-subtle); font-weight: 700; width: 68px;">Motion:</span>
+            <div style="display: flex; flex-wrap: wrap; gap: 0.4rem;">
+              <button class="prompt-chip" id="taskBtn_pose_landmarks" onclick="selectVisionTask('pose_landmarks')" style="background: rgba(168, 85, 247, 0.25); border-color: #c084fc; color: #fff;"><i class="fa-solid fa-person-running mr-1 text-purple-400"></i> Pose Skeleton (33-Pt)</button>
+              <button class="prompt-chip" id="taskBtn_hand_landmarks" onclick="selectVisionTask('hand_landmarks')"><i class="fa-solid fa-hand mr-1 text-emerald-400"></i> Hand Tracking (21-Pt)</button>
+              <button class="prompt-chip" id="taskBtn_holistic" onclick="selectVisionTask('holistic')"><i class="fa-solid fa-globe mr-1 text-indigo-400"></i> Holistic Fusion (543-Pt)</button>
+            </div>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center;">
+            <span style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-subtle); font-weight: 700; width: 68px;">Optics:</span>
+            <div style="display: flex; flex-wrap: wrap; gap: 0.4rem;">
+              <button class="prompt-chip" id="taskBtn_selfie_segmentation" onclick="selectVisionTask('selfie_segmentation')"><i class="fa-solid fa-scissors mr-1 text-pink-400"></i> Selfie Segmentation</button>
+              <button class="prompt-chip" id="taskBtn_background_blur" onclick="selectVisionTask('background_blur')"><i class="fa-solid fa-camera mr-1 text-sky-400"></i> Background Blur</button>
+              <button class="prompt-chip" id="taskBtn_object_detection" onclick="selectVisionTask('object_detection')"><i class="fa-solid fa-box mr-1 text-amber-400"></i> Object Detection</button>
+            </div>
           </div>
         </div>
 
@@ -7525,13 +7534,14 @@ python3 mobile/nuclear_watchdog.py</code></pre>
           btn.style.color = "#fff";
           btn.innerHTML = '<i class="fa-solid fa-stop mr-1.5"></i> Stop Live Stream';
         }
-        if (noticeEl) noticeEl.innerHTML = '<i class="fa-solid fa-circle text-rose-500 mr-1 animate-pulse"></i> Real Google MediaPipe Neural Vision (GPU / WebAssembly)';
+        if (noticeEl) noticeEl.innerHTML = '<i class="fa-solid fa-satellite-dish text-emerald-400 mr-1 animate-pulse"></i> Live Edge Processing (MediaTek Helio G35 / ARM)';
         if (fpsBadge) fpsBadge.style.display = "inline-block";
-        if (hudText) hudText.innerText = "Live AI Vision (Google MediaPipe)";
-        if (pulseEl) { pulseEl.style.background = "#ef4444"; pulseEl.classList.add("animate-pulse"); }
+        if (hudText) hudText.innerText = "Phone Edge AI (Google MediaPipe)";
+        if (pulseEl) { pulseEl.style.background = "#10b981"; pulseEl.classList.add("animate-pulse"); }
 
-        getOrInitMediaPipeModel(currentVisionTask);
+        // Start live 60fps canvas loop and continuous phone edge neural streaming
         requestAnimationFrame(processLiveWebcamLoop);
+        streamFrameToEdgeServer();
       } catch (err) {
         alert("Camera permission denied or unavailable: " + err.message);
       }
@@ -7540,6 +7550,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
 
     function stopLiveWebcam() {
       isWebcamRunning = false;
+      isEdgeStreamingBusy = false;
       latestVisionOverlayData = null;
       latestVisionSegmentationMask = null;
       if (webcamStream) {
@@ -7557,10 +7568,17 @@ python3 mobile/nuclear_watchdog.py</code></pre>
         btn.style.color = "#fff";
         btn.innerHTML = '<i class="fa-solid fa-play mr-1.5"></i> Start Live Camera Stream';
       }
-      if (noticeEl) noticeEl.innerText = "Streams video directly to phone edge server";
-      if (hudText) hudText.innerText = "Spatial Topology Overlay";
-      if (pulseEl) { pulseEl.style.background = "#10b981"; pulseEl.classList.remove("animate-pulse"); }
+      if (noticeEl) noticeEl.innerHTML = '<span>Streams video directly to phone edge server</span>';
       if (fpsBadge) fpsBadge.style.display = "none";
+      if (hudText) hudText.innerText = "Spatial Topology Overlay";
+      if (pulseEl) { pulseEl.style.background = "#64748b"; pulseEl.classList.remove("animate-pulse"); }
+
+      const canvas = document.getElementById("visionCanvas");
+      if (canvas) {
+        const ctx = canvas.getContext("2d");
+        ctx.fillStyle = "#070b14";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
     }
     window.stopLiveWebcam = stopLiveWebcam;
 
@@ -7990,51 +8008,63 @@ python3 mobile/nuclear_watchdog.py</code></pre>
         webcamFpsLastCalc = now;
       }
 
-      // 4. Run real Google MediaPipe client-side neural inference
-      if (!isMpInferencing) {
-        isMpInferencing = true;
-        mpInferenceStartTime = performance.now();
-        getOrInitMediaPipeModel(currentVisionTask).then(model => {
-          if (model) {
-            return model.send({ image: canvas });
-          }
-        }).catch(e => {
-          console.warn("Live MediaPipe inference error:", e);
-        }).finally(() => {
-          isMpInferencing = false;
-        });
+      requestAnimationFrame(processLiveWebcamLoop);
+    }
+
+    let isEdgeStreamingBusy = false;
+
+    async function streamFrameToEdgeServer() {
+      if (!isWebcamRunning || isEdgeStreamingBusy) return;
+      const videoEl = document.getElementById("hiddenWebcamVideo");
+      if (!videoEl || videoEl.readyState < 2) {
+        if (isWebcamRunning) setTimeout(streamFrameToEdgeServer, 50);
+        return;
       }
 
-      // 5. Periodic sync with phone edge server (every 1800ms) for edge telemetry
-      if (!isLiveFrameInferencing && (now - lastEdgeSyncTime >= 1800)) {
-        isLiveFrameInferencing = true;
-        lastEdgeSyncTime = now;
-        const frameBase64 = canvas.toDataURL("image/jpeg", 0.5);
-        nuclearFetch(`${BASE_ENDPOINT}/v1/vision/${currentVisionTask.replace(/_/g, "-")}`, {
+      isEdgeStreamingBusy = true;
+      try {
+        const snap = document.createElement("canvas");
+        snap.width = 480;
+        snap.height = Math.round(480 * (videoEl.videoHeight / (videoEl.videoWidth || 1))) || 360;
+        const sCtx = snap.getContext("2d");
+        if (isVisionMirrorMode) {
+          sCtx.save();
+          sCtx.translate(snap.width, 0);
+          sCtx.scale(-1, 1);
+          sCtx.drawImage(videoEl, 0, 0, snap.width, snap.height);
+          sCtx.restore();
+        } else {
+          sCtx.drawImage(videoEl, 0, 0, snap.width, snap.height);
+        }
+        const frameBase64 = snap.toDataURL("image/jpeg", 0.55);
+
+        const taskName = currentVisionTask.replace(/_/g, "-");
+        const res = await fetch(`${BASE_ENDPOINT}/v1/vision/${taskName}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             task: currentVisionTask,
             image_base64: frameBase64,
-            is_live_stream: true
+            is_live_stream: true,
+            params: { blur_radius: 18 }
           })
-        })
-        .then(r => r.json())
-        .then(data => {
-          if (data && data.status === "ok") {
-            const latencyLabel = document.getElementById("visionLatencyLabel");
-            if (latencyLabel && data.inference_time_ms) {
-              latencyLabel.innerHTML = `${data.inference_time_ms}ms ARM Edge`;
-            }
-          }
-        })
-        .catch(() => {})
-        .finally(() => {
-          isLiveFrameInferencing = false;
         });
-      }
 
-      requestAnimationFrame(processLiveWebcamLoop);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.status === "ok") {
+            latestVisionOverlayData = data;
+            updateVisionTelemetryHUD(data);
+          }
+        }
+      } catch (err) {
+        console.warn("Live edge stream inference error:", err);
+      } finally {
+        isEdgeStreamingBusy = false;
+        if (isWebcamRunning) {
+          setTimeout(streamFrameToEdgeServer, 10);
+        }
+      }
     }
 
     function updateVisionTelemetryHUD(data) {
@@ -8043,7 +8073,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       const latencyMs = data.inference_time_ms || 6;
       const latencyLabel = document.getElementById("visionLatencyLabel");
       if (latencyLabel) {
-        latencyLabel.innerHTML = `${latencyMs}ms ARM`;
+        latencyLabel.innerHTML = `${latencyMs}ms ARM Edge`;
       }
       const hudLatency = document.getElementById("visionHudInferenceTime");
       if (hudLatency) {
@@ -8056,10 +8086,17 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       const countBadge = document.getElementById("visionPointCountBadge");
 
       let entityText = "--";
-      let confText = "98.0%";
+      let confText = "0%";
       let tagsHtml = "";
 
-      if (data.pose) {
+      const isDetected = data.detected === 1 || (data.landmarks_count && data.landmarks_count > 0) || (data.faces_detected && data.faces_detected > 0) || (data.hands_detected && data.hands_detected > 0) || (data.objects_detected && data.objects_detected > 0) || (data.total_landmarks && data.total_landmarks > 0) || (data.foreground_confidence && data.foreground_confidence >= 0.2);
+
+      if (!isDetected) {
+        entityText = "None (No Target)";
+        confText = "0%";
+        if (countBadge) countBadge.innerText = "0 Detected";
+        tagsHtml = '<span class="prompt-chip" style="font-size: 0.68rem; padding: 0.15rem 0.45rem; background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.1); color: var(--text-muted);"><i class="fa-solid fa-circle-exclamation mr-1"></i>No target detected in current frame</span>';
+      } else if (data.pose && data.pose.length > 0) {
         entityText = `${data.landmarks_count || data.pose.length} Joints`;
         confText = `${Math.round((data.pose[0]?.visibility || 0.98) * 100)}%`;
         if (countBadge) countBadge.innerText = `${data.pose.length} 3D Landmarks`;
@@ -8067,7 +8104,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
         tagsHtml = data.pose.filter(p => keyJoints.includes(p.name)).map(p => 
           `<span class="prompt-chip" style="font-size: 0.68rem; padding: 0.15rem 0.45rem; background: rgba(168,85,247,0.15); border-color: rgba(168,85,247,0.3); color: #c084fc;"><i class="fa-solid fa-circle-dot mr-1" style="font-size: 0.55rem;"></i>${p.name}</span>`
         ).join("");
-      } else if (data.faces) {
+      } else if (data.faces && data.faces.length > 0) {
         entityText = `${data.faces_detected || data.faces.length} Face(s)`;
         confText = `${Math.round((data.faces[0]?.confidence || 0.96) * 100)}%`;
         if (countBadge) countBadge.innerText = `${data.faces.length} Face Trackers`;
@@ -8075,7 +8112,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
                     <span class="prompt-chip" style="font-size: 0.68rem; padding: 0.15rem 0.45rem; background: rgba(56,189,248,0.15); border-color: rgba(56,189,248,0.3); color: #38bdf8;">Right Eye</span>
                     <span class="prompt-chip" style="font-size: 0.68rem; padding: 0.15rem 0.45rem; background: rgba(56,189,248,0.15); border-color: rgba(56,189,248,0.3); color: #38bdf8;">Nose Tip</span>
                     <span class="prompt-chip" style="font-size: 0.68rem; padding: 0.15rem 0.45rem; background: rgba(56,189,248,0.15); border-color: rgba(56,189,248,0.3); color: #38bdf8;">Mouth Center</span>`;
-      } else if (data.mesh || data.face_mesh) {
+      } else if ((data.mesh && data.mesh.length > 0) || (data.face_mesh && data.face_mesh.length > 0)) {
         const count = data.landmarks_count || (data.mesh ? data.mesh.length : 468);
         entityText = `${count} Vertices`;
         confText = "99.2%";
@@ -8084,7 +8121,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
                     <span class="prompt-chip" style="font-size: 0.68rem; padding: 0.15rem 0.45rem; background: rgba(6,182,212,0.15); border-color: rgba(6,182,212,0.3); color: #22d3ee;">Nasal Ridge</span>
                     <span class="prompt-chip" style="font-size: 0.68rem; padding: 0.15rem 0.45rem; background: rgba(6,182,212,0.15); border-color: rgba(6,182,212,0.3); color: #22d3ee;">Jawline Contour</span>
                     <span class="prompt-chip" style="font-size: 0.68rem; padding: 0.15rem 0.45rem; background: rgba(6,182,212,0.15); border-color: rgba(6,182,212,0.3); color: #22d3ee;">Lip Boundaries</span>`;
-      } else if (data.hands) {
+      } else if (data.hands && data.hands.length > 0) {
         entityText = `${data.hands_detected || data.hands.length} Hand (${data.hands[0]?.handedness || 'Right'})`;
         confText = `${Math.round((data.hands[0]?.score || 0.95) * 100)}%`;
         if (countBadge) countBadge.innerText = "21 Finger Joints";
@@ -8092,21 +8129,21 @@ python3 mobile/nuclear_watchdog.py</code></pre>
                     <span class="prompt-chip" style="font-size: 0.68rem; padding: 0.15rem 0.45rem; background: rgba(16,185,129,0.15); border-color: rgba(16,185,129,0.3); color: #34d399;">Index (MCP/PIP/TIP)</span>
                     <span class="prompt-chip" style="font-size: 0.68rem; padding: 0.15rem 0.45rem; background: rgba(16,185,129,0.15); border-color: rgba(16,185,129,0.3); color: #34d399;">Middle (MCP/PIP/TIP)</span>
                     <span class="prompt-chip" style="font-size: 0.68rem; padding: 0.15rem 0.45rem; background: rgba(16,185,129,0.15); border-color: rgba(16,185,129,0.3); color: #34d399;">Wrist Anchor</span>`;
-      } else if (data.objects) {
+      } else if (data.objects && data.objects.length > 0) {
         entityText = `${data.objects_detected || data.objects.length} Objects`;
         confText = `${Math.round((data.objects[0]?.score || 0.92) * 100)}%`;
         if (countBadge) countBadge.innerText = `${data.objects.length} Bounding Boxes`;
         tagsHtml = data.objects.map(o => 
           `<span class="prompt-chip" style="font-size: 0.68rem; padding: 0.15rem 0.45rem; background: rgba(245,158,11,0.15); border-color: rgba(245,158,11,0.3); color: #fbbf24;"><i class="fa-solid fa-tag mr-1"></i>${o.label} (${Math.round(o.score * 100)}%)</span>`
         ).join("");
-      } else if (data.total_landmarks) {
+      } else if (data.total_landmarks && data.total_landmarks > 0) {
         entityText = `${data.total_landmarks} Fusion Points`;
         confText = "98.5%";
         if (countBadge) countBadge.innerText = "543 Holistic Points";
         tagsHtml = `<span class="prompt-chip" style="font-size: 0.68rem; padding: 0.15rem 0.45rem; background: rgba(99,102,241,0.15); border-color: rgba(99,102,241,0.3); color: #818cf8;">33-Pt Pose Skeleton</span>
                     <span class="prompt-chip" style="font-size: 0.68rem; padding: 0.15rem 0.45rem; background: rgba(99,102,241,0.15); border-color: rgba(99,102,241,0.3); color: #818cf8;">468-Pt Face Mesh</span>
                     <span class="prompt-chip" style="font-size: 0.68rem; padding: 0.15rem 0.45rem; background: rgba(99,102,241,0.15); border-color: rgba(99,102,241,0.3); color: #818cf8;">21-Pt Hand Tracking</span>`;
-      } else if (data.foreground_confidence) {
+      } else if (data.foreground_confidence && data.foreground_confidence >= 0.2) {
         entityText = "Foreground Mask";
         confText = `${Math.round(data.foreground_confidence * 100)}%`;
         if (countBadge) countBadge.innerText = "Neural Matte";
@@ -8294,8 +8331,18 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       if (!data) return;
       const task = currentVisionTask;
 
-      // 0. Selfie Segmentation / Background Blur Neural Mask
-      if ((task === "selfie_segmentation" || task === "background_blur") && latestVisionSegmentationMask) {
+      // 0. Selfie Segmentation / Background Blur Neural Composite
+      if ((task === "selfie_segmentation" || task === "background_blur") && data.processed_image_base64) {
+        if (!window._edgeCompositeImg) {
+          window._edgeCompositeImg = new Image();
+        }
+        if (window._edgeCompositeImg.src !== data.processed_image_base64) {
+          window._edgeCompositeImg.src = data.processed_image_base64;
+        }
+        if (window._edgeCompositeImg.complete && window._edgeCompositeImg.naturalWidth > 0) {
+          ctx.drawImage(window._edgeCompositeImg, 0, 0, W, H);
+        }
+      } else if ((task === "selfie_segmentation" || task === "background_blur") && latestVisionSegmentationMask) {
         ctx.save();
         ctx.globalAlpha = 0.4;
         ctx.drawImage(latestVisionSegmentationMask, 0, 0, W, H);

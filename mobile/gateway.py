@@ -4755,13 +4755,13 @@ def process_mediapipe_task(task, image_bytes, params=None):
         landmarks = []
         if interp and HAVE_NUMPY:
             try:
-                arr = np.expand_dims(np.array(img.resize((256, 256)), dtype=np.float32) / 255.0, axis=0)
+                arr = np.expand_dims(np.array(img.resize((256, 256)), dtype=np.float32), axis=0)
                 in_det = interp.get_input_details()
                 out_det = interp.get_output_details()
                 interp.set_tensor(in_det[0]["index"], arr)
                 interp.invoke()
                 pres = float(interp.get_tensor(out_det[1]["index"])[0][0])
-                if pres >= 0.2:
+                if pres >= 0.15:
                     raw = interp.get_tensor(out_det[0]["index"]).flatten()
                     POSE_NAMES = [
                         "NOSE", "LEFT_EYE_INNER", "LEFT_EYE", "LEFT_EYE_OUTER", "RIGHT_EYE_INNER", "RIGHT_EYE", "RIGHT_EYE_OUTER",
@@ -4776,7 +4776,8 @@ def process_mediapipe_task(task, image_bytes, params=None):
                         px = float(raw[base]) / 256.0
                         py = float(raw[base + 1]) / 256.0
                         pz = float(raw[base + 2]) / 256.0
-                        vis = float(raw[base + 3])
+                        raw_vis = float(raw[base + 3])
+                        vis = 1.0 / (1.0 + math.exp(-raw_vis)) if -50 < raw_vis < 50 else (1.0 if raw_vis >= 50 else 0.0)
                         landmarks.append({
                             "index": i,
                             "name": POSE_NAMES[i],
@@ -4806,14 +4807,14 @@ def process_mediapipe_task(task, image_bytes, params=None):
         mesh_points = []
         if interp and HAVE_NUMPY:
             try:
-                arr = np.expand_dims(np.array(img.resize((192, 192)), dtype=np.float32) / 255.0, axis=0)
+                # face_landmark.tflite expects RGB pixel values in [0, 255] float32
+                arr = np.expand_dims(np.array(img.resize((192, 192)), dtype=np.float32), axis=0)
                 in_det = interp.get_input_details()
                 out_det = interp.get_output_details()
                 interp.set_tensor(in_det[0]["index"], arr)
                 interp.invoke()
                 raw_pres = float(interp.get_tensor(out_det[1]["index"]).flatten()[0])
-                face_prob = 1.0 / (1.0 + math.exp(-raw_pres)) if -50 < raw_pres < 50 else (1.0 if raw_pres >= 50 else 0.0)
-                if face_prob >= 0.4 or raw_pres >= 0.0:
+                if raw_pres >= 30.0:
                     raw = interp.get_tensor(out_det[0]["index"]).flatten()
                     for i in range(468):
                         base = i * 3
@@ -4853,7 +4854,7 @@ def process_mediapipe_task(task, image_bytes, params=None):
                 interp.set_tensor(in_det[0]["index"], arr)
                 interp.invoke()
                 pres = float(interp.get_tensor(out_det[1]["index"])[0][0])
-                if pres >= 0.2:
+                if pres >= 0.35:
                     raw = interp.get_tensor(out_det[0]["index"]).flatten()
                     is_right = float(interp.get_tensor(out_det[2]["index"])[0][0]) > 0.5
                     HAND_NAMES = [
