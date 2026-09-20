@@ -4811,8 +4811,9 @@ def process_mediapipe_task(task, image_bytes, params=None):
                 out_det = interp.get_output_details()
                 interp.set_tensor(in_det[0]["index"], arr)
                 interp.invoke()
-                pres = float(interp.get_tensor(out_det[1]["index"]).flatten()[0])
-                if pres >= 0.2:
+                raw_pres = float(interp.get_tensor(out_det[1]["index"]).flatten()[0])
+                face_prob = 1.0 / (1.0 + math.exp(-raw_pres)) if -50 < raw_pres < 50 else (1.0 if raw_pres >= 50 else 0.0)
+                if face_prob >= 0.4 or raw_pres >= 0.0:
                     raw = interp.get_tensor(out_det[0]["index"]).flatten()
                     for i in range(468):
                         base = i * 3
