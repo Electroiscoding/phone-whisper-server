@@ -9,7 +9,7 @@ const JSDELIVR_ENDPOINT_URL = "https://cdn.jsdelivr.net/gh/Electroiscoding/phone
 const GITHUB_ENDPOINT_URL = "https://raw.githubusercontent.com/Electroiscoding/phone-whisper-server/main/endpoint.json";
 const SHARED_SECRET = "mobile_ai_nuclear_key";
 
-let cachedOrigin = "https://cheapest-marine-twice-waters.trycloudflare.com";
+let cachedOrigin = "https://browsing-precision-jewellery-ion.trycloudflare.com";
 let lastFetchTime = 0; // Force immediate refresh
 const CACHE_TTL_MS = 60000; // 60 seconds cache for live tunnel origin
 
