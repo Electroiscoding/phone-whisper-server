@@ -8692,8 +8692,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 self.send_header("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable")
                 self.send_header("ETag", f'"{cache_key}"')
                 self.send_header("Accept-Ranges", "bytes")
-                self.send_header("X-TTS-Engine", "Piper-VITS Neural Engine (RAM Vault)")
-                self.send_header("X-TTS-Model", f"Piper VITS (en_US-{voice_norm}-medium)")
+                self.send_header("X-TTS-Engine", "Sherpa-ONNX Neural Engine (RAM Vault)")
+                self.send_header("X-TTS-Model", f"Piper VITS (en_US-{voice_norm}-low.onnx)")
                 self.send_header("X-TTS-Voice", voice_norm)
                 self.send_header("X-Cache", "HIT (RAM)")
                 self.send_header("X-Sample-Rate", "22050")
@@ -8721,8 +8721,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 self.send_header("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable")
                 self.send_header("ETag", f'"{cache_key}"')
                 self.send_header("Accept-Ranges", "bytes")
-                self.send_header("X-TTS-Engine", "Piper-VITS Neural Engine (Disk Vault)")
-                self.send_header("X-TTS-Model", f"Piper VITS (en_US-{voice_norm}-medium)")
+                self.send_header("X-TTS-Engine", "Sherpa-ONNX Neural Engine (Disk Vault)")
+                self.send_header("X-TTS-Model", f"Piper VITS (en_US-{voice_norm}-low.onnx)")
                 self.send_header("X-TTS-Voice", voice_norm)
                 self.send_header("X-Cache", "HIT (Disk)")
                 self.send_header("X-Sample-Rate", "22050")
@@ -8749,8 +8749,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
 
             t0 = time.time()
             audio_data = None
-            engine_name = "Sherpa-VITS Neural Engine (Live Inference)"
-            model_name = f"Piper VITS (en_US-{voice_norm}-low)"
+            engine_name = "Sherpa-ONNX Neural Engine (Live ARM Inference)"
+            model_name = f"Piper VITS (en_US-{voice_norm}-low.onnx)"
 
             if os.path.exists(sherpa_bin) and os.path.exists(vits_model):
                 cmd = [
