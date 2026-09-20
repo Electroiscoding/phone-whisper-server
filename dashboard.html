@@ -1840,11 +1840,12 @@ print(f"Losslessly restored {len(restored_bytes)} bytes")</pre>
           const res = await fetch(cdnUrl);
           if (res.ok) {
             const txt = await res.text();
+            window._lastPreviewTxt = txt;
             container.innerHTML = `
               <div class="w-full text-left space-y-2">
                 <div class="flex items-center justify-between text-[11px] text-zinc-400 border-b border-zinc-800 pb-1.5">
                   <span class="text-emerald-400 font-bold">${ext.toUpperCase()} Source Content</span>
-                  <button onclick="copyToClipboard(\`${txt.replace(/`/g, '\\`').replace(/\\/g, '\\\\')}\`)" class="text-cyan-400 hover:text-cyan-300 flex items-center gap-1 font-semibold">
+                  <button onclick="copyToClipboard(window._lastPreviewTxt)" class="text-cyan-400 hover:text-cyan-300 flex items-center gap-1 font-semibold">
                     <i class="fa-regular fa-clipboard mr-1"></i> Copy Raw Text
                   </button>
                 </div>
