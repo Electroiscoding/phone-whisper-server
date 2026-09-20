@@ -8636,50 +8636,53 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 self.wfile.write(cached_bytes)
                 return
 
-            # Tier 3: Live Piper VITS Synthesis on ARM Cortex-A53 (~0.8s - 1.5s)
-            model_file = f"/data/data/com.termux/files/home/piper/voices/en_US-{voice_norm}-medium.onnx"
-            if not os.path.exists(model_file):
-                model_file = "/data/data/com.termux/files/home/piper/voices/en_US-lessac-medium.onnx"
+            # Tier 3: Real Neural VITS Inference (Sherpa-ONNX Engine on ARM)
+            sherpa_bin = "/data/data/com.termux/files/home/sherpa-tts/sherpa-onnx-offline-tts"
+            sherpa_base = "/data/data/com.termux/files/home/sherpa-tts"
+            voice_dir_name = f"vits-piper-en_US-{voice_norm}-low"
+            voice_path = os.path.join(sherpa_base, voice_dir_name)
+            if not os.path.exists(voice_path):
+                voice_dir_name = "vits-piper-en_US-lessac-low"
+                voice_path = os.path.join(sherpa_base, voice_dir_name)
                 voice_norm = "lessac"
+
+            vits_model = os.path.join(voice_path, f"en_US-{voice_norm}-low.onnx")
+            vits_tokens = os.path.join(voice_path, "tokens.txt")
+            vits_data = os.path.join(voice_path, "espeak-ng-data")
 
             target_wav = os.path.join(piper_cache_dir, f"{cache_key}.wav")
             length_scale = 1.0 / max(0.5, min(2.0, speed))
-            safe_text = input_text.replace('"', '\\"').replace('$', '\\$').replace('`', '')
-
-            cmd = (
-                f'export LD_LIBRARY_PATH=/data/data/com.termux/files/home/piper:$LD_LIBRARY_PATH; '
-                f'echo "{safe_text}" | /data/data/com.termux/files/home/piper/piper '
-                f'--model {model_file} '
-                f'--output_file {target_wav} '
-                f'--length_scale {length_scale:.2f}'
-            )
-
-            proot_cmd = [
-                "proot-distro", "login", "debian", "--",
-                "sh", "-c", cmd
-            ]
 
             t0 = time.time()
-            proc = None
-            try:
-                if os.path.exists("/data/data/com.termux/files/usr/bin/proot-distro"):
-                    proc = subprocess.run(proot_cmd, capture_output=True, timeout=25)
-            except Exception as pe:
-                print(f"[TTS] proot-distro run exception: {pe}")
+            audio_data = None
+            engine_name = "Sherpa-VITS Neural Engine (Live Inference)"
+            model_name = f"Piper VITS (en_US-{voice_norm}-low)"
+
+            if os.path.exists(sherpa_bin) and os.path.exists(vits_model):
+                cmd = [
+                    sherpa_bin,
+                    "--num-threads=4",
+                    f"--vits-model={vits_model}",
+                    f"--vits-tokens={vits_tokens}",
+                    f"--vits-data-dir={vits_data}",
+                    f"--vits-length-scale={length_scale:.2f}",
+                    f"--output-filename={target_wav}",
+                    input_text
+                ]
+                try:
+                    proc = subprocess.run(cmd, capture_output=True, timeout=30)
+                    if proc.returncode == 0 and os.path.exists(target_wav) and os.path.getsize(target_wav) > 0:
+                        with open(target_wav, "rb") as f:
+                            audio_data = f.read()
+                        if len(_PIPER_MEM_CACHE) < _PIPER_CACHE_MAX:
+                            _PIPER_MEM_CACHE[cache_key] = audio_data
+                except Exception as ex:
+                    print(f"[TTS] Neural VITS execution error: {ex}")
 
             infer_dur = time.time() - t0
 
-            audio_data = None
-            if proc and proc.returncode == 0 and os.path.exists(target_wav) and os.path.getsize(target_wav) > 0:
-                with open(target_wav, "rb") as f:
-                    audio_data = f.read()
-                if len(_PIPER_MEM_CACHE) < _PIPER_CACHE_MAX:
-                    _PIPER_MEM_CACHE[cache_key] = audio_data
-
             if not audio_data:
-                # Fallback to espeak-ng if proot had an issue
-                err_msg = proc.stderr.decode('utf-8', errors='ignore') if proc else "Native TTS fallback"
-                print(f"[TTS] Piper execution note: {err_msg}")
+                # Fallback to espeak-ng if neural model was unavailable
                 espeak_bin = "/data/data/com.termux/files/usr/bin/espeak-ng"
                 if os.path.exists(espeak_bin):
                     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp_f:
@@ -8690,6 +8693,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                         with open(tmp_path, "rb") as f:
                             audio_data = f.read()
                         os.remove(tmp_path)
+                    engine_name = "eSpeak-NG Formant Synthesizer (Fallback)"
+                    model_name = "eSpeak-NG (Algorithmic Formant)"
 
             if audio_data:
                 self.send_response(200)
@@ -8699,8 +8704,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 self.send_header("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable")
                 self.send_header("ETag", f'"{cache_key}"')
                 self.send_header("Accept-Ranges", "bytes")
-                self.send_header("X-TTS-Engine", "Piper-VITS Neural Engine (Live Inference)")
-                self.send_header("X-TTS-Model", f"Piper VITS (en_US-{voice_norm}-medium)")
+                self.send_header("X-TTS-Engine", engine_name)
+                self.send_header("X-TTS-Model", model_name)
                 self.send_header("X-TTS-Voice", voice_norm)
                 self.send_header("X-Cache", "MISS (Live Synthesis)")
                 self.send_header("X-Inference-Time-Sec", f"{infer_dur:.2f}")
