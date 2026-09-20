@@ -524,7 +524,9 @@
     .nav-links-desktop {
       display: flex;
       align-items: center;
-      gap: 1.5rem;
+      gap: 1.15rem;
+      flex-wrap: nowrap;
+      white-space: nowrap;
     }
 
     .nav-link {
@@ -532,7 +534,8 @@
       text-decoration: none;
       font-size: 0.9rem;
       font-weight: 600;
-      transition: color 0.2s;
+      transition: color 0.2s ease;
+      white-space: nowrap;
     }
 
     .nav-link:hover {
@@ -552,11 +555,164 @@
       align-items: center;
       gap: 0.5rem;
       transition: all 150ms ease-in-out;
+      white-space: nowrap;
     }
 
     .nav-btn:hover {
       background: rgba(255, 255, 255, 0.08);
       border-color: var(--card-border-hover);
+      color: #ffffff;
+    }
+
+    /* Nir Eyal Streamlined Dropdown Navigation */
+    .nav-dropdown {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .nav-dropdown-trigger {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      background: none;
+      border: none;
+      padding: 0.4rem 0.2rem;
+      transition: color 0.15s ease;
+      white-space: nowrap;
+      font-family: inherit;
+    }
+
+    .nav-dropdown-trigger:hover,
+    .nav-dropdown:hover .nav-dropdown-trigger,
+    .nav-dropdown:focus-within .nav-dropdown-trigger {
+      color: var(--text);
+    }
+
+    .nav-dropdown-trigger .dropdown-chevron {
+      font-size: 0.68rem;
+      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      opacity: 0.65;
+    }
+
+    .nav-dropdown:hover .dropdown-chevron,
+    .nav-dropdown:focus-within .dropdown-chevron,
+    .nav-dropdown.dropdown-active .dropdown-chevron {
+      transform: rotate(180deg);
+      opacity: 1;
+    }
+
+    .nav-dropdown-menu {
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%) translateY(6px);
+      min-width: 250px;
+      background: rgba(13, 17, 23, 0.97);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 12px;
+      padding: 0.45rem;
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.05);
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+
+    /* Invisible hover bridge to prevent menu from closing when moving mouse from trigger to menu */
+    .nav-dropdown-menu::before {
+      content: '';
+      position: absolute;
+      top: -12px;
+      left: 0;
+      right: 0;
+      height: 12px;
+    }
+
+    .nav-dropdown:hover .nav-dropdown-menu,
+    .nav-dropdown:focus-within .nav-dropdown-menu,
+    .nav-dropdown.dropdown-active .nav-dropdown-menu {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .nav-dropdown-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.55rem 0.75rem;
+      border-radius: 8px;
+      text-decoration: none;
+      color: var(--text);
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .nav-dropdown-item:hover {
+      background: rgba(255, 255, 255, 0.06);
+      color: #ffffff;
+      transform: translateX(2px);
+    }
+
+    .nav-dropdown-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      flex-shrink: 0;
+    }
+
+    .nav-dropdown-title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      line-height: 1.2;
+      color: #f1f5f9;
+    }
+
+    .nav-dropdown-desc {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      line-height: 1.2;
+      margin-top: 0.15rem;
+    }
+
+    .nav-btn-primary {
+      padding: 0.45rem 1.05rem;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #0284c7, #6366f1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #ffffff;
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
+      transition: all 180ms ease-in-out;
+      white-space: nowrap;
+    }
+
+    .nav-btn-primary:hover {
+      background: linear-gradient(135deg, #0ea5e9, #4f46e5);
+      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+      transform: translateY(-1px);
       color: #ffffff;
     }
 
@@ -664,6 +820,18 @@
       background: rgba(56, 189, 248, 0.1);
       border-color: rgba(56, 189, 248, 0.3);
       color: var(--primary);
+    }
+
+    .mobile-nav-section-title {
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-top: 0.6rem;
+      margin-bottom: 0.15rem;
+      padding-left: 0.4rem;
+      opacity: 0.75;
     }
 
     /* Container */
@@ -2468,26 +2636,111 @@
       </div>
     </div>
 
-    <!-- Desktop Navigation Links -->
+    <!-- Desktop Navigation Links (Nir Eyal Streamlined Habit-Loop Hierarchy) -->
     <div class="nav-links-desktop">
+      <a href="#studio" class="nav-link">Studio</a>
+
+      <!-- Platform Dropdown -->
+      <div class="nav-dropdown">
+        <button class="nav-dropdown-trigger" type="button" aria-haspopup="true" aria-expanded="false">
+          <span>Platform</span>
+          <i class="fa-solid fa-chevron-down dropdown-chevron"></i>
+        </button>
+        <div class="nav-dropdown-menu">
+          <a href="/dashboard.html" class="nav-dropdown-item">
+            <div class="nav-dropdown-icon" style="background: rgba(168, 85, 247, 0.15); color: #c084fc;">
+              <i class="fa-solid fa-sliders"></i>
+            </div>
+            <div>
+              <div class="nav-dropdown-title">Cloud Console</div>
+              <div class="nav-dropdown-desc">Hardware control &amp; live settings</div>
+            </div>
+          </a>
+          <a href="#cloud-storage" class="nav-dropdown-item">
+            <div class="nav-dropdown-icon" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8;">
+              <i class="fa-solid fa-cloud"></i>
+            </div>
+            <div>
+              <div class="nav-dropdown-title">Cloud Storage &amp; CDN</div>
+              <div class="nav-dropdown-desc">S3-compatible objects &amp; public URLs</div>
+            </div>
+          </a>
+          <a href="#cron-studio" class="nav-dropdown-item">
+            <div class="nav-dropdown-icon" style="background: rgba(251, 191, 36, 0.15); color: #fbbf24;">
+              <i class="fa-solid fa-clock"></i>
+            </div>
+            <div>
+              <div class="nav-dropdown-title">Agnostic Cron &amp; Tasks</div>
+              <div class="nav-dropdown-desc">24/7 background worker &amp; webhooks</div>
+            </div>
+          </a>
+          <a href="#telemetry" class="nav-dropdown-item">
+            <div class="nav-dropdown-icon" style="background: rgba(52, 211, 153, 0.15); color: #34d399;">
+              <i class="fa-solid fa-chart-line"></i>
+            </div>
+            <div>
+              <div class="nav-dropdown-title">Live Telemetry</div>
+              <div class="nav-dropdown-desc">Real-time battery, thermals &amp; RAM</div>
+            </div>
+          </a>
+        </div>
+      </div>
+
+      <!-- Developers Dropdown -->
+      <div class="nav-dropdown">
+        <button class="nav-dropdown-trigger" type="button" aria-haspopup="true" aria-expanded="false">
+          <span>Developers</span>
+          <i class="fa-solid fa-chevron-down dropdown-chevron"></i>
+        </button>
+        <div class="nav-dropdown-menu">
+          <a href="#cheatsheet" class="nav-dropdown-item">
+            <div class="nav-dropdown-icon" style="background: rgba(251, 191, 36, 0.15); color: #fbbf24;">
+              <i class="fa-solid fa-bolt"></i>
+            </div>
+            <div>
+              <div class="nav-dropdown-title">API Cheatsheet</div>
+              <div class="nav-dropdown-desc">Interactive cURL &amp; code generators</div>
+            </div>
+          </a>
+          <a href="/docs" class="nav-dropdown-item">
+            <div class="nav-dropdown-icon" style="background: rgba(129, 140, 248, 0.15); color: #818cf8;">
+              <i class="fa-solid fa-book"></i>
+            </div>
+            <div>
+              <div class="nav-dropdown-title">Documentation</div>
+              <div class="nav-dropdown-desc">Full API reference &amp; SDK guides</div>
+            </div>
+          </a>
+          <a href="#how-it-works" class="nav-dropdown-item">
+            <div class="nav-dropdown-icon" style="background: rgba(148, 163, 184, 0.15); color: #94a3b8;">
+              <i class="fa-solid fa-layer-group"></i>
+            </div>
+            <div>
+              <div class="nav-dropdown-title">Architecture</div>
+              <div class="nav-dropdown-desc">Kernel memory governor &amp; JIT design</div>
+            </div>
+          </a>
+          <a href="https://github.com/Electroiscoding/phone-whisper-server" target="_blank" class="nav-dropdown-item">
+            <div class="nav-dropdown-icon" style="background: rgba(255, 255, 255, 0.08); color: #f1f5f9;">
+              <svg height="14" width="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+            </div>
+            <div>
+              <div class="nav-dropdown-title">GitHub</div>
+              <div class="nav-dropdown-desc">Open source repository</div>
+            </div>
+          </a>
+        </div>
+      </div>
+
+      <!-- Quick Command Search -->
       <button class="cmd-k-trigger-btn" onclick="openCommandPalette()" title="Open Developer Command Palette (Press / or Cmd+K / Ctrl+K)">
         <i class="fa-solid fa-terminal text-cyan-400"></i>
-        <span>Search <kbd style="background: rgba(255,255,255,0.14); padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.72rem; border: 1px solid rgba(255,255,255,0.2); font-family: 'JetBrains Mono', monospace; font-weight: 700; color: #38bdf8;">/</kbd></span>
+        <span><kbd style="background: rgba(255,255,255,0.14); padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.72rem; border: 1px solid rgba(255,255,255,0.2); font-family: 'JetBrains Mono', monospace; font-weight: 700; color: #38bdf8;">/</kbd></span>
       </button>
-      <a href="/chat.html" class="nav-btn" style="background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(129, 140, 248, 0.2)); border-color: var(--primary); color: #fff; font-weight: 700; display: inline-flex; align-items: center; gap: 0.4rem;">
-        <i class="fa-solid fa-robot mr-1.5 text-cyan-400"></i> <span>Demo</span>
-      </a>
-      <a href="#studio" class="nav-link">Studio</a>
-      <a href="#cron-studio" class="nav-link" style="color: #fbbf24; font-weight: 700;">Cron &amp; Tasks <i class="fa-solid fa-clock text-xs ml-1"></i></a>
-      <a href="#cloud-storage" class="nav-link" style="color: #38bdf8; font-weight: 700;">Cloud Storage <i class="fa-solid fa-cloud text-xs ml-1"></i></a>
-      <a href="/dashboard.html" class="nav-link" style="color: #a855f7; font-weight: 700;">Console <i class="fa-solid fa-sliders text-xs ml-1"></i></a>
-      <a href="#cheatsheet" class="nav-link">API Cheatsheet</a>
-      <a href="#telemetry" class="nav-link">Telemetry</a>
-      <a href="#how-it-works" class="nav-link">Architecture</a>
-      <a href="/docs" class="nav-link">Docs</a>
-      <a href="https://github.com/Electroiscoding/phone-whisper-server" target="_blank" class="nav-btn">
-        <svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
-        <span>GitHub</span>
+
+      <!-- Nir Eyal Hook: Primary Action CTA -->
+      <a href="/chat.html" class="nav-btn-primary" title="Launch Interactive AI Playground">
+        <i class="fa-solid fa-bolt-lightning text-amber-300"></i> <span>Try Live Demo</span>
       </a>
     </div>
 
@@ -2509,35 +2762,40 @@
     </div>
 
     <div class="mobile-nav-links">
-      <a href="/chat.html" class="mobile-nav-item" onclick="closeMobileDrawer()" style="background: rgba(56, 189, 248, 0.12); border-color: var(--primary); color: #fff; font-weight: 700;">
-        <i class="fa-solid fa-robot"></i> <span>Live Demo</span>
+      <div class="mobile-nav-section-title">Habit Loop &amp; Playground</div>
+      <a href="/chat.html" class="mobile-nav-item" onclick="closeMobileDrawer()" style="background: linear-gradient(135deg, rgba(2, 132, 199, 0.25), rgba(99, 102, 241, 0.25)); border-color: var(--primary); color: #fff; font-weight: 700;">
+        <i class="fa-solid fa-bolt-lightning text-amber-400"></i> <span>Try Live Demo</span>
       </a>
       <a href="#studio" class="mobile-nav-item" onclick="closeMobileDrawer()">
         <i class="fa-solid fa-microphone mr-2 text-cyan-400"></i> <span>Voice Studio</span>
       </a>
-      <a href="#cron-studio" class="mobile-nav-item" onclick="closeMobileDrawer()" style="color: #fbbf24;">
-        <i class="fa-solid fa-clock mr-2 text-amber-400"></i> <span>Agnostic Cron &amp; Workers</span>
-      </a>
-      <a href="#cloud-storage" class="mobile-nav-item" onclick="closeMobileDrawer()" style="color: #38bdf8;">
-        <i class="fa-solid fa-cloud mr-2 text-sky-400"></i> <span>Cloud Storage & CDN</span>
-      </a>
+
+      <div class="mobile-nav-section-title">Platform</div>
       <a href="/dashboard.html" class="mobile-nav-item" onclick="closeMobileDrawer()" style="color: #c084fc;">
         <i class="fa-solid fa-sliders mr-2 text-purple-400"></i> <span>Cloud Console</span>
       </a>
-      <a href="#cheatsheet" class="mobile-nav-item" onclick="closeMobileDrawer()">
-        <i class="fa-solid fa-bolt mr-2 text-amber-400"></i> <span>API Cheatsheet</span>
+      <a href="#cloud-storage" class="mobile-nav-item" onclick="closeMobileDrawer()" style="color: #38bdf8;">
+        <i class="fa-solid fa-cloud mr-2 text-sky-400"></i> <span>Cloud Storage &amp; CDN</span>
+      </a>
+      <a href="#cron-studio" class="mobile-nav-item" onclick="closeMobileDrawer()" style="color: #fbbf24;">
+        <i class="fa-solid fa-clock mr-2 text-amber-400"></i> <span>Agnostic Cron &amp; Tasks</span>
       </a>
       <a href="#telemetry" class="mobile-nav-item" onclick="closeMobileDrawer()">
         <i class="fa-solid fa-chart-line mr-2 text-emerald-400"></i> <span>Live Telemetry</span>
       </a>
-      <a href="#how-it-works" class="mobile-nav-item" onclick="closeMobileDrawer()">
-        <i class="fa-solid fa-layer-group mr-2 text-zinc-400"></i> <span>Architecture</span>
+
+      <div class="mobile-nav-section-title">Developers</div>
+      <a href="#cheatsheet" class="mobile-nav-item" onclick="closeMobileDrawer()">
+        <i class="fa-solid fa-bolt mr-2 text-amber-400"></i> <span>API Cheatsheet</span>
       </a>
       <a href="/docs" class="mobile-nav-item" onclick="closeMobileDrawer()">
         <i class="fa-solid fa-book mr-2 text-indigo-400"></i> <span>Developer Docs</span>
       </a>
+      <a href="#how-it-works" class="mobile-nav-item" onclick="closeMobileDrawer()">
+        <i class="fa-solid fa-layer-group mr-2 text-zinc-400"></i> <span>Architecture</span>
+      </a>
       <a href="https://github.com/Electroiscoding/phone-whisper-server" target="_blank" class="mobile-nav-item" style="border-color: rgba(56, 189, 248, 0.3); color: var(--primary);">
-        <i class="fa-solid fa-star mr-2 text-yellow-400"></i> <span>GitHub Repository</span>
+        <i class="fa-brands fa-github mr-2 text-white"></i> <span>GitHub Repository</span>
       </a>
     </div>
   </div>
@@ -5297,6 +5555,29 @@ python3 mobile/nuclear_watchdog.py</code></pre>
     mobileMenuBtn.addEventListener("click", openMobileDrawer);
     mobileCloseBtn.addEventListener("click", closeMobileDrawer);
     mobileDrawerOverlay.addEventListener("click", closeMobileDrawer);
+
+    // Desktop Nav Dropdown Click & Escape Access
+    document.querySelectorAll(".nav-dropdown-trigger").forEach(trigger => {
+      trigger.addEventListener("click", (e) => {
+        const dropdown = trigger.closest(".nav-dropdown");
+        const isOpen = dropdown.classList.contains("dropdown-active");
+        document.querySelectorAll(".nav-dropdown").forEach(d => d.classList.remove("dropdown-active"));
+        if (!isOpen) dropdown.classList.add("dropdown-active");
+      });
+    });
+
+    document.addEventListener("click", (e) => {
+      if (!e.target.closest(".nav-dropdown")) {
+        document.querySelectorAll(".nav-dropdown").forEach(d => d.classList.remove("dropdown-active"));
+      }
+    });
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        document.querySelectorAll(".nav-dropdown").forEach(d => d.classList.remove("dropdown-active"));
+        closeMobileDrawer();
+      }
+    });
 
     // HYPER PROD-GRADE AUTONOMOUS NETWORK OUTAGE & AUTO-RECONNECT GUARDIAN
     const isDirectHosted = window.location.port === "8080" || window.location.hostname === "192.168.29.2" || window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
