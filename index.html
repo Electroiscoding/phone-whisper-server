@@ -6809,8 +6809,19 @@ python3 mobile/nuclear_watchdog.py</code></pre>
     });
 
     function copyText(str) {
-      navigator.clipboard.writeText(str);
-      alert("Base URL copied to clipboard: " + str);
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(str).then(() => {
+          if (typeof showTactileToast === 'function') {
+            showTactileToast(`Copied to clipboard: ${str}`, "fa-copy text-cyan-400");
+          } else {
+            alert("Copied to clipboard: " + str);
+          }
+        }).catch(() => {
+          prompt("Copy to clipboard (Ctrl+C, Enter):", str);
+        });
+      } else {
+        prompt("Copy to clipboard (Ctrl+C, Enter):", str);
+      }
     }
 
     function switchTab(tabName) {
@@ -8448,6 +8459,27 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       }
     }
 
+    function copyStorageCdnUrl(url, btn) {
+      if (!url) return;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).then(() => {
+          if (btn) {
+            const origHtml = btn.innerHTML;
+            btn.innerHTML = `<i class="fa-solid fa-check text-emerald-400"></i> <span>Copied!</span>`;
+            setTimeout(() => { btn.innerHTML = origHtml; }, 2000);
+          }
+          if (typeof showTactileToast === 'function') {
+            showTactileToast("CDN Link copied to clipboard!", "fa-copy text-cyan-400");
+          }
+        }).catch(() => {
+          prompt("Copy CDN URL (Ctrl+C, Enter):", url);
+        });
+      } else {
+        prompt("Copy CDN URL (Ctrl+C, Enter):", url);
+      }
+    }
+    window.copyStorageCdnUrl = copyStorageCdnUrl;
+
     async function uploadSelectedStorageFile() {
       if (!selectedStorageFiles || selectedStorageFiles.length === 0) {
         if (typeof showTactileToast === 'function') showTactileToast("Please choose files to upload first!", "fa-file-circle-exclamation text-amber-400");
@@ -8475,16 +8507,18 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       let successCount = 0;
       let lastUploadedCdnUrl = '';
       let lastUploadedKey = '';
+      let lastUploadedContentType = '';
 
       for (let i = 0; i < total; i++) {
         const file = selectedStorageFiles[i];
         let objectKey = (total === 1 && customKeyInput && customKeyInput.value.trim()) ? customKeyInput.value.trim() : file.name;
         objectKey = objectKey.replace(/^\/+/, '');
         lastUploadedKey = objectKey;
+        lastUploadedContentType = file.type || '';
 
         if (progText) {
           progText.style.display = "block";
-          progText.innerHTML = `<i class="fa-solid fa-bolt mr-1 text-amber-400"></i> [${i+1}/${total}] Uploading "${objectKey}" to phone storage...`;
+          progText.innerHTML = `<i class="fa-solid fa-bolt mr-1 text-amber-400"></i> [${i+1}/${total}] Uploading "${escapeHtml(objectKey)}" to phone storage...`;
         }
 
         try {
@@ -8504,9 +8538,10 @@ python3 mobile/nuclear_watchdog.py</code></pre>
 
           if (res.ok) {
             const data = await res.json().catch(() => ({}));
-            if (data.url) {
-              lastUploadedCdnUrl = `${BASE_ENDPOINT}${data.url}`;
-            }
+            const cdnPath = (data.object && data.object.url) || data.url || `/s/${currentStorageProject || 'usr_sandbox'}/${encodeURIComponent(objectKey)}`;
+            lastUploadedCdnUrl = `${BASE_ENDPOINT}${cdnPath}`;
+            lastUploadedKey = objectKey;
+            lastUploadedContentType = file.type || '';
             successCount++;
           }
         } catch (err) {
@@ -8515,11 +8550,63 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       }
 
       if (progText) {
-        if (isAnonGuest) {
-          const emailNotice = notifyEmail ? `<div style="font-size: 0.78rem; color: #34d399; margin-top: 0.25rem;"><i class="fa-solid fa-envelope mr-1"></i> 24/7 Gmail alert dispatched to <strong>${notifyEmail}</strong> with CDN link &amp; 3-day inactivity protection!</div>` : '';
-          progText.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400 mr-1"></i> <span style="color: #10b981;">Uploaded ${successCount}/${total} file(s) to Worldwide CDN!</span> ${emailNotice} <div style="font-size: 0.78rem; color: #fbbf24; margin-top: 0.35rem;"><i class="fa-regular fa-clock mr-1"></i> Dynamic Lifecycle Notice: If unvisited by external humans on the internet, this file will automatically purge in 3 days. Share the CDN link to keep it alive!</div>`;
+        if (successCount > 0) {
+          const ext = (lastUploadedKey.split('.').pop() || '').toLowerCase();
+          const isImg = (lastUploadedContentType || '').startsWith('image/') || ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'ico', 'avif'].includes(ext);
+          const emailNotice = notifyEmail ? `<div style="font-size: 0.78rem; color: #34d399; margin-top: 0.4rem;"><i class="fa-solid fa-envelope mr-1"></i> 24/7 Gmail alert dispatched to <strong>${escapeHtml(notifyEmail)}</strong> with CDN link &amp; 3-day inactivity protection!</div>` : '';
+
+          progText.innerHTML = `
+            <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 12px; padding: 1rem 1.15rem; margin-top: 0.75rem; text-align: left; box-shadow: 0 4px 20px rgba(0,0,0,0.35);">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
+                <span style="color: #34d399; font-weight: 700; font-size: 0.95rem; display: inline-flex; align-items: center; gap: 0.45rem;">
+                  <i class="fa-solid fa-circle-check text-emerald-400"></i>
+                  <span>Uploaded ${successCount}/${total} file(s) to Sovereign Worldwide CDN!</span>
+                </span>
+                <span style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); padding: 0.2rem 0.6rem; border-radius: 6px; font-size: 0.75rem; font-family: 'JetBrains Mono', monospace;">
+                  <i class="fa-solid fa-bolt mr-1"></i> Edge Ready
+                </span>
+              </div>
+
+              ${lastUploadedCdnUrl ? `
+              <div style="background: rgba(0, 0, 0, 0.55); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 8px; padding: 0.75rem 0.9rem; margin-bottom: 0.6rem;">
+                <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: #94a3b8; margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.35rem; font-weight: 600;">
+                  <i class="fa-solid fa-globe text-cyan-400"></i>
+                  <span>Public Worldwide CDN URL (Shareable Link)</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                  <a href="${lastUploadedCdnUrl}" target="_blank" style="color: #38bdf8; text-decoration: underline; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; word-break: break-all; flex: 1; min-width: 200px; padding: 0.3rem 0.5rem; background: rgba(56, 189, 248, 0.08); border-radius: 4px; border: 1px dashed rgba(56, 189, 248, 0.25);">
+                    ${lastUploadedCdnUrl}
+                  </a>
+                  <button onclick="copyStorageCdnUrl('${lastUploadedCdnUrl}', this)" class="btn-action" style="padding: 0.35rem 0.85rem; font-size: 0.8rem; background: linear-gradient(135deg, rgba(6, 182, 212, 0.25), rgba(16, 185, 129, 0.25)); border: 1px solid rgba(56, 189, 248, 0.5); color: #38bdf8; display: inline-flex; align-items: center; gap: 0.35rem; white-space: nowrap; cursor: pointer; border-radius: 6px; font-weight: 600;">
+                    <i class="fa-solid fa-copy"></i>
+                    <span>Copy CDN Link</span>
+                  </button>
+                  <a href="${lastUploadedCdnUrl}" target="_blank" class="btn-action" style="padding: 0.35rem 0.85rem; font-size: 0.8rem; text-decoration: none; display: inline-flex; align-items: center; gap: 0.35rem; white-space: nowrap; border-radius: 6px;">
+                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                    <span>Open</span>
+                  </a>
+                </div>
+              </div>
+              ` : ''}
+
+              ${isImg && lastUploadedCdnUrl ? `
+              <div style="margin-top: 0.5rem; margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.75rem; background: rgba(255, 255, 255, 0.03); padding: 0.5rem 0.75rem; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.06);">
+                <a href="${lastUploadedCdnUrl}" target="_blank">
+                  <img src="${lastUploadedCdnUrl}" alt="Preview" style="max-height: 80px; max-width: 120px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.15); object-fit: cover; cursor: pointer;" />
+                </a>
+                <div>
+                  <div style="font-size: 0.82rem; font-weight: 600; color: #f1f5f9;">${escapeHtml(lastUploadedKey)}</div>
+                  <div style="font-size: 0.75rem; color: #10b981; margin-top: 0.15rem;"><i class="fa-solid fa-shield-halved mr-1"></i> Instant RAM/Flash Reflection Verified</div>
+                </div>
+              </div>
+              ` : ''}
+
+              ${emailNotice}
+              ${isAnonGuest ? `<div style="font-size: 0.78rem; color: #fbbf24; margin-top: 0.4rem;"><i class="fa-regular fa-clock mr-1"></i> Dynamic Lifecycle Notice: If unvisited by external humans on the internet, this file will automatically purge in 3 days. Share the CDN link to keep it alive!</div>` : ''}
+            </div>
+          `;
         } else {
-          progText.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400 mr-1"></i> <span style="color: #10b981;">Uploaded ${successCount}/${total} file(s) to sovereign cloud!</span>`;
+          progText.innerHTML = `<span style="color: #ef4444;"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Upload failed. Please check network connection or file size.</span>`;
         }
       }
 

@@ -2757,13 +2757,19 @@ class SwadeObjectStore:
         """Preloads metadata of all existing tenant files into RAM on startup"""
         try:
             # Check primary, shared, and external pools
-            search_roots = [self.root_dir]
-            if os.path.exists("/sdcard/SwadesCloud/tenants"):
-                search_roots.append("/sdcard/SwadesCloud/tenants")
+            search_roots = [
+                self.root_dir,
+                "/data/data/com.termux/files/home/.swades_storage/tenants",
+                "/data/user/0/com.termux/.swades_storage/tenants",
+                "/data/user/0/com.termux/files/home/.swades_storage/tenants",
+                "/sdcard/SwadesCloud/tenants"
+            ]
+            seen_roots = set()
 
             for r_dir in search_roots:
-                if not os.path.exists(r_dir):
+                if not r_dir or r_dir in seen_roots or not os.path.exists(r_dir):
                     continue
+                seen_roots.add(r_dir)
                 for tenant_id in os.listdir(r_dir):
                     t_dir = os.path.join(r_dir, tenant_id, "objects")
                     if not os.path.isdir(t_dir):
@@ -2792,8 +2798,9 @@ class SwadeObjectStore:
                                     "external_human_visits": 0,
                                     "ttl_days": 3,
                                     "expires_at_ts": st.st_ctime + (3 * 86400),
-                                    "pool": "Internal Flash" if r_dir == self.root_dir else "Shared /sdcard",
-                                    "_disk_path": full_path
+                                    "pool": "Internal Flash" if "sdcard" not in r_dir else "Shared /sdcard",
+                                    "_disk_path": full_path,
+                                    "url": f"/s/{tenant_id}/{rel_path}"
                                 }
                                 self._meta_index[tenant_id][rel_path] = meta
                                 self._tenant_used_bytes[tenant_id] += st.st_size
@@ -2802,6 +2809,58 @@ class SwadeObjectStore:
                                 pass
         except Exception as e:
             print(f"[SWADES STORAGE] warm cache notice: {e}")
+
+    def _scan_tenant_disk(self, tenant_id: str):
+        """Scans disk directories for any untracked or persisted tenant files and reflects them into L1 RAM index"""
+        search_roots = [
+            self.root_dir,
+            "/data/data/com.termux/files/home/.swades_storage/tenants",
+            "/data/user/0/com.termux/.swades_storage/tenants",
+            "/data/user/0/com.termux/files/home/.swades_storage/tenants",
+            "/sdcard/SwadesCloud/tenants"
+        ]
+        seen_roots = set()
+        for r_dir in search_roots:
+            if not r_dir or r_dir in seen_roots or not os.path.exists(r_dir):
+                continue
+            seen_roots.add(r_dir)
+            t_dir = os.path.join(r_dir, tenant_id, "objects")
+            if not os.path.isdir(t_dir):
+                continue
+            for root, _, files in os.walk(t_dir):
+                for fname in files:
+                    full_path = os.path.join(root, fname)
+                    rel_path = os.path.relpath(full_path, t_dir).replace("\\", "/")
+                    if rel_path not in self._meta_index[tenant_id]:
+                        try:
+                            st = os.stat(full_path)
+                            ct, _ = mimetypes.guess_type(fname)
+                            etag = f'"{int(st.st_mtime)}-{st.st_size}"'
+                            now = datetime.fromtimestamp(st.st_ctime, timezone.utc).isoformat()
+                            is_anon = tenant_id.startswith("usr_guest_") or tenant_id.startswith("usr_sandbox_")
+                            meta = {
+                                "key": rel_path,
+                                "size": st.st_size,
+                                "content_type": ct or "application/octet-stream",
+                                "created_at": now,
+                                "updated_at": datetime.fromtimestamp(st.st_mtime, timezone.utc).isoformat(),
+                                "etag": etag,
+                                "is_public": True,
+                                "is_anonymous": is_anon,
+                                "uploaded_at_ts": st.st_ctime,
+                                "last_accessed_ts": st.st_mtime,
+                                "external_human_visits": 0,
+                                "ttl_days": 3,
+                                "expires_at_ts": st.st_ctime + (3 * 86400),
+                                "pool": "Internal Flash" if "sdcard" not in r_dir else "Shared /sdcard",
+                                "_disk_path": full_path,
+                                "url": f"/s/{tenant_id}/{rel_path}"
+                            }
+                            self._meta_index[tenant_id][rel_path] = meta
+                            self._tenant_used_bytes[tenant_id] += st.st_size
+                            self._tenant_object_count[tenant_id] += 1
+                        except Exception:
+                            pass
 
     def _sanitize_key(self, raw_key: str) -> str:
         """Enforces strict multi-tenant boundary. Prohibits directory traversal ('..', leading slashes, null bytes)"""
@@ -2918,14 +2977,19 @@ class SwadeObjectStore:
         return meta
 
     def head_object(self, tenant_id: str, raw_key: str):
-        """Pure RAM Metadata Reflection"""
-        t_dict = self._meta_index.get(tenant_id)
-        if not t_dict or not raw_key:
+        """Pure RAM Metadata Reflection with On-Demand Disk Scan"""
+        if not raw_key:
             return None
         try:
             clean_key = self._sanitize_key(raw_key)
         except Exception:
             clean_key = raw_key.replace("\\", "/").strip("/ ")
+        t_dict = self._meta_index.get(tenant_id)
+        if not t_dict or clean_key not in t_dict:
+            self._scan_tenant_disk(tenant_id)
+            t_dict = self._meta_index.get(tenant_id)
+        if not t_dict:
+            return None
         return t_dict.get(clean_key) or t_dict.get(raw_key) or t_dict.get(raw_key.strip("/ "))
 
     def get_object(self, tenant_id: str, raw_key: str):
@@ -2937,6 +3001,9 @@ class SwadeObjectStore:
         except Exception:
             clean_key = raw_key.replace("\\", "/").strip("/ ")
         t_dict = self._meta_index.get(tenant_id)
+        if not t_dict or clean_key not in t_dict:
+            self._scan_tenant_disk(tenant_id)
+            t_dict = self._meta_index.get(tenant_id)
         if not t_dict:
             return None, None
         meta = t_dict.get(clean_key) or t_dict.get(raw_key) or t_dict.get(raw_key.strip("/ "))
@@ -2962,6 +3029,8 @@ class SwadeObjectStore:
 
     def find_object(self, tenant_id: str, raw_key: str):
         """Finds object across tenant or universal bucket namespaces for zero-failure CDN retrieval"""
+        if tenant_id:
+            self._scan_tenant_disk(tenant_id)
         candidates = []
         raw_clean = (raw_key or "").replace("\\", "/").strip("/ ")
         unquoted = urllib.parse.unquote(raw_clean)
@@ -2984,7 +3053,8 @@ class SwadeObjectStore:
         # 2. Universal meta index lookup across all registered tenants
         with self.lock:
             for cand in candidates:
-                for t_id, t_dict in self._meta_index.items():
+                for t_id in list(self._meta_index.keys()):
+                    t_dict = self._meta_index.get(t_id, {})
                     meta = t_dict.get(cand)
                     if meta:
                         data, _ = self.get_object(t_id, meta.get("key", cand))
@@ -2996,7 +3066,8 @@ class SwadeObjectStore:
                 base = os.path.basename(cand)
                 if not base:
                     continue
-                for t_id, t_dict in self._meta_index.items():
+                for t_id in list(self._meta_index.keys()):
+                    t_dict = self._meta_index.get(t_id, {})
                     for k, meta in t_dict.items():
                         if k == base or k.endswith("/" + base) or base.endswith("/" + k) or k.endswith(base):
                             data, _ = self.get_object(t_id, k)
@@ -3036,7 +3107,8 @@ class SwadeObjectStore:
         return True
 
     def list_objects(self, tenant_id: str, prefix=None, limit=100):
-        """In-Memory Directory Slice in <0.005ms with Real-Time 3-Day Inactivity TTL Metrics"""
+        """In-Memory Directory Slice in <0.005ms with Real-Time 3-Day Inactivity TTL Metrics and Disk Fallback"""
+        self._scan_tenant_disk(tenant_id)
         t_dict = self._meta_index.get(tenant_id, {})
         t_objs = list(t_dict.values())
         if prefix:
@@ -3073,6 +3145,7 @@ class SwadeObjectStore:
         return safe_list, len(t_objs)
 
     def get_usage(self, tenant_id: str):
+        self._scan_tenant_disk(tenant_id)
         used = self._tenant_used_bytes[tenant_id]
         count = self._tenant_object_count[tenant_id]
         return {"used_bytes": used, "used_mb": round(used / (1024*1024), 3), "object_count": count}
@@ -6145,8 +6218,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             t_ns = time.perf_counter_ns() - t0
             t_ms = round(t_ns / 1_000_000, 6)
             meta["reflection_time_ns"] = t_ns
-            meta["reflection_time_ms"] = t_ms
-            resp = json.dumps({"success": True, "object": meta, "project_id": scope_id}).encode("utf-8")
+            resp = json.dumps({"success": True, "object": meta, "url": meta["url"], "project_id": scope_id}).encode("utf-8")
             self.send_response(201)
             self._send_cors_headers()
             self.send_header("Content-Type", "application/json")
