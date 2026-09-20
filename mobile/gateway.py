@@ -5146,6 +5146,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_project_get(project_id)
         elif path in ["/dashboard", "/dashboard.html"]:
             self.handle_dashboard_html()
+        elif path in ["/chat", "/chat.html", "/studio"]:
+            self.handle_chat_html()
         elif path in ["/docs", "/docs.html"]:
             self.handle_docs_html()
         elif path in ["/maker", "/maker.md"]:
@@ -6659,6 +6661,26 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 self.wfile.write(content)
                 return
         self.send_error(404, "dashboard.html not found on server")
+
+    def handle_chat_html(self):
+        """Serves the MobileAI Studio chat interface"""
+        for p in [
+            os.path.join(os.getcwd(), "chat.html"),
+            "/data/data/com.termux/files/home/chat.html",
+            "/data/data/com.termux/files/home/phone-whisper-server/chat.html",
+            os.path.expanduser("~/chat.html")
+        ]:
+            if os.path.exists(p):
+                with open(p, "rb") as f:
+                    content = f.read()
+                self.send_response(200)
+                self._send_cors_headers()
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Content-Length", str(len(content)))
+                self.end_headers()
+                self.wfile.write(content)
+                return
+        self.send_error(404, "chat.html not found on server")
 
     def handle_docs_html(self):
         """Serves the exhaustive documentation single page application"""

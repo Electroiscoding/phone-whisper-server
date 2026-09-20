@@ -702,9 +702,10 @@
       </div>
     </div>
     <div class="header-right">
-      <div class="hardware-pill" style="background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.3); color: #34d399;">
+      <div class="hardware-pill" id="chatSavedDollarsPill" onclick="showSavingsBreakdownModal()" style="background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.3); color: #34d399; cursor: pointer; position: relative; transition: all 0.25s ease;" title="Click to view Cloud Cost Savings Breakdown">
         <i class="fa-solid fa-coins text-amber-400"></i>
         <span>Saved: <strong id="chatSavedDollarsVal" style="color: #ffffff; font-family: monospace;">$0.00</strong></span>
+        <span id="chatSavingsIncrementBadge" style="display: none; position: absolute; top: -8px; right: -4px; background: #10b981; color: #000; font-weight: 800; font-size: 0.65rem; padding: 1px 5px; border-radius: 999px; box-shadow: 0 0 10px rgba(16,185,129,0.8); z-index: 10;">+$0.04</span>
       </div>
       <div class="hardware-pill" id="telemetryBadge">
         <div class="status-dot"></div>
@@ -916,24 +917,117 @@
     }
     window.rollChatPromptDice = rollChatPromptDice;
 
-    function updateChatDollarsSaved() {
+    function updateChatDollarsSaved(tokensGenerated = 0) {
       let count = parseInt(localStorage.getItem('pw_session_inferences') || '0', 10);
       count++;
       localStorage.setItem('pw_session_inferences', count.toString());
+
+      let totalTokens = parseInt(localStorage.getItem('pw_total_tokens') || '0', 10);
+      totalTokens += (tokensGenerated || 120);
+      localStorage.setItem('pw_total_tokens', totalTokens.toString());
+
+      // Realistic cloud comparison: base invocation ($0.015) + output tokens ($0.03 / 1k tokens)
+      const tokenSavings = ((tokensGenerated || 120) / 1000) * 0.03;
+      const requestIncrement = Math.max(0.02, Math.round((0.015 + tokenSavings) * 100) / 100);
+
+      let savedTotal = parseFloat(localStorage.getItem('pw_total_saved_dollars') || '0');
+      if (savedTotal === 0 && count > 0) {
+        savedTotal = Math.round(count * 0.042 * 100) / 100;
+      }
+      savedTotal = Math.round((savedTotal + requestIncrement) * 100) / 100;
+      localStorage.setItem('pw_total_saved_dollars', savedTotal.toFixed(2));
+
       const el = document.getElementById('chatSavedDollarsVal');
       if (el) {
-        el.innerText = `$${(count * 0.042).toFixed(2)}`;
+        el.innerText = `$${savedTotal.toFixed(2)}`;
       }
+
+      // Visual tactile pulse on badge:
+      const pill = document.getElementById('chatSavedDollarsPill');
+      const incBadge = document.getElementById('chatSavingsIncrementBadge');
+      if (pill) {
+        pill.style.borderColor = 'rgba(16, 185, 129, 0.9)';
+        pill.style.boxShadow = '0 0 15px rgba(16, 185, 129, 0.4)';
+        pill.style.transform = 'scale(1.05)';
+        setTimeout(() => {
+          pill.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+          pill.style.boxShadow = 'none';
+          pill.style.transform = 'scale(1)';
+        }, 1200);
+      }
+
+      if (incBadge) {
+        incBadge.innerText = `+$${requestIncrement.toFixed(2)}`;
+        incBadge.style.display = 'inline-block';
+        setTimeout(() => {
+          incBadge.style.display = 'none';
+        }, 3000);
+      }
+
       playCrystalChime(659.25);
     }
+
+    function showSavingsBreakdownModal() {
+      const count = parseInt(localStorage.getItem('pw_session_inferences') || '0', 10);
+      const totalTokens = parseInt(localStorage.getItem('pw_total_tokens') || (count * 140).toString(), 10);
+      const savedTotal = document.getElementById('chatSavedDollarsVal')?.innerText || '$0.00';
+      
+      const modal = document.createElement('div');
+      modal.className = 'glass-modal-backdrop';
+      modal.style.cssText = 'position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 1rem;';
+      modal.innerHTML = `
+        <div style="background: #0f172a; border: 1px solid rgba(16,185,129,0.3); border-radius: 16px; padding: 1.5rem; max-width: 420px; width: 100%; box-shadow: 0 20px 50px rgba(0,0,0,0.6); color: #fff; font-family: system-ui, -apple-system, sans-serif;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem; font-weight: 700; font-size: 1.1rem; color: #34d399;">
+              <i class="fa-solid fa-coins text-amber-400"></i> Sovereign Hardware Savings
+            </div>
+            <button onclick="this.closest('.glass-modal-backdrop').remove()" style="background: none; border: none; color: #94a3b8; font-size: 1.4rem; cursor: pointer; line-height: 1;">&times;</button>
+          </div>
+          <div style="background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.25); border-radius: 12px; padding: 1rem; text-align: center; margin-bottom: 1rem;">
+            <div style="font-size: 0.78rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">Total Cloud API Costs Avoided</div>
+            <div style="font-size: 2.2rem; font-weight: 800; color: #34d399; font-family: monospace; margin: 0.2rem 0;">${savedTotal}</div>
+            <div style="font-size: 0.75rem; color: #38bdf8;">100% Free on Xiaomi Redmi 9i ARM Hardware</div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 0.6rem; font-size: 0.85rem; color: #cbd5e1; margin-bottom: 1.25rem;">
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 0.4rem;">
+              <span>Total On-Device Inferences</span>
+              <strong style="color: #fff; font-family: monospace;">${count}</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 0.4rem;">
+              <span>Processed Neural Tokens</span>
+              <strong style="color: #fff; font-family: monospace;">~${totalTokens.toLocaleString()} tokens</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 0.4rem;">
+              <span>Commercial API Equivalent</span>
+              <strong style="color: #fbbf24; font-family: monospace;">$0.030 / 1K tok + fee</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; padding-top: 0.2rem;">
+              <span>Your Sovereign AI Cost</span>
+              <strong style="color: #10b981; font-family: monospace;">$0.00 (Zero API bills)</strong>
+            </div>
+          </div>
+          <button onclick="this.closest('.glass-modal-backdrop').remove()" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: none; background: #10b981; color: #000; font-weight: 700; cursor: pointer; font-size: 0.9rem;">
+            Got it
+          </button>
+        </div>
+      `;
+      modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+      document.body.appendChild(modal);
+    }
+    window.showSavingsBreakdownModal = showSavingsBreakdownModal;
 
     // Set clean initial state on page load
     applyRandomTitle();
     clearChatHistory();
     const initCostEl = document.getElementById('chatSavedDollarsVal');
     if (initCostEl) {
-      const initCount = parseInt(localStorage.getItem('pw_session_inferences') || '0', 10);
-      initCostEl.innerText = `$${(initCount * 0.042).toFixed(2)}`;
+      const savedTotal = parseFloat(localStorage.getItem('pw_total_saved_dollars') || '0');
+      if (savedTotal > 0) {
+        initCostEl.innerText = `$${savedTotal.toFixed(2)}`;
+      } else {
+        const initCount = parseInt(localStorage.getItem('pw_session_inferences') || '0', 10);
+        initCostEl.innerText = `$${(initCount * 0.042).toFixed(2)}`;
+      }
     }
 
     async function submitUserPrompt() {
@@ -1026,40 +1120,50 @@
         }
         try { reader.cancel(); } catch (e) {}
 
-        // Append assistant response to in-memory session history
-        if (fullText) {
-          chatSessionHistory.push({ role: "assistant", content: fullText });
-          updateChatDollarsSaved();
-        }
-
         const elapsed = ((performance.now() - t0) / 1000).toFixed(2);
         const estimatedTokens = Math.max(tokenCount, Math.round(fullText.length / 3.8));
         const tokPerSec = (estimatedTokens / Math.max(0.1, parseFloat(elapsed))).toFixed(1);
         const turnCount = Math.floor((chatSessionHistory.length - 1) / 2);
 
+        // Append assistant response to in-memory session history & update dollar savings
+        if (fullText) {
+          chatSessionHistory.push({ role: "assistant", content: fullText });
+          updateChatDollarsSaved(estimatedTokens);
+        }
+
         // Remove cursor immediately when generation completes
         cursorEl.remove();
 
-        // Attach Action Bar & Follow-up Suggestions
+        // Attach Action Bar & Follow-up Suggestions programmatically (100% safe from code string injection)
         const actionBar = document.createElement("div");
         actionBar.className = "ai-action-bar";
-        actionBar.innerHTML = `
-          <button class="btn-ai-action" onclick="copyAiResponse(this)" title="Copy text">
-            <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2" fill="none"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-            <span>Copy</span>
-          </button>
-          <button class="btn-ai-action" onclick="regeneratePrompt('${text.replace(/'/g, "\\'")}')" title="Regenerate">
-            <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2" fill="none"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
-            <span>Retry</span>
-          </button>
-          <button class="btn-ai-action" onclick="readAloudText(this, \`${fullText.replace(/[`$\\]/g, "")}\`)" title="Read Aloud (TTS)">
-            <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2" fill="none"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
-            <span>Read Aloud</span>
-          </button>
-          <span style="font-size: 0.75rem; color: var(--text-subtle); margin-left: auto; font-family: monospace; padding: 0.2rem 0.5rem; background: rgba(255,255,255,0.04); border-radius: 4px;">
-            <i class="fa-solid fa-bolt" style="color:#eab308;"></i> ${estimatedTokens} tokens in ${elapsed}s (~${tokPerSec} tok/sec) • Context: ${turnCount} turns
-          </span>
-        `;
+
+        const copyBtn = document.createElement("button");
+        copyBtn.className = "btn-ai-action";
+        copyBtn.title = "Copy text";
+        copyBtn.innerHTML = `<svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2" fill="none"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> <span>Copy</span>`;
+        copyBtn.onclick = () => copyAiResponse(copyBtn);
+
+        const retryBtn = document.createElement("button");
+        retryBtn.className = "btn-ai-action";
+        retryBtn.title = "Regenerate";
+        retryBtn.innerHTML = `<svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2" fill="none"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg> <span>Retry</span>`;
+        retryBtn.onclick = () => regeneratePrompt(text);
+
+        const ttsBtn = document.createElement("button");
+        ttsBtn.className = "btn-ai-action";
+        ttsBtn.title = "Read Aloud (TTS)";
+        ttsBtn.innerHTML = `<svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2" fill="none"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg> <span>Read Aloud</span>`;
+        ttsBtn.onclick = () => readAloudText(ttsBtn, fullText);
+
+        const metricsSpan = document.createElement("span");
+        metricsSpan.style.cssText = "font-size: 0.75rem; color: var(--text-subtle); margin-left: auto; font-family: monospace; padding: 0.2rem 0.5rem; background: rgba(255,255,255,0.04); border-radius: 4px;";
+        metricsSpan.innerHTML = `<i class="fa-solid fa-bolt" style="color:#eab308;"></i> ${estimatedTokens} tokens in ${elapsed}s (~${tokPerSec} tok/sec) • Context: ${turnCount} turns`;
+
+        actionBar.appendChild(copyBtn);
+        actionBar.appendChild(retryBtn);
+        actionBar.appendChild(ttsBtn);
+        actionBar.appendChild(metricsSpan);
         aiRow.appendChild(actionBar);
 
         // Smart dynamic follow-up chips
