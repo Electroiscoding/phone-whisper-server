@@ -5589,24 +5589,34 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
     # =========================================================================
     # REMOTE CLOUD PHONE SCREEN & APP CONTROL HANDLERS
     # =========================================================================
+    @staticmethod
+    def _get_adb_base_cmd():
+        for p in ["/usr/bin/adb", "/data/data/com.termux/files/usr/bin/adb", shutil.which("adb")]:
+            if p and os.path.exists(p) and os.access(p, os.X_OK):
+                return [p]
+        return ["adb"]
+
     def handle_screen_frame(self):
         """Returns a single JPEG image snapshot of the physical Android phone screen."""
         try:
-            cmd = ["adb", "exec-out", "screencap"]
-            p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=4)
+            cmd = self._get_adb_base_cmd() + ["exec-out", "screencap"]
             jpeg_data = None
-            if p.returncode == 0 and len(p.stdout) >= 4608000:
-                data = p.stdout
-                width = int.from_bytes(data[0:4], byteorder='little')
-                height = int.from_bytes(data[4:8], byteorder='little')
-                raw_bytes = data[16:] if len(data) == 4608016 else data[12:]
-                
-                if HAVE_PIL:
-                    img = Image.frombytes('RGBA', (width, height), raw_bytes, 'raw', 'RGBA')
-                    img_small = img.resize((360, 800), Image.Resampling.NEAREST).convert('RGB')
-                    buf = io.BytesIO()
-                    img_small.save(buf, format='JPEG', quality=60)
-                    jpeg_data = buf.getvalue()
+            try:
+                p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=4)
+                if p.returncode == 0 and len(p.stdout) >= 4608000:
+                    data = p.stdout
+                    width = int.from_bytes(data[0:4], byteorder='little')
+                    height = int.from_bytes(data[4:8], byteorder='little')
+                    raw_bytes = data[16:] if len(data) == 4608016 else data[12:]
+                    
+                    if HAVE_PIL:
+                        img = Image.frombytes('RGBA', (width, height), raw_bytes, 'raw', 'RGBA')
+                        img_small = img.resize((360, 800), Image.Resampling.NEAREST).convert('RGB')
+                        buf = io.BytesIO()
+                        img_small.save(buf, format='JPEG', quality=60)
+                        jpeg_data = buf.getvalue()
+            except Exception:
+                pass
 
             if not jpeg_data:
                 buf = io.BytesIO()
@@ -5646,7 +5656,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
 
             while True:
                 try:
-                    cmd = ["adb", "exec-out", "screencap"]
+                    cmd = self._get_adb_base_cmd() + ["exec-out", "screencap"]
                     p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=3)
                     jpeg_data = None
                     if p.returncode == 0 and len(p.stdout) >= 4608000:
@@ -5692,9 +5702,9 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 dur = int(data.get("duration_ms", 300))
                 epx = max(0, min(720, int(erx * 720)))
                 epy = max(0, min(1600, int(ery * 1600)))
-                cmd = ["adb", "shell", "input", "swipe", str(px), str(py), str(epx), str(epy), str(dur)]
+                cmd = self._get_adb_base_cmd() + ["shell", "input", "swipe", str(px), str(py), str(epx), str(epy), str(dur)]
             else:
-                cmd = ["adb", "shell", "input", "tap", str(px), str(py)]
+                cmd = self._get_adb_base_cmd() + ["shell", "input", "tap", str(px), str(py)]
 
             res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=4)
             
@@ -5741,10 +5751,11 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             if keycode is None:
                 keycode = key_map.get(key, 3)
 
+            adb_bin = self._get_adb_base_cmd()[0]
             if key == "UNLOCK":
-                subprocess.run(["adb shell 'input keyevent 224 && input keyevent 82 && input swipe 360 1200 360 300'"], shell=True, timeout=4)
+                subprocess.run([f"{adb_bin} shell 'input keyevent 224 && input keyevent 82 && input swipe 360 1200 360 300'"], shell=True, timeout=4)
             else:
-                subprocess.run(["adb", "shell", "input", "keyevent", str(keycode)], timeout=4)
+                subprocess.run([adb_bin, "shell", "input", "keyevent", str(keycode)], timeout=4)
 
             self.send_response(200)
             self._send_cors_headers()
@@ -5772,16 +5783,17 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             app_id = data.get("app", "netuark").lower()
             package_name = data.get("package", "")
             
+            adb_base = self._get_adb_base_cmd()
             if app_id == "netuark" or "netuark" in package_name.lower():
-                cmd = ["adb", "shell", "monkey", "-p", "com.netuark", "-c", "android.intent.category.LAUNCHER", "1"]
+                cmd = adb_base + ["shell", "monkey", "-p", "com.netuark", "-c", "android.intent.category.LAUNCHER", "1"]
                 p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=5)
                 if p.returncode != 0:
-                    subprocess.run(["adb", "shell", "am start -a android.intent.action.VIEW -d content://com.android.externalstorage.documents/document/primary%3ADownload%2FNeTuArk-v4.2.0.apk -t application/vnd.android.package-archive"], timeout=4)
+                    subprocess.run(adb_base + ["shell", "am", "start", "-a", "android.intent.action.VIEW", "-d", "content://com.android.externalstorage.documents/document/primary%3ADownload%2FNeTuArk-v4.2.0.apk", "-t", "application/vnd.android.package-archive"], timeout=4)
             elif package_name:
                 if action == "stop":
-                    subprocess.run(["adb", "shell", "am", "force-stop", package_name], timeout=4)
+                    subprocess.run(adb_base + ["shell", "am", "force-stop", package_name], timeout=4)
                 else:
-                    subprocess.run(["adb", "shell", "monkey", "-p", package_name, "-c", "android.intent.category.LAUNCHER", "1"], timeout=4)
+                    subprocess.run(adb_base + ["shell", "monkey", "-p", package_name, "-c", "android.intent.category.LAUNCHER", "1"], timeout=4)
 
             self.send_response(200)
             self._send_cors_headers()
