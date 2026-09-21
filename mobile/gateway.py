@@ -5591,10 +5591,18 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
     # =========================================================================
     @staticmethod
     def _get_adb_base_cmd():
-        for p in ["/usr/bin/adb", "/data/data/com.termux/files/usr/bin/adb", shutil.which("adb")]:
+        termux_adb = "/data/data/com.termux/files/home/llama.cpp/scripts/snapdragon/adb"
+        for p in [termux_adb, "/usr/bin/adb", "/data/data/com.termux/files/usr/bin/adb", shutil.which("adb")]:
             if p and os.path.exists(p) and os.access(p, os.X_OK):
                 return [p]
         return ["adb"]
+
+    @staticmethod
+    def _run_shell_cmd(cmd_str):
+        for shell_path in ["/system/bin/sh", "/data/data/com.termux/files/usr/bin/bash"]:
+            if os.path.exists(shell_path):
+                return subprocess.run([shell_path, "-c", cmd_str], stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=5)
+        return subprocess.run(cmd_str, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=5)
 
     def handle_screen_frame(self):
         """Returns a single JPEG image snapshot of the physical Android phone screen."""
@@ -5702,11 +5710,11 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 dur = int(data.get("duration_ms", 300))
                 epx = max(0, min(720, int(erx * 720)))
                 epy = max(0, min(1600, int(ery * 1600)))
-                cmd = self._get_adb_base_cmd() + ["shell", "input", "swipe", str(px), str(py), str(epx), str(epy), str(dur)]
+                cmd_str = f"input swipe {px} {py} {epx} {epy} {dur}"
             else:
-                cmd = self._get_adb_base_cmd() + ["shell", "input", "tap", str(px), str(py)]
+                cmd_str = f"input tap {px} {py}"
 
-            res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=4)
+            res = self._run_shell_cmd(cmd_str)
             
             self.send_response(200)
             self._send_cors_headers()
@@ -5751,11 +5759,10 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             if keycode is None:
                 keycode = key_map.get(key, 3)
 
-            adb_bin = self._get_adb_base_cmd()[0]
             if key == "UNLOCK":
-                subprocess.run([f"{adb_bin} shell 'input keyevent 224 && input keyevent 82 && input swipe 360 1200 360 300'"], shell=True, timeout=4)
+                self._run_shell_cmd("input keyevent 224 && input keyevent 82 && input swipe 360 1200 360 300")
             else:
-                subprocess.run([adb_bin, "shell", "input", "keyevent", str(keycode)], timeout=4)
+                self._run_shell_cmd(f"input keyevent {keycode}")
 
             self.send_response(200)
             self._send_cors_headers()
@@ -5783,17 +5790,15 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             app_id = data.get("app", "netuark").lower()
             package_name = data.get("package", "")
             
-            adb_base = self._get_adb_base_cmd()
             if app_id == "netuark" or "netuark" in package_name.lower():
-                cmd = adb_base + ["shell", "monkey", "-p", "com.netuark", "-c", "android.intent.category.LAUNCHER", "1"]
-                p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=5)
-                if p.returncode != 0:
-                    subprocess.run(adb_base + ["shell", "am", "start", "-a", "android.intent.action.VIEW", "-d", "content://com.android.externalstorage.documents/document/primary%3ADownload%2FNeTuArk-v4.2.0.apk", "-t", "application/vnd.android.package-archive"], timeout=4)
+                res = self._run_shell_cmd("monkey -p com.netuark -c android.intent.category.LAUNCHER 1")
+                if res.returncode != 0:
+                    self._run_shell_cmd("am start -a android.intent.action.VIEW -d content://com.android.externalstorage.documents/document/primary%3ADownload%2FNeTuArk-v4.2.0.apk -t application/vnd.android.package-archive")
             elif package_name:
                 if action == "stop":
-                    subprocess.run(adb_base + ["shell", "am", "force-stop", package_name], timeout=4)
+                    self._run_shell_cmd(f"am force-stop {package_name}")
                 else:
-                    subprocess.run(adb_base + ["shell", "monkey", "-p", package_name, "-c", "android.intent.category.LAUNCHER", "1"], timeout=4)
+                    self._run_shell_cmd(f"monkey -p {package_name} -c android.intent.category.LAUNCHER 1")
 
             self.send_response(200)
             self._send_cors_headers()
