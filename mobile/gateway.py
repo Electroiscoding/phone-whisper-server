@@ -5408,6 +5408,10 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_github_login()
         elif path.startswith('/auth/github/callback') or path.startswith('/session') or path.startswith('/callback') or path.startswith('/auth/callback') or path == '/session':
             self.handle_github_callback()
+        elif path in ["/v1/screen/frame", "/v1/screen/snapshot", "/screen/frame"]:
+            self.handle_screen_frame()
+        elif path in ["/v1/screen/stream", "/screen/stream"]:
+            self.handle_screen_stream()
         elif path in ['/auth/github/user-repos', '/user/repos', '/repos']:
             self.handle_github_user_repos()
         else:
@@ -5570,11 +5574,230 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         elif path.startswith('/v1/agent/cancel/'):
             job_id = path.split('/')[-1]
             self.handle_agent_cancel(job_id)
+        elif path in ["/v1/screen/touch", "/screen/touch"]:
+            self.handle_screen_touch()
+        elif path in ["/v1/screen/key", "/screen/key", "/v1/screen/button"]:
+            self.handle_screen_key()
+        elif path in ["/v1/screen/app", "/screen/app", "/v1/screen/launch"]:
+            self.handle_screen_app()
         else:
             self.send_error(404, f"Unknown endpoint: {path}")
 
 
 
+
+    # =========================================================================
+    # REMOTE CLOUD PHONE SCREEN & APP CONTROL HANDLERS
+    # =========================================================================
+    def handle_screen_frame(self):
+        """Returns a single JPEG image snapshot of the physical Android phone screen."""
+        try:
+            cmd = ["adb", "exec-out", "screencap"]
+            p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=4)
+            jpeg_data = None
+            if p.returncode == 0 and len(p.stdout) >= 4608000:
+                data = p.stdout
+                width = int.from_bytes(data[0:4], byteorder='little')
+                height = int.from_bytes(data[4:8], byteorder='little')
+                raw_bytes = data[16:] if len(data) == 4608016 else data[12:]
+                
+                if HAVE_PIL:
+                    img = Image.frombytes('RGBA', (width, height), raw_bytes, 'raw', 'RGBA')
+                    img_small = img.resize((360, 800), Image.Resampling.NEAREST).convert('RGB')
+                    buf = io.BytesIO()
+                    img_small.save(buf, format='JPEG', quality=60)
+                    jpeg_data = buf.getvalue()
+
+            if not jpeg_data:
+                buf = io.BytesIO()
+                if HAVE_PIL:
+                    img = Image.new('RGB', (360, 800), color=(15, 23, 42))
+                    draw = ImageDraw.Draw(img)
+                    draw.text((80, 380), "Phone Screen Standby", fill=(148, 163, 184))
+                    img.save(buf, format='JPEG')
+                    jpeg_data = buf.getvalue()
+                else:
+                    jpeg_data = b""
+
+            self.send_response(200)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "image/jpeg")
+            self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+            self.send_header("Content-Length", str(len(jpeg_data)))
+            self.end_headers()
+            self.wfile.write(jpeg_data)
+        except Exception as e:
+            self.send_response(500)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            msg = json.dumps({"error": str(e)}).encode("utf-8")
+            self.send_header("Content-Length", str(len(msg)))
+            self.end_headers()
+            self.wfile.write(msg)
+
+    def handle_screen_stream(self):
+        """Serves an HTTP multipart MJPEG live video stream of the Android screen."""
+        try:
+            self.send_response(200)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "multipart/x-mixed-replace; boundary=frame")
+            self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+            self.end_headers()
+
+            while True:
+                try:
+                    cmd = ["adb", "exec-out", "screencap"]
+                    p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=3)
+                    jpeg_data = None
+                    if p.returncode == 0 and len(p.stdout) >= 4608000:
+                        data = p.stdout
+                        width = int.from_bytes(data[0:4], byteorder='little')
+                        height = int.from_bytes(data[4:8], byteorder='little')
+                        raw_bytes = data[16:] if len(data) == 4608016 else data[12:]
+                        if HAVE_PIL:
+                            img = Image.frombytes('RGBA', (width, height), raw_bytes, 'raw', 'RGBA')
+                            img_small = img.resize((360, 800), Image.Resampling.NEAREST).convert('RGB')
+                            buf = io.BytesIO()
+                            img_small.save(buf, format='JPEG', quality=55)
+                            jpeg_data = buf.getvalue()
+
+                    if jpeg_data:
+                        part = b"--frame\r\nContent-Type: image/jpeg\r\nContent-Length: " + str(len(jpeg_data)).encode("utf-8") + b"\r\n\r\n" + jpeg_data + b"\r\n"
+                        self.wfile.write(part)
+                        self.wfile.flush()
+                    time.sleep(0.12)
+                except (BrokenPipeError, ConnectionResetError):
+                    break
+                except Exception:
+                    time.sleep(0.2)
+        except Exception:
+            pass
+
+    def handle_screen_touch(self):
+        """Processes remote touch tap/swipe on the phone screen."""
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(length) if length > 0 else b""
+            data = json.loads(body.decode("utf-8")) if body else {}
+            rx = float(data.get("x", 0.5))
+            ry = float(data.get("y", 0.5))
+            action = data.get("action", "tap")
+            
+            px = max(0, min(720, int(rx * 720)))
+            py = max(0, min(1600, int(ry * 1600)))
+            
+            if action == "swipe":
+                erx = float(data.get("end_x", rx))
+                ery = float(data.get("end_y", ry))
+                dur = int(data.get("duration_ms", 300))
+                epx = max(0, min(720, int(erx * 720)))
+                epy = max(0, min(1600, int(ery * 1600)))
+                cmd = ["adb", "shell", "input", "swipe", str(px), str(py), str(epx), str(epy), str(dur)]
+            else:
+                cmd = ["adb", "shell", "input", "tap", str(px), str(py)]
+
+            res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=4)
+            
+            self.send_response(200)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            resp = json.dumps({
+                "status": "ok",
+                "action": action,
+                "target_pixel": [px, py],
+                "returncode": res.returncode
+            }).encode("utf-8")
+            self.send_header("Content-Length", str(len(resp)))
+            self.end_headers()
+            self.wfile.write(resp)
+        except Exception as e:
+            self.send_response(500)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            msg = json.dumps({"error": str(e)}).encode("utf-8")
+            self.send_header("Content-Length", str(len(msg)))
+            self.end_headers()
+            self.wfile.write(msg)
+
+    def handle_screen_key(self):
+        """Sends hardware key events (Home, Back, Recents, Power, Unlock)."""
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(length) if length > 0 else b""
+            data = json.loads(body.decode("utf-8")) if body else {}
+            key = str(data.get("key", "")).upper()
+            keycode = data.get("keycode", None)
+            
+            key_map = {
+                "HOME": 3,
+                "BACK": 4,
+                "RECENTS": 187,
+                "POWER": 26,
+                "WAKE": 224,
+                "VOLUME_UP": 24,
+                "VOLUME_DOWN": 25,
+            }
+            
+            if keycode is None:
+                keycode = key_map.get(key, 3)
+
+            if key == "UNLOCK":
+                subprocess.run(["adb shell 'input keyevent 224 && input keyevent 82 && input swipe 360 1200 360 300'"], shell=True, timeout=4)
+            else:
+                subprocess.run(["adb", "shell", "input", "keyevent", str(keycode)], timeout=4)
+
+            self.send_response(200)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            resp = json.dumps({"status": "ok", "key": key, "keycode": keycode}).encode("utf-8")
+            self.send_header("Content-Length", str(len(resp)))
+            self.end_headers()
+            self.wfile.write(resp)
+        except Exception as e:
+            self.send_response(500)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            msg = json.dumps({"error": str(e)}).encode("utf-8")
+            self.send_header("Content-Length", str(len(msg)))
+            self.end_headers()
+            self.wfile.write(msg)
+
+    def handle_screen_app(self):
+        """Launches or manages Android APK apps (e.g. NeTuArk)."""
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(length) if length > 0 else b""
+            data = json.loads(body.decode("utf-8")) if body else {}
+            action = data.get("action", "launch")
+            app_id = data.get("app", "netuark").lower()
+            package_name = data.get("package", "")
+            
+            if app_id == "netuark" or "netuark" in package_name.lower():
+                cmd = ["adb", "shell", "monkey", "-p", "com.netuark", "-c", "android.intent.category.LAUNCHER", "1"]
+                p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=5)
+                if p.returncode != 0:
+                    subprocess.run(["adb", "shell", "am start -a android.intent.action.VIEW -d content://com.android.externalstorage.documents/document/primary%3ADownload%2FNeTuArk-v4.2.0.apk -t application/vnd.android.package-archive"], timeout=4)
+            elif package_name:
+                if action == "stop":
+                    subprocess.run(["adb", "shell", "am", "force-stop", package_name], timeout=4)
+                else:
+                    subprocess.run(["adb", "shell", "monkey", "-p", package_name, "-c", "android.intent.category.LAUNCHER", "1"], timeout=4)
+
+            self.send_response(200)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            resp = json.dumps({"status": "ok", "action": action, "app": app_id, "package": package_name}).encode("utf-8")
+            self.send_header("Content-Length", str(len(resp)))
+            self.end_headers()
+            self.wfile.write(resp)
+        except Exception as e:
+            self.send_response(500)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            msg = json.dumps({"error": str(e)}).encode("utf-8")
+            self.send_header("Content-Length", str(len(msg)))
+            self.end_headers()
+            self.wfile.write(msg)
 
     # =========================================================================
     # GITHUB OAUTH HANDLERS

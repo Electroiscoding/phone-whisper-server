@@ -2647,6 +2647,7 @@
     <!-- Desktop Navigation Links (Nir Eyal Streamlined Habit-Loop Hierarchy) -->
     <div class="nav-links-desktop">
       <a href="#studio" class="nav-link">Studio</a>
+      <a href="#phone-remote-studio" class="nav-link" style="color: #f87171; font-weight: 600;"><i class="fa-solid fa-mobile-screen-button mr-1"></i> Phone Remote</a>
 
       <!-- Platform Dropdown -->
       <div class="nav-dropdown">
@@ -2662,6 +2663,15 @@
             <div>
               <div class="nav-dropdown-title">Cloud Console</div>
               <div class="nav-dropdown-desc">Hardware control &amp; live settings</div>
+            </div>
+          </a>
+          <a href="#phone-remote-studio" class="nav-dropdown-item">
+            <div class="nav-dropdown-icon" style="background: rgba(239, 68, 68, 0.15); color: #f87171;">
+              <i class="fa-solid fa-mobile-screen-button"></i>
+            </div>
+            <div>
+              <div class="nav-dropdown-title">Cloud Phone Remote</div>
+              <div class="nav-dropdown-desc">Live video stream &amp; touch control</div>
             </div>
           </a>
           <a href="#cloud-storage" class="nav-dropdown-item">
@@ -3244,6 +3254,144 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
       </div>
     </section>
 
+
+    <!-- SECTION 7: REMOTE CLOUD PHONE & APP ENGINE -->
+    <section id="phone-remote-studio" style="margin-top: 3rem; margin-bottom: 3rem;">
+      <div class="section-head">
+        <span class="section-tag" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border-color: rgba(239, 68, 68, 0.3);">
+          <i class="fa-solid fa-mobile-screen-button"></i>
+          <span>Mode 7: Cloud Phone Remote & App Engine</span>
+        </span>
+        <h2 class="section-title">Remote Cloud Phone Screen & App Studio</h2>
+        <p class="section-desc">Stream the Redmi 9i ARM phone screen live at low latency and control installed Android apps (like <b>NeTuArk</b>) with real-time web touch & hardware navigation events.</p>
+      </div>
+
+      <div style="display: grid; grid-template-columns: minmax(300px, 380px) 1fr; gap: 1.5rem; align-items: start;">
+        <!-- LEFT COLUMN: PHYSICAL PHONE SCREEN VIEWPORT -->
+        <div style="background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 24px; padding: 1.25rem; text-align: center; box-shadow: 0 12px 35px rgba(0,0,0,0.5); backdrop-filter: blur(16px); position: relative;">
+          
+          <!-- PHONE HARDWARE FRAME ACCENT -->
+          <div style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: #f87171; margin-bottom: 0.75rem; font-weight: 700; display: flex; align-items: center; justify-content: space-between;">
+            <span><i class="fa-solid fa-mobile-button mr-1"></i> Redmi 9i (ARM Octa-Core)</span>
+            <span id="phoneStreamStatusBadge" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); padding: 0.15rem 0.5rem; border-radius: 6px; font-size: 0.7rem;">
+              <i class="fa-solid fa-circle text-xs mr-1 animate-pulse"></i> LIVE STREAM
+            </span>
+          </div>
+
+          <!-- INTERACTIVE SCREEN CONTAINER -->
+          <div id="phoneScreenContainer" style="position: relative; width: 100%; aspect-ratio: 9/20; max-height: 680px; background: #020617; border-radius: 16px; overflow: hidden; border: 2px solid rgba(255, 255, 255, 0.12); cursor: crosshair; user-select: none;">
+            
+            <img id="phoneScreenStreamImg" src="/v1/screen/frame" alt="Phone Screen Stream" style="width: 100%; height: 100%; object-fit: contain; display: block;" onerror="this.src='/v1/screen/frame?t='+Date.now();" />
+            
+            <!-- TOUCH OVERLAY ANIMATION DOT -->
+            <div id="phoneTouchIndicator" style="position: absolute; width: 24px; height: 24px; border-radius: 50%; background: rgba(239, 68, 68, 0.7); border: 2px solid #ffffff; transform: translate(-50%, -50%); display: none; pointer-events: none; z-index: 20; box-shadow: 0 0 12px rgba(239, 68, 68, 0.9);"></div>
+
+            <!-- STREAM LOADING SPINNER OVERLAY -->
+            <div id="phoneScreenOverlay" style="position: absolute; inset: 0; background: rgba(2, 6, 23, 0.7); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.75rem; opacity: 0; transition: opacity 0.3s; pointer-events: none;">
+              <i class="fa-solid fa-spinner fa-spin text-2xl text-red-400"></i>
+              <span style="font-size: 0.8rem; color: #94a3b8;">Connecting to Phone Display...</span>
+            </div>
+          </div>
+
+          <!-- BOTTOM HARDWARE NAVIGATION BAR -->
+          <div style="margin-top: 1rem; display: flex; align-items: center; justify-content: space-around; background: rgba(255, 255, 255, 0.05); padding: 0.6rem 0.5rem; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.08);">
+            <button onclick="sendPhoneKey('BACK')" class="btn-action" title="Android Back Button" style="background: rgba(255,255,255,0.08); color: #f1f5f9; padding: 0.45rem 1rem; border-radius: 8px; font-size: 0.9rem; border: 1px solid rgba(255,255,255,0.15); cursor: pointer;">
+              <i class="fa-solid fa-chevron-left"></i>
+            </button>
+            <button onclick="sendPhoneKey('HOME')" class="btn-action" title="Android Home Button" style="background: rgba(239, 68, 68, 0.2); color: #f87171; padding: 0.45rem 1.25rem; border-radius: 8px; font-size: 0.9rem; border: 1px solid rgba(239, 68, 68, 0.4); cursor: pointer;">
+              <i class="fa-solid fa-circle"></i>
+            </button>
+            <button onclick="sendPhoneKey('RECENTS')" class="btn-action" title="Android App Switcher / Recents" style="background: rgba(255,255,255,0.08); color: #f1f5f9; padding: 0.45rem 1rem; border-radius: 8px; font-size: 0.9rem; border: 1px solid rgba(255,255,255,0.15); cursor: pointer;">
+              <i class="fa-solid fa-square"></i>
+            </button>
+            <button onclick="sendPhoneKey('UNLOCK')" class="btn-action" title="Wake Screen & Unlock Phone" style="background: rgba(52, 211, 153, 0.15); color: #34d399; padding: 0.45rem 1rem; border-radius: 8px; font-size: 0.9rem; border: 1px solid rgba(52, 211, 153, 0.3); cursor: pointer;">
+              <i class="fa-solid fa-lock-open"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- RIGHT COLUMN: APP LAUNCHER & REMOTE CONTROLS -->
+        <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+
+          <!-- APP DECK CARD: NETUARK -->
+          <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; padding: 1.25rem;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+              <h3 style="color: #f1f5f9; font-size: 1.05rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
+                <i class="fa-solid fa-rocket text-red-400"></i>
+                <span>1-Click App Launcher</span>
+              </h3>
+              <span style="font-size: 0.72rem; color: #34d399; background: rgba(52, 211, 153, 0.15); padding: 0.15rem 0.5rem; border-radius: 6px;">APK Installed</span>
+            </div>
+
+            <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 12px; padding: 1rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
+              <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <div style="width: 44px; height: 44px; border-radius: 10px; background: linear-gradient(135deg, #ef4444, #8b5cf6); display: flex; align-items: center; justify-content: center; color: #ffffff; font-weight: 800; font-size: 1.2rem; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);">
+                  N
+                </div>
+                <div>
+                  <div style="color: #f1f5f9; font-weight: 700; font-size: 0.95rem;">NeTuArk (v4.2.0 Build 21)</div>
+                  <div style="color: #94a3b8; font-size: 0.78rem;">Autonomous Network &amp; Security Suite for Android</div>
+                </div>
+              </div>
+
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <button onclick="launchPhoneApp('netuark')" class="btn-action" style="padding: 0.55rem 1.2rem; background: linear-gradient(135deg, #ef4444, #dc2626); color: #ffffff; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);">
+                  <i class="fa-solid fa-play"></i> Launch NeTuArk
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- CUSTOM PACKAGE LAUNCHER DECK -->
+          <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; padding: 1.25rem;">
+            <h3 style="color: #f1f5f9; font-size: 1.05rem; font-weight: 700; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem; margin-top: 0;">
+              <i class="fa-solid fa-terminal text-cyan-400"></i>
+              <span>Launch / Control Custom Package</span>
+            </h3>
+            
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+              <input type="text" id="customAppPackageInput" placeholder="e.g. com.netuark or com.termux" style="flex: 1; min-width: 200px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.15); color: #f1f5f9; padding: 0.5rem 0.75rem; border-radius: 8px; font-size: 0.85rem; font-family: 'JetBrains Mono', monospace;" />
+              <button onclick="launchCustomApp()" class="btn-action" style="padding: 0.5rem 1rem; background: rgba(56, 189, 248, 0.2); border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.35rem;">
+                <i class="fa-solid fa-arrow-up-right-from-square"></i> Launch App
+              </button>
+            </div>
+          </div>
+
+          <!-- LIVE HARDWARE & DISPLAY TELEMETRY CARD -->
+          <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; padding: 1.25rem;">
+            <h3 style="color: #f1f5f9; font-size: 1.05rem; font-weight: 700; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem; margin-top: 0;">
+              <i class="fa-solid fa-sliders text-emerald-400"></i>
+              <span>Screen Stream Controls &amp; Telemetry</span>
+            </h3>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.75rem;">
+              <div style="background: rgba(255,255,255,0.03); padding: 0.75rem; border-radius: 10px; border: 1px solid rgba(255,255,255,0.06);">
+                <div style="font-size: 0.72rem; color: #94a3b8;">Physical Resolution</div>
+                <div style="font-size: 0.95rem; font-weight: 700; color: #38bdf8; font-family: 'JetBrains Mono', monospace;">720 x 1600</div>
+              </div>
+              <div style="background: rgba(255,255,255,0.03); padding: 0.75rem; border-radius: 10px; border: 1px solid rgba(255,255,255,0.06);">
+                <div style="font-size: 0.72rem; color: #94a3b8;">Stream Frame Rate</div>
+                <div id="phoneStreamFps" style="font-size: 0.95rem; font-weight: 700; color: #34d399; font-family: 'JetBrains Mono', monospace;">~8 FPS</div>
+              </div>
+              <div style="background: rgba(255,255,255,0.03); padding: 0.75rem; border-radius: 10px; border: 1px solid rgba(255,255,255,0.06);">
+                <div style="font-size: 0.72rem; color: #94a3b8;">Touch Latency</div>
+                <div id="phoneTouchLatency" style="font-size: 0.95rem; font-weight: 700; color: #fbbf24; font-family: 'JetBrains Mono', monospace;">&lt;85 ms</div>
+              </div>
+            </div>
+
+            <div style="margin-top: 1rem; display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+              <button onclick="togglePhoneStreamRefresh()" id="btnTogglePhoneStream" class="btn-action" style="padding: 0.45rem 0.9rem; background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171; border-radius: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.35rem;">
+                <i class="fa-solid fa-pause"></i> Pause Stream
+              </button>
+              <button onclick="refreshPhoneScreenFrame()" class="btn-action" style="padding: 0.45rem 0.9rem; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); color: #f1f5f9; border-radius: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.35rem;">
+                <i class="fa-solid fa-rotate"></i> Snapshot Frame
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
 
     <!-- SECTION 6: GOOGLE MEDIAPIPE COMPUTER VISION SUITE -->
     <section id="mediapipe-studio" style="margin-top: 2rem;">
@@ -11942,5 +12090,127 @@ func main() {
     <i class="fa-solid fa-circle-check text-emerald-400" id="tactileToastIcon"></i>
     <span id="tactileToastMsg">Action completed!</span>
   </div>
+  <!-- REMOTE CLOUD PHONE SCREEN & TOUCH CONTROLLER SCRIPT -->
+  <script>
+    let phoneStreamActive = true;
+    let phoneStreamTimer = null;
+
+    function startPhoneScreenStreaming() {
+      const imgEl = document.getElementById("phoneScreenStreamImg");
+      if (!imgEl) return;
+      
+      if (phoneStreamTimer) clearInterval(phoneStreamTimer);
+
+      phoneStreamTimer = setInterval(() => {
+        if (!phoneStreamActive) return;
+        const base = typeof getApiBaseUrl === 'function' ? getApiBaseUrl() : '';
+        imgEl.src = base + "/v1/screen/frame?t=" + Date.now();
+      }, 150);
+    }
+
+    function refreshPhoneScreenFrame() {
+      const imgEl = document.getElementById("phoneScreenStreamImg");
+      if (imgEl) {
+        const base = typeof getApiBaseUrl === 'function' ? getApiBaseUrl() : '';
+        imgEl.src = base + "/v1/screen/frame?t=" + Date.now();
+      }
+    }
+
+    function togglePhoneStreamRefresh() {
+      phoneStreamActive = !phoneStreamActive;
+      const btn = document.getElementById("btnTogglePhoneStream");
+      if (btn) {
+        if (phoneStreamActive) {
+          btn.innerHTML = '<i class="fa-solid fa-pause"></i> Pause Stream';
+          startPhoneScreenStreaming();
+        } else {
+          btn.innerHTML = '<i class="fa-solid fa-play"></i> Resume Stream';
+        }
+      }
+    }
+
+    async function sendPhoneTouch(rx, ry, action = "tap", extra = {}) {
+      const indicator = document.getElementById("phoneTouchIndicator");
+      const container = document.getElementById("phoneScreenContainer");
+      if (indicator && container) {
+        indicator.style.left = (rx * 100) + "%";
+        indicator.style.top = (ry * 100) + "%";
+        indicator.style.display = "block";
+        setTimeout(() => { indicator.style.display = "none"; }, 350);
+      }
+
+      try {
+        const base = typeof getApiBaseUrl === 'function' ? getApiBaseUrl() : '';
+        await fetch(base + "/v1/screen/touch", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ x: rx, y: ry, action: action, ...extra })
+        });
+        setTimeout(refreshPhoneScreenFrame, 150);
+      } catch (err) {
+        console.error("Phone touch error:", err);
+      }
+    }
+
+    async function sendPhoneKey(keyName) {
+      try {
+        const base = typeof getApiBaseUrl === 'function' ? getApiBaseUrl() : '';
+        await fetch(base + "/v1/screen/key", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ key: keyName })
+        });
+        setTimeout(refreshPhoneScreenFrame, 200);
+      } catch (err) {
+        console.error("Phone key error:", err);
+      }
+    }
+
+    async function launchPhoneApp(appName) {
+      try {
+        const base = typeof getApiBaseUrl === 'function' ? getApiBaseUrl() : '';
+        await fetch(base + "/v1/screen/app", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ app: appName, action: "launch" })
+        });
+        setTimeout(refreshPhoneScreenFrame, 400);
+      } catch (err) {
+        console.error("Phone app launch error:", err);
+      }
+    }
+
+    async function launchCustomApp() {
+      const pkgInput = document.getElementById("customAppPackageInput");
+      const pkg = pkgInput ? pkgInput.value.trim() : "";
+      if (!pkg) return;
+      
+      try {
+        const base = typeof getApiBaseUrl === 'function' ? getApiBaseUrl() : '';
+        await fetch(base + "/v1/screen/app", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ package: pkg, action: "launch" })
+        });
+        setTimeout(refreshPhoneScreenFrame, 400);
+      } catch (err) {
+        console.error("Custom app launch error:", err);
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const container = document.getElementById("phoneScreenContainer");
+      if (container) {
+        container.addEventListener("click", (e) => {
+          const rect = container.getBoundingClientRect();
+          const rx = (e.clientX - rect.left) / rect.width;
+          const ry = (e.clientY - rect.top) / rect.height;
+          sendPhoneTouch(rx, ry, "tap");
+        });
+      }
+      
+      startPhoneScreenStreaming();
+    });
+  </script>
 </body>
 </html>
