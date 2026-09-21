@@ -5591,11 +5591,17 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
     # =========================================================================
     @staticmethod
     def _get_adb_base_cmd():
-        termux_adb = "/data/data/com.termux/files/home/llama.cpp/scripts/snapdragon/adb"
-        for p in [termux_adb, "/usr/bin/adb", "/data/data/com.termux/files/usr/bin/adb", shutil.which("adb")]:
-            if p and os.path.exists(p) and os.access(p, os.X_OK):
-                return [p]
-        return ["adb"]
+        os.environ["TMPDIR"] = "/data/data/com.termux/files/usr/tmp"
+        if not os.path.exists("/data/data/com.termux/files/usr/tmp"):
+            try:
+                os.makedirs("/data/data/com.termux/files/usr/tmp", exist_ok=True)
+            except Exception:
+                pass
+        termux_adb = "/data/data/com.termux/files/usr/bin/adb"
+        for p in [termux_adb, "/usr/bin/adb", shutil.which("adb")]:
+            if p and os.path.isfile(p) and os.access(p, os.X_OK):
+                return [p, "-s", "127.0.0.1:5555"]
+        return ["adb", "-s", "127.0.0.1:5555"]
 
     @staticmethod
     def _run_shell_cmd(cmd_str):
