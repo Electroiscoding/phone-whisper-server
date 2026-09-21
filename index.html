@@ -9331,6 +9331,29 @@ python3 mobile/nuclear_watchdog.py</code></pre>
     }
     window.copyStorageCdnUrl = copyStorageCdnUrl;
 
+    window.lastUploadedItemsList = [];
+    function copyAllStorageCdnUrls(btn) {
+      if (!window.lastUploadedItemsList || window.lastUploadedItemsList.length === 0) return;
+      const allUrls = window.lastUploadedItemsList.map(item => item.cdnUrl).join('\n');
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(allUrls).then(() => {
+          if (btn) {
+            const origHtml = btn.innerHTML;
+            btn.innerHTML = `<i class="fa-solid fa-check text-emerald-400"></i> <span>Copied All ${window.lastUploadedItemsList.length} Links!</span>`;
+            setTimeout(() => { btn.innerHTML = origHtml; }, 2000);
+          }
+          if (typeof showTactileToast === 'function') {
+            showTactileToast(`Copied all ${window.lastUploadedItemsList.length} CDN links to clipboard!`, "fa-copy text-cyan-400");
+          }
+        }).catch(() => {
+          prompt("Copy All CDN URLs (Ctrl+C, Enter):", allUrls);
+        });
+      } else {
+        prompt("Copy All CDN URLs (Ctrl+C, Enter):", allUrls);
+      }
+    }
+    window.copyAllStorageCdnUrls = copyAllStorageCdnUrls;
+
     async function uploadSelectedStorageFile() {
       if (!selectedStorageFiles || selectedStorageFiles.length === 0) {
         if (typeof showTactileToast === 'function') showTactileToast("Please choose files to upload first!", "fa-file-circle-exclamation text-amber-400");
@@ -9356,16 +9379,12 @@ python3 mobile/nuclear_watchdog.py</code></pre>
 
       const total = selectedStorageFiles.length;
       let successCount = 0;
-      let lastUploadedCdnUrl = '';
-      let lastUploadedKey = '';
-      let lastUploadedContentType = '';
+      const uploadedItems = [];
 
       for (let i = 0; i < total; i++) {
         const file = selectedStorageFiles[i];
         let objectKey = (total === 1 && customKeyInput && customKeyInput.value.trim()) ? customKeyInput.value.trim() : file.name;
         objectKey = objectKey.replace(/^\/+/, '');
-        lastUploadedKey = objectKey;
-        lastUploadedContentType = file.type || '';
 
         if (progText) {
           progText.style.display = "block";
@@ -9390,9 +9409,13 @@ python3 mobile/nuclear_watchdog.py</code></pre>
           if (res.ok) {
             const data = await res.json().catch(() => ({}));
             const cdnPath = (data.object && data.object.url) || data.url || `/s/${currentStorageProject || 'usr_sandbox'}/${encodeURIComponent(objectKey)}`;
-            lastUploadedCdnUrl = `${BASE_ENDPOINT}${cdnPath}`;
-            lastUploadedKey = objectKey;
-            lastUploadedContentType = file.type || '';
+            const fullCdnUrl = `${BASE_ENDPOINT}${cdnPath}`;
+            uploadedItems.push({
+              cdnUrl: fullCdnUrl,
+              key: objectKey,
+              contentType: file.type || '',
+              size: file.size
+            });
             successCount++;
           }
         } catch (err) {
@@ -9400,11 +9423,59 @@ python3 mobile/nuclear_watchdog.py</code></pre>
         }
       }
 
+      window.lastUploadedItemsList = uploadedItems;
+
       if (progText) {
         if (successCount > 0) {
-          const ext = (lastUploadedKey.split('.').pop() || '').toLowerCase();
-          const isImg = (lastUploadedContentType || '').startsWith('image/') || ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'ico', 'avif'].includes(ext);
           const emailNotice = notifyEmail ? `<div style="font-size: 0.78rem; color: #34d399; margin-top: 0.4rem;"><i class="fa-solid fa-envelope mr-1"></i> 24/7 Gmail alert dispatched to <strong>${escapeHtml(notifyEmail)}</strong> with CDN link &amp; 3-day inactivity protection!</div>` : '';
+
+          const itemsCardsHtml = uploadedItems.map((item, idx) => {
+            const ext = (item.key.split('.').pop() || '').toLowerCase();
+            const isImg = (item.contentType || '').startsWith('image/') || ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'ico', 'avif'].includes(ext);
+            return `
+              <div style="background: rgba(0, 0, 0, 0.55); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 8px; padding: 0.75rem 0.9rem; margin-bottom: 0.6rem;">
+                <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: #94a3b8; margin-bottom: 0.4rem; display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; font-weight: 600;">
+                  <span style="display: flex; align-items: center; gap: 0.35rem; color: #f1f5f9; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    <i class="fa-solid fa-file-export text-cyan-400"></i>
+                    <span>[${idx+1}/${uploadedItems.length}] ${escapeHtml(item.key)}</span>
+                  </span>
+                  <span style="font-size: 0.7rem; color: #34d399; background: rgba(16, 185, 129, 0.15); padding: 0.1rem 0.4rem; border-radius: 4px; white-space: nowrap;">Shareable Link</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                  <a href="${item.cdnUrl}" target="_blank" style="color: #38bdf8; text-decoration: underline; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; word-break: break-all; flex: 1; min-width: 200px; padding: 0.3rem 0.5rem; background: rgba(56, 189, 248, 0.08); border-radius: 4px; border: 1px dashed rgba(56, 189, 248, 0.25);">
+                    ${item.cdnUrl}
+                  </a>
+                  <button onclick="copyStorageCdnUrl('${item.cdnUrl}', this)" class="btn-action" style="padding: 0.35rem 0.85rem; font-size: 0.8rem; background: linear-gradient(135deg, rgba(6, 182, 212, 0.25), rgba(16, 185, 129, 0.25)); border: 1px solid rgba(56, 189, 248, 0.5); color: #38bdf8; display: inline-flex; align-items: center; gap: 0.35rem; white-space: nowrap; cursor: pointer; border-radius: 6px; font-weight: 600;">
+                    <i class="fa-solid fa-copy"></i>
+                    <span>Copy CDN Link</span>
+                  </button>
+                  <a href="${item.cdnUrl}" target="_blank" class="btn-action" style="padding: 0.35rem 0.85rem; font-size: 0.8rem; text-decoration: none; display: inline-flex; align-items: center; gap: 0.35rem; white-space: nowrap; border-radius: 6px;">
+                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                    <span>Open</span>
+                  </a>
+                </div>
+                ${isImg ? `
+                <div style="margin-top: 0.5rem; display: flex; align-items: center; gap: 0.75rem; background: rgba(255, 255, 255, 0.03); padding: 0.4rem 0.6rem; border-radius: 6px;">
+                  <a href="${item.cdnUrl}" target="_blank">
+                    <img src="${item.cdnUrl}" alt="Preview" style="max-height: 70px; max-width: 110px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.15); object-fit: cover; cursor: pointer;" />
+                  </a>
+                  <div>
+                    <div style="font-size: 0.8rem; font-weight: 600; color: #f1f5f9;">${escapeHtml(item.key)}</div>
+                    <div style="font-size: 0.72rem; color: #10b981; margin-top: 0.1rem;"><i class="fa-solid fa-shield-halved mr-1"></i> Instant RAM/Flash Reflection Verified</div>
+                  </div>
+                </div>
+                ` : ''}
+              </div>
+            `;
+          }).join('');
+
+          const copyAllBtn = uploadedItems.length > 1 ? `
+            <div style="margin-bottom: 0.6rem; text-align: right;">
+              <button onclick="copyAllStorageCdnUrls(this)" class="btn-action" style="padding: 0.4rem 0.9rem; font-size: 0.8rem; background: rgba(56, 189, 248, 0.2); border: 1px solid rgba(56, 189, 248, 0.5); color: #38bdf8; cursor: pointer; border-radius: 6px; font-weight: 600; display: inline-flex; align-items: center; gap: 0.35rem;">
+                <i class="fa-solid fa-copy"></i> Copy All ${uploadedItems.length} Links
+              </button>
+            </div>
+          ` : '';
 
           progText.innerHTML = `
             <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 12px; padding: 1rem 1.15rem; margin-top: 0.75rem; text-align: left; box-shadow: 0 4px 20px rgba(0,0,0,0.35);">
@@ -9418,42 +9489,11 @@ python3 mobile/nuclear_watchdog.py</code></pre>
                 </span>
               </div>
 
-              ${lastUploadedCdnUrl ? `
-              <div style="background: rgba(0, 0, 0, 0.55); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 8px; padding: 0.75rem 0.9rem; margin-bottom: 0.6rem;">
-                <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: #94a3b8; margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.35rem; font-weight: 600;">
-                  <i class="fa-solid fa-globe text-cyan-400"></i>
-                  <span>Public Worldwide CDN URL (Shareable Link)</span>
-                </div>
-                <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-                  <a href="${lastUploadedCdnUrl}" target="_blank" style="color: #38bdf8; text-decoration: underline; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; word-break: break-all; flex: 1; min-width: 200px; padding: 0.3rem 0.5rem; background: rgba(56, 189, 248, 0.08); border-radius: 4px; border: 1px dashed rgba(56, 189, 248, 0.25);">
-                    ${lastUploadedCdnUrl}
-                  </a>
-                  <button onclick="copyStorageCdnUrl('${lastUploadedCdnUrl}', this)" class="btn-action" style="padding: 0.35rem 0.85rem; font-size: 0.8rem; background: linear-gradient(135deg, rgba(6, 182, 212, 0.25), rgba(16, 185, 129, 0.25)); border: 1px solid rgba(56, 189, 248, 0.5); color: #38bdf8; display: inline-flex; align-items: center; gap: 0.35rem; white-space: nowrap; cursor: pointer; border-radius: 6px; font-weight: 600;">
-                    <i class="fa-solid fa-copy"></i>
-                    <span>Copy CDN Link</span>
-                  </button>
-                  <a href="${lastUploadedCdnUrl}" target="_blank" class="btn-action" style="padding: 0.35rem 0.85rem; font-size: 0.8rem; text-decoration: none; display: inline-flex; align-items: center; gap: 0.35rem; white-space: nowrap; border-radius: 6px;">
-                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
-                    <span>Open</span>
-                  </a>
-                </div>
-              </div>
-              ` : ''}
-
-              ${isImg && lastUploadedCdnUrl ? `
-              <div style="margin-top: 0.5rem; margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.75rem; background: rgba(255, 255, 255, 0.03); padding: 0.5rem 0.75rem; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.06);">
-                <a href="${lastUploadedCdnUrl}" target="_blank">
-                  <img src="${lastUploadedCdnUrl}" alt="Preview" style="max-height: 80px; max-width: 120px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.15); object-fit: cover; cursor: pointer;" />
-                </a>
-                <div>
-                  <div style="font-size: 0.82rem; font-weight: 600; color: #f1f5f9;">${escapeHtml(lastUploadedKey)}</div>
-                  <div style="font-size: 0.75rem; color: #10b981; margin-top: 0.15rem;"><i class="fa-solid fa-shield-halved mr-1"></i> Instant RAM/Flash Reflection Verified</div>
-                </div>
-              </div>
-              ` : ''}
+              ${copyAllBtn}
+              ${itemsCardsHtml}
 
               ${emailNotice}
-              ${isAnonGuest ? `<div style="font-size: 0.78rem; color: #fbbf24; margin-top: 0.4rem;"><i class="fa-regular fa-clock mr-1"></i> Dynamic Lifecycle Notice: If unvisited by external humans on the internet, this file will automatically purge in 3 days. Share the CDN link to keep it alive!</div>` : ''}
+              ${isAnonGuest ? `<div style="font-size: 0.78rem; color: #fbbf24; margin-top: 0.4rem;"><i class="fa-regular fa-clock mr-1"></i> Dynamic Lifecycle Notice: If unvisited by external humans on the internet, these files will automatically purge in 3 days. Share the CDN links to keep them alive!</div>` : ''}
             </div>
           `;
         } else {
