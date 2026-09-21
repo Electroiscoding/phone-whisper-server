@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://circulation-owen-screen-raw.trycloudflare.com",
-  "inference": "https://circulation-owen-screen-raw.trycloudflare.com/inference",
-  "telemetry": "https://circulation-owen-screen-raw.trycloudflare.com/telemetry",
+  "endpoint": "https://favourites-participant-dependence-lanka.trycloudflare.com",
+  "inference": "https://favourites-participant-dependence-lanka.trycloudflare.com/inference",
+  "telemetry": "https://favourites-participant-dependence-lanka.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-09-21T09:02:00Z"
+  "updated_at": "2026-09-21T09:14:00Z"
 }

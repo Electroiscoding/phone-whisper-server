@@ -99,7 +99,7 @@ async function getLiveOrigin(forceRefresh = false) {
     }
   } catch (err) {}
 
-  return cachedOrigin || "https://circulation-owen-screen-raw.trycloudflare.com";
+  return cachedOrigin || "https://favourites-participant-dependence-lanka.trycloudflare.com";
 }
 
 export default {
