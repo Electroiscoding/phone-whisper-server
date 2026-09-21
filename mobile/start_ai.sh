@@ -26,8 +26,10 @@ if ! pgrep -f "gateway.py" > /dev/null; then
 fi
 
 # 4. Start Cloudflared Tunnel
+TUNNEL_START_TIME=$(date +%s)
 if ! pgrep -f "cloudflared tunnel" > /dev/null; then
   cloudflared tunnel --url http://127.0.0.1:8080 --protocol http2 --edge-ip-version 4 --no-autoupdate > $HOME/cf_tunnel.log 2>&1 &
+  TUNNEL_START_TIME=$(date +%s)
 fi
 
 SYNCED_URL=""
@@ -73,26 +75,24 @@ while true; do
     sleep 2
   fi
 
-  # D. Verify Cloudflared Process & Check for Hung/Stalled Tunnel
+  # D. Verify Cloudflared Process (Process existence check)
   IS_TUNNEL_DEAD=0
   if ! pgrep -f "cloudflared tunnel" > /dev/null; then
     IS_TUNNEL_DEAD=1
-  elif tail -n 15 $HOME/cf_tunnel.log 2>/dev/null | grep -qE "Connection terminated|context deadline exceeded|error shutting down|dial tcp.*connection refused"; then
-    IS_TUNNEL_DEAD=1
   fi
 
-  # E. Active Worldwide Tunnel Health Probe (Every 20s)
+  # E. Active Worldwide Tunnel Health Probe (Every 30s with 60s startup grace period)
   CURRENT_ACTIVE_URL=$(grep -oE "https://[a-zA-Z0-9-]+\.trycloudflare\.com" $HOME/cf_tunnel.log 2>/dev/null | grep -v "api.trycloudflare.com" | tail -n 1)
-  if [ -n "$CURRENT_ACTIVE_URL" ] && [ $((NOW - LAST_PROBE_TIME)) -ge 20 ]; then
+  if [ -n "$CURRENT_ACTIVE_URL" ] && [ $((NOW - TUNNEL_START_TIME)) -ge 60 ] && [ $((NOW - LAST_PROBE_TIME)) -ge 30 ]; then
     LAST_PROBE_TIME=$NOW
     PROBE_STATUS=$(curl -s -m 6 -o /dev/null -w "%{http_code}" "$CURRENT_ACTIVE_URL/telemetry" 2>/dev/null || echo "000")
     if [ "$PROBE_STATUS" = "200" ]; then
       FAIL_COUNT=0
     else
       FAIL_COUNT=$((FAIL_COUNT + 1))
-      echo "$(date): [HEALTH PROBE WARN] Status $PROBE_STATUS on $CURRENT_ACTIVE_URL (fail $FAIL_COUNT/3)" >> $HOME/nuclear_supervisor.log
-      if [ "$FAIL_COUNT" -ge 3 ]; then
-        echo "$(date): [CRITICAL] 3 consecutive tunnel probe failures. Re-spawning cloudflared..." >> $HOME/nuclear_supervisor.log
+      echo "$(date): [HEALTH PROBE WARN] Status $PROBE_STATUS on $CURRENT_ACTIVE_URL (fail $FAIL_COUNT/5)" >> $HOME/nuclear_supervisor.log
+      if [ "$FAIL_COUNT" -ge 5 ]; then
+        echo "$(date): [CRITICAL] 5 consecutive tunnel probe failures. Re-spawning cloudflared..." >> $HOME/nuclear_supervisor.log
         IS_TUNNEL_DEAD=1
         FAIL_COUNT=0
       fi
@@ -104,15 +104,17 @@ while true; do
     killall -9 cloudflared 2>/dev/null || true
     sleep 1
     cloudflared tunnel --url http://127.0.0.1:8080 --protocol http2 --edge-ip-version 4 --no-autoupdate > $HOME/cf_tunnel.log 2>&1 &
+    TUNNEL_START_TIME=$(date +%s)
     LAST_PROBE_TIME=$(date +%s)
     FAIL_COUNT=0
-    sleep 3
+    sleep 5
   fi
 
   # F. Broadcaster: Sync Live Tunnel URL to Cloudflare Pages and GitHub
   URL=$(grep -oE "https://[a-zA-Z0-9-]+\.trycloudflare\.com" $HOME/cf_tunnel.log 2>/dev/null | grep -v "api.trycloudflare.com" | tail -n 1)
   if [ -n "$URL" ] && [ "$URL" != "$SYNCED_URL" ]; then
     echo "$URL" > $HOME/current_url.txt
+    SYNCED_URL="$URL"
 
     # 1. Direct Edge Registration with Multi-Attempt Exponential Retry
     for RETRY in 1 2 3 4 5; do
@@ -127,7 +129,7 @@ while true; do
     done
 
     # 2. Push to GitHub Repo
-    if [ -d "$HOME/phone-whisper-server" ]; then
+    if [ -d "$HOME/phone-whisper-server/.git" ]; then
       cd $HOME/phone-whisper-server
       git pull --rebase origin main 2>/dev/null || true
       cat << JSON_EOF > endpoint.json
@@ -142,10 +144,11 @@ while true; do
 }
 JSON_EOF
       git add endpoint.json 2>/dev/null || true
-      git commit -m "chore(tunnel): Nuclear auto-sync live endpoint [$URL]" 2>/dev/null || true
+      git commit -m "chore(tunnel): Autonomous sync live endpoint [$URL]" 2>/dev/null || true
       if git push origin main 2>/dev/null; then
-        SYNCED_URL="$URL"
         echo "$(date): [SUCCESS] Synced fresh tunnel URL to GitHub: $URL" >> $HOME/nuclear_supervisor.log
+      else
+        echo "$(date): [GIT-WARN] Failed git push from phone to origin main" >> $HOME/nuclear_supervisor.log
       fi
     fi
   fi

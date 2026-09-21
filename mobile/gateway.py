@@ -4989,23 +4989,62 @@ def process_mediapipe_task(task, image_bytes, params=None):
             "engine": "Google MediaPipe Neural Network (MediaTek Helio G35 / ARM Cortex-A53)"
         }
 
-    # 7. OBJECT DETECTION (Dynamic Real Bounding Boxes)
+    # 7. OBJECT DETECTION (Real Neural SSD MobileNet v2 COCO)
     else:
-        pose_res = process_mediapipe_task("pose_landmarks", image_bytes, params)
+        interp = get_tflite_interpreter("ssd_mobilenet_v2.tflite")
         objects = []
-        if pose_res.get("pose") and len(pose_res["pose"]) > 0:
-            xs = [p["x"] for p in pose_res["pose"] if p.get("visibility", 0) > 0.3]
-            ys = [p["y"] for p in pose_res["pose"] if p.get("visibility", 0) > 0.3]
-            if xs and ys:
-                ox = max(0.0, min(xs) - 0.05)
-                oy = max(0.0, min(ys) - 0.05)
-                ow = min(1.0 - ox, (max(xs) - min(xs)) + 0.1)
-                oh = min(1.0 - oy, (max(ys) - min(ys)) + 0.1)
-                objects.append({
-                    "label": "person",
-                    "score": 0.97,
-                    "box": [round(ox, 4), round(oy, 4), round(ow, 4), round(oh, 4)]
-                })
+        if interp and HAVE_NUMPY and HAVE_PIL:
+            try:
+                arr = np.expand_dims(np.array(img.resize((300, 300)), dtype=np.uint8), axis=0)
+                in_det = interp.get_input_details()
+                out_det = interp.get_output_details()
+                interp.set_tensor(in_det[0]["index"], arr)
+                interp.invoke()
+
+                boxes = interp.get_tensor(out_det[0]["index"])[0]
+                classes = interp.get_tensor(out_det[1]["index"])[0]
+                scores = interp.get_tensor(out_det[2]["index"])[0]
+                count = int(interp.get_tensor(out_det[3]["index"])[0])
+
+                COCO_LABELS = {
+                    0: "person", 1: "bicycle", 2: "car", 3: "motorcycle", 4: "airplane",
+                    5: "bus", 6: "train", 7: "truck", 8: "boat", 9: "traffic light",
+                    10: "fire hydrant", 12: "stop sign", 13: "parking meter", 14: "bench",
+                    15: "bird", 16: "cat", 17: "dog", 18: "horse", 19: "sheep",
+                    20: "cow", 21: "elephant", 22: "bear", 23: "zebra", 24: "giraffe",
+                    26: "backpack", 27: "umbrella", 30: "handbag", 31: "tie", 32: "suitcase",
+                    33: "frisbee", 34: "skis", 35: "snowboard", 36: "sports ball", 37: "kite",
+                    38: "baseball bat", 39: "baseball glove", 40: "skateboard", 41: "surfboard",
+                    42: "tennis racket", 43: "bottle", 45: "wine glass", 46: "cup",
+                    47: "fork", 48: "knife", 49: "spoon", 50: "bowl", 51: "banana",
+                    52: "apple", 53: "sandwich", 54: "orange", 55: "broccoli", 56: "carrot",
+                    57: "hot dog", 58: "pizza", 59: "donut", 60: "cake", 61: "chair",
+                    62: "couch", 63: "potted plant", 64: "bed", 66: "dining table",
+                    69: "toilet", 71: "tv", 72: "laptop", 73: "mouse", 74: "remote",
+                    75: "keyboard", 76: "cell phone", 77: "microwave", 78: "oven",
+                    79: "toaster", 80: "sink", 81: "refrigerator", 83: "book", 84: "clock",
+                    85: "vase", 86: "scissors", 87: "teddy bear", 88: "hair drier", 89: "toothbrush"
+                }
+
+                score_thresh = float(params.get("score_threshold", 0.35))
+                for i in range(min(count, 20)):
+                    sc = float(scores[i])
+                    if sc >= score_thresh:
+                        ymin, xmin, ymax, xmax = boxes[i]
+                        ox = round(max(0.0, min(1.0, float(xmin))), 4)
+                        oy = round(max(0.0, min(1.0, float(ymin))), 4)
+                        ow = round(max(0.0, min(1.0 - ox, float(xmax - xmin))), 4)
+                        oh = round(max(0.0, min(1.0 - oy, float(ymax - ymin))), 4)
+                        cid = int(classes[i])
+                        lbl = COCO_LABELS.get(cid, f"object_{cid}")
+                        objects.append({
+                            "label": lbl,
+                            "score": round(sc, 3),
+                            "box": [ox, oy, ow, oh]
+                        })
+            except Exception as e:
+                sys.stderr.write(f"SSD MobileNet inference error: {e}\n")
+
         elapsed_ms = round((time.time() - t0) * 1000, 2)
         return {
             "status": "ok",
