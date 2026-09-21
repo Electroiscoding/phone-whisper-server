@@ -6519,10 +6519,30 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         t_ns = time.perf_counter_ns() - t0
         t_ms = round(t_ns / 1_000_000, 6)
 
+        # Detect Content-Type from filename or magic bytes if missing/generic
+        content_type = meta.get("content_type", "application/octet-stream")
+        if (content_type == "application/octet-stream" or not content_type) and data:
+            if data[:4].endswith(b"ftyp") or b"ftyp" in data[:32] or b"moov" in data[:128]:
+                content_type = "video/mp4"
+            elif data.startswith(b"\x89PNG\r\n\x1a\n"):
+                content_type = "image/png"
+            elif data.startswith(b"\xff\xd8"):
+                content_type = "image/jpeg"
+            elif data.startswith(b"RIFF") and b"WEBP" in data[:16]:
+                content_type = "image/webp"
+            elif data.startswith(b"OggS"):
+                content_type = "audio/ogg"
+            elif data.startswith(b"ID3") or data[:2] in [b"\xff\xfb", b"\xff\xf3", b"\xff\xf2"]:
+                content_type = "audio/mpeg"
+
+        is_media = any(content_type.startswith(prefix) for prefix in ["video/", "audio/", "image/"])
+
         accept_enc = (self.headers.get("Accept-Encoding") or "").lower()
         out_data = data
         content_enc = None
-        if "zstd" in accept_enc and len(data) >= 256:
+
+        # Do NOT apply zstd Content-Encoding to media files because browser media engines don't decode HTTP zstd
+        if not is_media and data and "zstd" in accept_enc and len(data) >= 256:
             try:
                 c_data = _zstd_engine.compress(data, level=1)
                 if len(c_data) < len(data):
@@ -6531,16 +6551,57 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             except Exception:
                 pass
 
+        total_length = len(out_data) if out_data else meta.get("size", 0)
+        range_header = None
+        for hk, hv in self.headers.items():
+            if hk.lower() == "range":
+                range_header = hv
+                break
+
+        # HTTP 206 Byte-Range Handling for video/audio seeking and streaming
+        if range_header and not content_enc and total_length > 0:
+            try:
+                range_match = re.search(r"bytes=(\d*)-(\d*)", range_header)
+                if range_match:
+                    start_str, end_str = range_match.groups()
+                    start = int(start_str) if start_str else 0
+                    end = int(end_str) if end_str else total_length - 1
+                    if start >= total_length:
+                        start = total_length - 1
+                    if end >= total_length:
+                        end = total_length - 1
+                    if start > end:
+                        start, end = 0, total_length - 1
+
+                    chunk_length = (end - start) + 1
+                    self.send_response(206)
+                    self._send_cors_headers()
+                    self.send_header("Content-Type", content_type)
+                    self.send_header("Content-Length", str(chunk_length))
+                    self.send_header("Content-Range", f"bytes {start}-{end}/{total_length}")
+                    self.send_header("Accept-Ranges", "bytes")
+                    self.send_header("ETag", meta.get("etag", '""'))
+                    self.send_header("Cache-Control", "public, max-age=86400, immutable")
+                    fname = os.path.basename(meta.get("key", raw_key))
+                    self.send_header("Content-Disposition", f'inline; filename="{fname}"')
+                    self.send_header("X-Reflection-Time-Ms", f"{t_ms:.6f}")
+                    self.end_headers()
+                    self.wfile.write(out_data[start:end + 1])
+                    return
+            except Exception as re_err:
+                sys.stderr.write(f"Range handling error: {re_err}\n")
+
         self.send_response(200)
         self._send_cors_headers()
-        self.send_header("Content-Type", meta["content_type"])
-        self.send_header("Content-Length", str(len(out_data)))
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(total_length))
+        self.send_header("Accept-Ranges", "bytes")
         if content_enc:
             self.send_header("Content-Encoding", content_enc)
             self.send_header("X-Zstd-Engine", "Zstandard v1.5.7 (ARM Cortex-A53 Native)")
             self.send_header("X-Zstd-Level", "1")
-        self.send_header("ETag", meta["etag"])
-        fname = os.path.basename(meta["key"])
+        self.send_header("ETag", meta.get("etag", '""'))
+        fname = os.path.basename(meta.get("key", raw_key))
         self.send_header("Content-Disposition", f'inline; filename="{fname}"')
         self.send_header("Cache-Control", "public, max-age=86400")
         self.send_header("X-Reflection-Time-Ms", f"{t_ms:.6f}")
@@ -6788,7 +6849,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         self.wfile.write(resp)
 
     def handle_public_cdn_stream(self, tenant_id, raw_key, is_head=False):
-        """Worldwide Zero-Tassel Public CDN Stream (/s/<tenant_id>/<file>)"""
+        """Worldwide Zero-Tassel Public CDN Stream (/s/<tenant_id>/<file>) with HTTP 206 Range Support"""
         data, meta = _object_store.find_object(tenant_id, raw_key)
         if not meta or (not is_head and data is None):
             self.send_response(404)
@@ -6802,16 +6863,38 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             return
 
         # Record dynamic external human visit & refresh 3-day TTL window
+        sys.stderr.write(f"[CDN DEBUG] Headers: {dict(self.headers)}\n")
+        sys.stderr.flush()
         now_ts = time.time()
         meta["external_human_visits"] = meta.get("external_human_visits", 0) + 1
         meta["last_accessed_ts"] = now_ts
         if meta.get("is_anonymous", False):
             meta["expires_at_ts"] = now_ts + (3 * 86400) # Refreshes 3-day TTL upon external visit
 
+        # Detect Content-Type from filename or magic bytes if missing/generic
+        content_type = meta.get("content_type", "application/octet-stream")
+        if (content_type == "application/octet-stream" or not content_type) and data:
+            if data[:4].endswith(b"ftyp") or b"ftyp" in data[:32] or b"moov" in data[:128]:
+                content_type = "video/mp4"
+            elif data.startswith(b"\x89PNG\r\n\x1a\n"):
+                content_type = "image/png"
+            elif data.startswith(b"\xff\xd8"):
+                content_type = "image/jpeg"
+            elif data.startswith(b"RIFF") and b"WEBP" in data[:16]:
+                content_type = "image/webp"
+            elif data.startswith(b"OggS"):
+                content_type = "audio/ogg"
+            elif data.startswith(b"ID3") or data[:2] in [b"\xff\xfb", b"\xff\xf3", b"\xff\xf2"]:
+                content_type = "audio/mpeg"
+
+        is_media = any(content_type.startswith(prefix) for prefix in ["video/", "audio/", "image/"])
+
         accept_enc = (self.headers.get("Accept-Encoding") or "").lower()
         out_data = data
         content_enc = None
-        if not is_head and data and "zstd" in accept_enc and len(data) >= 256:
+
+        # Do NOT apply zstd Content-Encoding to media files because browser media engines don't decode HTTP zstd
+        if not is_media and not is_head and data and "zstd" in accept_enc and len(data) >= 256:
             try:
                 c_data = _zstd_engine.compress(data, level=1)
                 if len(c_data) < len(data):
@@ -6820,10 +6903,52 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             except Exception:
                 pass
 
+        total_length = len(out_data) if out_data else meta.get("size", 0)
+        range_header = None
+        for hk, hv in self.headers.items():
+            if hk.lower() == "range":
+                range_header = hv
+                break
+
+        # HTTP 206 Byte-Range Handling for video/audio seeking and streaming
+        if range_header and not content_enc and total_length > 0:
+            try:
+                range_match = re.search(r"bytes=(\d*)-(\d*)", range_header)
+                if range_match:
+                    start_str, end_str = range_match.groups()
+                    start = int(start_str) if start_str else 0
+                    end = int(end_str) if end_str else total_length - 1
+                    if start >= total_length:
+                        start = total_length - 1
+                    if end >= total_length:
+                        end = total_length - 1
+                    if start > end:
+                        start, end = 0, total_length - 1
+
+                    chunk_length = (end - start) + 1
+                    self.send_response(206)
+                    self._send_cors_headers()
+                    self.send_header("Content-Type", content_type)
+                    self.send_header("Content-Length", str(chunk_length))
+                    self.send_header("Content-Range", f"bytes {start}-{end}/{total_length}")
+                    self.send_header("Accept-Ranges", "bytes")
+                    self.send_header("ETag", meta.get("etag", '""'))
+                    self.send_header("Cache-Control", "public, max-age=86400, immutable")
+                    fname = os.path.basename(raw_key)
+                    self.send_header("Content-Disposition", f'inline; filename="{fname}"')
+                    self.end_headers()
+                    if not is_head and out_data:
+                        self.wfile.write(out_data[start:end + 1])
+                    return
+            except Exception as re_err:
+                sys.stderr.write(f"Range handling error: {re_err}\n")
+
+        # Default HTTP 200 Response
         self.send_response(200)
         self._send_cors_headers()
-        self.send_header("Content-Type", meta.get("content_type", "application/octet-stream"))
-        self.send_header("Content-Length", str(len(out_data) if not is_head else meta.get("size", 0)))
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(total_length))
+        self.send_header("Accept-Ranges", "bytes")
         if content_enc:
             self.send_header("Content-Encoding", "zstd")
             self.send_header("X-Zstd-Level", "1")
