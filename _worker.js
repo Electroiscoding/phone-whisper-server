@@ -40,7 +40,22 @@ async function getLiveOrigin(forceRefresh = false) {
     return cachedOrigin;
   }
 
-  // 1. Primary: GitHub REST API (Instant, bypasses CDN edge cache)
+  // 1. Primary: Raw GitHub CDN (Fast, zero rate limits)
+  try {
+    const res = await fetchWithTimeout(`${GITHUB_ENDPOINT_URL}?_t=${now}`, {
+      headers: { "User-Agent": "Cloudflare-Pages-Worker/3.0", "Cache-Control": "no-cache, no-store, must-revalidate" }
+    }, 2000);
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.endpoint && data.endpoint.startsWith("https://")) {
+        cachedOrigin = data.endpoint.replace(/\/+$/, "");
+        lastFetchTime = now;
+        return cachedOrigin;
+      }
+    }
+  } catch (err) {}
+
+  // 2. Secondary: GitHub REST API
   try {
     const apiRes = await fetchWithTimeout(`https://api.github.com/repos/Electroiscoding/phone-whisper-server/contents/endpoint.json?ref=main&_t=${now}`, {
       headers: {
@@ -48,7 +63,7 @@ async function getLiveOrigin(forceRefresh = false) {
         "Accept": "application/vnd.github.v3.raw",
         "Cache-Control": "no-cache, no-store"
       }
-    }, 2500);
+    }, 2000);
     if (apiRes.ok) {
       let parsed = null;
       try {
@@ -69,26 +84,11 @@ async function getLiveOrigin(forceRefresh = false) {
     }
   } catch (err) {}
 
-  // 2. Secondary: Raw GitHub CDN
-  try {
-    const res = await fetchWithTimeout(`${GITHUB_ENDPOINT_URL}?_t=${now}`, {
-      headers: { "User-Agent": "Cloudflare-Pages-Worker/3.0", "Cache-Control": "no-cache, no-store, must-revalidate" }
-    }, 2500);
-    if (res.ok) {
-      const data = await res.json();
-      if (data && data.endpoint && data.endpoint.startsWith("https://")) {
-        cachedOrigin = data.endpoint.replace(/\/+$/, "");
-        lastFetchTime = now;
-        return cachedOrigin;
-      }
-    }
-  } catch (err) {}
-
   // 3. Tertiary: jsDelivr Edge CDN
   try {
     const jsdelivrRes = await fetchWithTimeout(`${JSDELIVR_ENDPOINT_URL}?_t=${now}`, {
       headers: { "Cache-Control": "no-cache, no-store" }
-    }, 2500);
+    }, 2000);
     if (jsdelivrRes.ok) {
       const data = await jsdelivrRes.json();
       if (data && data.endpoint && data.endpoint.startsWith("https://")) {
@@ -99,7 +99,7 @@ async function getLiveOrigin(forceRefresh = false) {
     }
   } catch (err) {}
 
-  return cachedOrigin || "";
+  return cachedOrigin || "https://circulation-owen-screen-raw.trycloudflare.com";
 }
 
 export default {
