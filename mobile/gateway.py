@@ -2784,39 +2784,29 @@ class SwadeObjectStore:
                 print(f"[SWADES STORAGE] disk worker notice: {e}")
 
     def _ttl_cleaner_worker(self):
-        """Background physical cleaner: purges anonymous files with zero external human visits after 3 days (72 hours) and sends 24/7 Gmail alerts"""
+        """Background physical cleaner: strictly isolated to ephemeral benchmark probes. NEVER deletes real user data or client media."""
         while True:
             try:
-                time.sleep(30)
+                time.sleep(60)
                 now_ts = time.time()
                 expired_targets = []
-                warning_targets = []
                 with self.lock:
                     for t_id, t_dict in list(self._meta_index.items()):
+                        # CRITICAL DATA IMMUNITY: Only ephemeral benchmark data is ever pruned
+                        if t_id != "bench_ephemeral" and not t_id.startswith("tmp_ephemeral_"):
+                            continue
                         for k, meta in list(t_dict.items()):
-                            is_anon = meta.get("is_anonymous", False) or t_id.startswith("usr_guest_") or t_id.startswith("usr_sandbox_")
-                            ext_visits = meta.get("external_human_visits", 0)
+                            if not meta.get("_is_ephemeral_scratch", False) and t_id != "bench_ephemeral":
+                                continue
                             exp_ts = meta.get("expires_at_ts", 0)
-                            n_email = meta.get("notify_email")
-                            if is_anon and ext_visits == 0 and exp_ts > 0:
-                                if now_ts >= exp_ts:
-                                    expired_targets.append((t_id, k, n_email))
-                                elif (exp_ts - now_ts) <= 86400 and not meta.get("warning_sent"):
-                                    warning_targets.append((t_id, k, n_email, (exp_ts - now_ts) / 3600.0))
-                                    meta["warning_sent"] = True
+                            if exp_ts > 0 and now_ts >= exp_ts:
+                                expired_targets.append((t_id, k))
 
-                for t_id, k, n_email, hrs_rem in warning_targets:
-                    if n_email and '_gmail_notifier' in globals() and _gmail_notifier:
-                        cdn_link = f"https://phone-whisper-server.pages.dev/s/{t_id}/{k}"
-                        _gmail_notifier.send_inactivity_warning(n_email, k, cdn_link, hrs_rem)
-
-                for t_id, k, n_email in expired_targets:
+                for t_id, k in expired_targets:
                     self.delete_object(t_id, k)
-                    if n_email and '_gmail_notifier' in globals() and _gmail_notifier:
-                        _gmail_notifier.send_purge_notification(n_email, k)
-                    print(f"[SWADES STORAGE TTL] Physical flash purge: Anonymous unvisited file '{k}' in tenant '{t_id}' auto-deleted after 3 days of zero external human visits.")
+                    print(f"[SWADES STORAGE TTL] Ephemeral bench file '{k}' in tenant '{t_id}' purged.")
             except Exception as te:
-                print(f"[SWADES STORAGE TTL] cleaner error: {te}")
+                print(f"[SWADES STORAGE TTL] cleaner notice: {te}")
 
     def _register_universal(self, tenant_id, key, full_path, meta):
         """Registers an object across all possible candidate keys for zero-failure global retrieval"""
