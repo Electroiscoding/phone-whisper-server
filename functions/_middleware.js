@@ -1,7 +1,8 @@
 /**
- * CLOUDFLARE PAGES FUNCTIONS CATCH-ALL ROUTER (functions/[[path]].js)
- * Guarantees 100% active edge proxying for all API routes on https://phone-whisper-server.pages.dev
- * Eliminates static SPA fallback (index.html) on API & media endpoints.
+ * CLOUDFLARE PAGES FUNCTIONS MIDDLEWARE (functions/_middleware.js)
+ * Executes on 100% of incoming requests to https://phone-whisper-server.pages.dev
+ * Handles CORS preflights, reverse proxies all API routes to the live phone datacenter tunnel,
+ * and passes static frontend requests cleanly to static assets via context.next().
  */
 
 const GITHUB_ENDPOINT_URL = "https://raw.githubusercontent.com/Electroiscoding/phone-whisper-server/main/endpoint.json";
@@ -76,7 +77,7 @@ export async function onRequest(context) {
   const { request, env, next } = context;
   const url = new URL(request.url);
 
-  // 1. Universal CORS Pre-flight
+  // 1. Universal CORS Pre-flight (Must return 204 No Content with CORS headers)
   if (request.method === "OPTIONS") {
     return new Response(null, {
       status: 204,
@@ -95,7 +96,7 @@ export async function onRequest(context) {
   ];
   const isApi = apiPrefixes.some(prefix => url.pathname.startsWith(prefix)) || apiExactPaths.includes(url.pathname);
 
-  // If this is a static frontend file (HTML, CSS, JS, favicon), let Pages serve it
+  // If this is a static frontend file (HTML, CSS, JS, favicon), pass to static assets
   if (!isApi) {
     return next();
   }
@@ -123,11 +124,13 @@ export async function onRequest(context) {
   let origin = await getLiveOrigin(false);
   let targetUrl = `${origin}${url.pathname}${url.search}`;
 
-  let reqBodyArrayBuffer = null;
+  let reqBody = undefined;
   if (!["GET", "HEAD"].includes(request.method)) {
     try {
-      reqBodyArrayBuffer = await request.arrayBuffer();
-    } catch (e) {}
+      reqBody = await request.arrayBuffer();
+    } catch (e) {
+      reqBody = request.body;
+    }
   }
 
   let response = null;
@@ -137,7 +140,8 @@ export async function onRequest(context) {
                         url.pathname.includes("/transcriptions") || 
                         url.pathname.includes("/chat") || 
                         url.pathname.includes("/inference") ||
-                        url.pathname.includes("/storage");
+                        url.pathname.includes("/storage") ||
+                        url.pathname.startsWith("/s/");
   const timeoutMs = isLongRunning ? 60000 : 15000;
 
   while (attempt < maxAttempts) {
@@ -159,7 +163,7 @@ export async function onRequest(context) {
       const proxyReq = new Request(targetUrl, {
         method: request.method,
         headers: proxyHeaders,
-        body: reqBodyArrayBuffer ? reqBodyArrayBuffer.slice(0) : undefined,
+        body: reqBody instanceof ArrayBuffer ? reqBody.slice(0) : reqBody,
         redirect: "follow",
         signal: controller.signal
       });
