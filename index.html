@@ -5898,10 +5898,28 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       // Never allow mixed content on HTTPS origins
       if (window.location.protocol === "https:" && origin.startsWith("http://")) return false;
 
+    async function probeOriginHealth(origin) {
+      if (!origin) return false;
       try {
         const ctrl = new AbortController();
-        const tid = setTimeout(() => ctrl.abort(), 2500);
-        const res = await fetch(`${origin.replace(/\/+$/, "")}/telemetry`, { signal: ctrl.signal, cache: "no-store" });
+        const tid = setTimeout(() => ctrl.abort(), 6000);
+        const healthUrl = `${origin.replace(/\/+$/, "")}/v1/health`;
+        const res = await fetch(healthUrl, { signal: ctrl.signal, cache: "no-store" });
+        clearTimeout(tid);
+        if (res.ok) {
+          const contentType = res.headers.get("content-type") || "";
+          if (contentType.includes("json")) {
+            const data = await res.json();
+            if (data && (data.status === "ONLINE" || data.service)) return true;
+          }
+        }
+      } catch (e) {}
+
+      try {
+        const ctrl = new AbortController();
+        const tid = setTimeout(() => ctrl.abort(), 6000);
+        const telemUrl = `${origin.replace(/\/+$/, "")}/telemetry`;
+        const res = await fetch(telemUrl, { signal: ctrl.signal, cache: "no-store" });
         clearTimeout(tid);
         if (res.ok) {
           const contentType = res.headers.get("content-type") || "";
