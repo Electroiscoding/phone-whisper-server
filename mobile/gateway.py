@@ -6753,6 +6753,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
 
         data, meta = _object_store.get_object(scope_id, raw_key)
         if not meta or data is None:
+            data, meta = _object_store.find_object(scope_id, raw_key)
+        if not meta or data is None:
             err = json.dumps({"error": "Object not found"}).encode("utf-8")
             self.send_response(404)
             self._send_cors_headers()
