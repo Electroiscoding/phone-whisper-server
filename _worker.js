@@ -18,7 +18,8 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH",
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With, Accept, Origin, Cache-Control, X-Accel-Buffering, x-api-key, Range, *",
   "Access-Control-Expose-Headers": "*",
-  "Access-Control-Max-Age": "86400"
+  "Access-Control-Max-Age": "86400",
+  "X-Worker-Ran": "true"
 };
 
 async function fetchWithTimeout(url, options = {}, timeoutMs = 3000) {
@@ -76,6 +77,10 @@ async function getLiveOrigin(forceRefresh = false) {
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+
+    if (url.pathname.includes("probe_worker")) {
+      return new Response("WORKER_ALIVE", { status: 200, headers: CORS_HEADERS });
+    }
 
     // 1. Universal CORS Pre-flight (Never return 405 or 307)
     if (request.method === "OPTIONS") {

@@ -1,0 +1,11 @@
+{
+  "name": "phone-whisper-server",
+  "version": "1.0.0",
+  "description": "Autonomous Sovereign Phone AI Datacenter & Edge Proxy",
+  "scripts": {
+    "build": "node build.js"
+  },
+  "devDependencies": {
+    "wrangler": "^4.105.0"
+  }
+}
