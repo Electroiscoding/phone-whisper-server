@@ -155,16 +155,9 @@ while true; do
   "updated_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 }
 JSON_EOF
-      cat << REDIR_EOF > _redirects
-/v1/*  $URL/v1/:splat  307
-/s/*   $URL/s/:splat   307
-/telemetry  $URL/telemetry  307
-/inference  $URL/inference  307
-/health  $URL/health  307
-/models  $URL/models  307
-/screen/*  $URL/screen/:splat  307
-REDIR_EOF
-      git add endpoint.json _redirects 2>/dev/null || true
+      rm -f _redirects 2>/dev/null || true
+      git rm _redirects 2>/dev/null || true
+      git add endpoint.json 2>/dev/null || true
       git commit -m "chore(tunnel): Autonomous sync live endpoint [$URL]" 2>/dev/null || true
       if git push origin main 2>/dev/null; then
         echo "$(date): [SUCCESS] Synced fresh tunnel URL to GitHub: $URL" >> $HOME/nuclear_supervisor.log

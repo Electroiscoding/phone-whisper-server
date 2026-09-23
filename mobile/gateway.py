@@ -3155,12 +3155,14 @@ class SwadeObjectStore:
         t_clean = (tenant_id or "").replace("\\", "/").strip("/ ")
         base = os.path.basename(raw_clean)
         unquoted_base = os.path.basename(unquoted)
+        clean_base = re.sub(r"^\d{10,14}_", "", base)
+        clean_unq = re.sub(r"^\d{10,14}_", "", unquoted_base)
 
-        for item in [raw_clean, unquoted, base, unquoted_base, f"media/{base}", f"media/{unquoted_base}"]:
+        for item in [raw_clean, unquoted, base, unquoted_base, f"media/{base}", f"media/{unquoted_base}", clean_base, clean_unq, f"media/{clean_base}", f"media/{clean_unq}"]:
             if item and item not in candidates:
                 candidates.append(item)
         if t_clean and raw_clean:
-            for item in [f"{t_clean}/{raw_clean}", f"{t_clean}/{unquoted}", f"{t_clean}/{base}"]:
+            for item in [f"{t_clean}/{raw_clean}", f"{t_clean}/{unquoted}", f"{t_clean}/{base}", f"{t_clean}/{clean_base}"]:
                 if item and item not in candidates:
                     candidates.append(item)
 
@@ -3226,7 +3228,11 @@ class SwadeObjectStore:
             seen_dirs.add(r_dir)
             for root, _, files in os.walk(r_dir):
                 for fname in files:
-                    if fname in target_names or any(fname.endswith(tn) for tn in target_names if len(tn) > 3) or any(tn in fname for tn in target_names if len(tn) > 6):
+                    clean_fname = re.sub(r"^\d{10,14}_", "", fname)
+                    if (fname in target_names or clean_fname in target_names or
+                        any(fname.endswith(tn) for tn in target_names if len(tn) > 3) or
+                        any(clean_fname.endswith(tn) for tn in target_names if len(tn) > 3) or
+                        any(tn in fname for tn in target_names if len(tn) > 6)):
                         full_path = os.path.join(root, fname)
                         try:
                             st = os.stat(full_path)
@@ -6553,7 +6559,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             "role": "guest",
             "is_anonymous": True,
             "is_active": True,
-            "restrictions": "read_only"
+            "restrictions": "none"
         }
 
     def handle_storage_register(self):
@@ -6943,7 +6949,9 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         # Detect Content-Type from filename or magic bytes if missing/generic
         content_type = meta.get("content_type", "application/octet-stream")
         if (content_type == "application/octet-stream" or not content_type) and data:
-            if data[:4].endswith(b"ftyp") or b"ftyp" in data[:32] or b"moov" in data[:128]:
+            if data[:4] == b"\x1a\x45\xdf\xa3" or (raw_key and raw_key.endswith(".webm")):
+                content_type = "video/webm"
+            elif data[:4].endswith(b"ftyp") or b"ftyp" in data[:32] or b"moov" in data[:128]:
                 content_type = "video/mp4"
             elif data.startswith(b"\x89PNG\r\n\x1a\n"):
                 content_type = "image/png"
@@ -7319,7 +7327,9 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         # Detect Content-Type from filename or magic bytes if missing/generic
         content_type = meta.get("content_type", "application/octet-stream")
         if (content_type == "application/octet-stream" or not content_type) and data:
-            if data[:4].endswith(b"ftyp") or b"ftyp" in data[:32] or b"moov" in data[:128]:
+            if data[:4] == b"\x1a\x45\xdf\xa3" or (raw_key and raw_key.endswith(".webm")):
+                content_type = "video/webm"
+            elif data[:4].endswith(b"ftyp") or b"ftyp" in data[:32] or b"moov" in data[:128]:
                 content_type = "video/mp4"
             elif data.startswith(b"\x89PNG\r\n\x1a\n"):
                 content_type = "image/png"
