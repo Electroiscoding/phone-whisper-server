@@ -5898,8 +5898,6 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       // Never allow mixed content on HTTPS origins
       if (window.location.protocol === "https:" && origin.startsWith("http://")) return false;
 
-    async function probeOriginHealth(origin) {
-      if (!origin) return false;
       try {
         const ctrl = new AbortController();
         const tid = setTimeout(() => ctrl.abort(), 6000);
