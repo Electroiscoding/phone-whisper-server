@@ -5875,8 +5875,12 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       updateConnectionHUD("online", isDirectHosted ? "Direct LAN :8080" : "Gateway Connected");
       if (typeof initStorageEngine === "function") initStorageEngine();
 
-      // Dynamically discover LAN IP from endpoint.json
+      // Dynamically discover live endpoint and LAN IP from endpoint.json
       fetch("/endpoint.json").then(r => r.json()).then(ep => {
+        if (!isDirectHosted && ep.endpoint && ep.endpoint.startsWith("https://")) {
+          BASE_ENDPOINT = ep.endpoint.replace(/\/+$/, "");
+          console.log("[Connection Guardian]: Initialized base endpoint from endpoint.json:", BASE_ENDPOINT);
+        }
         if (ep.phone_lan_ip) {
           const lanEl = document.getElementById("cheatsheetLanUrl");
           if (lanEl) lanEl.innerText = ep.phone_lan_ip;
@@ -6045,8 +6049,10 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       while (attempt <= maxRetries) {
         try {
           let res = await fetch(fullUrl, options);
-          if (res.status === 502 || res.status === 503 || res.status === 504 || res.status === 522 || res.status === 530) {
-            console.warn(`Gateway returned ${res.status} — auto-recovering connection (attempt ${attempt + 1}/${maxRetries})...`);
+          const ct = res.headers.get("content-type") || "";
+          const isHtmlFallback = res.status === 200 && ct.includes("text/html") && (fullUrl.includes("/v1/") || fullUrl.includes("/telemetry") || fullUrl.includes("/inference"));
+          if (isHtmlFallback || res.status === 502 || res.status === 503 || res.status === 504 || res.status === 522 || res.status === 530) {
+            console.warn(`Gateway response invalid (status=${res.status}, ct=${ct}) — auto-recovering connection (attempt ${attempt + 1}/${maxRetries})...`);
             await recoverFromNetworkOutage(true);
             fullUrl = pathOrUrl.startsWith("http") ? pathOrUrl.replace(/^https?:\/\/[^/]+/, BASE_ENDPOINT) : `${BASE_ENDPOINT}${pathOrUrl}`;
             attempt++;
