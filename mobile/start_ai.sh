@@ -68,7 +68,10 @@ while true; do
   fi
 
   if [ "$GW_ALIVE" -eq 0 ]; then
-    echo "$(date): [CRITICAL] gateway.py dead/unresponsive! Re-spawning..." >> $HOME/nuclear_supervisor.log
+    echo "$(date): [CRITICAL] gateway.py dead/unresponsive! Triggering Qwen 0.5B SLM Self-Healing..." >> $HOME/nuclear_supervisor.log
+    if [ -f "$HOME/slm_self_heal.py" ]; then
+      python3 $HOME/slm_self_heal.py >> $HOME/slm_self_heal.log 2>&1 || true
+    fi
     killall -9 python3 2>/dev/null || true
     sleep 1
     python3 $HOME/gateway.py >> $HOME/gateway.log 2>&1 &
@@ -92,7 +95,7 @@ while true; do
       FAIL_COUNT=$((FAIL_COUNT + 1))
       echo "$(date): [HEALTH PROBE WARN] Status $PROBE_STATUS on $CURRENT_ACTIVE_URL (fail $FAIL_COUNT/5)" >> $HOME/nuclear_supervisor.log
       if [ "$FAIL_COUNT" -ge 5 ]; then
-        echo "$(date): [CRITICAL] 5 consecutive tunnel probe failures. Re-spawning cloudflared..." >> $HOME/nuclear_supervisor.log
+        echo "$(date): [CRITICAL] 5 consecutive tunnel probe failures. Triggering Qwen 0.5B SLM Self-Healing..." >> $HOME/nuclear_supervisor.log
         IS_TUNNEL_DEAD=1
         FAIL_COUNT=0
       fi
@@ -100,7 +103,10 @@ while true; do
   fi
 
   if [ "$IS_TUNNEL_DEAD" -eq 1 ]; then
-    echo "$(date): [RECOVERY] Re-spawning cloudflared tunnel..." >> $HOME/nuclear_supervisor.log
+    echo "$(date): [RECOVERY] Triggering Qwen 0.5B SLM Self-Healing for Cloudflared tunnel..." >> $HOME/nuclear_supervisor.log
+    if [ -f "$HOME/slm_self_heal.py" ]; then
+      python3 $HOME/slm_self_heal.py >> $HOME/slm_self_heal.log 2>&1 || true
+    fi
     killall -9 cloudflared 2>/dev/null || true
     sleep 1
     cloudflared tunnel --url http://127.0.0.1:8080 --protocol http2 --edge-ip-version 4 --no-autoupdate > $HOME/cf_tunnel.log 2>&1 &
