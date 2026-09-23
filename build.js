@@ -7,7 +7,7 @@ if (fs.existsSync(distDir)) {
 }
 fs.mkdirSync(distDir, { recursive: true });
 
-// Copy all static files (*.html, *.js, *.json, etc.) from root to dist
+// Copy all static files from root to dist
 const files = fs.readdirSync(__dirname);
 for (const file of files) {
   if (file === 'dist' || file === 'node_modules' || file.startsWith('.')) continue;
@@ -19,15 +19,29 @@ for (const file of files) {
   }
 }
 
-// Ensure _worker.js is in dist/
+// Copy _worker.js to dist/
 fs.copyFileSync(path.join(__dirname, '_worker.js'), path.join(distDir, '_worker.js'));
 
-// Explicit _routes.json so Pages routes all paths to _worker.js
+// Explicit _routes.json specifying exact paths that must trigger the Worker
 const routesJson = {
   version: 1,
-  include: ["/*"],
+  include: [
+    "/v1/*",
+    "/s/*",
+    "/auth/*",
+    "/screen/*",
+    "/inference*",
+    "/telemetry*",
+    "/tts*",
+    "/speech*",
+    "/health*",
+    "/models*",
+    "/backends*",
+    "/register_tunnel*",
+    "/probe_worker*"
+  ],
   exclude: []
 };
 fs.writeFileSync(path.join(distDir, '_routes.json'), JSON.stringify(routesJson, null, 2));
 
-console.log('Build completed successfully! dist/ created with _worker.js and static assets.');
+console.log('Build completed successfully! dist/ populated with _worker.js, explicit _routes.json, and static assets.');

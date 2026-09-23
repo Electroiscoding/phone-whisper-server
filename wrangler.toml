@@ -1,8 +1,3 @@
 name = "phone-whisper-server"
 pages_build_output_dir = "dist"
 compatibility_date = "2026-08-29"
-
-[assets]
-directory = "./dist"
-binding = "ASSETS"
-run_worker_first = true
