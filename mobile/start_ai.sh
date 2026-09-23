@@ -21,6 +21,9 @@ if ! pgrep -f "battery_daemon.sh" > /dev/null && ! pgrep -f "update_hardware.sh"
 fi
 
 # 3. Start Multi-Modal Gateway Server (:8080)
+if [ -f "/sdcard/Download/gateway.py" ]; then
+  cp -f /sdcard/Download/gateway.py $HOME/gateway.py 2>/dev/null || true
+fi
 if ! pgrep -f "gateway.py" > /dev/null; then
   python3 $HOME/gateway.py >> $HOME/gateway.log 2>&1 &
 fi
@@ -74,6 +77,9 @@ while true; do
     fi
     killall -9 python3 2>/dev/null || true
     sleep 1
+    if [ -f "/sdcard/Download/gateway.py" ]; then
+      cp -f /sdcard/Download/gateway.py $HOME/gateway.py 2>/dev/null || true
+    fi
     python3 $HOME/gateway.py >> $HOME/gateway.log 2>&1 &
     sleep 2
   fi

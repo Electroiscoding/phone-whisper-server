@@ -8871,6 +8871,27 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       if (typeof hapticFeedback === 'function') hapticFeedback([15]);
 
       try {
+        if (!customUsername) {
+          try {
+            const savedProf = localStorage.getItem("swades_account_profile") || localStorage.getItem("swades_auth_user");
+            const savedKey = localStorage.getItem("swades_storage_api_key") || localStorage.getItem("swades_auth_key");
+            if (savedProf && savedKey) {
+              const prof = JSON.parse(savedProf);
+              if (prof && (prof.user_id || prof.tenant_id)) {
+                currentAccount = prof;
+                currentStorageApiKey = savedKey;
+                currentTenantId = prof.user_id || prof.tenant_id;
+                showLoggedInState(prof);
+                await loadStorageUsage();
+                await loadStorageObjects();
+                updateSnippetCode();
+                if (typeof showTactileToast === 'function') showTactileToast("Sovereign Vault Connected ⚡", "fa-circle-check text-emerald-400");
+                return true;
+              }
+            }
+          } catch (e) {}
+        }
+
         let existing = "";
         try {
           if (currentAccount && currentAccount.username) existing = currentAccount.username;
