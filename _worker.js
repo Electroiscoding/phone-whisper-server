@@ -110,7 +110,10 @@ export default {
     if (request.method === "OPTIONS") {
       return new Response(null, {
         status: 204,
-        headers: CORS_HEADERS
+        headers: {
+          ...CORS_HEADERS,
+          "X-Handled-By": "Pages-Worker-Options"
+        }
       });
     }
 
@@ -350,6 +353,7 @@ export default {
     // 6. Return Phone's Response with CORS headers attached
     const responseHeaders = new Headers(response.headers);
     Object.entries(CORS_HEADERS).forEach(([k, v]) => responseHeaders.set(k, v));
+    responseHeaders.set("X-Handled-By", "Pages-Worker-Proxy");
 
     return new Response(request.method === "HEAD" ? null : response.body, {
       status: response.status,

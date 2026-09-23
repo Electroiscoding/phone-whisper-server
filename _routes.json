@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "include": [
+    "/v1/*",
+    "/s/*",
+    "/auth/*",
+    "/screen/*",
+    "/inference",
+    "/telemetry",
+    "/tts",
+    "/speech",
+    "/health",
+    "/models",
+    "/backends",
+    "/register_tunnel",
+    "/benchmark",
+    "/compress",
+    "/decompress"
+  ],
+  "exclude": []
+}
