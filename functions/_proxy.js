@@ -79,28 +79,37 @@ export async function tryB2StorageFallback(request, url) {
   const token = await getB2DownloadToken();
   if (!token) return null;
 
-  const b2Url = `${B2_DOWNLOAD_BASE}/file/${B2_BUCKET_NAME}/${encodeURIComponent(rawFileName)}?Authorization=${token}`;
-  try {
-    const forwardHeaders = new Headers();
-    if (request.headers.has("range")) {
-      forwardHeaders.set("Range", request.headers.get("range"));
-    }
-    const b2Res = await fetch(b2Url, {
-      method: request.method,
-      headers: forwardHeaders
-    });
-    if (b2Res.ok || b2Res.status === 206) {
-      const respHeaders = new Headers(b2Res.headers);
-      Object.entries(CORS_HEADERS).forEach(([k, v]) => respHeaders.set(k, v));
-      respHeaders.set("Cache-Control", "public, max-age=86400");
-      respHeaders.set("Accept-Ranges", "bytes");
-      return new Response(request.method === "HEAD" ? null : b2Res.body, {
-        status: b2Res.status,
-        statusText: b2Res.statusText,
-        headers: respHeaders
+  const subPath = url.pathname.replace(/^\/(v1\/storage\/objects|s)\//, "");
+  const candidateKeys = [rawFileName];
+  if (subPath && subPath !== rawFileName && !candidateKeys.includes(subPath)) {
+    candidateKeys.push(subPath);
+  }
+
+  const forwardHeaders = new Headers();
+  if (request.headers.has("range")) {
+    forwardHeaders.set("Range", request.headers.get("range"));
+  }
+
+  for (const key of candidateKeys) {
+    const b2Url = `${B2_DOWNLOAD_BASE}/file/${B2_BUCKET_NAME}/${encodeURIComponent(key)}?Authorization=${token}`;
+    try {
+      const b2Res = await fetch(b2Url, {
+        method: request.method,
+        headers: forwardHeaders
       });
-    }
-  } catch (e) {}
+      if (b2Res.ok || b2Res.status === 206) {
+        const respHeaders = new Headers(b2Res.headers);
+        Object.entries(CORS_HEADERS).forEach(([k, v]) => respHeaders.set(k, v));
+        respHeaders.set("Cache-Control", "public, max-age=2592000, s-maxage=2592000, immutable");
+        respHeaders.set("Accept-Ranges", "bytes");
+        return new Response(request.method === "HEAD" ? null : b2Res.body, {
+          status: b2Res.status,
+          statusText: b2Res.statusText,
+          headers: respHeaders
+        });
+      }
+    } catch (e) {}
+  }
   return null;
 }
 
@@ -171,6 +180,22 @@ export async function handleRequest(context) {
   }
 
   const url = new URL(request.url);
+  const isStorageReq = (url.pathname.startsWith("/v1/storage/objects/") || url.pathname.startsWith("/s/")) && ["GET", "HEAD"].includes(request.method);
+
+  // ⚡ 1. CLOUDFLARE EDGE CACHE LOOKUP (<10ms global hits)
+  let cfCache = null;
+  let cacheKey = null;
+  if (isStorageReq && typeof caches !== "undefined" && caches.default) {
+    try {
+      cfCache = caches.default;
+      cacheKey = new Request(url.toString(), request);
+      const cached = await cfCache.match(cacheKey);
+      if (cached) {
+        return cached;
+      }
+    } catch (e) {}
+  }
+
   let origin = await getLiveOrigin(false);
   let targetUrl = `${origin}${url.pathname}${url.search}`;
 
@@ -185,14 +210,15 @@ export async function handleRequest(context) {
 
   let response = null;
   let attempt = 0;
-  const maxAttempts = 3;
-  const isLongRunning = url.pathname.includes("/speech") || 
-                        url.pathname.includes("/transcriptions") || 
-                        url.pathname.includes("/chat") || 
-                        url.pathname.includes("/inference") ||
-                        url.pathname.includes("/storage") ||
-                        url.pathname.startsWith("/s/");
-  const timeoutMs = isLongRunning ? 60000 : 15000;
+  // Storage requests are fast-fail: 3000ms timeout and single attempt before immediate B2 fallback
+  const maxAttempts = isStorageReq ? 1 : 3;
+  const isLongRunning = !isStorageReq && (
+    url.pathname.includes("/speech") || 
+    url.pathname.includes("/transcriptions") || 
+    url.pathname.includes("/chat") || 
+    url.pathname.includes("/inference")
+  );
+  const timeoutMs = isStorageReq ? 3000 : (isLongRunning ? 60000 : 15000);
 
   while (attempt < maxAttempts) {
     attempt++;
@@ -221,8 +247,8 @@ export async function handleRequest(context) {
       response = await fetch(proxyReq);
       clearTimeout(timeoutId);
 
-      // Invalidate cache and retry on bad gateway / tunnel restart codes
-      if ([403, 502, 503, 504, 530].includes(response.status) && attempt < maxAttempts) {
+      // Invalidate cache and retry on bad gateway / tunnel restart codes (non-storage only)
+      if (!isStorageReq && [403, 502, 503, 504, 530].includes(response.status) && attempt < maxAttempts) {
         cachedOrigin = null;
         await new Promise(r => setTimeout(r, attempt * 250));
         origin = await getLiveOrigin(true);
@@ -242,21 +268,45 @@ export async function handleRequest(context) {
     }
   }
 
-  // 1. If phone returns 404 for a storage object, seamlessly fallback to Backblaze B2
-  if (response && response.status === 404) {
+  // ⚡ 2. Storage handling: seamless B2 fallback + edge caching
+  if (isStorageReq) {
+    if (response && [200, 206].includes(response.status)) {
+      const respHeaders = new Headers(response.headers);
+      Object.entries(CORS_HEADERS).forEach(([k, v]) => respHeaders.set(k, v));
+      respHeaders.set("Cache-Control", "public, max-age=2592000, s-maxage=2592000, immutable");
+      const edgeResp = new Response(request.method === "HEAD" ? null : response.body, {
+        status: response.status,
+        statusText: response.statusText,
+        headers: respHeaders
+      });
+      if (cfCache && cacheKey) {
+        try { await cfCache.put(cacheKey, edgeResp.clone()); } catch(e) {}
+      }
+      return edgeResp;
+    }
+
+    // Phone returned 404, 502, 503, or timed out -> try B2
     const b2Fallback = await tryB2StorageFallback(request, url);
     if (b2Fallback) {
+      if (cfCache && cacheKey) {
+        try { await cfCache.put(cacheKey, b2Fallback.clone()); } catch(e) {}
+      }
       return b2Fallback;
     }
+
+    // Object genuinely does not exist on Phone or B2 -> return fast 404 so client collapses cleanly
+    return new Response(JSON.stringify({ error: "Object not found" }), {
+      status: 404,
+      headers: {
+        ...CORS_HEADERS,
+        "Content-Type": "application/json",
+        "Cache-Control": "public, max-age=60"
+      }
+    });
   }
 
-  // 2. If phone tunnel is down/reconnecting, check if requested storage item is in B2
+  // 3. Fallback for non-storage items if tunnel is reconnecting
   if (!response || [502, 503, 504, 530].includes(response.status)) {
-    const b2Fallback = await tryB2StorageFallback(request, url);
-    if (b2Fallback) {
-      return b2Fallback;
-    }
-
     const errorBody = JSON.stringify({
       status: "reconnecting",
       error: "Phone AI Datacenter is self-healing / refreshing tunnel.",
