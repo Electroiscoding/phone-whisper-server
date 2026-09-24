@@ -255,11 +255,17 @@ export async function handleRequest(context) {
     return handleOptions(context);
   }
 
+  const url = new URL(request.url);
+
   const isStorageMutation = (url.pathname.startsWith("/v1/storage/objects/") || url.pathname.startsWith("/s/")) && ["PUT", "POST", "DELETE"].includes(request.method);
   if (isStorageMutation && typeof caches !== "undefined" && caches.default) {
     try {
       const purgeReq = new Request(url.toString(), { method: "GET" });
-      context.waitUntil(caches.default.delete(purgeReq));
+      if (typeof context.waitUntil === "function") {
+        context.waitUntil(caches.default.delete(purgeReq));
+      } else {
+        caches.default.delete(purgeReq).catch(() => {});
+      }
     } catch (e) {}
   }
 
