@@ -1,4 +1,4 @@
-import { CORS_HEADERS } from "./_proxy.js";
+import { CORS_HEADERS, getLiveOrigin, tryB2StorageFallback } from "./_proxy.js";
 
 export async function onRequest(context) {
   const { request } = context;
@@ -18,21 +18,48 @@ export async function onRequest(context) {
 
   try {
     targetUrl = decodeURIComponent(targetUrl);
+
+    // If targetUrl points to a trycloudflare quick-tunnel, rewrite to live origin
+    let parsedTarget = null;
+    try {
+      parsedTarget = new URL(targetUrl);
+      if (parsedTarget.hostname.includes("trycloudflare.com")) {
+        const liveOrigin = await getLiveOrigin(false);
+        if (liveOrigin && liveOrigin.startsWith("https://")) {
+          targetUrl = `${liveOrigin}${parsedTarget.pathname}${parsedTarget.search}`;
+          parsedTarget = new URL(targetUrl);
+        }
+      }
+    } catch (e) {}
+
     const forwardHeaders = new Headers();
     if (request.headers.has("range")) {
       forwardHeaders.set("Range", request.headers.get("range"));
     }
-    const response = await fetch(targetUrl, {
+    let response = await fetch(targetUrl, {
       method: request.method,
       headers: forwardHeaders
-    });
+    }).catch(() => null);
+
+    // If fetch failed or returned 404/5xx, try B2 storage fallback
+    if (!response || !response.ok) {
+      if (parsedTarget) {
+        const b2Fallback = await tryB2StorageFallback(request, parsedTarget);
+        if (b2Fallback) {
+          return b2Fallback;
+        }
+      }
+      if (!response) {
+        return new Response(JSON.stringify({ error: "CORS proxy upstream fetch failed" }), {
+          status: 502,
+          headers: { ...CORS_HEADERS, "Content-Type": "application/json" }
+        });
+      }
+    }
 
     const responseHeaders = new Headers(response.headers);
     Object.entries(CORS_HEADERS).forEach(([k, v]) => responseHeaders.set(k, v));
     responseHeaders.set("Cache-Control", "public, max-age=86400");
-    if (responseHeaders.has("Content-Type") && responseHeaders.get("Content-Type").includes("text/html")) {
-      // Don't override binary media types
-    }
 
     return new Response(request.method === "HEAD" ? null : response.body, {
       status: response.status,

@@ -68,7 +68,7 @@ async function getB2DownloadToken() {
   }
 }
 
-async function tryB2StorageFallback(request, url) {
+export async function tryB2StorageFallback(request, url) {
   const isStorageReq = url.pathname.startsWith("/v1/storage/objects/") || url.pathname.startsWith("/s/");
   if (!isStorageReq || !["GET", "HEAD"].includes(request.method)) return null;
 
