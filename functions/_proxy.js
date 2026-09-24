@@ -257,7 +257,8 @@ export async function handleRequest(context) {
 
   const url = new URL(request.url);
 
-  const isStorageMutation = (url.pathname.startsWith("/v1/storage/objects/") || url.pathname.startsWith("/s/")) && ["PUT", "POST", "DELETE"].includes(request.method);
+  try {
+    const isStorageMutation = (url.pathname.startsWith("/v1/storage/objects/") || url.pathname.startsWith("/s/")) && ["PUT", "POST", "DELETE"].includes(request.method);
   if (isStorageMutation && typeof caches !== "undefined" && caches.default) {
     try {
       const purgeReq = new Request(url.toString(), { method: "GET" });
@@ -445,4 +446,24 @@ export async function handleRequest(context) {
     statusText: response.statusText,
     headers: responseHeaders
   });
+  } catch (fatalErr) {
+    const isStorageReq = (url.pathname.startsWith("/v1/storage/objects/") || url.pathname.startsWith("/s/")) && ["GET", "HEAD"].includes(request.method);
+    if (isStorageReq) {
+      return new Response("Not Found", {
+        status: 404,
+        headers: {
+          ...CORS_HEADERS,
+          "Content-Type": "text/plain; charset=utf-8",
+          "Cache-Control": "public, max-age=60"
+        }
+      });
+    }
+    return new Response(JSON.stringify({ error: "Edge gateway exception", details: String(fatalErr) }), {
+      status: 502,
+      headers: {
+        ...CORS_HEADERS,
+        "Content-Type": "application/json"
+      }
+    });
+  }
 }
