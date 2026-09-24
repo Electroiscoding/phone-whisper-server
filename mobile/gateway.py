@@ -2736,9 +2736,9 @@ class SwadeObjectStore:
         self._disk_worker_thread = threading.Thread(target=self._disk_worker, daemon=True)
         self._disk_worker_thread.start()
 
-        # Hyper-Protection Background TTL Cleaner (Purges anonymous unvisited objects after 3 days and sends 24/7 Gmail alerts)
-        self._ttl_cleaner_thread = threading.Thread(target=self._ttl_cleaner_worker, daemon=True)
-        self._ttl_cleaner_thread.start()
+        # Permanent Sovereign Storage: TTL and Auto-deletion permanently disabled
+        # self._ttl_cleaner_thread = threading.Thread(target=self._ttl_cleaner_worker, daemon=True)
+        # self._ttl_cleaner_thread.start()
 
         self._warm_cache()
 
@@ -2784,29 +2784,8 @@ class SwadeObjectStore:
                 print(f"[SWADES STORAGE] disk worker notice: {e}")
 
     def _ttl_cleaner_worker(self):
-        """Background physical cleaner: strictly isolated to ephemeral benchmark probes. NEVER deletes real user data or client media."""
-        while True:
-            try:
-                time.sleep(60)
-                now_ts = time.time()
-                expired_targets = []
-                with self.lock:
-                    for t_id, t_dict in list(self._meta_index.items()):
-                        # CRITICAL DATA IMMUNITY: Only ephemeral benchmark data is ever pruned
-                        if t_id != "bench_ephemeral" and not t_id.startswith("tmp_ephemeral_"):
-                            continue
-                        for k, meta in list(t_dict.items()):
-                            if not meta.get("_is_ephemeral_scratch", False) and t_id != "bench_ephemeral":
-                                continue
-                            exp_ts = meta.get("expires_at_ts", 0)
-                            if exp_ts > 0 and now_ts >= exp_ts:
-                                expired_targets.append((t_id, k))
-
-                for t_id, k in expired_targets:
-                    self.delete_object(t_id, k)
-                    print(f"[SWADES STORAGE TTL] Ephemeral bench file '{k}' in tenant '{t_id}' purged.")
-            except Exception as te:
-                print(f"[SWADES STORAGE TTL] cleaner notice: {te}")
+        """Permanent Storage: Auto-delete is permanently disabled. No files are ever deleted."""
+        return
 
     def _register_universal(self, tenant_id, key, full_path, meta):
         """Registers an object across all possible candidate keys for zero-failure global retrieval"""
@@ -2883,8 +2862,9 @@ class SwadeObjectStore:
                                     "uploaded_at_ts": st.st_ctime,
                                     "last_accessed_ts": st.st_mtime,
                                     "external_human_visits": 0,
-                                    "ttl_days": 3,
-                                    "expires_at_ts": st.st_ctime + (3 * 86400),
+                                    "ttl_days": None,
+                                    "expires_at_ts": None,
+                                    "is_permanent": True,
                                     "pool": "Internal Flash" if "sdcard" not in r_dir else "Shared /sdcard",
                                     "_disk_path": full_path,
                                     "url": f"/s/{tenant_id}/{rel_path}"
@@ -2951,8 +2931,9 @@ class SwadeObjectStore:
                                 "uploaded_at_ts": st.st_ctime,
                                 "last_accessed_ts": st.st_mtime,
                                 "external_human_visits": 0,
-                                "ttl_days": 3,
-                                "expires_at_ts": st.st_ctime + (3 * 86400),
+                                "ttl_days": None,
+                                "expires_at_ts": None,
+                                "is_permanent": True,
                                 "pool": "Internal Flash" if "sdcard" not in r_dir else "Shared /sdcard",
                                 "_disk_path": full_path,
                                 "url": f"/s/{tenant_id}/{rel_path}"
@@ -3051,8 +3032,9 @@ class SwadeObjectStore:
             "uploaded_at_ts": now_ts,
             "last_accessed_ts": now_ts,
             "external_human_visits": 0,
-            "ttl_days": 3,
-            "expires_at_ts": now_ts + (3 * 86400), # 3-Day Inactive TTL Countdown
+            "ttl_days": None,
+            "expires_at_ts": None,
+            "is_permanent": True,
             "pool": pool_name,
             "_disk_path": pool_path
         }
@@ -3207,41 +3189,32 @@ class SwadeObjectStore:
                             if fp and os.path.exists(fp):
                                 return self._read_file_data(fp), meta
 
-        # 5. Live Physical Disk Walk Fallback across all storage pools
+        # 5. Direct Physical Disk Check (Fast O(1) direct lookup, no recursive crawling)
         search_roots = [
             self.root_dir,
             os.path.join(self.home, ".swades_storage", "tenants"),
             os.path.join(self.home, ".swades_storage", "projects"),
             "/data/data/com.termux/files/home/.swades_storage/tenants",
             "/data/data/com.termux/files/home/.swades_storage/projects",
-            "/data/user/0/com.termux/.swades_storage/tenants",
-            "/data/user/0/com.termux/files/home/.swades_storage/tenants",
             "/sdcard/SwadesCloud/tenants",
-            "/sdcard/SwadesCloud",
-            "/sdcard/Download"
+            "/sdcard/SwadesCloud"
         ]
-        target_names = set(candidates)
-        seen_dirs = set()
-        for r_dir in search_roots:
-            if not r_dir or r_dir in seen_dirs or not os.path.exists(r_dir):
-                continue
-            seen_dirs.add(r_dir)
-            for root, _, files in os.walk(r_dir):
-                for fname in files:
-                    clean_fname = re.sub(r"^\d{10,14}_", "", fname)
-                    if (fname in target_names or clean_fname in target_names or
-                        any(fname.endswith(tn) for tn in target_names if len(tn) > 3) or
-                        any(clean_fname.endswith(tn) for tn in target_names if len(tn) > 3) or
-                        any(tn in fname for tn in target_names if len(tn) > 6)):
-                        full_path = os.path.join(root, fname)
+        for cand in candidates:
+            clean_cand = cand.strip("/")
+            for r_dir in search_roots:
+                if not r_dir or not os.path.exists(r_dir):
+                    continue
+                for sub in [f"{tenant_id}/objects/{clean_cand}", f"{tenant_id}/{clean_cand}", clean_cand, f"media/{os.path.basename(clean_cand)}"]:
+                    check_path = os.path.join(r_dir, sub)
+                    if os.path.isfile(check_path):
                         try:
-                            st = os.stat(full_path)
-                            ct, _ = mimetypes.guess_type(fname)
-                            if not ct and (fname.endswith(".webm") or fname.endswith(".mp4") or "video" in fname):
-                                ct = "video/webm" if fname.endswith(".webm") else "video/mp4"
+                            st = os.stat(check_path)
+                            ct, _ = mimetypes.guess_type(check_path)
+                            if not ct and (check_path.endswith(".webm") or check_path.endswith(".mp4")):
+                                ct = "video/webm" if check_path.endswith(".webm") else "video/mp4"
                             etag = f'"{int(st.st_mtime)}-{st.st_size}"'
                             meta = {
-                                "key": fname,
+                                "key": os.path.basename(clean_cand),
                                 "size": st.st_size,
                                 "content_type": ct or "application/octet-stream",
                                 "created_at": datetime.fromtimestamp(st.st_ctime, timezone.utc).isoformat(),
@@ -3252,14 +3225,15 @@ class SwadeObjectStore:
                                 "uploaded_at_ts": st.st_ctime,
                                 "last_accessed_ts": st.st_mtime,
                                 "external_human_visits": 0,
-                                "ttl_days": 3,
-                                "expires_at_ts": st.st_ctime + (3 * 86400),
+                                "ttl_days": None,
+                                "expires_at_ts": None,
+                                "is_permanent": True,
                                 "pool": "Internal Flash" if "sdcard" not in r_dir else "Shared /sdcard",
-                                "_disk_path": full_path,
-                                "url": f"/s/{tenant_id or 'public'}/{fname}"
+                                "_disk_path": check_path,
+                                "url": f"/s/{tenant_id or 'public'}/{os.path.basename(clean_cand)}"
                             }
-                            self._register_universal(tenant_id or "public", fname, full_path, meta)
-                            return self._read_file_data(full_path), meta
+                            self._register_universal(tenant_id or "public", os.path.basename(clean_cand), check_path, meta)
+                            return self._read_file_data(check_path), meta
                         except Exception:
                             pass
 
@@ -3334,21 +3308,15 @@ class SwadeObjectStore:
             c["flagged_reason"] = m.get("flagged_reason", "") if m else ""
             c["moderated_by"] = m.get("moderated_by", "") if m else ""
 
-            # Real physical 3-day inactivity countdown calculation
-            is_anon = o.get("is_anonymous", False) or tenant_id.startswith("usr_guest_") or tenant_id.startswith("usr_sandbox_")
-            exp_ts = o.get("expires_at_ts", now_ts + (3 * 86400))
-            ext_visits = o.get("external_human_visits", 0)
-            time_left_sec = max(0, int(exp_ts - now_ts))
-            hours_left = round(time_left_sec / 3600, 1)
-            days_left = round(time_left_sec / 86400, 2)
-
-            c["is_anonymous"] = is_anon
-            c["external_human_visits"] = ext_visits
-            c["ttl_days_total"] = 3
-            c["ttl_hours_remaining"] = hours_left
-            c["ttl_days_remaining"] = days_left
-            c["ttl_expires_at"] = datetime.fromtimestamp(exp_ts, timezone.utc).isoformat()
-            c["ttl_auto_delete_active"] = is_anon and (ext_visits == 0)
+            # Sovereign Permanent Storage: TTL and Auto-deletion permanently disabled
+            c["is_anonymous"] = False
+            c["external_human_visits"] = o.get("external_human_visits", 0)
+            c["ttl_days_total"] = None
+            c["ttl_hours_remaining"] = None
+            c["ttl_days_remaining"] = None
+            c["ttl_expires_at"] = None
+            c["ttl_auto_delete_active"] = False
+            c["is_permanent"] = True
             safe_list.append(c)
         return safe_list, len(unique_objs)
 
@@ -7321,14 +7289,12 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 self.wfile.write(err)
             return
 
-        # Record dynamic external human visit & refresh 3-day TTL window
+        # Record dynamic external human visit (Permanent storage - no TTL expiration)
         sys.stderr.write(f"[CDN DEBUG] Headers: {dict(self.headers)}\n")
         sys.stderr.flush()
         now_ts = time.time()
         meta["external_human_visits"] = meta.get("external_human_visits", 0) + 1
-        meta["last_accessed_ts"] = now_ts
-        if meta.get("is_anonymous", False):
-            meta["expires_at_ts"] = now_ts + (3 * 86400) # Refreshes 3-day TTL upon external visit
+        meta["expires_at_ts"] = None
 
         # Detect Content-Type from filename or magic bytes if missing/generic
         content_type = meta.get("content_type", "application/octet-stream")
