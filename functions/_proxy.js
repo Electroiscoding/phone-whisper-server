@@ -384,20 +384,24 @@ export async function handleRequest(context) {
       return b2Fallback;
     }
 
-    // Object genuinely does not exist on Phone or B2 -> return fast clean 404 with CORS
+    // Object genuinely does not exist on Phone or B2 -> return fast clean 404 with CORS and cache at Edge
     const notFoundHeaders = {
       ...CORS_HEADERS,
-      "Cache-Control": "public, max-age=60",
+      "Cache-Control": "public, max-age=3600, s-maxage=3600",
       "Content-Type": "text/plain; charset=utf-8",
       "X-Debug-Origin": origin || "empty",
       "X-Debug-Target-Url": targetUrl || "empty",
       "X-Debug-Upstream-Status": response ? String(response.status) : "no_resp"
     };
-    return new Response("Not Found", {
+    const notFoundResp = new Response("Not Found", {
       status: 404,
       statusText: "Not Found",
       headers: notFoundHeaders
     });
+    if (cfCache && cacheKey) {
+      try { await cfCache.put(cacheKey, notFoundResp.clone()); } catch(e) {}
+    }
+    return notFoundResp;
   }
 
   // 3. Fallback for non-storage items if tunnel is reconnecting
