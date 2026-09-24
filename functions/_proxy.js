@@ -25,6 +25,85 @@ export const CORS_HEADERS = {
   "Access-Control-Max-Age": "86400"
 };
 
+const B2_APP_KEY_ID = "0056b2f88b847c60000000003";
+const B2_APP_KEY = "K005/3ZD3P9uF61mPNuuQjac1Yr0HMw";
+const B2_BUCKET_ID = "866bf27f58e86b6894f70c16";
+const B2_BUCKET_NAME = "netuark-storage";
+const B2_DOWNLOAD_BASE = "https://f005.backblazeb2.com";
+
+let cachedB2Token = null;
+let b2TokenExpiry = 0;
+
+async function getB2DownloadToken() {
+  const now = Date.now();
+  if (cachedB2Token && now < b2TokenExpiry) {
+    return cachedB2Token;
+  }
+  try {
+    const authHeader = "Basic " + btoa(B2_APP_KEY_ID + ":" + B2_APP_KEY);
+    const authRes = await fetch("https://api.backblazeb2.com/b2api/v2/b2_authorize_account", {
+      headers: { Authorization: authHeader }
+    });
+    if (!authRes.ok) return null;
+    const authData = await authRes.json();
+    const tokenRes = await fetch(authData.apiUrl + "/b2api/v2/b2_get_download_authorization", {
+      method: "POST",
+      headers: {
+        Authorization: authData.authorizationToken,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        bucketId: B2_BUCKET_ID,
+        fileNamePrefix: "",
+        validDurationInSeconds: 86400
+      })
+    });
+    if (!tokenRes.ok) return null;
+    const tokenData = await tokenRes.json();
+    cachedB2Token = tokenData.authorizationToken;
+    b2TokenExpiry = now + (23 * 3600 * 1000);
+    return cachedB2Token;
+  } catch (e) {
+    return null;
+  }
+}
+
+async function tryB2StorageFallback(request, url) {
+  const isStorageReq = url.pathname.startsWith("/v1/storage/objects/") || url.pathname.startsWith("/s/");
+  if (!isStorageReq || !["GET", "HEAD"].includes(request.method)) return null;
+
+  let rawFileName = url.pathname.split("/").pop() || "";
+  try { rawFileName = decodeURIComponent(rawFileName); } catch (e) {}
+  if (!rawFileName || rawFileName.includes(".trashed")) return null;
+
+  const token = await getB2DownloadToken();
+  if (!token) return null;
+
+  const b2Url = `${B2_DOWNLOAD_BASE}/file/${B2_BUCKET_NAME}/${encodeURIComponent(rawFileName)}?Authorization=${token}`;
+  try {
+    const forwardHeaders = new Headers();
+    if (request.headers.has("range")) {
+      forwardHeaders.set("Range", request.headers.get("range"));
+    }
+    const b2Res = await fetch(b2Url, {
+      method: request.method,
+      headers: forwardHeaders
+    });
+    if (b2Res.ok || b2Res.status === 206) {
+      const respHeaders = new Headers(b2Res.headers);
+      Object.entries(CORS_HEADERS).forEach(([k, v]) => respHeaders.set(k, v));
+      respHeaders.set("Cache-Control", "public, max-age=86400");
+      respHeaders.set("Accept-Ranges", "bytes");
+      return new Response(request.method === "HEAD" ? null : b2Res.body, {
+        status: b2Res.status,
+        statusText: b2Res.statusText,
+        headers: respHeaders
+      });
+    }
+  } catch (e) {}
+  return null;
+}
+
 async function fetchWithTimeout(url, options = {}, timeoutMs = 3000) {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeoutMs);
@@ -163,7 +242,21 @@ export async function handleRequest(context) {
     }
   }
 
+  // 1. If phone returns 404 for a storage object, seamlessly fallback to Backblaze B2
+  if (response && response.status === 404) {
+    const b2Fallback = await tryB2StorageFallback(request, url);
+    if (b2Fallback) {
+      return b2Fallback;
+    }
+  }
+
+  // 2. If phone tunnel is down/reconnecting, check if requested storage item is in B2
   if (!response || [502, 503, 504, 530].includes(response.status)) {
+    const b2Fallback = await tryB2StorageFallback(request, url);
+    if (b2Fallback) {
+      return b2Fallback;
+    }
+
     const errorBody = JSON.stringify({
       status: "reconnecting",
       error: "Phone AI Datacenter is self-healing / refreshing tunnel.",
