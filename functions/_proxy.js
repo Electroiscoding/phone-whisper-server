@@ -96,17 +96,23 @@ export async function tryB2StorageFallback(request, url) {
   const ext = (rawFileName.split('.').pop() || '').toLowerCase();
   const MIME_MAP = {
     wav: 'audio/wav',
-    webm: 'audio/webm',
+    webm: 'video/webm',
     mp3: 'audio/mpeg',
     ogg: 'audio/ogg',
     m4a: 'audio/mp4',
+    aac: 'audio/aac',
+    flac: 'audio/flac',
     mp4: 'video/mp4',
+    mov: 'video/quicktime',
+    avi: 'video/x-msvideo',
+    mkv: 'video/x-matroska',
     png: 'image/png',
     jpg: 'image/jpeg',
     jpeg: 'image/jpeg',
     webp: 'image/webp',
     gif: 'image/gif',
-    svg: 'image/svg+xml'
+    svg: 'image/svg+xml',
+    pdf: 'application/pdf'
   };
 
   for (const key of candidateKeys) {
@@ -298,6 +304,20 @@ export async function handleRequest(context) {
       const respHeaders = new Headers(response.headers);
       Object.entries(CORS_HEADERS).forEach(([k, v]) => respHeaders.set(k, v));
       respHeaders.set("Cache-Control", "public, max-age=2592000, s-maxage=2592000, immutable");
+      respHeaders.set("Accept-Ranges", "bytes");
+      // Ensure correct Content-Type to prevent ORB (OpaqueResponseBlocking)
+      const rawFileName = decodeURIComponent(url.pathname.split("/").pop() || "");
+      const ext = (rawFileName.split('.').pop() || '').toLowerCase();
+      const STORAGE_MIME = {
+        wav:'audio/wav',webm:'video/webm',mp3:'audio/mpeg',ogg:'audio/ogg',
+        m4a:'audio/mp4',aac:'audio/aac',mp4:'video/mp4',mov:'video/quicktime',
+        png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',webp:'image/webp',
+        gif:'image/gif',svg:'image/svg+xml',pdf:'application/pdf'
+      };
+      const ct = respHeaders.get("content-type");
+      if ((!ct || ct === "application/octet-stream") && STORAGE_MIME[ext]) {
+        respHeaders.set("Content-Type", STORAGE_MIME[ext]);
+      }
       const edgeResp = new Response(request.method === "HEAD" ? null : response.body, {
         status: response.status,
         statusText: response.statusText,

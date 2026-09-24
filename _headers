@@ -1,0 +1,31 @@
+/*
+  Access-Control-Allow-Origin: *
+  Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH
+  Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, Accept, Origin, Cache-Control, Range, *
+  Access-Control-Expose-Headers: Content-Length, Content-Range, Content-Type, Accept-Ranges, *
+  Access-Control-Max-Age: 86400
+
+/v1/storage/*
+  Access-Control-Allow-Origin: *
+  Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS, HEAD
+  Access-Control-Allow-Headers: *
+  Access-Control-Expose-Headers: *
+  Access-Control-Max-Age: 86400
+  Cache-Control: public, max-age=2592000, s-maxage=2592000, immutable
+  X-Content-Type-Options: nosniff
+
+/s/*
+  Access-Control-Allow-Origin: *
+  Access-Control-Allow-Methods: GET, HEAD
+  Access-Control-Allow-Headers: *
+  Access-Control-Expose-Headers: *
+  Access-Control-Max-Age: 86400
+  Cache-Control: public, max-age=2592000, s-maxage=2592000, immutable
+  X-Content-Type-Options: nosniff
+
+/cors-proxy
+  Access-Control-Allow-Origin: *
+  Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS, HEAD
+  Access-Control-Allow-Headers: *
+  Access-Control-Expose-Headers: *
+  Access-Control-Max-Age: 86400
