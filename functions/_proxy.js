@@ -338,14 +338,26 @@ export async function handleRequest(context) {
       return b2Fallback;
     }
 
-    // Object genuinely does not exist on Phone or B2 -> return fast empty 404 without JSON to prevent ORB (OpaqueResponseBlocking)
+    // Object genuinely does not exist on Phone or B2 -> return fast empty 404 with exact Content-Type to prevent ORB
+    const rawFileName = decodeURIComponent(url.pathname.split("/").pop() || "");
+    const ext = (rawFileName.split('.').pop() || '').toLowerCase();
+    const STORAGE_MIME = {
+      wav:'audio/wav',webm:'video/webm',mp3:'audio/mpeg',ogg:'audio/ogg',
+      m4a:'audio/mp4',aac:'audio/aac',mp4:'video/mp4',mov:'video/quicktime',
+      png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',webp:'image/webp',
+      gif:'image/gif',svg:'image/svg+xml',pdf:'application/pdf'
+    };
+    const notFoundHeaders = {
+      ...CORS_HEADERS,
+      "Cache-Control": "public, max-age=60"
+    };
+    if (STORAGE_MIME[ext]) {
+      notFoundHeaders["Content-Type"] = STORAGE_MIME[ext];
+    }
     return new Response(null, {
       status: 404,
       statusText: "Not Found",
-      headers: {
-        ...CORS_HEADERS,
-        "Cache-Control": "public, max-age=60"
-      }
+      headers: notFoundHeaders
     });
   }
 
