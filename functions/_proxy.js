@@ -35,20 +35,29 @@ const B2_DOWNLOAD_BASE = "https://f005.backblazeb2.com";
 
 let cachedB2Token = null;
 let b2TokenExpiry = 0;
+let b2CircuitBreakerUntil = 0;
 
 async function getB2DownloadToken() {
   const now = Date.now();
+  if (now < b2CircuitBreakerUntil) {
+    return null;
+  }
   if (cachedB2Token && now < b2TokenExpiry) {
     return cachedB2Token;
   }
   try {
     const authHeader = "Basic " + btoa(B2_APP_KEY_ID + ":" + B2_APP_KEY);
-    const authRes = await fetch("https://api.backblazeb2.com/b2api/v2/b2_authorize_account", {
+    const authRes = await fetchWithTimeout("https://api.backblazeb2.com/b2api/v2/b2_authorize_account", {
       headers: { Authorization: authHeader }
-    });
-    if (!authRes.ok) return null;
+    }, 2500);
+    if (!authRes.ok) {
+      if (authRes.status === 403 || authRes.status === 401) {
+        b2CircuitBreakerUntil = now + (10 * 60 * 1000);
+      }
+      return null;
+    }
     const authData = await authRes.json();
-    const tokenRes = await fetch(authData.apiUrl + "/b2api/v2/b2_get_download_authorization", {
+    const tokenRes = await fetchWithTimeout(authData.apiUrl + "/b2api/v2/b2_get_download_authorization", {
       method: "POST",
       headers: {
         Authorization: authData.authorizationToken,
@@ -59,8 +68,13 @@ async function getB2DownloadToken() {
         fileNamePrefix: "",
         validDurationInSeconds: 86400
       })
-    });
-    if (!tokenRes.ok) return null;
+    }, 2500);
+    if (!tokenRes.ok) {
+      if (tokenRes.status === 403) {
+        b2CircuitBreakerUntil = now + (10 * 60 * 1000);
+      }
+      return null;
+    }
     const tokenData = await tokenRes.json();
     cachedB2Token = tokenData.authorizationToken;
     b2TokenExpiry = now + (23 * 3600 * 1000);
@@ -73,6 +87,10 @@ async function getB2DownloadToken() {
 export async function tryB2StorageFallback(request, url) {
   const isStorageReq = url.pathname.startsWith("/v1/storage/objects/") || url.pathname.startsWith("/s/");
   if (!isStorageReq || !["GET", "HEAD"].includes(request.method)) return null;
+
+  if (Date.now() < b2CircuitBreakerUntil) {
+    return null;
+  }
 
   let rawFileName = url.pathname.split("/").pop() || "";
   try { rawFileName = decodeURIComponent(rawFileName); } catch (e) {}
@@ -121,10 +139,17 @@ export async function tryB2StorageFallback(request, url) {
     const encodedPath = key.split('/').map(encodeURIComponent).join('/');
     const b2Url = `${B2_DOWNLOAD_BASE}/file/${B2_BUCKET_NAME}/${encodedPath}?Authorization=${token}`;
     try {
-      const b2Res = await fetch(b2Url, {
+      const b2Res = await fetchWithTimeout(b2Url, {
         method: request.method,
         headers: forwardHeaders
-      });
+      }, 2500);
+
+      if (b2Res.status === 403) {
+        // Daily download cap exceeded or unauthorized: trip circuit breaker immediately
+        b2CircuitBreakerUntil = Date.now() + (10 * 60 * 1000);
+        break;
+      }
+
       if (b2Res.ok || b2Res.status === 206) {
         const respHeaders = new Headers(b2Res.headers);
         Object.entries(CORS_HEADERS).forEach(([k, v]) => respHeaders.set(k, v));
