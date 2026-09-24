@@ -100,10 +100,9 @@ export async function tryB2StorageFallback(request, url) {
   if (!token) return null;
 
   const subPath = url.pathname.replace(/^\/(v1\/storage\/objects|s)\//, "");
-  const candidateKeys = [rawFileName];
-  if (subPath && subPath !== rawFileName && !candidateKeys.includes(subPath)) {
-    candidateKeys.push(subPath);
-  }
+  const candidateKeys = [];
+  if (subPath) candidateKeys.push(subPath);
+  if (!candidateKeys.includes(rawFileName)) candidateKeys.push(rawFileName);
   if (!rawFileName.startsWith("media/") && !candidateKeys.includes("media/" + rawFileName)) {
     candidateKeys.push("media/" + rawFileName);
   }
@@ -136,13 +135,14 @@ export async function tryB2StorageFallback(request, url) {
   };
 
   for (const key of candidateKeys) {
+    if (Date.now() < b2CircuitBreakerUntil) break;
     const encodedPath = key.split('/').map(encodeURIComponent).join('/');
     const b2Url = `${B2_DOWNLOAD_BASE}/file/${B2_BUCKET_NAME}/${encodedPath}?Authorization=${token}`;
     try {
       const b2Res = await fetchWithTimeout(b2Url, {
         method: request.method,
         headers: forwardHeaders
-      }, 2500);
+      }, 1500);
 
       if (b2Res.status === 403) {
         // Daily download cap exceeded or unauthorized: trip circuit breaker immediately
@@ -300,15 +300,16 @@ export async function handleRequest(context) {
 
   let response = null;
   let attempt = 0;
-  // Storage requests: 2 attempts (instant retry with refreshed tunnel on 530/502/connection failure)
-  const maxAttempts = isStorageReq ? 2 : 3;
+  // Storage requests: ONLY 1 attempt (phone streams within ~1s when file exists; hangs when file is missing)
+  const maxAttempts = isStorageReq ? 1 : 3;
   const isLongRunning = !isStorageReq && (
     url.pathname.includes("/speech") || 
     url.pathname.includes("/transcriptions") || 
     url.pathname.includes("/chat") || 
     url.pathname.includes("/inference")
   );
-  const timeoutMs = isStorageReq ? 15000 : (isLongRunning ? 60000 : 15000);
+  // Storage requests timeout at 3000ms. If phone hasn't answered in 3s, it does not exist or tunnel stalled.
+  const timeoutMs = isStorageReq ? 3000 : (isLongRunning ? 60000 : 15000);
 
   while (attempt < maxAttempts) {
     attempt++;
@@ -399,10 +400,18 @@ export async function handleRequest(context) {
     }
 
     // Object genuinely does not exist on Phone or B2 -> return fast clean 404 with CORS and cache at Edge
+    const rawFileName = decodeURIComponent(url.pathname.split("/").pop() || "");
+    const ext = (rawFileName.split('.').pop() || '').toLowerCase();
+    const STORAGE_MIME = {
+      wav:'audio/wav',webm:'video/webm',mp3:'audio/mpeg',ogg:'audio/ogg',
+      m4a:'audio/mp4',aac:'audio/aac',mp4:'video/mp4',mov:'video/quicktime',
+      png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',webp:'image/webp',
+      gif:'image/gif',svg:'image/svg+xml',pdf:'application/pdf'
+    };
     const notFoundHeaders = {
       ...CORS_HEADERS,
-      "Cache-Control": "public, max-age=3600, s-maxage=3600",
-      "Content-Type": "text/plain; charset=utf-8",
+      "Cache-Control": "public, max-age=86400, s-maxage=86400",
+      "Content-Type": STORAGE_MIME[ext] || "application/octet-stream",
       "X-Debug-Origin": origin || "empty",
       "X-Debug-Target-Url": targetUrl || "empty",
       "X-Debug-Upstream-Status": response ? String(response.status) : "no_resp"
@@ -453,8 +462,8 @@ export async function handleRequest(context) {
         status: 404,
         headers: {
           ...CORS_HEADERS,
-          "Content-Type": "text/plain; charset=utf-8",
-          "Cache-Control": "public, max-age=60"
+          "Content-Type": "application/octet-stream",
+          "Cache-Control": "public, max-age=3600"
         }
       });
     }
