@@ -363,7 +363,10 @@ export async function handleRequest(context) {
     const notFoundHeaders = {
       ...CORS_HEADERS,
       "Cache-Control": "public, max-age=60",
-      "Content-Type": "text/plain; charset=utf-8"
+      "Content-Type": "text/plain; charset=utf-8",
+      "X-Debug-Origin": origin || "empty",
+      "X-Debug-Target-Url": targetUrl || "empty",
+      "X-Debug-Upstream-Status": response ? String(response.status) : "no_resp"
     };
     return new Response("Not Found", {
       status: 404,
