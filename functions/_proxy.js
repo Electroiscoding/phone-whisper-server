@@ -255,7 +255,14 @@ export async function handleRequest(context) {
     return handleOptions(context);
   }
 
-  const url = new URL(request.url);
+  const isStorageMutation = (url.pathname.startsWith("/v1/storage/objects/") || url.pathname.startsWith("/s/")) && ["PUT", "POST", "DELETE"].includes(request.method);
+  if (isStorageMutation && typeof caches !== "undefined" && caches.default) {
+    try {
+      const purgeReq = new Request(url.toString(), { method: "GET" });
+      context.waitUntil(caches.default.delete(purgeReq));
+    } catch (e) {}
+  }
+
   const isStorageReq = (url.pathname.startsWith("/v1/storage/objects/") || url.pathname.startsWith("/s/")) && ["GET", "HEAD"].includes(request.method);
 
   // ⚡ 1. CLOUDFLARE EDGE CACHE LOOKUP (<10ms global hits)
