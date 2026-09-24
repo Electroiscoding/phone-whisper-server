@@ -5448,6 +5448,10 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_benchmark()
         elif path in ["/health", "/v1/health", "/v1/models"]:
             self.handle_health()
+        elif path in ["/v1/tunnel/status", "/tunnel/status"]:
+            self.handle_tunnel_status()
+        elif path in ["/v1/tunnel/restart", "/tunnel/restart"]:
+            self.handle_tunnel_restart()
         elif parsed.path == "/s" or parsed.path == "/s/":
             self.send_response(200)
             self._send_cors_headers()
@@ -5683,6 +5687,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_dashboard_db_vacuum()
         elif path in ["/v1/gateway/reload", "/v1/system/reload"]:
             self.handle_gateway_reload()
+        elif path in ["/v1/tunnel/restart", "/tunnel/restart"]:
+            self.handle_tunnel_restart()
         elif path in ["/v1/smtp/config", "/v1/admin/smtp/config"]:
             self.handle_smtp_config()
         elif path in ["/v1/smtp/test", "/v1/admin/smtp/test"]:
@@ -8934,6 +8940,22 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         }
         self.wfile.write(json.dumps(info, indent=2).encode())
 
+    def handle_tunnel_status(self):
+        self.send_response(200)
+        self._send_cors_headers()
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        info = get_tunnel_status_info()
+        self.wfile.write(json.dumps(info, indent=2).encode())
+
+    def handle_tunnel_restart(self):
+        info = restart_cloudflared_tunnel()
+        self.send_response(200)
+        self._send_cors_headers()
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(json.dumps(info, indent=2).encode())
+
     def handle_telemetry(self):
         global _latest_telemetry_cache
         with _latest_telemetry_lock:
@@ -10089,40 +10111,191 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.wfile.write(json.dumps({"error": f"Zstd image compression failed: {str(e)}"}).encode("utf-8"))
 
 
+def get_tunnel_status_info():
+    home = os.environ.get("HOME", "/data/data/com.termux/files/home")
+    url = None
+    log_paths = [
+        os.path.join(home, "cf_tunnel.log"),
+        os.path.join(home, "tunnel.log"),
+        os.path.join(home, "current_url.txt"),
+        "/sdcard/Download/endpoint.json",
+        os.path.join(home, "endpoint.json")
+    ]
+    for lp in log_paths:
+        if os.path.exists(lp):
+            try:
+                with open(lp, "r", encoding="utf-8", errors="ignore") as f:
+                    txt = f.read()
+                    if lp.endswith(".json"):
+                        try:
+                            d = json.loads(txt)
+                            if d.get("endpoint"):
+                                url = d.get("endpoint")
+                                break
+                        except Exception:
+                            pass
+                    matches = re.findall(r"https://[a-zA-Z0-9-]+\.trycloudflare\.com", txt)
+                    if matches:
+                        url = matches[-1]
+                        break
+            except Exception:
+                pass
+
+    is_alive = False
+    if url:
+        try:
+            req = urllib.request.Request(f"{url}/health", headers={"User-Agent": "TunnelProbe/1.0"})
+            with urllib.request.urlopen(req, timeout=3) as resp:
+                is_alive = (resp.status == 200)
+        except Exception:
+            is_alive = False
+
+    return {
+        "url": url,
+        "alive": is_alive,
+        "cloudflared_running": is_cloudflared_process_running(),
+        "timestamp": int(time.time())
+    }
+
+def is_cloudflared_process_running():
+    try:
+        res = subprocess.run(["pgrep", "-f", "cloudflared tunnel"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        return res.returncode == 0
+    except Exception:
+        return False
+
+def restart_cloudflared_tunnel():
+    home = os.environ.get("HOME", "/data/data/com.termux/files/home")
+    cf_bin = "/data/data/com.termux/files/usr/bin/cloudflared"
+    if not os.path.exists(cf_bin):
+        cf_bin = shutil.which("cloudflared") or "cloudflared"
+
+    # Terminate existing cloudflared
+    try:
+        subprocess.run(["pkill", "-9", "-f", "cloudflared"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    except Exception:
+        pass
+    time.sleep(1)
+
+    cf_log = os.path.join(home, "cf_tunnel.log")
+    try:
+        with open(cf_log, "w") as f:
+            f.truncate(0)
+    except Exception:
+        pass
+
+    # Launch fresh tunnel
+    cmd = [
+        cf_bin, "tunnel",
+        "--url", "http://127.0.0.1:8080",
+        "--protocol", "http2",
+        "--edge-ip-version", "4",
+        "--no-autoupdate"
+    ]
+    try:
+        log_out = open(cf_log, "a")
+        subprocess.Popen(cmd, stdout=log_out, stderr=subprocess.STDOUT)
+    except Exception as e:
+        return {"status": "error", "error": str(e), "timestamp": int(time.time())}
+
+    # Poll cf_tunnel.log for up to 8 seconds for the new URL
+    new_url = None
+    for _ in range(16):
+        time.sleep(0.5)
+        if os.path.exists(cf_log):
+            try:
+                with open(cf_log, "r", encoding="utf-8", errors="ignore") as f:
+                    txt = f.read()
+                    matches = re.findall(r"https://[a-zA-Z0-9-]+\.trycloudflare\.com", txt)
+                    if matches:
+                        new_url = matches[-1]
+                        break
+            except Exception:
+                pass
+
+    if new_url:
+        try:
+            with open(os.path.join(home, "current_url.txt"), "w") as f:
+                f.write(new_url + "\n")
+        except Exception:
+            pass
+
+        ep_data = {
+            "endpoint": new_url,
+            "inference": f"{new_url}/inference",
+            "telemetry": f"{new_url}/telemetry",
+            "phone_lan_ip": "http://192.168.29.2:8080",
+            "mode": "dual_worldwide_and_local",
+            "port": 8080,
+            "updated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+        }
+        for ep_path in ["/sdcard/Download/endpoint.json", os.path.join(home, "endpoint.json"), os.path.join(home, "phone-whisper-server/endpoint.json")]:
+            try:
+                with open(ep_path, "w") as f:
+                    json.dump(ep_data, f, indent=2)
+            except Exception:
+                pass
+
+        # Edge register
+        try:
+            payload = json.dumps({"endpoint": new_url, "secret": "mobile_ai_nuclear_key"}).encode("utf-8")
+            req = urllib.request.Request(
+                "https://phone-whisper-server.pages.dev/register_tunnel",
+                data=payload,
+                headers={"Content-Type": "application/json"},
+                method="POST"
+            )
+            urllib.request.urlopen(req, timeout=5)
+            print(f"[TUNNEL-SYNC] Successfully registered fresh tunnel with Edge: {new_url}")
+        except Exception as e:
+            print(f"[TUNNEL-SYNC] Edge registration notice: {e}")
+
+    return {
+        "status": "restarted" if new_url else "spawned_waiting",
+        "url": new_url,
+        "timestamp": int(time.time())
+    }
+
 def start_tunnel_registration_daemon():
     def _worker():
         last_registered = None
+        consecutive_failures = 0
+        time.sleep(5)  # Grace period at startup
         while True:
             try:
-                tunnel_url = None
-                log_path = "/data/data/com.termux/files/home/tunnel.log"
-                if os.path.exists(log_path):
-                    with open(log_path, "r", encoding="utf-8", errors="ignore") as f:
-                        content = f.read()
-                        matches = re.findall(r"https://[a-zA-Z0-9-]+\.trycloudflare\.com", content)
-                        if matches:
-                            tunnel_url = matches[-1]
+                st = get_tunnel_status_info()
+                url = st.get("url")
+                alive = st.get("alive")
+                cf_running = st.get("cloudflared_running")
 
-                if not tunnel_url and os.path.exists("endpoint.json"):
-                    with open("endpoint.json", "r", encoding="utf-8") as f:
-                        data = json.load(f)
-                        tunnel_url = data.get("endpoint")
+                if not cf_running or not alive:
+                    consecutive_failures += 1
+                    if consecutive_failures >= 2:
+                        print(f"[TUNNEL-SUPERVISOR] Tunnel unhealthy (alive={alive}, cf={cf_running}, fail={consecutive_failures}). Triggering auto-heal restart...")
+                        res = restart_cloudflared_tunnel()
+                        url = res.get("url")
+                        consecutive_failures = 0
+                else:
+                    consecutive_failures = 0
 
-                if tunnel_url and tunnel_url != last_registered:
-                    payload = json.dumps({"endpoint": tunnel_url, "secret": "mobile_ai_nuclear_key"}).encode("utf-8")
-                    req = urllib.request.Request(
-                        "https://phone-whisper-server.pages.dev/register_tunnel",
-                        data=payload,
-                        headers={"Content-Type": "application/json"},
-                        method="POST"
-                    )
-                    with urllib.request.urlopen(req, timeout=5) as resp:
-                        if resp.status == 200:
-                            last_registered = tunnel_url
-                            print(f"[TUNNEL-SYNC] Registered live origin with Cloudflare Edge: {tunnel_url}")
-            except Exception:
-                pass
-            time.sleep(15)
+                if url and url != last_registered:
+                    try:
+                        payload = json.dumps({"endpoint": url, "secret": "mobile_ai_nuclear_key"}).encode("utf-8")
+                        req = urllib.request.Request(
+                            "https://phone-whisper-server.pages.dev/register_tunnel",
+                            data=payload,
+                            headers={"Content-Type": "application/json"},
+                            method="POST"
+                        )
+                        with urllib.request.urlopen(req, timeout=5) as resp:
+                            if resp.status == 200:
+                                last_registered = url
+                                print(f"[TUNNEL-SYNC] Registered live origin with Cloudflare Edge: {url}")
+                    except Exception:
+                        pass
+            except Exception as e:
+                print(f"[TUNNEL-SUPERVISOR] Worker loop notice: {e}")
+            time.sleep(20)
 
     t = threading.Thread(target=_worker, daemon=True)
     t.start()

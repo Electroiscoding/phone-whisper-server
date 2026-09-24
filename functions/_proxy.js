@@ -6,9 +6,16 @@
 const GITHUB_ENDPOINT_URL = "https://raw.githubusercontent.com/Electroiscoding/phone-whisper-server/main/endpoint.json";
 const JSDELIVR_ENDPOINT_URL = "https://cdn.jsdelivr.net/gh/Electroiscoding/phone-whisper-server@main/endpoint.json";
 
-let cachedOrigin = "https://favourites-participant-dependence-lanka.trycloudflare.com";
+let cachedOrigin = null;
 let lastFetchTime = 0;
 const CACHE_TTL_MS = 30000;
+
+export function setLiveOrigin(newOrigin) {
+  if (newOrigin && newOrigin.startsWith("https://")) {
+    cachedOrigin = newOrigin.replace(/\/+$/, "");
+    lastFetchTime = Date.now();
+  }
+}
 
 export const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -67,7 +74,7 @@ export async function getLiveOrigin(forceRefresh = false) {
     }
   } catch (err) {}
 
-  return cachedOrigin || "https://favourites-participant-dependence-lanka.trycloudflare.com";
+  return cachedOrigin || "";
 }
 
 export async function handleOptions(context) {
