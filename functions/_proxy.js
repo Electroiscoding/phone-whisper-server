@@ -4,7 +4,9 @@
  */
 
 const GITHUB_ENDPOINT_URL = "https://raw.githubusercontent.com/Electroiscoding/phone-whisper-server/main/endpoint.json";
+const GITHUB_API_ENDPOINT_URL = "https://api.github.com/repos/Electroiscoding/phone-whisper-server/contents/endpoint.json";
 const JSDELIVR_ENDPOINT_URL = "https://cdn.jsdelivr.net/gh/Electroiscoding/phone-whisper-server@main/endpoint.json";
+const DEFAULT_FALLBACK_ORIGIN = "https://savannah-prescription-cricket-frankfurt.trycloudflare.com";
 
 let cachedOrigin = null;
 let lastFetchTime = 0;
@@ -162,7 +164,26 @@ export async function getLiveOrigin(forceRefresh = false) {
     return cachedOrigin;
   }
 
-  // 1. Primary: Raw GitHub
+  // 1. Primary: Uncached GitHub API
+  try {
+    const ghApiRes = await fetchWithTimeout(GITHUB_API_ENDPOINT_URL, {
+      headers: {
+        "User-Agent": "Cloudflare-Pages-Functions/3.0",
+        "Accept": "application/vnd.github.v3.raw",
+        "Cache-Control": "no-cache, no-store, must-revalidate"
+      }
+    }, 2000);
+    if (ghApiRes.ok) {
+      const data = await ghApiRes.json();
+      if (data && data.endpoint && data.endpoint.startsWith("https://")) {
+        cachedOrigin = data.endpoint.replace(/\/+$/, "");
+        lastFetchTime = now;
+        return cachedOrigin;
+      }
+    }
+  } catch (err) {}
+
+  // 2. Secondary: Raw GitHub
   try {
     const res = await fetchWithTimeout(`${GITHUB_ENDPOINT_URL}?_t=${now}`, {
       headers: { "User-Agent": "Cloudflare-Pages-Functions/3.0", "Cache-Control": "no-cache, no-store, must-revalidate" }
@@ -177,7 +198,7 @@ export async function getLiveOrigin(forceRefresh = false) {
     }
   } catch (err) {}
 
-  // 2. Secondary: jsDelivr Edge CDN
+  // 3. Tertiary: jsDelivr Edge CDN
   try {
     const jsdelivrRes = await fetchWithTimeout(`${JSDELIVR_ENDPOINT_URL}?_t=${now}`, {
       headers: { "Cache-Control": "no-cache, no-store" }
@@ -192,7 +213,7 @@ export async function getLiveOrigin(forceRefresh = false) {
     }
   } catch (err) {}
 
-  return cachedOrigin || "";
+  return cachedOrigin || DEFAULT_FALLBACK_ORIGIN;
 }
 
 export async function handleOptions(context) {
@@ -240,15 +261,15 @@ export async function handleRequest(context) {
 
   let response = null;
   let attempt = 0;
-  // Storage requests are fast-fail: 3000ms timeout and single attempt before immediate B2 fallback
-  const maxAttempts = isStorageReq ? 1 : 3;
+  // Storage requests: 2 attempts (instant retry with refreshed tunnel on 530/502/connection failure)
+  const maxAttempts = isStorageReq ? 2 : 3;
   const isLongRunning = !isStorageReq && (
     url.pathname.includes("/speech") || 
     url.pathname.includes("/transcriptions") || 
     url.pathname.includes("/chat") || 
     url.pathname.includes("/inference")
   );
-  const timeoutMs = isStorageReq ? 3000 : (isLongRunning ? 60000 : 15000);
+  const timeoutMs = isStorageReq ? 3500 : (isLongRunning ? 60000 : 15000);
 
   while (attempt < maxAttempts) {
     attempt++;
@@ -277,10 +298,10 @@ export async function handleRequest(context) {
       response = await fetch(proxyReq);
       clearTimeout(timeoutId);
 
-      // Invalidate cache and retry on bad gateway / tunnel restart codes (non-storage only)
-      if (!isStorageReq && [403, 502, 503, 504, 530].includes(response.status) && attempt < maxAttempts) {
+      // Invalidate cache and retry on bad gateway / tunnel restart codes
+      if ([403, 502, 503, 504, 530].includes(response.status) && attempt < maxAttempts) {
         cachedOrigin = null;
-        await new Promise(r => setTimeout(r, attempt * 250));
+        await new Promise(r => setTimeout(r, attempt * 150));
         origin = await getLiveOrigin(true);
         targetUrl = `${origin}${url.pathname}${url.search}`;
         continue;
@@ -290,7 +311,7 @@ export async function handleRequest(context) {
     } catch (fetchErr) {
       if (attempt < maxAttempts) {
         cachedOrigin = null;
-        await new Promise(r => setTimeout(r, attempt * 300));
+        await new Promise(r => setTimeout(r, attempt * 150));
         origin = await getLiveOrigin(true);
         targetUrl = `${origin}${url.pathname}${url.search}`;
         continue;
@@ -338,23 +359,13 @@ export async function handleRequest(context) {
       return b2Fallback;
     }
 
-    // Object genuinely does not exist on Phone or B2 -> return fast empty 404 with exact Content-Type to prevent ORB
-    const rawFileName = decodeURIComponent(url.pathname.split("/").pop() || "");
-    const ext = (rawFileName.split('.').pop() || '').toLowerCase();
-    const STORAGE_MIME = {
-      wav:'audio/wav',webm:'video/webm',mp3:'audio/mpeg',ogg:'audio/ogg',
-      m4a:'audio/mp4',aac:'audio/aac',mp4:'video/mp4',mov:'video/quicktime',
-      png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',webp:'image/webp',
-      gif:'image/gif',svg:'image/svg+xml',pdf:'application/pdf'
-    };
+    // Object genuinely does not exist on Phone or B2 -> return fast clean 404 with CORS
     const notFoundHeaders = {
       ...CORS_HEADERS,
-      "Cache-Control": "public, max-age=60"
+      "Cache-Control": "public, max-age=60",
+      "Content-Type": "text/plain; charset=utf-8"
     };
-    if (STORAGE_MIME[ext]) {
-      notFoundHeaders["Content-Type"] = STORAGE_MIME[ext];
-    }
-    return new Response(null, {
+    return new Response("Not Found", {
       status: 404,
       statusText: "Not Found",
       headers: notFoundHeaders
