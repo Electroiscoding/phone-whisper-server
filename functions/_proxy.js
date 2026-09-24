@@ -269,7 +269,7 @@ export async function handleRequest(context) {
     url.pathname.includes("/chat") || 
     url.pathname.includes("/inference")
   );
-  const timeoutMs = isStorageReq ? 3500 : (isLongRunning ? 60000 : 15000);
+  const timeoutMs = isStorageReq ? 15000 : (isLongRunning ? 60000 : 15000);
 
   while (attempt < maxAttempts) {
     attempt++;
