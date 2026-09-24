@@ -90,8 +90,25 @@ export async function tryB2StorageFallback(request, url) {
     forwardHeaders.set("Range", request.headers.get("range"));
   }
 
+  const ext = (rawFileName.split('.').pop() || '').toLowerCase();
+  const MIME_MAP = {
+    wav: 'audio/wav',
+    webm: 'audio/webm',
+    mp3: 'audio/mpeg',
+    ogg: 'audio/ogg',
+    m4a: 'audio/mp4',
+    mp4: 'video/mp4',
+    png: 'image/png',
+    jpg: 'image/jpeg',
+    jpeg: 'image/jpeg',
+    webp: 'image/webp',
+    gif: 'image/gif',
+    svg: 'image/svg+xml'
+  };
+
   for (const key of candidateKeys) {
-    const b2Url = `${B2_DOWNLOAD_BASE}/file/${B2_BUCKET_NAME}/${encodeURIComponent(key)}?Authorization=${token}`;
+    const encodedPath = key.split('/').map(encodeURIComponent).join('/');
+    const b2Url = `${B2_DOWNLOAD_BASE}/file/${B2_BUCKET_NAME}/${encodedPath}?Authorization=${token}`;
     try {
       const b2Res = await fetch(b2Url, {
         method: request.method,
@@ -102,6 +119,10 @@ export async function tryB2StorageFallback(request, url) {
         Object.entries(CORS_HEADERS).forEach(([k, v]) => respHeaders.set(k, v));
         respHeaders.set("Cache-Control", "public, max-age=2592000, s-maxage=2592000, immutable");
         respHeaders.set("Accept-Ranges", "bytes");
+        const ct = respHeaders.get("content-type");
+        if ((!ct || ct === "application/octet-stream" || ct.includes("b2")) && MIME_MAP[ext]) {
+          respHeaders.set("Content-Type", MIME_MAP[ext]);
+        }
         return new Response(request.method === "HEAD" ? null : b2Res.body, {
           status: b2Res.status,
           statusText: b2Res.statusText,
