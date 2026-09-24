@@ -84,6 +84,9 @@ export async function tryB2StorageFallback(request, url) {
   if (subPath && subPath !== rawFileName && !candidateKeys.includes(subPath)) {
     candidateKeys.push(subPath);
   }
+  if (!rawFileName.startsWith("media/") && !candidateKeys.includes("media/" + rawFileName)) {
+    candidateKeys.push("media/" + rawFileName);
+  }
 
   const forwardHeaders = new Headers();
   if (request.headers.has("range")) {
@@ -315,12 +318,12 @@ export async function handleRequest(context) {
       return b2Fallback;
     }
 
-    // Object genuinely does not exist on Phone or B2 -> return fast 404 so client collapses cleanly
-    return new Response(JSON.stringify({ error: "Object not found" }), {
+    // Object genuinely does not exist on Phone or B2 -> return fast empty 404 without JSON to prevent ORB (OpaqueResponseBlocking)
+    return new Response(null, {
       status: 404,
+      statusText: "Not Found",
       headers: {
         ...CORS_HEADERS,
-        "Content-Type": "application/json",
         "Cache-Control": "public, max-age=60"
       }
     });
