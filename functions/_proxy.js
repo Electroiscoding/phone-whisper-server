@@ -192,7 +192,7 @@ export async function getLiveOrigin(forceRefresh = false) {
   try {
     const res = await fetchWithTimeout(`${GITHUB_ENDPOINT_URL}?_t=${now}`, {
       headers: { "User-Agent": "Cloudflare-Pages-Functions/3.0", "Cache-Control": "no-cache, no-store, must-revalidate" }
-    }, 2500);
+    }, 4000);
     if (res.ok) {
       const data = await res.json();
       if (data && data.endpoint && data.endpoint.startsWith("https://")) {
@@ -203,22 +203,7 @@ export async function getLiveOrigin(forceRefresh = false) {
     }
   } catch (err) {}
 
-  // 2. Secondary: jsDelivr Edge CDN
-  try {
-    const jsdelivrRes = await fetchWithTimeout(`${JSDELIVR_ENDPOINT_URL}?_t=${now}`, {
-      headers: { "Cache-Control": "no-cache, no-store" }
-    }, 2500);
-    if (jsdelivrRes.ok) {
-      const data = await jsdelivrRes.json();
-      if (data && data.endpoint && data.endpoint.startsWith("https://")) {
-        cachedOrigin = data.endpoint.replace(/\/+$/, "");
-        lastFetchTime = now;
-        return cachedOrigin;
-      }
-    }
-  } catch (err) {}
-
-  // 3. Tertiary: GitHub API
+  // 2. Secondary: GitHub API raw contents
   try {
     const ghApiRes = await fetchWithTimeout(GITHUB_API_ENDPOINT_URL, {
       headers: {
@@ -226,7 +211,7 @@ export async function getLiveOrigin(forceRefresh = false) {
         "Accept": "application/vnd.github.v3.raw",
         "Cache-Control": "no-cache, no-store, must-revalidate"
       }
-    }, 2500);
+    }, 4000);
     if (ghApiRes.ok) {
       const text = await ghApiRes.text();
       try {
