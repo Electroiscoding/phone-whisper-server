@@ -143,6 +143,7 @@ while true; do
     # 2. Push to GitHub Repo
     if [ -d "$HOME/phone-whisper-server/.git" ]; then
       cd $HOME/phone-whisper-server
+      git checkout -- . 2>/dev/null || true
       git pull --rebase origin main 2>/dev/null || true
       cat << JSON_EOF > endpoint.json
 {
