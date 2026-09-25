@@ -6,11 +6,11 @@
 const GITHUB_ENDPOINT_URL = "https://raw.githubusercontent.com/Electroiscoding/phone-whisper-server/main/endpoint.json";
 const GITHUB_API_ENDPOINT_URL = "https://api.github.com/repos/Electroiscoding/phone-whisper-server/contents/endpoint.json";
 const JSDELIVR_ENDPOINT_URL = "https://cdn.jsdelivr.net/gh/Electroiscoding/phone-whisper-server@main/endpoint.json";
-const DEFAULT_FALLBACK_ORIGIN = "https://accepted-starter-catalogs-enzyme.trycloudflare.com";
+const DEFAULT_FALLBACK_ORIGIN = "https://wherever-sale-beneficial-generic.trycloudflare.com";
 
 let cachedOrigin = null;
 let lastFetchTime = 0;
-const CACHE_TTL_MS = 30000;
+const CACHE_TTL_MS = 15000;
 
 export function setLiveOrigin(newOrigin) {
   if (newOrigin && newOrigin.startsWith("https://")) {
@@ -145,7 +145,6 @@ export async function tryB2StorageFallback(request, url) {
       }, 1500);
 
       if (b2Res.status === 403) {
-        // Daily download cap exceeded or unauthorized: trip circuit breaker immediately
         b2CircuitBreakerUntil = Date.now() + (10 * 60 * 1000);
         break;
       }
@@ -189,30 +188,11 @@ export async function getLiveOrigin(forceRefresh = false) {
     return cachedOrigin;
   }
 
-  // 1. Primary: Uncached GitHub API
-  try {
-    const ghApiRes = await fetchWithTimeout(GITHUB_API_ENDPOINT_URL, {
-      headers: {
-        "User-Agent": "Cloudflare-Pages-Functions/3.0",
-        "Accept": "application/vnd.github.v3.raw",
-        "Cache-Control": "no-cache, no-store, must-revalidate"
-      }
-    }, 2000);
-    if (ghApiRes.ok) {
-      const data = await ghApiRes.json();
-      if (data && data.endpoint && data.endpoint.startsWith("https://")) {
-        cachedOrigin = data.endpoint.replace(/\/+$/, "");
-        lastFetchTime = now;
-        return cachedOrigin;
-      }
-    }
-  } catch (err) {}
-
-  // 2. Secondary: Raw GitHub
+  // 1. Primary: Raw GitHub (fast, no rate limits)
   try {
     const res = await fetchWithTimeout(`${GITHUB_ENDPOINT_URL}?_t=${now}`, {
       headers: { "User-Agent": "Cloudflare-Pages-Functions/3.0", "Cache-Control": "no-cache, no-store, must-revalidate" }
-    }, 2000);
+    }, 2500);
     if (res.ok) {
       const data = await res.json();
       if (data && data.endpoint && data.endpoint.startsWith("https://")) {
@@ -223,11 +203,11 @@ export async function getLiveOrigin(forceRefresh = false) {
     }
   } catch (err) {}
 
-  // 3. Tertiary: jsDelivr Edge CDN
+  // 2. Secondary: jsDelivr Edge CDN
   try {
     const jsdelivrRes = await fetchWithTimeout(`${JSDELIVR_ENDPOINT_URL}?_t=${now}`, {
       headers: { "Cache-Control": "no-cache, no-store" }
-    }, 2000);
+    }, 2500);
     if (jsdelivrRes.ok) {
       const data = await jsdelivrRes.json();
       if (data && data.endpoint && data.endpoint.startsWith("https://")) {
@@ -235,6 +215,28 @@ export async function getLiveOrigin(forceRefresh = false) {
         lastFetchTime = now;
         return cachedOrigin;
       }
+    }
+  } catch (err) {}
+
+  // 3. Tertiary: GitHub API
+  try {
+    const ghApiRes = await fetchWithTimeout(GITHUB_API_ENDPOINT_URL, {
+      headers: {
+        "User-Agent": "Cloudflare-Pages-Functions/3.0",
+        "Accept": "application/vnd.github.v3.raw",
+        "Cache-Control": "no-cache, no-store, must-revalidate"
+      }
+    }, 2500);
+    if (ghApiRes.ok) {
+      const text = await ghApiRes.text();
+      try {
+        const data = JSON.parse(text);
+        if (data && data.endpoint && data.endpoint.startsWith("https://")) {
+          cachedOrigin = data.endpoint.replace(/\/+$/, "");
+          lastFetchTime = now;
+          return cachedOrigin;
+        }
+      } catch (pe) {}
     }
   } catch (err) {}
 

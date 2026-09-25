@@ -94,14 +94,14 @@ while true; do
   CURRENT_ACTIVE_URL=$(grep -oE "https://[a-zA-Z0-9-]+\.trycloudflare\.com" $HOME/cf_tunnel.log 2>/dev/null | grep -v "api.trycloudflare.com" | tail -n 1)
   if [ -n "$CURRENT_ACTIVE_URL" ] && [ $((NOW - TUNNEL_START_TIME)) -ge 60 ] && [ $((NOW - LAST_PROBE_TIME)) -ge 30 ]; then
     LAST_PROBE_TIME=$NOW
-    PROBE_STATUS=$(curl -s -m 6 -o /dev/null -w "%{http_code}" "$CURRENT_ACTIVE_URL/telemetry" 2>/dev/null || echo "000")
+    PROBE_STATUS=$(curl -s -4 -m 12 -o /dev/null -w "%{http_code}" "$CURRENT_ACTIVE_URL/telemetry" 2>/dev/null || echo "000")
     if [ "$PROBE_STATUS" = "200" ]; then
       FAIL_COUNT=0
     else
       FAIL_COUNT=$((FAIL_COUNT + 1))
-      echo "$(date): [HEALTH PROBE WARN] Status $PROBE_STATUS on $CURRENT_ACTIVE_URL (fail $FAIL_COUNT/5)" >> $HOME/nuclear_supervisor.log
-      if [ "$FAIL_COUNT" -ge 5 ]; then
-        echo "$(date): [CRITICAL] 5 consecutive tunnel probe failures. Triggering Qwen 0.5B SLM Self-Healing..." >> $HOME/nuclear_supervisor.log
+      echo "$(date): [HEALTH PROBE WARN] Status $PROBE_STATUS on $CURRENT_ACTIVE_URL (fail $FAIL_COUNT/10)" >> $HOME/nuclear_supervisor.log
+      if [ "$FAIL_COUNT" -ge 10 ]; then
+        echo "$(date): [CRITICAL] 10 consecutive tunnel probe failures. Triggering Qwen 0.5B SLM Self-Healing..." >> $HOME/nuclear_supervisor.log
         IS_TUNNEL_DEAD=1
         FAIL_COUNT=0
       fi
@@ -126,7 +126,6 @@ while true; do
   URL=$(grep -oE "https://[a-zA-Z0-9-]+\.trycloudflare\.com" $HOME/cf_tunnel.log 2>/dev/null | grep -v "api.trycloudflare.com" | tail -n 1)
   if [ -n "$URL" ] && [ "$URL" != "$SYNCED_URL" ]; then
     echo "$URL" > $HOME/current_url.txt
-    SYNCED_URL="$URL"
 
     # 1. Direct Edge Registration with Multi-Attempt Exponential Retry
     for RETRY in 1 2 3 4 5; do
@@ -141,6 +140,7 @@ while true; do
     done
 
     # 2. Push to GitHub Repo
+    GIT_OK=0
     if [ -d "$HOME/phone-whisper-server/.git" ]; then
       cd $HOME/phone-whisper-server
       git checkout -- . 2>/dev/null || true
@@ -162,9 +162,15 @@ JSON_EOF
       git commit -m "chore(tunnel): Autonomous sync live endpoint [$URL]" 2>/dev/null || true
       if git push origin main 2>/dev/null; then
         echo "$(date): [SUCCESS] Synced fresh tunnel URL to GitHub: $URL" >> $HOME/nuclear_supervisor.log
+        GIT_OK=1
       else
         echo "$(date): [GIT-WARN] Failed git push from phone to origin main" >> $HOME/nuclear_supervisor.log
       fi
+    fi
+
+    # ONLY mark as synced if git push succeeded so it retries until GitHub is updated
+    if [ "$GIT_OK" -eq 1 ]; then
+      SYNCED_URL="$URL"
     fi
   fi
 
