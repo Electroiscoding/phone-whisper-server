@@ -86,7 +86,7 @@ while true; do
 
   # D. Verify Cloudflared Process (Process existence check)
   IS_TUNNEL_DEAD=0
-  if ! pgrep -f "cloudflared tunnel" > /dev/null; then
+  if ! pgrep -f "cloudflared.*8080" > /dev/null; then
     IS_TUNNEL_DEAD=1
   fi
 
@@ -113,7 +113,7 @@ while true; do
     if [ -f "$HOME/slm_self_heal.py" ]; then
       python3 $HOME/slm_self_heal.py >> $HOME/slm_self_heal.log 2>&1 || true
     fi
-    killall -9 cloudflared 2>/dev/null || true
+    pkill -9 -f "cloudflared.*8080" 2>/dev/null || true
     sleep 1
     cloudflared tunnel --url http://127.0.0.1:8080 --protocol http2 --edge-ip-version 4 --no-autoupdate > $HOME/cf_tunnel.log 2>&1 &
     TUNNEL_START_TIME=$(date +%s)
