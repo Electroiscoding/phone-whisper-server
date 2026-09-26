@@ -656,7 +656,86 @@ class SwadesClient {
     }
   };
 
+  // --- AI (SPEECH-TO-TEXT & CHAT COMPLETIONS) ---
+  ai = {
+    // 1-line Whisper Speech-to-Text transcription
+    transcribe: async (audioSource, options = {}) => {
+      const formData = new FormData();
+      if (typeof Blob !== 'undefined' && (audioSource instanceof Blob || audioSource instanceof File)) {
+        formData.append('file', audioSource, audioSource.name || 'audio.wav');
+      } else {
+        formData.append('file', audioSource);
+      }
+      formData.append('model', options.model || 'whisper-base-en');
+      formData.append('response_format', options.responseFormat || 'json');
+      if (options.temperature !== undefined) {
+        formData.append('temperature', String(options.temperature));
+      }
+
+      const headers = {};
+      if (this.apiKey) headers['x-api-key'] = this.apiKey;
+      if (this.projectId) headers['x-project-id'] = this.projectId;
+
+      const res = await fetch(`${this.endpoint}/inference`, {
+        method: 'POST',
+        headers,
+        body: formData
+      });
+      if (!res.ok) {
+        const err = await res.text();
+        throw new Error(`Transcription failed (HTTP ${res.status}): ${err}`);
+      }
+      return await res.json();
+    },
+
+    // 1-line OpenAI-compatible chat completion
+    chat: async (messages, options = {}) => {
+      const formattedMessages = typeof messages === 'string'
+        ? [{ role: 'user', content: messages }]
+        : messages;
+
+      const headers = { 'Content-Type': 'application/json' };
+      if (this.apiKey) headers['x-api-key'] = this.apiKey;
+      if (this.projectId) headers['x-project-id'] = this.projectId;
+
+      const payload = {
+        model: options.model || 'openrouter/free',
+        messages: formattedMessages,
+        temperature: options.temperature !== undefined ? options.temperature : 0.7,
+        max_tokens: options.maxTokens || 1024,
+        stream: Boolean(options.stream)
+      };
+
+      const res = await fetch(`${this.endpoint}/v1/chat/completions`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) {
+        const err = await res.text();
+        throw new Error(`Chat completion failed (HTTP ${res.status}): ${err}`);
+      }
+      if (options.stream) {
+        return res.body;
+      }
+      const data = await res.json();
+      return data.choices?.[0]?.message?.content || data;
+    }
+  };
+
   // Top-level convenience helpers
+  async upload(file, customKey) {
+    return this.storage.upload(file, customKey);
+  }
+  async query(sqlQuery, params) {
+    return this.db.query(sqlQuery, params);
+  }
+  async transcribe(audioSource, options) {
+    return this.ai.transcribe(audioSource, options);
+  }
+  async chat(messages, options) {
+    return this.ai.chat(messages, options);
+  }
   async speak(text, options) {
     return this.tts.speak(text, options);
   }
@@ -708,11 +787,13 @@ class SwadesClient {
 }
 
 const Swades = {
-  init: (options) => new SwadesClient(options)
+  init: (options) => new SwadesClient(options),
+  SwadesClient: SwadesClient
 };
 
 if (typeof window !== 'undefined') {
   window.Swades = Swades;
+  window.SwadesClient = SwadesClient;
 }
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { Swades, SwadesClient };

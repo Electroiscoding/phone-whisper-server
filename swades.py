@@ -550,5 +550,89 @@ class Swades:
         """Instant synchronous test-fire."""
         return self.cron.trigger(job_id)
 
+    # =========================================================================
+    # SPEECH-TO-TEXT (WHISPER ASR) & CHAT COMPLETIONS
+    # =========================================================================
+    def transcribe(self, audio_source, model="whisper-base-en", response_format="json", temperature=0.0):
+        """
+        Transcribes speech audio into text using OpenAI Whisper Base.en ASR on phone CPU silicon.
+        audio_source can be a file path string, bytes, or file-like object.
+        """
+        if isinstance(audio_source, str):
+            if not os.path.exists(audio_source):
+                raise FileNotFoundError(f"Audio file not found: {audio_source}")
+            with open(audio_source, "rb") as f:
+                raw_bytes = f.read()
+            filename = os.path.basename(audio_source)
+        elif hasattr(audio_source, "read"):
+            raw_bytes = audio_source.read()
+            filename = getattr(audio_source, "name", "audio.wav")
+        elif isinstance(audio_source, (bytes, bytearray)):
+            raw_bytes = bytes(audio_source)
+            filename = "audio.wav"
+        else:
+            raise TypeError("audio_source must be a file path, bytes, or file-like object")
+
+        files = {"file": (filename, raw_bytes, "audio/wav")}
+        data = {
+            "model": model,
+            "response_format": response_format,
+            "temperature": str(temperature)
+        }
+        headers = {}
+        if self.api_key:
+            headers["x-api-key"] = self.api_key
+        if self.project_id:
+            headers["x-project-id"] = self.project_id
+
+        res = requests.post(f"{self.endpoint}/inference", headers=headers, files=files, data=data, timeout=120)
+        if not res.ok:
+            raise RuntimeError(f"Transcription failed: HTTP {res.status_code} - {res.text}")
+        if response_format == "json":
+            return res.json()
+        return res.text
+
+    def chat(self, messages, model="openrouter/free", temperature=0.7, max_tokens=1024, stream=False):
+        """
+        OpenAI-compatible chat completion powered by on-device Qwen 2.5 / OpenRouter cascade.
+        messages can be a string prompt or list of dicts: [{"role": "user", "content": "..."}]
+        """
+        if isinstance(messages, str):
+            formatted_messages = [{"role": "user", "content": messages}]
+        else:
+            formatted_messages = messages
+
+        headers = {
+            "Content-Type": "application/json"
+        }
+        if self.api_key:
+            headers["x-api-key"] = self.api_key
+        if self.project_id:
+            headers["x-project-id"] = self.project_id
+
+        payload = {
+            "model": model,
+            "messages": formatted_messages,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+            "stream": stream
+        }
+
+        if stream:
+            res = requests.post(f"{self.endpoint}/v1/chat/completions", headers=headers, json=payload, stream=True, timeout=120)
+            if not res.ok:
+                raise RuntimeError(f"Chat request failed: HTTP {res.status_code} - {res.text}")
+            return res.iter_lines(decode_unicode=True)
+        else:
+            res = self._req("POST", "/v1/chat/completions", headers=headers, json=payload, timeout=60)
+            if not res.ok:
+                raise RuntimeError(f"Chat request failed: HTTP {res.status_code} - {res.text}")
+            data = res.json()
+            try:
+                return data["choices"][0]["message"]["content"]
+            except Exception:
+                return data
+
+
 
 

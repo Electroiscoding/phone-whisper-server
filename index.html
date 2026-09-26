@@ -4495,9 +4495,9 @@ with open("photo.png.zst", "wb") as f:
 restored_bytes = client.decompress_image(compressed_bytes)</code></pre>
               </div>
               <div id="snip-img-js" class="snippet-pane">
-                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>import { Swades } from './swades.js';
+                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>import { SwadesClient } from './swades.js';
 
-const client = Swades.init();
+const client = new SwadesClient();
 
 // Compress image binary losslessly via Level 1 (-1 -T4):
 const zstdBytes = await client.images.compress(imageUint8Array);
@@ -4577,12 +4577,16 @@ original = client.decompress(res['compressed_base64'], as_text=True)
 print("Recovered:", original)</code></pre>
               </div>
               <div id="snip-zstd-js" class="snippet-pane">
-                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>// 1-line client compression via swades.js
-const res = await Swades.init().compress("High speed sensor telemetry payload");
+                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>import { SwadesClient } from './swades.js';
+
+const client = new SwadesClient();
+
+// 1-line client compression via Level 1 (-1 -T4):
+const res = await client.compress("High speed sensor telemetry payload");
 console.log(`Saved ${res.space_saved_percent}% in ${res.elapsed_ms}ms`);
 
 // 1-line client decompression:
-const text = await Swades.init().decompress(res.compressed_base64);
+const text = await client.decompress(res.compressed_base64);
 console.log("Recovered text:", text);</code></pre>
               </div>
             </div>
@@ -4646,26 +4650,22 @@ curl -X PUT "https://phone-whisper-server.pages.dev/v1/storage/objects/photos/ba
 curl -O "https://phone-whisper-server.pages.dev/s/YOUR_TENANT/photos/banner.png"</code></pre>
               </div>
               <div id="snip-store-py" class="snippet-pane" style="display: none;">
-                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>import requests
+                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>from swades import Swades
 
-BASE = "https://phone-whisper-server.pages.dev"
-KEY = "sk_swades_YOUR_KEY"
+client = Swades(api_key="sk_swades_YOUR_KEY", project_id="default")
 
-# Upload to phone datacenter:
-with open("banner.png", "rb") as f:
-    res = requests.put(f"{BASE}/v1/storage/objects/photos/banner.png",
-                       headers={"x-api-key": KEY, "Content-Type": "image/png"},
-                       data=f)
-print(res.json())</code></pre>
+# 1-line upload to phone datacenter (returns permanent CDN URL):
+cdn_url = client.upload("banner.png")
+print("Public CDN Permalink:", cdn_url)</code></pre>
               </div>
               <div id="snip-store-js" class="snippet-pane" style="display: none;">
-                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>const res = await fetch("https://phone-whisper-server.pages.dev/v1/storage/objects/doc.pdf", {
-  method: "PUT",
-  headers: { "x-api-key": "sk_swades_YOUR_KEY", "Content-Type": "application/pdf" },
-  body: fileBlob
-});
-const { object } = await res.json();
-console.log("Public CDN permalink:", object.url);</code></pre>
+                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>import { SwadesClient } from './swades.js';
+
+const client = new SwadesClient({ apiKey: "sk_swades_YOUR_KEY", projectId: "default" });
+
+// 1-line upload to phone datacenter (returns permanent CDN URL):
+const { cdn_url } = await client.storage.upload(fileBlob);
+console.log("Public CDN Permalink:", cdn_url);</code></pre>
               </div>
             </div>
           </div>
@@ -4719,37 +4719,24 @@ console.log("Public CDN permalink:", object.url);</code></pre>
   -d '{"messages": [{"role": "user", "content": "Explain relativity in 10 words"}], "stream": true}'</code></pre>
               </div>
               <div id="snip-chat-py" class="snippet-pane" style="display: none;">
-                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>import requests, json
+                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>from swades import Swades
 
-url = "https://phone-whisper-server.pages.dev/v1/chat/completions"
-payload = {"messages": [{"role": "user", "content": "Hello Qwen!"}], "stream": True}
-res = requests.post(url, json=payload, stream=True)
+client = Swades()
 
-for line in res.iter_lines(decode_unicode=True):
-    if line.startswith("data: ") and "[DONE]" not in line:
-        chunk = json.loads(line[6:])
-        print(chunk["choices"][0]["delta"].get("content", ""), end="", flush=True)</code></pre>
+# 1-line chat completion:
+reply = client.chat([{"role": "user", "content": "Explain relativity in 10 words"}])
+print("AI Reply:", reply)</code></pre>
               </div>
               <div id="snip-chat-js" class="snippet-pane" style="display: none;">
-                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>const res = await fetch("https://phone-whisper-server.pages.dev/v1/chat/completions", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ messages: [{ role: "user", content: "Hello!" }], stream: true })
-});
+                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>import { SwadesClient } from './swades.js';
 
-const reader = res.body.getReader();
-const decoder = new TextDecoder();
-while (true) {
-  const { done, value } = await reader.read();
-  if (done) break;
-  const chunk = decoder.decode(value);
-  for (const line of chunk.split("\n")) {
-    if (line.startsWith("data: ") && !line.includes("[DONE]")) {
-      const delta = JSON.parse(line.slice(6))?.choices?.[0]?.delta?.content;
-      if (delta) process.stdout.write(delta);
-    }
-  }
-}</code></pre>
+const client = new SwadesClient();
+
+// 1-line chat completion:
+const reply = await client.chat([
+  { role: "user", content: "Explain relativity in 10 words" }
+]);
+console.log("AI Reply:", reply);</code></pre>
               </div>
             </div>
           </div>
@@ -4802,23 +4789,22 @@ while (true) {
   -F "temperature=0.0"</code></pre>
               </div>
               <div id="snip-stt-py" class="snippet-pane" style="display: none;">
-                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>import requests
+                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>from swades import Swades
 
-url = "https://phone-whisper-server.pages.dev/inference"
-with open("speech.wav", "rb") as f:
-    res = requests.post(url, files={"file": f}, data={"response_format": "json"})
-print("Transcription:", res.json()["text"])</code></pre>
+client = Swades()
+
+# 1-line Whisper Base.en ASR transcription:
+result = client.transcribe("recording.wav")
+print("Transcription:", result["text"])</code></pre>
               </div>
               <div id="snip-stt-js" class="snippet-pane" style="display: none;">
-                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>const formData = new FormData();
-formData.append("file", audioBlob, "audio.wav");
+                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>import { SwadesClient } from './swades.js';
 
-const res = await fetch("https://phone-whisper-server.pages.dev/inference", {
-  method: "POST",
-  body: formData
-});
-const data = await res.json();
-console.log("Transcribed Text:", data.text);</code></pre>
+const client = new SwadesClient();
+
+// 1-line Whisper Base.en ASR transcription:
+const result = await client.transcribe(audioBlob);
+console.log("Transcription:", result.text);</code></pre>
               </div>
             </div>
           </div>
@@ -4872,22 +4858,23 @@ console.log("Transcribed Text:", data.text);</code></pre>
   --output speech.wav</code></pre>
               </div>
               <div id="snip-tts-py" class="snippet-pane" style="display: none;">
-                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>import requests
+                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>from swades import Swades
 
-url = "https://phone-whisper-server.pages.dev/v1/audio/speech"
-res = requests.post(url, json={"input": "Welcome to Piper VITS neural speech!", "voice": "amy"})
+client = Swades()
+
+# 1-line Piper VITS speech synthesis with edge/RAM caching:
+audio_bytes = client.tts("Welcome to Piper VITS neural speech!", voice="amy")
 with open("output.wav", "wb") as f:
-    f.write(res.content)</code></pre>
+    f.write(audio_bytes)</code></pre>
               </div>
               <div id="snip-tts-js" class="snippet-pane" style="display: none;">
-                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>const res = await fetch("https://phone-whisper-server.pages.dev/v1/audio/speech", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ input: "Hello from Piper VITS!", voice: "amy" })
-});
-const audioBlob = await res.blob();
-const audioUrl = URL.createObjectURL(audioBlob);
-new Audio(audioUrl).play();</code></pre>
+                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>import { SwadesClient } from './swades.js';
+
+const client = new SwadesClient();
+
+// 1-line Piper VITS speech synthesis with edge/RAM caching:
+const { play } = await client.speak("Welcome to Piper VITS!", { voice: "amy" });
+play();</code></pre>
               </div>
             </div>
           </div>

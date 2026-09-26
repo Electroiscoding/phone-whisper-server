@@ -235,8 +235,8 @@ To guarantee maximum speed:
 
 ##### JavaScript / Node.js (`swades.js`):
 ```javascript
-import { Swades } from './swades.js';
-const client = Swades.init();
+import { SwadesClient } from './swades.js';
+const client = new SwadesClient();
 
 // 1. Synthesize speech (Cached in client memory & Cloudflare edge)
 const audio = await client.speak("Welcome to earth!", { voice: "amy" });
@@ -446,8 +446,8 @@ print(info["engine"], info["version"], info["tiers"])
 
 ##### JavaScript / Web (`swades.js`):
 ```javascript
-import { Swades } from './swades.js';
-const client = Swades.init();
+import { SwadesClient } from './swades.js';
+const client = new SwadesClient();
 
 // 1. One-line compression (<2ms):
 const res = await client.compress("High speed sensor telemetry payload");
@@ -584,8 +584,8 @@ client.acc_reset()
 
 ##### JavaScript (`swades.js`):
 ```javascript
-import { Swades } from './swades.js';
-const client = Swades.init();
+import { SwadesClient } from './swades.js';
+const client = new SwadesClient();
 
 // Query ACC specs
 const info = await client.acc.info();
@@ -747,9 +747,9 @@ print("Engine:", specs["engine"])
 
 ##### JavaScript (`swades.js`):
 ```javascript
-import { Swades } from './swades.js';
+import { SwadesClient } from './swades.js';
 
-const client = Swades.init();
+const client = new SwadesClient();
 
 // Compress image binary losslessly via Level 1 (-1 -T4):
 const zstdBytes = await client.images.compress(imageUint8Array);
@@ -1227,46 +1227,43 @@ curl -X POST "https://phone-whisper-server.pages.dev/v1/cron/jobs/cron_abc12345/
 #### 12.3.2 Python (`swades.py`)
 
 ```python
-import requests
+from swades import Swades
 
-BASE_URL = "https://phone-whisper-server.pages.dev"
+client = Swades()
 
-# 1. Create a 24/7 background task (No API Key needed)
-job = requests.post(f"{BASE_URL}/v1/cron/jobs", json={
-    "name": "Database Health Check",
-    "schedule_type": "interval",
-    "schedule_value": "every 60s",
-    "url": "https://myapp.com/api/health",
-    "http_method": "GET",
-    "notify_email": "dev@myapp.com",
-    "notify_on": "failure"
-}).json()
-
+# 1. Create a 24/7 background task (1-line drop-in, zero auth needed)
+job = client.schedule(
+    name="Database Health Check",
+    schedule_value="every 60s",
+    url="https://myapp.com/api/health",
+    http_method="GET",
+    notify_email="dev@myapp.com",
+    notify_on="failure"
+)
 print(f"Created Task ID: {job['job_id']}")
 
 # 2. Query execution statistics
-stats = requests.get(f"{BASE_URL}/v1/cron/stats").json()
+stats = client.cron.stats()
 print(f"Scheduler SLA: {stats['stats']['success_rate_percent']}% | Total Runs: {stats['stats']['total_runs']}")
 ```
 
 #### 12.3.3 JavaScript / Node.js (`swades.js`)
 
 ```javascript
+import { SwadesClient } from './swades.js';
+
+const client = new SwadesClient();
+
 // Schedule a 24/7 background worker in 1 call
-const res = await fetch("https://phone-whisper-server.pages.dev/v1/cron/jobs", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    name: "Stripe Webhook Replay",
-    schedule_type: "cron",
-    schedule_value: "*/15 * * * *",
-    url: "https://my-backend.com/webhook/retry",
-    http_method: "POST",
-    headers: { "Authorization": "Bearer secret_tok" }
-  })
+const job = await client.cron.create({
+  name: "Stripe Webhook Replay",
+  schedule_type: "cron",
+  schedule_value: "*/15 * * * *",
+  url: "https://my-backend.com/webhook/retry",
+  http_method: "POST",
+  headers: { "Authorization": "Bearer secret_tok" }
 });
 
-const data = await res.json();
-console.log("Scheduled Task:", data.job_id);
+console.log("Scheduled Task:", job.job_id);
 ```
 
