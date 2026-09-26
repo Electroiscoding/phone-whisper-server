@@ -5846,8 +5846,10 @@ python3 mobile/nuclear_watchdog.py</code></pre>
     });
 
     // HYPER PROD-GRADE AUTONOMOUS NETWORK OUTAGE & AUTO-RECONNECT GUARDIAN
+    const PERMANENT_ORIGIN = "https://phone-whisper-server.pages.dev";
+    window.activeOrigin = PERMANENT_ORIGIN;
     const isDirectHosted = window.location.port === "8080" || window.location.hostname === "192.168.29.2" || window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-    let BASE_ENDPOINT = window.location.origin;
+    let BASE_ENDPOINT = isDirectHosted ? window.location.origin : PERMANENT_ORIGIN;
     
     let isConnected = true;
     let reconnectAttempts = 0;
@@ -5875,12 +5877,8 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       updateConnectionHUD("online", isDirectHosted ? "Direct LAN :8080" : "Gateway Connected");
       if (typeof initStorageEngine === "function") initStorageEngine();
 
-      // Dynamically discover live endpoint and LAN IP from endpoint.json
+      // Read endpoint.json for LAN IP info without overwriting permanent edge origin
       fetch("/endpoint.json").then(r => r.json()).then(ep => {
-        if (!isDirectHosted && ep.endpoint && ep.endpoint.startsWith("https://")) {
-          BASE_ENDPOINT = ep.endpoint.replace(/\/+$/, "");
-          console.log("[Connection Guardian]: Initialized base endpoint from endpoint.json:", BASE_ENDPOINT);
-        }
         if (ep.phone_lan_ip) {
           const lanEl = document.getElementById("cheatsheetLanUrl");
           if (lanEl) lanEl.innerText = ep.phone_lan_ip;
@@ -5936,7 +5934,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       }
     }
 
-        async function recoverFromNetworkOutage(force = false) {
+    async function recoverFromNetworkOutage(force = false) {
       if (isReconnecting && !force) return;
       isReconnecting = true;
       reconnectAttempts++;
@@ -5944,8 +5942,8 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       updateConnectionHUD("reconnecting", `Reconnecting (Attempt ${reconnectAttempts})...`);
       console.warn(`[Network Outage Detected]: Initiating candidate probe (Attempt #${reconnectAttempts})...`);
 
-      // 1. First probe current host / Cloudflare Pages edge proxy (Zero CORS)
-      const primaryOrigin = window.location.origin;
+      // 1. First probe permanent Cloudflare Pages edge proxy (Zero CORS)
+      const primaryOrigin = isDirectHosted ? window.location.origin : PERMANENT_ORIGIN;
       if (await probeOriginHealth(primaryOrigin)) {
         BASE_ENDPOINT = primaryOrigin;
         isConnected = true;
@@ -5957,62 +5955,31 @@ python3 mobile/nuclear_watchdog.py</code></pre>
         return true;
       }
 
-      // 2. Probe local fallback candidate origins
-      for (const cand of CANDIDATE_ORIGINS) {
-        if (cand !== primaryOrigin && await probeOriginHealth(cand)) {
-          BASE_ENDPOINT = cand.replace(/\/+$/, "");
-          isConnected = true;
-          isReconnecting = false;
-          reconnectAttempts = 0;
-          lastHealthyTimestamp = Date.now();
-          updateConnectionHUD("online", `Restored: ${cand.replace(/^https?:\/\//, "")}`);
-          console.log("[Connection Guardian]: Switched to healthy candidate:", BASE_ENDPOINT);
-          return true;
-        }
-      }
-
-      // 3. Multi-source remote resolution (Raw GitHub + Uncached GitHub REST API)
-      if (!isDirectHosted) {
-        try {
-          let resolvedRemote = null;
-          const now = Date.now();
-          // A. Raw GitHub fetch
-          try {
-            const res = await fetch(`https://raw.githubusercontent.com/Electroiscoding/phone-whisper-server/main/endpoint.json?_t=${now}`, { cache: "no-store" });
-            if (res.ok) {
-              const data = await res.json();
-              if (data && data.endpoint) resolvedRemote = data.endpoint;
-            }
-          } catch (e) {}
-
-          // B. Uncached GitHub REST API (Bypasses raw CDN cache)
-          if (!resolvedRemote) {
-            try {
-              const apiRes = await fetch(`https://api.github.com/repos/Electroiscoding/phone-whisper-server/contents/endpoint.json?ref=main&_t=${now}`, {
-                headers: { "Accept": "application/vnd.github.v3+json" },
-                cache: "no-store"
-              });
-              if (apiRes.ok) {
-                const apiData = await apiRes.json();
-                if (apiData && apiData.content) {
-                  const decoded = JSON.parse(atob(apiData.content.replace(/\s/g, '')));
-                  if (decoded && decoded.endpoint) resolvedRemote = decoded.endpoint;
-                }
-              }
-            } catch (e) {}
-          }
-
-          if (resolvedRemote && await probeOriginHealth(resolvedRemote)) {
-            BASE_ENDPOINT = resolvedRemote.replace(/\/+$/, "");
+      // 2. Probe local fallback candidate origins if running directly on phone LAN
+      if (isDirectHosted) {
+        for (const cand of CANDIDATE_ORIGINS) {
+          if (cand !== primaryOrigin && await probeOriginHealth(cand)) {
+            BASE_ENDPOINT = cand.replace(/\/+$/, "");
             isConnected = true;
             isReconnecting = false;
             reconnectAttempts = 0;
             lastHealthyTimestamp = Date.now();
-            updateConnectionHUD("online", "Remote Gateway Active");
-            console.log("[Connection Guardian]: Synced from remote endpoint:", BASE_ENDPOINT);
+            updateConnectionHUD("online", `Restored: ${cand.replace(/^https?:\/\//, "")}`);
+            console.log("[Connection Guardian]: Switched to healthy candidate:", BASE_ENDPOINT);
             return true;
           }
-        } catch (e) {}
+        }
+      }
+
+      // 3. Fallback to permanent Cloudflare Pages origin
+      if (await probeOriginHealth(PERMANENT_ORIGIN)) {
+        BASE_ENDPOINT = PERMANENT_ORIGIN;
+        isConnected = true;
+        isReconnecting = false;
+        reconnectAttempts = 0;
+        lastHealthyTimestamp = Date.now();
+        updateConnectionHUD("online", "Gateway Active");
+        return true;
       }
 
       // 4. Infinite autonomous retry loop (never stops, capped at 3.5s)
@@ -9300,6 +9267,18 @@ python3 mobile/nuclear_watchdog.py</code></pre>
     }
     window.loadStorageUsage = loadStorageUsage;
 
+    function getPermanentStorageUrl(rawUrl, key, tenant) {
+      if (!rawUrl && key) {
+        return `https://phone-whisper-server.pages.dev/s/${tenant || currentStorageProject || 'anon_public'}/${key}`;
+      }
+      let url = rawUrl || '';
+      if (url.startsWith('http://') || url.startsWith('https://')) {
+        return url.replace(/^https?:\/\/[a-zA-Z0-9.-]+\.trycloudflare\.com/i, 'https://phone-whisper-server.pages.dev');
+      }
+      const clean = url.startsWith('/') ? url : `/${url}`;
+      return `https://phone-whisper-server.pages.dev${clean}`;
+    }
+
     async function loadStorageObjects() {
       const tbody = document.getElementById("storageObjectsTableBody");
       const badge = document.getElementById("storageObjectCountBadge");
@@ -9348,7 +9327,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
             const sizeStr = obj.size < 1024 ? `${obj.size} B` :
                             obj.size < 1024*1024 ? `${(obj.size/1024).toFixed(1)} KB` :
                             `${(obj.size/(1024*1024)).toFixed(2)} MB`;
-            const cdnUrl = `${BASE_ENDPOINT}${obj.url}`;
+            const cdnUrl = getPermanentStorageUrl(obj.cdn_url || obj.url, obj.key, currentStorageProject);
             const ext = (obj.key.split('.').pop() || '').toLowerCase();
             const isImg = (obj.content_type || "").startsWith("image/") || ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'ico', 'avif'].includes(ext);
             const isVid = ['mp4', 'webm', 'mov'].includes(ext);
@@ -9359,7 +9338,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
 
             let thumbEl = '';
             if (isImg) {
-              thumbEl = `<img src="${cdnUrl}" alt="${obj.key}" loading="lazy" style="width: 34px; height: 34px; object-fit: cover; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); margin-right: 0.6rem; vertical-align: middle; display: inline-block;" onerror="this.style.display='none';" />`;
+              thumbEl = `<img src="${cdnUrl}" alt="${obj.key}" loading="lazy" crossorigin="anonymous" style="width: 34px; height: 34px; object-fit: cover; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); margin-right: 0.6rem; vertical-align: middle; display: inline-block;" onerror="this.style.display='none';" />`;
             } else {
               const iconClass = isVid ? 'fa-solid fa-film text-purple-400' : (isAud ? 'fa-solid fa-music text-pink-400' : (isPdf ? 'fa-solid fa-file-pdf text-red-400' : (isCode ? 'fa-solid fa-code text-emerald-400' : (isZip ? 'fa-solid fa-file-zipper text-amber-400' : 'fa-solid fa-file text-zinc-400'))));
               thumbEl = `<span style="display: inline-flex; width: 34px; height: 34px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; align-items: center; justify-content: center; margin-right: 0.6rem; vertical-align: middle;"><i class="${iconClass}"></i></span>`;
@@ -9405,7 +9384,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
                 <td style="padding: 0.75rem 1rem; color: var(--text-subtle); font-size: 0.8rem;">${obj.content_type || "binary"}</td>
                 <td style="padding: 0.75rem 1rem;">
                   <div style="display: flex; align-items: center; gap: 0.5rem;">
-                    <a href="${cdnUrl}" target="_blank" style="color: #38bdf8; text-decoration: none; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block;">${obj.url}</a>
+                    <a href="${cdnUrl}" target="_blank" style="color: #38bdf8; text-decoration: none; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block;">${cdnUrl}</a>
                     <button onclick="copyText('${cdnUrl}')" class="btn-action" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;" title="Copy Public CDN URL"><i class="fa-solid fa-copy"></i></button>
                   </div>
                 </td>
@@ -9599,8 +9578,8 @@ python3 mobile/nuclear_watchdog.py</code></pre>
 
           if (res.ok) {
             const data = await res.json().catch(() => ({}));
-            const cdnPath = (data.object && data.object.url) || data.url || `/s/${currentStorageProject || 'usr_sandbox'}/${encodeURIComponent(objectKey)}`;
-            const fullCdnUrl = `${BASE_ENDPOINT}${cdnPath}`;
+            const cdnPath = data.cdn_url || (data.object && (data.object.cdn_url || data.object.url)) || data.url || `/s/${currentStorageProject || 'usr_sandbox'}/${encodeURIComponent(objectKey)}`;
+            const fullCdnUrl = getPermanentStorageUrl(cdnPath, objectKey, currentStorageProject);
             uploadedItems.push({
               cdnUrl: fullCdnUrl,
               key: objectKey,
@@ -9648,7 +9627,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
                 ${isImg ? `
                 <div style="margin-top: 0.5rem; display: flex; align-items: center; gap: 0.75rem; background: rgba(255, 255, 255, 0.03); padding: 0.4rem 0.6rem; border-radius: 6px;">
                   <a href="${item.cdnUrl}" target="_blank">
-                    <img src="${item.cdnUrl}" alt="Preview" style="max-height: 70px; max-width: 110px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.15); object-fit: cover; cursor: pointer;" />
+                    <img src="${item.cdnUrl}" alt="Preview" crossorigin="anonymous" style="max-height: 70px; max-width: 110px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.15); object-fit: cover; cursor: pointer;" />
                   </a>
                   <div>
                     <div style="font-size: 0.8rem; font-weight: 600; color: #f1f5f9;">${escapeHtml(item.key)}</div>
@@ -9759,7 +9738,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       if (!codeBlock) return;
 
       const key = currentStorageApiKey || "sk_swades_YOUR_API_KEY";
-      const origin = BASE_ENDPOINT || "https://phone-whisper-server.pages.dev";
+      const origin = "https://phone-whisper-server.pages.dev";
       const tnt = currentTenantId || "YOUR_TENANT_ID";
 
       if (activeSnippetTab === 'curl') {
