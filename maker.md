@@ -1006,23 +1006,42 @@ The phone datacenter operates as a high-speed sovereign cloud backend alternativ
 - **List Objects**: `GET /v1/storage/objects`
 - **Delete Object**: `DELETE /v1/storage/objects/<key>`
 
-### 11.3 Instant 1-Line Client SDK
+### 11.3 Instant 1-Line Client SDKs
+
+#### JavaScript / TypeScript:
 Include the client SDK in any web project:
 ```html
 <script src="https://phone-whisper-server.pages.dev/swades.js"></script>
 ```
-Execute queries, uploads, and auth in 1 line:
+Or import in Node.js / modern bundlers:
 ```javascript
-const db = Swades.init({ apiKey: 'YOUR_KEY', project: 'YOUR_PROJECT' });
+import { SwadesClient } from './swades.js';
+
+const client = new SwadesClient({ apiKey: 'YOUR_KEY', projectId: 'YOUR_PROJECT' });
 
 // 1-line SQL query
-const items = await db.query("SELECT * FROM items;");
+const items = await client.db.query("SELECT * FROM items;");
 
-// 1-line insert
-await db.insert("items", { title: "Phone Case", price: 12.50 });
+// 1-line file upload to S3 CDN (permanent permalink, zero ORB blocks)
+const { cdn_url } = await client.storage.upload(file);
+console.log("Permanent CDN URL:", cdn_url);
+```
 
-// 1-line file upload to S3 CDN
-const { url } = await db.storage.upload(file);
+#### Python:
+```python
+from swades import Swades
+
+# Connects to https://phone-whisper-server.pages.dev by default
+client = Swades(api_key="YOUR_KEY", project_id="YOUR_PROJECT")
+
+# 1-line file upload to permanent S3 CDN
+cdn_url = client.upload("document.pdf")
+
+# 1-line SQL query
+rows = client.query("SELECT * FROM items WHERE price < 100;")
+
+# 1-line TTS Speech Synthesis
+audio_bytes = client.tts("Phone AI Datacenter Online", voice="amy")
 ```
 
 ---

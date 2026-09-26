@@ -9272,11 +9272,9 @@ python3 mobile/nuclear_watchdog.py</code></pre>
         return `https://phone-whisper-server.pages.dev/s/${tenant || currentStorageProject || 'anon_public'}/${key}`;
       }
       let url = rawUrl || '';
-      if (url.startsWith('http://') || url.startsWith('https://')) {
-        return url.replace(/^https?:\/\/[a-zA-Z0-9.-]+\.trycloudflare\.com/i, 'https://phone-whisper-server.pages.dev');
-      }
-      const clean = url.startsWith('/') ? url : `/${url}`;
-      return `https://phone-whisper-server.pages.dev${clean}`;
+      url = url.replace(/^https?:\/\/[^\/]+/, '');
+      url = url.replace(/^\/+/, '/');
+      return `https://phone-whisper-server.pages.dev${url}`;
     }
 
     async function loadStorageObjects() {

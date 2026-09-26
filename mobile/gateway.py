@@ -2868,7 +2868,7 @@ class SwadeObjectStore:
                                     "is_permanent": True,
                                     "pool": "Internal Flash" if "sdcard" not in r_dir else "Shared /sdcard",
                                     "_disk_path": full_path,
-                                    "url": f"https://phone-whisper-server.pages.dev/s/{tenant_id}/{rel_path}",
+                                    "url": f"/s/{tenant_id}/{rel_path}",
                                     "cdn_url": f"https://phone-whisper-server.pages.dev/s/{tenant_id}/{rel_path}"
                                 }
                                 self._meta_index[tenant_id][rel_path] = meta
@@ -2938,7 +2938,7 @@ class SwadeObjectStore:
                                 "is_permanent": True,
                                 "pool": "Internal Flash" if "sdcard" not in r_dir else "Shared /sdcard",
                                 "_disk_path": full_path,
-                                "url": f"https://phone-whisper-server.pages.dev/s/{tenant_id}/{rel_path}",
+                                "url": f"/s/{tenant_id}/{rel_path}",
                                 "cdn_url": f"https://phone-whisper-server.pages.dev/s/{tenant_id}/{rel_path}"
                             }
                             self._meta_index[tenant_id][rel_path] = meta
@@ -3040,7 +3040,7 @@ class SwadeObjectStore:
             "is_permanent": True,
             "pool": pool_name,
             "_disk_path": pool_path,
-            "url": f"https://phone-whisper-server.pages.dev/s/{tenant_id}/{clean_key}",
+            "url": f"/s/{tenant_id}/{clean_key}",
             "cdn_url": f"https://phone-whisper-server.pages.dev/s/{tenant_id}/{clean_key}"
         }
 
@@ -3235,7 +3235,7 @@ class SwadeObjectStore:
                                 "is_permanent": True,
                                 "pool": "Internal Flash" if "sdcard" not in r_dir else "Shared /sdcard",
                                 "_disk_path": check_path,
-                                "url": f"https://phone-whisper-server.pages.dev/s/{tenant_id or 'public'}/{os.path.basename(clean_cand)}",
+                                "url": f"/s/{tenant_id or 'public'}/{os.path.basename(clean_cand)}",
                                 "cdn_url": f"https://phone-whisper-server.pages.dev/s/{tenant_id or 'public'}/{os.path.basename(clean_cand)}"
                             }
                             self._register_universal(tenant_id or "public", os.path.basename(clean_cand), check_path, meta)
@@ -3324,7 +3324,7 @@ class SwadeObjectStore:
             c["ttl_auto_delete_active"] = False
             c["is_permanent"] = True
             clean_k = c.get('key') or ''
-            c["url"] = f"https://phone-whisper-server.pages.dev/s/{tenant_id}/{clean_k}"
+            c["url"] = f"/s/{tenant_id}/{clean_k}"
             c["cdn_url"] = f"https://phone-whisper-server.pages.dev/s/{tenant_id}/{clean_k}"
             safe_list.append(c)
         return safe_list, len(unique_objs)
@@ -6775,6 +6775,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         self.wfile.write(resp)
 
     def handle_storage_put_object(self, raw_key):
+        raw_key = urllib.parse.unquote(str(raw_key))
         t0 = time.perf_counter_ns()
         tenant = self._authenticate_storage_request()
         if not tenant:
@@ -6824,8 +6825,9 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                     data = _zstd_engine.decompress(data)
                 except Exception as de:
                     pass
+            meta = _object_store.put_object(scope_id, raw_key, data, content_type=content_type, notify_email=notify_email)
             clean_k = meta.get('key') or raw_key
-            meta["url"] = f"https://phone-whisper-server.pages.dev/s/{scope_id}/{clean_k}"
+            meta["url"] = f"/s/{scope_id}/{clean_k}"
             meta["cdn_url"] = f"https://phone-whisper-server.pages.dev/s/{scope_id}/{clean_k}"
             t_ns = time.perf_counter_ns() - t0
             t_ms = round(t_ns / 1_000_000, 6)
@@ -7104,7 +7106,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         objects, total = _object_store.list_objects(scope_id, prefix=prefix, limit=limit)
         for o in objects:
             clean_k = o.get("key") or ""
-            o["url"] = f"https://phone-whisper-server.pages.dev/s/{scope_id}/{clean_k}"
+            o["url"] = f"/s/{scope_id}/{clean_k}"
             o["cdn_url"] = f"https://phone-whisper-server.pages.dev/s/{scope_id}/{clean_k}"
 
         t_ns = time.perf_counter_ns() - t0

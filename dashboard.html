@@ -807,11 +807,10 @@ print(f"Losslessly restored {len(restored_bytes)} bytes")</pre>
       if (!raw && key) {
         return `${PERMANENT_CDN_BASE}/s/${projectId || activeProjectId || 'default'}/${key}`;
       }
-      if (raw.startsWith('http://') || raw.startsWith('https://')) {
-        return raw.replace(/^https?:\/\/[a-zA-Z0-9.-]+\.trycloudflare\.com/i, PERMANENT_CDN_BASE);
-      }
-      const cleanPath = raw.startsWith('/') ? raw : `/${raw}`;
-      return `${PERMANENT_CDN_BASE}${cleanPath}`;
+      let url = raw;
+      url = url.replace(/^https?:\/\/[^\/]+/, '');
+      url = url.replace(/^\/+/, '/');
+      return `${PERMANENT_CDN_BASE}${url}`;
     }
 
     let currentUser = null;

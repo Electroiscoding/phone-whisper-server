@@ -2844,102 +2844,81 @@ acc reset       # Reset controller to 80/70/40°C datacenter defaults</code></pr
           <!-- Python SDK -->
           <div class="bg-cardbg border border-cardborder rounded-xl p-5 font-mono text-xs space-y-3">
             <div class="flex items-center justify-between text-white font-bold border-b border-cardborder pb-2">
-              <span class="flex items-center gap-2"><i class="fa-brands fa-python text-neoncyan mr-1.5"></i> Python SDK (httpx & Async Streaming)</span>
+              <span class="flex items-center gap-2"><i class="fa-brands fa-python text-neoncyan mr-1.5"></i> Python SDK (swades.py — Native Sovereign Client)</span>
               <button onclick="copyRawCode('sdk-py-code')" class="text-[10px] text-neoncyan hover:underline">Copy Code</button>
             </div>
             
             <!-- Package Manager Tabs -->
             <div class="flex items-center gap-2 text-[10px] bg-zinc-950 p-1.5 rounded border border-cardborder">
-              <span class="text-zinc-500">Install:</span>
-              <code class="text-cyan-300 select-all">pip install httpx asyncio</code>
+              <span class="text-zinc-500">Usage:</span>
+              <code class="text-cyan-300 select-all">from swades import Swades</code>
               <span class="text-zinc-600">|</span>
-              <code class="text-zinc-400 select-all">poetry add httpx</code>
-              <span class="text-zinc-600">|</span>
-              <code class="text-zinc-400 select-all">conda install -c conda-forge httpx</code>
+              <code class="text-zinc-400 select-all">pip install requests httpx</code>
             </div>
 
-            <pre class="bg-zinc-950 p-4 rounded-lg border border-cardborder text-cyan-300 overflow-x-auto"><code id="sdk-py-code">import httpx
-import asyncio
+            <pre class="bg-zinc-950 p-4 rounded-lg border border-cardborder text-cyan-300 overflow-x-auto"><code id="sdk-py-code">from swades import Swades
 
-BASE_URL = "https://phone-whisper-server.pages.dev"
+# Initialize client (Defaults to permanent sovereign origin: https://phone-whisper-server.pages.dev)
+client = Swades(api_key="your_api_key", project_id="default")
 
-async def main():
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        # 1. Transcribe audio file
-        with open("meeting.wav", "rb") as f:
-            r = await client.post(f"{BASE_URL}/v1/audio/transcriptions", files={"file": f})
-            print("Transcript:", r.json()["text"])
+# 1. Permanent Object Storage Upload (Returns immutable public CDN permalink)
+cdn_url = client.upload("document.pdf")
+print("Permanent CDN URL:", cdn_url)
+# Output: https://phone-whisper-server.pages.dev/s/default/uploads/document.pdf
 
-        # 2. Synthesize speech
-        r = await client.post(f"{BASE_URL}/v1/audio/speech", json={
-            "model": "piper",
-            "input": "Phone datacenter connection verified.",
-            "voice": "amy"
-        })
-        with open("synth.wav", "wb") as f:
-            f.write(r.content)
-            print("Synthesized audio saved to synth.wav")
+# 2. Hyper-Fast SQL Database Query
+rows = client.query("SELECT * FROM users WHERE active = true LIMIT 10")
+print("Database Rows:", rows)
 
-        # 3. Stream chat completion
-        async with client.stream("POST", f"{BASE_URL}/v1/chat/completions", json={
-            "model": "openrouter/free",
-            "messages": [{"role": "user", "content": "Explain ARM NEON in 1 line."}],
-            "stream": True
-        }) as stream:
-            async for line in stream.aiter_lines():
-                if line.startswith("data: ") and line != "data: [DONE]":
-                    print(line[6:], end="", flush=True)
+# 3. Speech Synthesis (TTS) with 4-Tier Edge Caching
+audio_bytes = client.tts("Phone AI Datacenter connection verified.", voice="amy", speed=1.0)
+with open("speech.wav", "wb") as f:
+    f.write(audio_bytes)
+print("Saved 22kHz speech.wav")
 
-asyncio.run(main())</code></pre>
+# 4. Neural Zstd Image Compression
+compressed = client.images.compress("profile.png")
+recovered = client.images.decompress(compressed)</code></pre>
           </div>
 
           <!-- JavaScript / TypeScript SDK -->
           <div id="sdk-js" class="bg-cardbg border border-cardborder rounded-xl p-5 font-mono text-xs space-y-3">
             <div class="flex items-center justify-between text-white font-bold border-b border-cardborder pb-2">
-              <span class="flex items-center gap-2"><i class="fa-brands fa-js text-neonemerald mr-1.5"></i> TypeScript / JavaScript Client</span>
+              <span class="flex items-center gap-2"><i class="fa-brands fa-js text-neonemerald mr-1.5"></i> JavaScript / TypeScript SDK (swades.js)</span>
               <button onclick="copyRawCode('sdk-ts-code')" class="text-[10px] text-neonemerald hover:underline">Copy Code</button>
             </div>
 
             <!-- Package Manager Tabs -->
             <div class="flex items-center gap-2 text-[10px] bg-zinc-950 p-1.5 rounded border border-cardborder">
               <span class="text-zinc-500">Usage:</span>
-              <code class="text-emerald-300 select-all">&lt;script src="/swades.js"&gt;&lt;/script&gt;</code>
+              <code class="text-emerald-300 select-all">&lt;script src="https://phone-whisper-server.pages.dev/swades.js"&gt;&lt;/script&gt;</code>
               <span class="text-zinc-600">|</span>
-              <code class="text-zinc-400 select-all">Node.js: const Swades = require('./swades.js');</code>
+              <code class="text-zinc-400 select-all">import { SwadesClient } from './swades.js';</code>
             </div>
 
-            <pre class="bg-zinc-950 p-4 rounded-lg border border-cardborder text-emerald-300 overflow-x-auto"><code id="sdk-ts-code">const BASE_URL = "https://phone-whisper-server.pages.dev";
+            <pre class="bg-zinc-950 p-4 rounded-lg border border-cardborder text-emerald-300 overflow-x-auto"><code id="sdk-ts-code">// Initialize Swades Client
+const client = new SwadesClient({
+  apiKey: "your_api_key",
+  projectId: "default"
+});
 
-export async function streamChat(prompt: string, onChunk: (text: string) => void) {
-  const response = await fetch(`${BASE_URL}/v1/chat/completions`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "openrouter/free",
-      messages: [{ role: "user", content: prompt }],
-      stream: true
-    })
-  });
+// 1. Permanent Object Storage Upload (Zero ORB blocks, Cross-Origin Safe)
+const fileInput = document.getElementById("fileInput").files[0];
+const uploadResult = await client.storage.upload(fileInput);
+console.log("Permanent CDN URL:", uploadResult.cdn_url);
+// Output: https://phone-whisper-server.pages.dev/s/default/uploads/...
 
-  if (!response.body) throw new Error("No readable stream");
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
+// 2. List Project Storage Files
+const files = await client.storage.list();
+console.log("Files:", files);
 
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    const chunk = decoder.decode(value);
-    for (const line of chunk.split("\n")) {
-      if (line.startsWith("data: ") && !line.includes("[DONE]")) {
-        try {
-          const json = JSON.parse(line.slice(6));
-          const text = json.choices?.[0]?.delta?.content || "";
-          if (text) onChunk(text);
-        } catch (_) {}
-      }
-    }
-  }
-}</code></pre>
+// 3. Database SQL Query
+const users = await client.db.query("SELECT * FROM items ORDER BY created_at DESC LIMIT 20");
+
+// 4. Ultra-Fast Speech Synthesis (TTS)
+const audioBlob = await client.tts("Swades Sovereign Cloud Connected", { voice: "amy" });
+const audioUrl = URL.createObjectURL(audioBlob);
+new Audio(audioUrl).play();</code></pre>
           </div>
 
           <!-- Go SDK -->
