@@ -502,28 +502,26 @@ console.log(`Losslessly restored ${original.length} bytes in &lt;1.5ms`);</pre>
           <div id="sdk-code-py" class="hidden space-y-3">
             <div class="space-y-1">
               <div class="flex items-center justify-between text-cyan-400 font-bold text-[11px]">
-                <span>1. One-Line SQL Query via Requests</span>
-                <button onclick="copyToClipboard('import requests
-res = requests.post('https://phone-whisper-server.pages.dev/v1/db/sql', headers={'x-api-key': 'YOUR_KEY', 'x-project-id': 'YOUR_PROJECT'}, json={'query': 'SELECT * FROM items;'}).json()')" class="text-zinc-400 hover:text-white text-[10px]"><i class="fa-regular fa-clipboard mr-1"></i> Copy</button>
+                <span>1. One-Line SQL Query</span>
+                <button onclick="copyToClipboard('from swades import Swades\nclient = Swades(api_key=\'YOUR_KEY\', project_id=\'YOUR_PROJECT\')\nrows = client.query(\'SELECT * FROM items;\')\nprint(rows)')" class="text-zinc-400 hover:text-white text-[10px]"><i class="fa-regular fa-clipboard mr-1"></i> Copy</button>
               </div>
-              <pre class="bg-black/90 p-2.5 rounded border border-zinc-800 text-zinc-300 select-text">import requests
+              <pre class="bg-black/90 p-2.5 rounded border border-zinc-800 text-zinc-300 select-text">from swades import Swades
 
-res = requests.post("https://phone-whisper-server.pages.dev/v1/db/sql",
-    headers={"x-api-key": "YOUR_KEY", "x-project-id": "YOUR_PROJECT"},
-    json={"query": "SELECT * FROM items;"}).json()
-print(res["result"]["rows"])</pre>
+client = Swades(api_key="YOUR_KEY", project_id="YOUR_PROJECT")
+rows = client.query("SELECT * FROM items;")
+print(rows)</pre>
             </div>
 
             <div class="space-y-1">
               <div class="flex items-center justify-between text-emerald-400 font-bold text-[11px]">
-                <span>2. One-Line File Upload to Storage</span>
-                <button onclick="copyToClipboard('with open('photo.jpg', 'rb') as f:
-    res = requests.put('https://phone-whisper-server.pages.dev/v1/storage/objects/photo.jpg', headers={'x-api-key': 'YOUR_KEY'}, data=f.read()).json()')" class="text-zinc-400 hover:text-white text-[10px]"><i class="fa-regular fa-clipboard mr-1"></i> Copy</button>
+                <span>2. One-Line File Upload to Storage (Instant CDN)</span>
+                <button onclick="copyToClipboard('from swades import Swades\nclient = Swades(api_key=\'YOUR_KEY\', project_id=\'YOUR_PROJECT\')\ncdn_url = client.upload(\'photo.jpg\')\nprint(cdn_url)')" class="text-zinc-400 hover:text-white text-[10px]"><i class="fa-regular fa-clipboard mr-1"></i> Copy</button>
               </div>
-              <pre class="bg-black/90 p-2.5 rounded border border-zinc-800 text-zinc-300 select-text">with open("photo.jpg", "rb") as f:
-    res = requests.put("https://phone-whisper-server.pages.dev/v1/storage/objects/photo.jpg",
-        headers={"x-api-key": "YOUR_KEY"}, data=f.read()).json()
-print("CDN URL:", res["object"]["url"])</pre>
+              <pre class="bg-black/90 p-2.5 rounded border border-zinc-800 text-zinc-300 select-text">from swades import Swades
+
+client = Swades(api_key="YOUR_KEY", project_id="YOUR_PROJECT")
+cdn_url = client.upload("photo.jpg")
+print("Public CDN Permalink:", cdn_url)</pre>
             </div>
 
             <div class="space-y-1">
