@@ -2324,6 +2324,20 @@ proot-distro login alpine -- node /root/Swades-Agent/worker.js --job job_a9f8224
               Binary audio/wav payload directly playable via HTML5 <code>&lt;audio&gt;</code> element.
             </div>
           </div>
+
+          <div class="mt-4 pt-3 border-t border-cardborder">
+            <div class="text-[11px] font-bold text-zinc-400 uppercase mb-2">1-Line Client SDK Drop-in:</div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <span class="text-zinc-500 text-[10px] block mb-1">Python (swades.py):</span>
+                <pre class="bg-zinc-950 p-2.5 rounded border border-cardborder text-cyan-300"><code>audio_bytes = client.tts("Hello world", voice="amy")</code></pre>
+              </div>
+              <div>
+                <span class="text-zinc-500 text-[10px] block mb-1">JavaScript (swades.js):</span>
+                <pre class="bg-zinc-950 p-2.5 rounded border border-cardborder text-emerald-300"><code>const blob = await client.tts("Hello world", { voice: "amy" });</code></pre>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- ENDPOINT 3B: GET /v1/audio/voices -->
@@ -2469,31 +2483,51 @@ event: verification
 data: {"job_id":"job_9a717658","passed":true,"compiler":"node --check","errors":[]}</code></pre>
         </div>
 
-        <!-- ENDPOINT 8: STORAGE CRUD -->
+        <!-- ENDPOINT 8: STORAGE CRUD & PUBLIC CDN -->
         <div id="api-storage-crud" class="bg-cardbg border border-cardborder rounded-xl p-6 mb-8 font-mono text-xs">
           <div class="flex items-center justify-between border-b border-cardborder pb-3 mb-4">
             <div class="flex items-center gap-3">
-              <span class="px-2.5 py-1 rounded bg-emerald-900/60 border border-emerald-700 text-emerald-300 font-bold">CRUD</span>
-              <span class="text-white font-bold text-sm">/v1/storage/objects/{bucket}/{key}</span>
+              <span class="px-2.5 py-1 rounded bg-emerald-900/60 border border-emerald-700 text-emerald-300 font-bold">PUT &amp; GET</span>
+              <span class="text-white font-bold text-sm">/v1/storage/objects/{key} &amp; /s/{project}/{key}</span>
             </div>
-            <span class="text-[10px] px-2 py-0.5 rounded bg-zinc-800 text-neonemerald border border-zinc-700">BEARER AUTH</span>
+            <span class="text-[10px] px-2 py-0.5 rounded bg-zinc-800 text-neonemerald border border-zinc-700">PERMANENT CDN • ZERO TTL AUTO-DELETE</span>
           </div>
           <p class="text-zinc-300 text-[11px] mb-4 leading-relaxed">
-            Sub-microsecond L1 RAM object store with automatic WAL flash synchronization. Supports GET, POST, and DELETE verbs.
+            S3-compatible persistent object store with instant sub-millisecond RAM reflection, background SQLite WAL flash persistence, and worldwide immutable Cloudflare CDN streaming. All uploaded files persist permanently (zero TTL auto-deletion) with global <code>Cross-Origin-Resource-Policy: cross-origin</code> preventing browser ORB blocking.
           </p>
 
           <div class="space-y-3">
             <div>
-              <span class="text-neonemerald font-bold">GET /v1/storage/objects/{bucket}/{key}</span>
-              <div class="text-zinc-400 text-[11px]">Returns raw binary object or JSON metadata. Reads hit volatile L1 RAM in &lt; 0.85ms.</div>
+              <span class="text-neoncyan font-bold">PUT /v1/storage/objects/{key}</span>
+              <div class="text-zinc-400 text-[11px]">Uploads raw binary bytes (with optional <code>Content-Type</code>). Returns permanent <code>cdn_url</code> and <code>url</code> metadata.</div>
             </div>
             <div>
-              <span class="text-neoncyan font-bold">POST /v1/storage/objects/{bucket}/{key}</span>
-              <div class="text-zinc-400 text-[11px]">Uploads an object buffer. Automatically writes to RAM cache and appends to SQLite WAL journal.</div>
+              <span class="text-neonemerald font-bold">GET /s/{project_id}/{key}</span>
+              <div class="text-zinc-400 text-[11px]">Global public CDN permalink. Zero-auth, edge-cached, Range-requests enabled with <code>Cross-Origin-Resource-Policy: cross-origin</code>.</div>
             </div>
             <div>
-              <span class="text-rose-400 font-bold">DELETE /v1/storage/objects/{bucket}/{key}</span>
-              <div class="text-zinc-400 text-[11px]">Atomically purges object from RAM cache and registers tombstone in WAL journal.</div>
+              <span class="text-neonpurple font-bold">GET /v1/storage/objects</span>
+              <div class="text-zinc-400 text-[11px]">Lists all stored objects with keys, sizes, ETags, permanent URLs, and creation timestamps.</div>
+            </div>
+            <div>
+              <span class="text-rose-400 font-bold">DELETE /v1/storage/objects/{key}</span>
+              <div class="text-zinc-400 text-[11px]">Atomically purges object from RAM index and purges Edge CDN cache.</div>
+            </div>
+          </div>
+
+          <div class="mt-4 pt-3 border-t border-cardborder">
+            <div class="text-[11px] font-bold text-zinc-400 uppercase mb-2">1-Line Client SDK Upload:</div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <span class="text-zinc-500 text-[10px] block mb-1">Python (swades.py):</span>
+                <pre class="bg-zinc-950 p-2.5 rounded border border-cardborder text-cyan-300"><code>cdn_url = client.upload("document.pdf")
+# -> https://phone-whisper-server.pages.dev/s/default/uploads/document.pdf</code></pre>
+              </div>
+              <div>
+                <span class="text-zinc-500 text-[10px] block mb-1">JavaScript (swades.js):</span>
+                <pre class="bg-zinc-950 p-2.5 rounded border border-cardborder text-emerald-300"><code>const { cdn_url } = await client.storage.upload(file);
+// -> https://phone-whisper-server.pages.dev/s/default/uploads/...</code></pre>
+              </div>
             </div>
           </div>
         </div>
