@@ -13,6 +13,7 @@ Features:
 """
 
 import os
+import sys
 import platform
 import sqlite3
 import uuid
