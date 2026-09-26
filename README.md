@@ -95,69 +95,60 @@ Zstandard is the exclusive, universal compression standard across the entire sov
 
 ## Universal Drop-In Code Examples
 
-### 1. Python (`swades` SDK or `requests`)
+### 1. Python (`swades.py` SDK)
 
 ```python
 from swades import Swades
 
-client = Swades(endpoint="http://192.168.29.2:8080")
+# Initialize client (defaults to permanent sovereign CDN: https://phone-whisper-server.pages.dev)
+client = Swades(api_key="YOUR_API_KEY", project_id="default")
 
-# 1. Real-time Hardware Zstandard Compression (Level 1, <1.5ms)
-compressed = client.compress("System logs and telemetry payload", as_json=True)
-print(f"Compressed in {compressed['elapsed_ms']}ms -> Ratio: {compressed['compression_ratio']}x")
+# 1. Permanent S3 Object Storage Upload (Immutable CDN permalink)
+cdn_url = client.upload("document.pdf")
+print("Permanent CDN URL:", cdn_url)
+# Output: https://phone-whisper-server.pages.dev/s/default/uploads/document.pdf
 
-# 2. Decompress
-original = client.decompress(compressed["compressed_base64"], as_text=True)
-print("Decompressed text:", original)
+# 2. Hyper-Fast SQL Database Query
+rows = client.query("SELECT * FROM users WHERE active = true LIMIT 10")
+print("Rows:", rows)
 
-# 3. Native Zstandard Image Compression (Level 1, <1.5ms)
-comp_image = client.compress_image("photo.png")
-with open("photo.png.zst", "wb") as f:
-    f.write(comp_image)
+# 3. Speech Synthesis (Piper VITS Neural TTS)
+audio_bytes = client.tts("Phone AI Datacenter connection verified.", voice="amy")
+with open("speech.wav", "wb") as f:
+    f.write(audio_bytes)
 
-restored_image = client.decompress_image(comp_image)
-print(f"Losslessly restored {len(restored_image)} bytes")
-
-# 4. Stream Chat from Qwen 2.5 SLM
-import requests, json
-res = requests.post(
-    "http://192.168.29.2:8080/v1/chat/completions",
-    json={"messages": [{"role": "user", "content": "Explain gravity in 10 words"}], "stream": True},
-    stream=True
-)
-for line in res.iter_lines(decode_unicode=True):
-    if line.startswith("data: ") and "[DONE]" not in line:
-        chunk = json.loads(line[6:])
-        print(chunk["choices"][0]["delta"].get("content", ""), end="", flush=True)
+# 4. Native Zstandard Hardware Compression (Level 1, <1.5ms)
+comp_image = client.images.compress("photo.png")
+restored = client.images.decompress(comp_image)
 ```
 
-### 2. JavaScript / TypeScript / Node.js (`swades.js`)
+### 2. JavaScript / TypeScript / Node.js (`swades.js` SDK)
 
 ```javascript
-import swades from "./swades.js";
+// Browser: <script src="https://phone-whisper-server.pages.dev/swades.js"></script>
+// Node.js: import { SwadesClient } from "./swades.js";
 
-// Initialize client
-const client = swades.init({ endpoint: "http://192.168.29.2:8080" });
+const client = new SwadesClient({
+  apiKey: "YOUR_API_KEY",
+  projectId: "default"
+});
 
-// 1. Ultra-fast Zstandard Compression (Level 1, ~180 MB/s)
-const res = await client.zstd.compress("Telemetry payload stream", { format: "base64" });
-console.log(`Compressed in ${res.elapsed_ms}ms: ${res.original_size}B -> ${res.compressed_size}B`);
+// 1. Permanent Object Storage Upload (Zero ORB blocks, Cross-Origin Safe)
+const fileInput = document.getElementById("fileInput").files[0];
+const res = await client.storage.upload(fileInput);
+console.log("Permanent CDN URL:", res.cdn_url);
+// Output: https://phone-whisper-server.pages.dev/s/default/uploads/...
 
-// 2. Decompress
-const decomp = await client.zstd.decompress(res.compressed_base64, { asText: true });
-console.log("Decompressed:", decomp);
+// 2. List Project Files
+const files = await client.storage.list();
+console.log("Project Files:", files);
 
-// 3. Native Zstandard Image Compression (<1.5ms)
-const zstdBytes = await client.images.compress(imageUint8Array);
-const restoredBytes = await client.images.decompress(zstdBytes);
-console.log(`Restored ${restoredBytes.length} bytes losslessly`);
+// 3. Database SQL Query
+const users = await client.db.query("SELECT * FROM items ORDER BY created_at DESC LIMIT 20");
 
-// 4. Speech-to-Text via Whisper.cpp
-const formData = new FormData();
-formData.append("file", audioBlob, "recording.wav");
-const stt = await fetch("http://192.168.29.2:8080/inference", { method: "POST", body: formData });
-const sttData = await stt.json();
-console.log("Transcribed Text:", sttData.text);
+// 4. Ultra-Fast Speech Synthesis (TTS)
+const audioBlob = await client.tts("Swades Sovereign Cloud Connected", { voice: "amy" });
+new Audio(URL.createObjectURL(audioBlob)).play();
 ```
 
 ### 3. cURL (Direct HTTP API)
