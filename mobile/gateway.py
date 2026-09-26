@@ -2868,7 +2868,8 @@ class SwadeObjectStore:
                                     "is_permanent": True,
                                     "pool": "Internal Flash" if "sdcard" not in r_dir else "Shared /sdcard",
                                     "_disk_path": full_path,
-                                    "url": f"/s/{tenant_id}/{rel_path}"
+                                    "url": f"/s/{tenant_id}/{rel_path}",
+                                    "cdn_url": f"https://phone-whisper-server.pages.dev/s/{tenant_id}/{rel_path}"
                                 }
                                 self._meta_index[tenant_id][rel_path] = meta
                                 self._meta_index[tenant_id][fname] = meta
@@ -2937,7 +2938,8 @@ class SwadeObjectStore:
                                 "is_permanent": True,
                                 "pool": "Internal Flash" if "sdcard" not in r_dir else "Shared /sdcard",
                                 "_disk_path": full_path,
-                                "url": f"/s/{tenant_id}/{rel_path}"
+                                "url": f"/s/{tenant_id}/{rel_path}",
+                                "cdn_url": f"https://phone-whisper-server.pages.dev/s/{tenant_id}/{rel_path}"
                             }
                             self._meta_index[tenant_id][rel_path] = meta
                             self._meta_index[tenant_id][fname] = meta
@@ -3037,7 +3039,9 @@ class SwadeObjectStore:
             "expires_at_ts": None,
             "is_permanent": True,
             "pool": pool_name,
-            "_disk_path": pool_path
+            "_disk_path": pool_path,
+            "url": f"/s/{tenant_id}/{clean_key}",
+            "cdn_url": f"https://phone-whisper-server.pages.dev/s/{tenant_id}/{clean_key}"
         }
 
         # Instant RAM L1 Index Update (~40ns)
@@ -3231,7 +3235,8 @@ class SwadeObjectStore:
                                 "is_permanent": True,
                                 "pool": "Internal Flash" if "sdcard" not in r_dir else "Shared /sdcard",
                                 "_disk_path": check_path,
-                                "url": f"/s/{tenant_id or 'public'}/{os.path.basename(clean_cand)}"
+                                "url": f"/s/{tenant_id or 'public'}/{os.path.basename(clean_cand)}",
+                                "cdn_url": f"https://phone-whisper-server.pages.dev/s/{tenant_id or 'public'}/{os.path.basename(clean_cand)}"
                             }
                             self._register_universal(tenant_id or "public", os.path.basename(clean_cand), check_path, meta)
                             return self._read_file_data(check_path), meta
@@ -3318,6 +3323,9 @@ class SwadeObjectStore:
             c["ttl_expires_at"] = None
             c["ttl_auto_delete_active"] = False
             c["is_permanent"] = True
+            if "url" not in c or not c["url"]:
+                c["url"] = f"/s/{tenant_id}/{c.get('key')}"
+            c["cdn_url"] = f"https://phone-whisper-server.pages.dev{c['url']}"
             safe_list.append(c)
         return safe_list, len(unique_objs)
 
@@ -6817,10 +6825,11 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                     pass
             meta = _object_store.put_object(scope_id, raw_key, data, content_type=content_type, notify_email=notify_email)
             meta["url"] = f"/s/{scope_id}/{meta['key']}"
+            meta["cdn_url"] = f"https://phone-whisper-server.pages.dev{meta['url']}"
             t_ns = time.perf_counter_ns() - t0
             t_ms = round(t_ns / 1_000_000, 6)
             meta["reflection_time_ns"] = t_ns
-            resp = json.dumps({"success": True, "object": meta, "url": meta["url"], "project_id": scope_id}).encode("utf-8")
+            resp = json.dumps({"success": True, "object": meta, "url": meta["url"], "cdn_url": meta["cdn_url"], "project_id": scope_id}).encode("utf-8")
             self.send_response(201)
             self._send_cors_headers()
             self.send_header("Content-Type", "application/json")

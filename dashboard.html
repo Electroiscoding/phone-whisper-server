@@ -319,7 +319,7 @@
               <div class="flex items-center gap-2 text-xs font-mono text-zinc-400">
                 <span>Total Assets: <span id="media-count-badge" class="text-emerald-400 font-bold">-- objects</span></span>
                 <span class="text-zinc-600">|</span>
-                <span>CDN Format: <span class="text-cyan-400">/s/{project_id}/{filename}</span></span>
+                <span>CDN Format: <span class="text-cyan-400">https://phone-whisper-server.pages.dev/s/{project_id}/{filename}</span></span>
               </div>
             </div>
 
@@ -792,6 +792,7 @@ print(f"Losslessly restored {len(restored_bytes)} bytes")</pre>
 
   <script>
     let BASE_URL = window.location.origin;
+    const PERMANENT_CDN_BASE = 'https://phone-whisper-server.pages.dev';
     let currentUser = null;
     let activeKey = null;
     let userProjects = [];
@@ -1630,7 +1631,7 @@ print(f"Losslessly restored {len(restored_bytes)} bytes")</pre>
         const isPdf = ext === 'pdf';
         const isCode = ['json', 'js', 'ts', 'py', 'html', 'css', 'md', 'txt', 'sh', 'sql', 'yaml', 'yml', 'xml', 'c', 'cpp', 'rs', 'go', 'java', 'php', 'log', 'env', 'csv'].includes(ext);
         const isZip = ['zip', 'tar', 'gz', '7z', 'rar', 'zst', 'bz2', 'xz', 'tgz'].includes(ext);
-        const cdnUrl = f.cdn_url || (f.url ? `${BASE_URL}${f.url}` : `${BASE_URL}/s/${activeProjectId || 'default'}/${f.key}`);
+        const cdnUrl = f.cdn_url || (f.url ? `${PERMANENT_CDN_BASE}${f.url}` : `${PERMANENT_CDN_BASE}/s/${activeProjectId || 'default'}/${f.key}`);
 
         let thumbHtml = '';
         if (isImg) {
