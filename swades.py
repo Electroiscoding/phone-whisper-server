@@ -173,6 +173,9 @@ class CronClient:
 
 class Swades:
     def __init__(self, api_key="", project_id="default", endpoint="https://phone-whisper-server.pages.dev"):
+        # Root cause fix: Force permanent Cloudflare Pages domain, sanitize any trycloudflare or localhost
+        if not endpoint or any(x in str(endpoint) for x in ["trycloudflare.com", "127.0.0.1", "localhost", "192.168."]):
+            endpoint = "https://phone-whisper-server.pages.dev"
         self.endpoint = endpoint.rstrip("/")
         self.api_key = api_key
         self.project_id = project_id
@@ -247,7 +250,12 @@ class Swades:
         }
         res = requests.put(f"{self.endpoint}/v1/storage/objects/{key}", headers=headers, data=content)
         data = res.json()
-        return data.get("object", {}).get("url", f"{self.endpoint}/s/{self.project_id}/{key}")
+        raw_url = data.get("cdn_url") or data.get("object", {}).get("cdn_url") or data.get("object", {}).get("url") or f"/s/{self.project_id}/{key}"
+        if raw_url.startswith("http://") or raw_url.startswith("https://"):
+            import re
+            return re.sub(r"^https?://[a-zA-Z0-9.-]+\.trycloudflare\.com", "https://phone-whisper-server.pages.dev", raw_url)
+        clean = raw_url if raw_url.startswith("/") else f"/{raw_url}"
+        return f"https://phone-whisper-server.pages.dev{clean}"
 
     # 1-line Speech Synthesis (Piper VITS Multi-Voice TTS with Hyper-Speed Caching)
     def tts(self, text, voice="amy", speed=1.0, quality="auto", response_format="wav", use_cache=True):

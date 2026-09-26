@@ -4,6 +4,7 @@
   Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, Accept, Origin, Cache-Control, Range, *
   Access-Control-Expose-Headers: Content-Length, Content-Range, Content-Type, Accept-Ranges, *
   Access-Control-Max-Age: 86400
+  Cross-Origin-Resource-Policy: cross-origin
 
 /v1/storage/*
   Access-Control-Allow-Origin: *
@@ -13,6 +14,7 @@
   Access-Control-Max-Age: 86400
   Cache-Control: public, max-age=2592000, s-maxage=2592000, immutable
   X-Content-Type-Options: nosniff
+  Cross-Origin-Resource-Policy: cross-origin
 
 /s/*
   Access-Control-Allow-Origin: *
@@ -22,6 +24,7 @@
   Access-Control-Max-Age: 86400
   Cache-Control: public, max-age=2592000, s-maxage=2592000, immutable
   X-Content-Type-Options: nosniff
+  Cross-Origin-Resource-Policy: cross-origin
 
 /cors-proxy
   Access-Control-Allow-Origin: *

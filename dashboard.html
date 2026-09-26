@@ -791,8 +791,29 @@ print(f"Losslessly restored {len(restored_bytes)} bytes")</pre>
   </div>
 
   <script>
-    let BASE_URL = window.location.origin;
     const PERMANENT_CDN_BASE = 'https://phone-whisper-server.pages.dev';
+    let BASE_URL = 'https://phone-whisper-server.pages.dev';
+    if (typeof window !== 'undefined' && window.location && window.location.origin) {
+      const orig = window.location.origin;
+      if (!orig.includes('trycloudflare.com') && !orig.includes('localhost') && !orig.includes('127.0.0.1') && !orig.includes('192.168.')) {
+        BASE_URL = orig;
+      }
+    }
+
+    function getPermanentCdnUrl(f, projectId) {
+      if (!f) return '';
+      let raw = (typeof f === 'string') ? f : (f.cdn_url || f.url || '');
+      const key = (typeof f === 'object' && f) ? (f.key || '') : '';
+      if (!raw && key) {
+        return `${PERMANENT_CDN_BASE}/s/${projectId || activeProjectId || 'default'}/${key}`;
+      }
+      if (raw.startsWith('http://') || raw.startsWith('https://')) {
+        return raw.replace(/^https?:\/\/[a-zA-Z0-9.-]+\.trycloudflare\.com/i, PERMANENT_CDN_BASE);
+      }
+      const cleanPath = raw.startsWith('/') ? raw : `/${raw}`;
+      return `${PERMANENT_CDN_BASE}${cleanPath}`;
+    }
+
     let currentUser = null;
     let activeKey = null;
     let userProjects = [];
@@ -1631,13 +1652,13 @@ print(f"Losslessly restored {len(restored_bytes)} bytes")</pre>
         const isPdf = ext === 'pdf';
         const isCode = ['json', 'js', 'ts', 'py', 'html', 'css', 'md', 'txt', 'sh', 'sql', 'yaml', 'yml', 'xml', 'c', 'cpp', 'rs', 'go', 'java', 'php', 'log', 'env', 'csv'].includes(ext);
         const isZip = ['zip', 'tar', 'gz', '7z', 'rar', 'zst', 'bz2', 'xz', 'tgz'].includes(ext);
-        const cdnUrl = f.cdn_url || (f.url ? `${PERMANENT_CDN_BASE}${f.url}` : `${PERMANENT_CDN_BASE}/s/${activeProjectId || 'default'}/${f.key}`);
+        const cdnUrl = getPermanentCdnUrl(f, activeProjectId);
 
         let thumbHtml = '';
         if (isImg) {
           thumbHtml = `
             <div class="w-full h-28 bg-black/60 rounded-lg flex items-center justify-center overflow-hidden relative group/thumb border border-zinc-800">
-              <img src="${cdnUrl}" alt="${escapeHtml(fname)}" loading="lazy" class="w-full h-full object-cover transition-transform duration-300 group-hover/thumb:scale-110" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+              <img src="${cdnUrl}" alt="${escapeHtml(fname)}" loading="lazy" crossorigin="anonymous" class="w-full h-full object-cover transition-transform duration-300 group-hover/thumb:scale-110" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
               <div class="hidden w-full h-full items-center justify-center text-cyan-400 text-2xl"><i class="fa-solid fa-image"></i></div>
               <div class="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded bg-black/80 backdrop-blur text-[9px] font-mono text-cyan-400 border border-cyan-500/30 uppercase">${ext}</div>
             </div>
@@ -1645,7 +1666,7 @@ print(f"Losslessly restored {len(restored_bytes)} bytes")</pre>
         } else if (isVid) {
           thumbHtml = `
             <div class="w-full h-28 bg-zinc-950 rounded-lg flex items-center justify-center overflow-hidden relative group/thumb border border-purple-900/40">
-              <video src="${cdnUrl}#t=0.5" preload="metadata" muted playsinline class="w-full h-full object-cover opacity-70 group-hover/thumb:opacity-100 transition-opacity"></video>
+              <video src="${cdnUrl}#t=0.5" preload="metadata" muted playsinline crossorigin="anonymous" class="w-full h-full object-cover opacity-70 group-hover/thumb:opacity-100 transition-opacity"></video>
               <div class="absolute inset-0 flex items-center justify-center bg-black/30 group-hover/thumb:bg-transparent transition-colors">
                 <div class="w-8 h-8 rounded-full bg-purple-500/30 border border-purple-400/50 flex items-center justify-center text-purple-300 text-xs shadow-lg group-hover/thumb:scale-110 transition-transform"><i class="fa-solid fa-play ml-0.5"></i></div>
               </div>
@@ -1806,6 +1827,7 @@ print(f"Losslessly restored {len(restored_bytes)} bytes")</pre>
     }
 
     async function openPreview(key, cdnUrl, ext, size) {
+      cdnUrl = getPermanentCdnUrl({ cdn_url: cdnUrl, key }, activeProjectId);
       const fname = key.split('/').pop() || key;
       document.getElementById('preview-file-name').innerText = fname;
       document.getElementById('preview-file-size').innerText = size < 1024 ? `(${size} B)` : (size < 1048576 ? `(${Math.round(size/1024)} KB)` : `(${(size/1048576).toFixed(1)} MB)`);
@@ -1821,9 +1843,9 @@ print(f"Losslessly restored {len(restored_bytes)} bytes")</pre>
       const isCode = ['json', 'js', 'ts', 'py', 'html', 'css', 'md', 'txt', 'sh', 'sql', 'yaml', 'yml', 'xml', 'c', 'cpp', 'rs', 'go', 'java', 'php', 'log', 'env', 'csv'].includes(ext);
 
       if (isImg) {
-        container.innerHTML = `<img src="${cdnUrl}" class="max-h-96 w-full object-contain rounded-lg shadow-lg" />`;
+        container.innerHTML = `<img src="${cdnUrl}" crossorigin="anonymous" class="max-h-96 w-full object-contain rounded-lg shadow-lg" />`;
       } else if (isVid) {
-        container.innerHTML = `<video src="${cdnUrl}" controls autoplay playsinline class="max-h-96 w-full rounded-lg bg-black shadow-lg"></video>`;
+        container.innerHTML = `<video src="${cdnUrl}" controls autoplay playsinline crossorigin="anonymous" class="max-h-96 w-full rounded-lg bg-black shadow-lg"></video>`;
       } else if (isAud) {
         container.innerHTML = `
           <div class="w-full py-8 px-4 space-y-4 text-center">
@@ -1831,7 +1853,7 @@ print(f"Losslessly restored {len(restored_bytes)} bytes")</pre>
               <i class="fa-solid fa-music"></i>
             </div>
             <div class="text-white font-bold text-xs">${escapeHtml(fname)}</div>
-            <audio src="${cdnUrl}" controls autoplay class="w-full max-w-md mx-auto"></audio>
+            <audio src="${cdnUrl}" controls autoplay crossorigin="anonymous" class="w-full max-w-md mx-auto"></audio>
           </div>
         `;
       } else if (isPdf) {

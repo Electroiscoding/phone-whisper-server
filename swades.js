@@ -6,7 +6,17 @@
 
 class SwadesClient {
   constructor(options = {}) {
-    this.endpoint = (options.endpoint || (typeof window !== 'undefined' ? window.location.origin : 'https://phone-whisper-server.pages.dev')).replace(/\/+$/, '');
+    // Permanent root cause fix: Default endpoint is ALWAYS the sovereign permanent Cloudflare Pages domain.
+    // If endpoint is passed or resolved, normalize any trycloudflare or localhost URL
+    // so all client requests and CDN permalinks ALWAYS point to https://phone-whisper-server.pages.dev.
+    let endpoint = options.endpoint || 'https://phone-whisper-server.pages.dev';
+    if (typeof endpoint === 'string') {
+      endpoint = endpoint.trim().replace(/\/+$/, '');
+      if (endpoint.includes('trycloudflare.com') || endpoint.includes('127.0.0.1') || endpoint.includes('localhost')) {
+        endpoint = 'https://phone-whisper-server.pages.dev';
+      }
+    }
+    this.endpoint = endpoint || 'https://phone-whisper-server.pages.dev';
     this.apiKey = options.apiKey || '';
     this.projectId = options.projectId || options.project || 'default';
     this._ttsCache = new Map();
@@ -120,7 +130,18 @@ class SwadesClient {
 
   // --- STORAGE (FILES, MEDIA, IMAGES & DOCUMENTS) ---
   storage = {
-    // Upload any file or blob, returns public CDN URL
+    // Helper to normalize any storage object path or trycloudflare URL to permanent CDN permalink
+    _toPermanentUrl: (rawUrl, key) => {
+      const fallback = `/s/${this.projectId}/${key || ''}`;
+      const url = rawUrl || fallback;
+      if (url.startsWith('http://') || url.startsWith('https://')) {
+        return url.replace(/^https?:\/\/[a-zA-Z0-9.-]+\.trycloudflare\.com/i, 'https://phone-whisper-server.pages.dev');
+      }
+      const cleanPath = url.startsWith('/') ? url : `/${url}`;
+      return `https://phone-whisper-server.pages.dev${cleanPath}`;
+    },
+
+    // Upload any file or blob, returns permanent public CDN URL
     upload: async (file, customKey = null) => {
       const key = customKey || `uploads/${Date.now()}_${file.name || 'file.bin'}`;
       const res = await fetch(`${this.endpoint}/v1/storage/objects/${key}`, {
@@ -134,9 +155,11 @@ class SwadesClient {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Upload failed');
+      const permUrl = this.storage._toPermanentUrl(data.cdn_url || data.object?.cdn_url || data.object?.url, key);
       return {
         key: key,
-        url: data.object?.url || `${this.endpoint}/s/${this.projectId}/${key}`,
+        url: permUrl,
+        cdn_url: permUrl,
         size: file.size || data.object?.size
       };
     },
@@ -150,7 +173,15 @@ class SwadesClient {
         }
       });
       const data = await res.json();
-      return data.objects || [];
+      const objects = data.objects || [];
+      return objects.map(o => {
+        const permUrl = this.storage._toPermanentUrl(o.cdn_url || o.url, o.key);
+        return {
+          ...o,
+          url: permUrl,
+          cdn_url: permUrl
+        };
+      });
     },
 
     // Delete file

@@ -24,7 +24,8 @@ export const CORS_HEADERS = {
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH",
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With, Accept, Origin, Cache-Control, X-Accel-Buffering, x-api-key, Range, *",
   "Access-Control-Expose-Headers": "*",
-  "Access-Control-Max-Age": "86400"
+  "Access-Control-Max-Age": "86400",
+  "Cross-Origin-Resource-Policy": "cross-origin"
 };
 
 const B2_APP_KEY_ID = "0056b2f88b847c60000000003";

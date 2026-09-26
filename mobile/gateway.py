@@ -2868,7 +2868,7 @@ class SwadeObjectStore:
                                     "is_permanent": True,
                                     "pool": "Internal Flash" if "sdcard" not in r_dir else "Shared /sdcard",
                                     "_disk_path": full_path,
-                                    "url": f"/s/{tenant_id}/{rel_path}",
+                                    "url": f"https://phone-whisper-server.pages.dev/s/{tenant_id}/{rel_path}",
                                     "cdn_url": f"https://phone-whisper-server.pages.dev/s/{tenant_id}/{rel_path}"
                                 }
                                 self._meta_index[tenant_id][rel_path] = meta
@@ -2938,7 +2938,7 @@ class SwadeObjectStore:
                                 "is_permanent": True,
                                 "pool": "Internal Flash" if "sdcard" not in r_dir else "Shared /sdcard",
                                 "_disk_path": full_path,
-                                "url": f"/s/{tenant_id}/{rel_path}",
+                                "url": f"https://phone-whisper-server.pages.dev/s/{tenant_id}/{rel_path}",
                                 "cdn_url": f"https://phone-whisper-server.pages.dev/s/{tenant_id}/{rel_path}"
                             }
                             self._meta_index[tenant_id][rel_path] = meta
@@ -3040,7 +3040,7 @@ class SwadeObjectStore:
             "is_permanent": True,
             "pool": pool_name,
             "_disk_path": pool_path,
-            "url": f"/s/{tenant_id}/{clean_key}",
+            "url": f"https://phone-whisper-server.pages.dev/s/{tenant_id}/{clean_key}",
             "cdn_url": f"https://phone-whisper-server.pages.dev/s/{tenant_id}/{clean_key}"
         }
 
@@ -3235,7 +3235,7 @@ class SwadeObjectStore:
                                 "is_permanent": True,
                                 "pool": "Internal Flash" if "sdcard" not in r_dir else "Shared /sdcard",
                                 "_disk_path": check_path,
-                                "url": f"/s/{tenant_id or 'public'}/{os.path.basename(clean_cand)}",
+                                "url": f"https://phone-whisper-server.pages.dev/s/{tenant_id or 'public'}/{os.path.basename(clean_cand)}",
                                 "cdn_url": f"https://phone-whisper-server.pages.dev/s/{tenant_id or 'public'}/{os.path.basename(clean_cand)}"
                             }
                             self._register_universal(tenant_id or "public", os.path.basename(clean_cand), check_path, meta)
@@ -3323,9 +3323,9 @@ class SwadeObjectStore:
             c["ttl_expires_at"] = None
             c["ttl_auto_delete_active"] = False
             c["is_permanent"] = True
-            if "url" not in c or not c["url"]:
-                c["url"] = f"/s/{tenant_id}/{c.get('key')}"
-            c["cdn_url"] = f"https://phone-whisper-server.pages.dev{c['url']}"
+            clean_k = c.get('key') or ''
+            c["url"] = f"https://phone-whisper-server.pages.dev/s/{tenant_id}/{clean_k}"
+            c["cdn_url"] = f"https://phone-whisper-server.pages.dev/s/{tenant_id}/{clean_k}"
             safe_list.append(c)
         return safe_list, len(unique_objs)
 
@@ -5346,6 +5346,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Accept, Origin, Cache-Control, X-Accel-Buffering, *")
         self.send_header("Access-Control-Expose-Headers", "*")
         self.send_header("Access-Control-Max-Age", "86400")
+        self.send_header("Cross-Origin-Resource-Policy", "cross-origin")
 
     def _send_json_response(self, data_dict, status=200, extra_headers=None):
         """Sends JSON response with transparent Level 1 (-1 -T4) real-time compression if requested via Accept-Encoding: zstd"""
@@ -5433,7 +5434,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.send_response(200)
             self._send_cors_headers()
             self.send_header("Content-Type", "application/json")
-            msg = json.dumps({"status": "ready", "service": "Swades Sovereign CDN", "format": "/s/<tenant_or_project_id>/<file_key>"}).encode("utf-8")
+            msg = json.dumps({"status": "ready", "service": "Swades Sovereign CDN", "format": "https://phone-whisper-server.pages.dev/s/<tenant_or_project_id>/<file_key>"}).encode("utf-8")
             self.send_header("Content-Length", str(len(msg)))
             self.end_headers()
             self.wfile.write(msg)
@@ -6823,9 +6824,9 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                     data = _zstd_engine.decompress(data)
                 except Exception as de:
                     pass
-            meta = _object_store.put_object(scope_id, raw_key, data, content_type=content_type, notify_email=notify_email)
-            meta["url"] = f"/s/{scope_id}/{meta['key']}"
-            meta["cdn_url"] = f"https://phone-whisper-server.pages.dev{meta['url']}"
+            clean_k = meta.get('key') or raw_key
+            meta["url"] = f"https://phone-whisper-server.pages.dev/s/{scope_id}/{clean_k}"
+            meta["cdn_url"] = f"https://phone-whisper-server.pages.dev/s/{scope_id}/{clean_k}"
             t_ns = time.perf_counter_ns() - t0
             t_ms = round(t_ns / 1_000_000, 6)
             meta["reflection_time_ns"] = t_ns
@@ -7102,7 +7103,9 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
 
         objects, total = _object_store.list_objects(scope_id, prefix=prefix, limit=limit)
         for o in objects:
-            o["url"] = f"/s/{scope_id}/{o['key']}"
+            clean_k = o.get("key") or ""
+            o["url"] = f"https://phone-whisper-server.pages.dev/s/{scope_id}/{clean_k}"
+            o["cdn_url"] = f"https://phone-whisper-server.pages.dev/s/{scope_id}/{clean_k}"
 
         t_ns = time.perf_counter_ns() - t0
         t_ms = round(t_ns / 1_000_000, 6)
@@ -8906,7 +8909,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 "cloud_storage": {
                     "endpoint": "/v1/storage/objects",
                     "auth": "API Key Required (Bearer / x-api-key)",
-                    "cdn_stream": "/s/<tenant_id>/<file>",
+                    "cdn_stream": "https://phone-whisper-server.pages.dev/s/<tenant_id>/<file>",
                     "free_gb": round(shutil.disk_usage(os.environ.get("HOME", "/data/data/com.termux/files/home")).free / (1024**3), 2),
                     "status": "ACTIVE"
                 },
