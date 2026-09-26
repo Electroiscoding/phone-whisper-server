@@ -61,7 +61,7 @@ while true; do
     GW_STATUS=$(curl -s -m 2 -o /dev/null -w "%{http_code}" "http://127.0.0.1:8080/health" 2>/dev/null || echo "000")
     if [ "$GW_STATUS" != "200" ]; then
       GW_FAIL_COUNT=$((GW_FAIL_COUNT + 1))
-      if [ "$GW_FAIL_COUNT" -ge 3 ]; then
+      if [ "$GW_FAIL_COUNT" -ge 12 ]; then
         GW_ALIVE=0
         GW_FAIL_COUNT=0
       fi
@@ -71,17 +71,14 @@ while true; do
   fi
 
   if [ "$GW_ALIVE" -eq 0 ]; then
-    echo "$(date): [CRITICAL] gateway.py dead/unresponsive! Triggering Qwen 0.5B SLM Self-Healing..." >> $HOME/nuclear_supervisor.log
-    if [ -f "$HOME/slm_self_heal.py" ]; then
-      python3 $HOME/slm_self_heal.py >> $HOME/slm_self_heal.log 2>&1 || true
-    fi
-    killall -9 python3 2>/dev/null || true
+    echo "$(date): [CRITICAL] gateway.py dead/unresponsive! Re-spawning..." >> $HOME/nuclear_supervisor.log
+    pkill -9 -f "gateway.py" 2>/dev/null || true
     sleep 1
     if [ -f "/sdcard/Download/gateway.py" ]; then
       cp -f /sdcard/Download/gateway.py $HOME/gateway.py 2>/dev/null || true
     fi
     python3 $HOME/gateway.py >> $HOME/gateway.log 2>&1 &
-    sleep 2
+    sleep 3
   fi
 
   # D. Verify Cloudflared Process (Process existence check)
