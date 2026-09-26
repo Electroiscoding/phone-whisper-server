@@ -3082,15 +3082,27 @@ print("Permanent CDN URL:", cdn_url)
 rows = client.query("SELECT * FROM users WHERE active = true LIMIT 10")
 print("Database Rows:", rows)
 
-# 3. Speech Synthesis (TTS) with 4-Tier Edge Caching
+# 3. Speech-to-Text Transcription (OpenAI Whisper Base.en ASR)
+transcript = client.transcribe("speech.wav")
+print("Transcribed Text:", transcript["text"])
+
+# 4. OpenAI-Compatible Chat Completion (Qwen 2.5 / OpenRouter)
+reply = client.chat([{"role": "user", "content": "Explain write-ahead logging in 2 sentences."}])
+print("AI Reply:", reply)
+
+# 5. Speech Synthesis (TTS) with 4-Tier Edge Caching
 audio_bytes = client.tts("Phone AI Datacenter connection verified.", voice="amy", speed=1.0)
 with open("speech.wav", "wb") as f:
     f.write(audio_bytes)
 print("Saved 22kHz speech.wav")
 
-# 4. Neural Zstd Image Compression
+# 6. Neural Zstd Image & File Compression (&lt;1.5ms)
 compressed = client.images.compress("profile.png")
-recovered = client.images.decompress(compressed)</code></pre>
+recovered = client.images.decompress(compressed)
+
+# 7. 24/7 Sovereign Background Task Automation
+job = client.schedule("Health Ping", "every 60s", url="https://myapp.com/api/health")
+print("Scheduled Job:", job["job_id"])</code></pre>
           </div>
 
           <!-- JavaScript / TypeScript SDK -->
@@ -3120,17 +3132,32 @@ const uploadResult = await client.storage.upload(fileInput);
 console.log("Permanent CDN URL:", uploadResult.cdn_url);
 // Output: https://phone-whisper-server.pages.dev/s/default/uploads/...
 
-// 2. List Project Storage Files
-const files = await client.storage.list();
-console.log("Files:", files);
-
-// 3. Database SQL Query
+// 2. Database SQL Query
 const users = await client.db.query("SELECT * FROM items ORDER BY created_at DESC LIMIT 20");
 
-// 4. Ultra-Fast Speech Synthesis (TTS)
-const audioBlob = await client.tts("Swades Sovereign Cloud Connected", { voice: "amy" });
-const audioUrl = URL.createObjectURL(audioBlob);
-new Audio(audioUrl).play();</code></pre>
+// 3. Speech-to-Text Transcription (Whisper Base.en ASR)
+const { text } = await client.transcribe(audioBlob);
+console.log("Transcribed:", text);
+
+// 4. OpenAI-Compatible Chat Completion
+const reply = await client.chat("Explain write-ahead logging in 2 sentences.");
+console.log("AI Reply:", reply);
+
+// 5. Ultra-Fast Speech Synthesis (TTS) with Caching
+const { play } = await client.speak("Swades Sovereign Cloud Connected", { voice: "amy" });
+play();
+
+// 6. Native Zstandard Hardware Compression (&lt;1.5ms)
+const res = await client.compress("High speed sensor telemetry payload");
+const original = await client.decompress(res.compressed_base64);
+
+// 7. 24/7 Background Task Scheduling
+const job = await client.cron.create({
+  name: "Health Ping",
+  schedule_type: "interval",
+  schedule_value: "every 60s",
+  url: "https://myapp.com/api/health"
+});</code></pre>
           </div>
 
           <!-- Go SDK -->

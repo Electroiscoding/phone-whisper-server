@@ -100,7 +100,7 @@ Zstandard is the exclusive, universal compression standard across the entire sov
 ```python
 from swades import Swades
 
-# Initialize client (defaults to permanent sovereign CDN: https://phone-whisper-server.pages.dev)
+# Initialize client (defaults to permanent sovereign origin: https://phone-whisper-server.pages.dev)
 client = Swades(api_key="YOUR_API_KEY", project_id="default")
 
 # 1. Permanent S3 Object Storage Upload (Immutable CDN permalink)
@@ -112,14 +112,26 @@ print("Permanent CDN URL:", cdn_url)
 rows = client.query("SELECT * FROM users WHERE active = true LIMIT 10")
 print("Rows:", rows)
 
-# 3. Speech Synthesis (Piper VITS Neural TTS)
+# 3. Speech-to-Text Transcription (Whisper Base.en ASR)
+transcript = client.transcribe("speech.wav")
+print("Transcribed Text:", transcript["text"])
+
+# 4. OpenAI-Compatible Chat Completion (Qwen 2.5 / OpenRouter)
+reply = client.chat([{"role": "user", "content": "Explain relativity in 10 words"}])
+print("AI Reply:", reply)
+
+# 5. Speech Synthesis (Piper VITS Neural TTS)
 audio_bytes = client.tts("Phone AI Datacenter connection verified.", voice="amy")
 with open("speech.wav", "wb") as f:
     f.write(audio_bytes)
 
-# 4. Native Zstandard Hardware Compression (Level 1, <1.5ms)
+# 6. Native Zstandard Hardware Compression (Level 1, <1.5ms)
 comp_image = client.images.compress("photo.png")
 restored = client.images.decompress(comp_image)
+
+# 7. 24/7 Background Task Scheduling
+job = client.schedule("Health Ping", "every 60s", url="https://myapp.com/api/health")
+print("Scheduled Task:", job["job_id"])
 ```
 
 ### 2. JavaScript / TypeScript / Node.js (`swades.js` SDK)
@@ -139,37 +151,53 @@ const res = await client.storage.upload(fileInput);
 console.log("Permanent CDN URL:", res.cdn_url);
 // Output: https://phone-whisper-server.pages.dev/s/default/uploads/...
 
-// 2. List Project Files
-const files = await client.storage.list();
-console.log("Project Files:", files);
-
-// 3. Database SQL Query
+// 2. Database SQL Query
 const users = await client.db.query("SELECT * FROM items ORDER BY created_at DESC LIMIT 20");
 
-// 4. Ultra-Fast Speech Synthesis (TTS)
-const audioBlob = await client.tts("Swades Sovereign Cloud Connected", { voice: "amy" });
-new Audio(URL.createObjectURL(audioBlob)).play();
+// 3. Speech-to-Text Transcription (Whisper Base.en)
+const { text } = await client.transcribe(audioBlob);
+console.log("Transcribed:", text);
+
+// 4. OpenAI-Compatible Chat Completion
+const reply = await client.chat("Explain relativity in 10 words");
+console.log("AI Reply:", reply);
+
+// 5. Ultra-Fast Speech Synthesis (TTS)
+const { play } = await client.speak("Swades Sovereign Cloud Connected", { voice: "amy" });
+play();
+
+// 6. Native Zstandard Compression (<1.5ms)
+const compressed = await client.compress("telemetry payload");
+const recovered = await client.decompress(compressed.compressed_base64);
+
+// 7. 24/7 Background Task Scheduling
+const job = await client.cron.create({
+  name: "Health Ping",
+  schedule_type: "interval",
+  schedule_value: "every 60s",
+  url: "https://myapp.com/api/health"
+});
 ```
 
 ### 3. cURL (Direct HTTP API)
 
 ```bash
 # Compress string via Level 1 hardware engine (<1.5ms)
-curl -s -X POST "http://192.168.29.2:8080/v1/compress" \
+curl -s -X POST "https://phone-whisper-server.pages.dev/v1/compress" \
   -H "Content-Type: application/json" \
   -H "Accept: application/json" \
   -d '{"data": "Hello sovereign phone AI datacenter"}'
 
 # Decompress frame back to plain text
-curl -s -X POST "http://192.168.29.2:8080/v1/decompress" \
+curl -s -X POST "https://phone-whisper-server.pages.dev/v1/decompress" \
   -H "Content-Type: application/json" \
   -d '{"compressed_base64": "KLUv/SBFKQIASGVsbG8gc292ZXJlaWduIHBob25lIEFJIGRhdGFjZW50ZXI=", "as_text": true}'
 
 # Inspect Zstandard engine telemetry and policy
-curl -s "http://192.168.29.2:8080/v1/zstd/info"
+curl -s "https://phone-whisper-server.pages.dev/v1/zstd/info"
 
 # Compress image via native Zstandard Level 1 (<1.5ms)
-curl -s -X POST "http://192.168.29.2:8080/v1/images/compress" \
+curl -s -X POST "https://phone-whisper-server.pages.dev/v1/images/compress" \
   -H "Content-Type: application/octet-stream" \
   --data-binary "@photo.png" -o "photo.png.zst"
 ```
@@ -182,7 +210,7 @@ import 'package:http/http.dart' as http;
 
 Future<String> askPhoneSLM(String prompt) async {
   final res = await http.post(
-    Uri.parse("http://192.168.29.2:8080/v1/chat/completions"),
+    Uri.parse("https://phone-whisper-server.pages.dev/v1/chat/completions"),
     headers: {"Content-Type": "application/json"},
     body: jsonEncode({
       "messages": [{"role": "user", "content": prompt}],
@@ -203,7 +231,7 @@ use serde_json::json;
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let client = Client::new();
     let res: serde_json::Value = client
-        .get("http://192.168.29.2:8080/telemetry")
+        .get("https://phone-whisper-server.pages.dev/telemetry")
         .send().await?
         .json().await?;
     println!("Phone Battery: {}%", res["battery"]["level"]);
@@ -223,7 +251,7 @@ import (
 )
 
 func main() {
-    resp, err := http.Get("http://192.168.29.2:8080/telemetry")
+    resp, err := http.Get("https://phone-whisper-server.pages.dev/telemetry")
     if err != nil {
         panic(err)
     }
