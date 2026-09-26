@@ -1,7 +1,7 @@
 {
-  "endpoint": "https://scenarios-excellent-vip-november.trycloudflare.com",
-  "inference": "https://scenarios-excellent-vip-november.trycloudflare.com/inference",
-  "telemetry": "https://scenarios-excellent-vip-november.trycloudflare.com/telemetry",
+  "endpoint": "https://referred-image-implies-basically.trycloudflare.com",
+  "inference": "https://referred-image-implies-basically.trycloudflare.com/inference",
+  "telemetry": "https://referred-image-implies-basically.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
