@@ -1490,8 +1490,62 @@
           Begin issuing requests immediately. All multi-modal AI endpoints are public and require zero API key headers or authentication setup.
         </p>
 
-        <!-- Quickstart Code Blocks -->
+        <!-- SDK Quickstart Banner -->
+        <div class="bg-cardbg border border-cyan-500/30 rounded-xl p-5 mb-6 space-y-4 font-mono text-xs">
+          <div class="flex items-center justify-between border-b border-cardborder pb-2">
+            <span class="text-white font-bold flex items-center gap-2">
+              <i class="fa-solid fa-code text-neoncyan"></i> Official Swades Client SDKs
+            </span>
+            <span class="text-[10px] px-2 py-0.5 rounded bg-cyan-950 border border-cyan-800 text-neoncyan font-bold">
+              INSTANT 1-LINE DROP-IN
+            </span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- JavaScript SDK -->
+            <div class="bg-zinc-950 p-4 rounded-lg border border-cardborder space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="text-emerald-400 font-bold flex items-center gap-1.5">
+                  <i class="fa-brands fa-js"></i> JavaScript / Web (swades.js)
+                </span>
+                <button onclick="copyRawCode('qs-sdk-js')" class="text-[10px] text-neonemerald hover:underline">Copy</button>
+              </div>
+              <div class="text-[10px] text-zinc-500">HTML Script / Node.js Import:</div>
+              <pre class="text-emerald-300 overflow-x-auto"><code id="qs-sdk-js">&lt;script src="https://phone-whisper-server.pages.dev/swades.js"&gt;&lt;/script&gt;
+&lt;script&gt;
+  const client = new SwadesClient();
+  // 1-line file upload to permanent S3 CDN
+  const { cdn_url } = await client.storage.upload(file);
+  // 1-line speech synthesis
+  const audioBlob = await client.tts("Hello from Phone AI");
+&lt;/script&gt;</code></pre>
+            </div>
+
+            <!-- Python SDK -->
+            <div class="bg-zinc-950 p-4 rounded-lg border border-cardborder space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="text-cyan-400 font-bold flex items-center gap-1.5">
+                  <i class="fa-brands fa-python"></i> Python (swades.py)
+                </span>
+                <button onclick="copyRawCode('qs-sdk-py')" class="text-[10px] text-neoncyan hover:underline">Copy</button>
+              </div>
+              <div class="text-[10px] text-zinc-500">Native Python Module:</div>
+              <pre class="text-cyan-300 overflow-x-auto"><code id="qs-sdk-py">from swades import Swades
+
+client = Swades()
+# 1-line file upload to permanent S3 CDN
+cdn_url = client.upload("document.pdf")
+# 1-line SQL query
+rows = client.query("SELECT * FROM users LIMIT 10")
+# 1-line speech synthesis
+audio_bytes = client.tts("Phone AI verified", voice="amy")</code></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quickstart Code Blocks (cURL / Raw HTTP) -->
         <div class="space-y-4">
+          <div class="text-xs font-mono text-zinc-400 font-bold uppercase tracking-wider mb-2">Or Use Raw cURL / HTTP Requests:</div>
           <div>
             <div class="flex items-center justify-between text-xs font-mono text-zinc-400 mb-1">
               <span>1. Audio Transcription (Whisper Base.en ASR):</span>
