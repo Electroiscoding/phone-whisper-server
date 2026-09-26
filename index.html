@@ -8750,6 +8750,16 @@ python3 mobile/nuclear_watchdog.py</code></pre>
 
     let currentStorageApiKey = localStorage.getItem("swades_storage_api_key") || "";
     let currentTenantId = localStorage.getItem("swades_storage_tenant_id") || "";
+    let currentStorageProject = currentTenantId;
+    try {
+      Object.defineProperty(window, "currentStorageProject", {
+        get() { return currentTenantId || localStorage.getItem("swades_storage_tenant_id") || ""; },
+        set(val) { currentTenantId = val; currentStorageProject = val; },
+        configurable: true
+      });
+    } catch (e) {
+      window.currentStorageProject = currentTenantId;
+    }
     let selectedStorageFile = null;
     let activeSnippetTab = 'curl';
 
@@ -9255,8 +9265,9 @@ python3 mobile/nuclear_watchdog.py</code></pre>
     window.loadStorageUsage = loadStorageUsage;
 
     function getPermanentStorageUrl(rawUrl, key, tenant) {
+      const activeTenant = tenant || currentTenantId || (typeof currentStorageProject !== 'undefined' ? currentStorageProject : '') || 'anon_public';
       if (!rawUrl && key) {
-        return `https://phone-whisper-server.pages.dev/s/${tenant || currentStorageProject || 'anon_public'}/${key}`;
+        return `https://phone-whisper-server.pages.dev/s/${activeTenant}/${key}`;
       }
       let url = rawUrl || '';
       url = url.replace(/^https?:\/\/[^\/]+/, '');
@@ -9312,7 +9323,7 @@ python3 mobile/nuclear_watchdog.py</code></pre>
             const sizeStr = obj.size < 1024 ? `${obj.size} B` :
                             obj.size < 1024*1024 ? `${(obj.size/1024).toFixed(1)} KB` :
                             `${(obj.size/(1024*1024)).toFixed(2)} MB`;
-            const cdnUrl = getPermanentStorageUrl(obj.cdn_url || obj.url, obj.key, currentStorageProject);
+            const cdnUrl = getPermanentStorageUrl(obj.cdn_url || obj.url, obj.key, currentTenantId);
             const ext = (obj.key.split('.').pop() || '').toLowerCase();
             const isImg = (obj.content_type || "").startsWith("image/") || ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'ico', 'avif'].includes(ext);
             const isVid = ['mp4', 'webm', 'mov'].includes(ext);
@@ -9465,6 +9476,23 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       }
     }
 
+    document.addEventListener("paste", (e) => {
+      const activeEl = document.activeElement;
+      if (activeEl && (activeEl.tagName === "INPUT" || activeEl.tagName === "TEXTAREA")) {
+        if (activeEl.id !== "storageCustomKeyInput") return;
+      }
+      if (e.clipboardData && e.clipboardData.files && e.clipboardData.files.length > 0) {
+        const dropZone = document.getElementById("storageDropZone");
+        if (dropZone) {
+          const files = Array.from(e.clipboardData.files);
+          setSelectedStorageFiles(files);
+          if (typeof showTactileToast === 'function') {
+            showTactileToast(`Pasted ${files.length} file(s) from clipboard!`, "fa-paste text-cyan-400");
+          }
+        }
+      }
+    });
+
     function copyStorageCdnUrl(url, btn) {
       if (!url) return;
       if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -9563,8 +9591,9 @@ python3 mobile/nuclear_watchdog.py</code></pre>
 
           if (res.ok) {
             const data = await res.json().catch(() => ({}));
-            const cdnPath = data.cdn_url || (data.object && (data.object.cdn_url || data.object.url)) || data.url || `/s/${currentStorageProject || 'usr_sandbox'}/${encodeURIComponent(objectKey)}`;
-            const fullCdnUrl = getPermanentStorageUrl(cdnPath, objectKey, currentStorageProject);
+            const activeTenant = currentTenantId || (typeof currentStorageProject !== 'undefined' ? currentStorageProject : '') || 'usr_sandbox';
+            const cdnPath = data.cdn_url || (data.object && (data.object.cdn_url || data.object.url)) || data.url || `/s/${activeTenant}/${encodeURIComponent(objectKey)}`;
+            const fullCdnUrl = getPermanentStorageUrl(cdnPath, objectKey, activeTenant);
             uploadedItems.push({
               cdnUrl: fullCdnUrl,
               key: objectKey,
@@ -9572,6 +9601,9 @@ python3 mobile/nuclear_watchdog.py</code></pre>
               size: file.size
             });
             successCount++;
+          } else {
+            const errData = await res.json().catch(() => ({}));
+            console.error(`Upload error for ${file.name}:`, errData);
           }
         } catch (err) {
           console.error(`Upload error for ${file.name}:`, err);
