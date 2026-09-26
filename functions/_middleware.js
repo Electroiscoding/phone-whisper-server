@@ -51,7 +51,14 @@ export async function onRequest(context) {
   const isApi = apiPrefixes.some(prefix => url.pathname.startsWith(prefix)) || apiExactPaths.includes(url.pathname);
 
   if (!isApi) {
-    return next();
+    const res = await next();
+    const newHeaders = new Headers(res.headers);
+    Object.entries(CORS_HEADERS).forEach(([k, v]) => newHeaders.set(k, v));
+    return new Response(res.body, {
+      status: res.status,
+      statusText: res.statusText,
+      headers: newHeaders
+    });
   }
 
   return handleRequest(context);

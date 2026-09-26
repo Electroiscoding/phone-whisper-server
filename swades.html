@@ -297,7 +297,10 @@
     </div>
 
     <script>
-        const BASE_ENDPOINT = window.location.origin;
+        const PERMANENT_ORIGIN = "https://phone-whisper-server.pages.dev";
+        const BASE_ENDPOINT = (typeof window !== "undefined" && window.location.origin && window.location.origin.includes("pages.dev"))
+            ? window.location.origin
+            : PERMANENT_ORIGIN;
         let authData = null;
         let userRepos = [];
         let selectedRepo = localStorage.getItem('swades_selected_repo') || '';
@@ -308,7 +311,6 @@
 
         async function resolveDirectTunnel() {
             const now = Date.now();
-            // 1. Raw GitHub fetch
             try {
                 const res = await fetch(`https://raw.githubusercontent.com/Electroiscoding/phone-whisper-server/main/endpoint.json?_t=${now}`, { cache: "no-store" });
                 if (res.ok) {
@@ -319,31 +321,16 @@
                     }
                 }
             } catch(e) {}
-
-            // 2. Uncached GitHub REST API fallback
-            try {
-                const apiRes = await fetch(`https://api.github.com/repos/Electroiscoding/phone-whisper-server/contents/endpoint.json?ref=main&_t=${now}`, {
-                    headers: { "Accept": "application/vnd.github.v3+json" },
-                    cache: "no-store"
-                });
-                if (apiRes.ok) {
-                    const apiData = await apiRes.json();
-                    if (apiData && apiData.content) {
-                        const decoded = JSON.parse(atob(apiData.content.replace(/\s/g, '')));
-                        if (decoded.endpoint && decoded.endpoint.startsWith('https://')) {
-                            directTunnelUrl = decoded.endpoint.replace(/\/+$/, '');
-                            return directTunnelUrl;
-                        }
-                    }
-                }
-            } catch(e) {}
-
             return directTunnelUrl;
         }
 
         async function nuclearFetch(url, options = {}, maxRetries = 5) {
             let attempt = 0;
             let currentUrl = url;
+            // Always sanitize any ephemeral quick-tunnel or localhost to permanent origin
+            if (currentUrl.includes('trycloudflare.com') || currentUrl.includes('127.0.0.1') || currentUrl.includes('localhost')) {
+                currentUrl = currentUrl.replace(/^https?:\/\/[^\/]+/, BASE_ENDPOINT);
+            }
 
             while (attempt <= maxRetries) {
                 try {
@@ -357,10 +344,6 @@
                         if (attempt <= maxRetries) {
                             const delay = Math.min(3000, 400 * Math.pow(1.4, attempt));
                             await new Promise(r => setTimeout(r, delay));
-                            const direct = await resolveDirectTunnel();
-                            if (direct && window.location.origin) {
-                                currentUrl = url.replace(window.location.origin, direct);
-                            }
                             continue;
                         }
                     }
@@ -372,10 +355,6 @@
                     if (attempt <= maxRetries) {
                         const delay = Math.min(3500, 500 * Math.pow(1.4, attempt));
                         await new Promise(r => setTimeout(r, delay));
-                        const direct = await resolveDirectTunnel();
-                        if (direct && window.location.origin) {
-                            currentUrl = url.replace(window.location.origin, direct);
-                        }
                         continue;
                     }
                     console.warn("[Swades Network]:", e.message || e);
