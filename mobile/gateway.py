@@ -3194,7 +3194,6 @@ class SwadeObjectStore:
                             if fp and os.path.exists(fp):
                                 return self._read_file_data(fp), meta
 
-        # 5. Direct Physical Disk Check (Fast O(1) direct lookup, no recursive crawling)
         search_roots = [
             self.root_dir,
             os.path.join(self.home, ".swades_storage", "tenants"),
@@ -3202,7 +3201,12 @@ class SwadeObjectStore:
             "/data/data/com.termux/files/home/.swades_storage/tenants",
             "/data/data/com.termux/files/home/.swades_storage/projects",
             "/sdcard/SwadesCloud/tenants",
-            "/sdcard/SwadesCloud"
+            "/sdcard/SwadesCloud",
+            "/sdcard/Download/NetuarkMedia",
+            "/sdcard/Download/NetuarkMedia/chat",
+            "/sdcard/Download/NetuarkMedia/feed",
+            "/sdcard/Download/NetuarkMedia/videos",
+            "/sdcard/Download/NetuarkMedia/docs"
         ]
         for cand in candidates:
             clean_cand = cand.strip("/")
@@ -5322,6 +5326,63 @@ def _telemetry_background_loop():
 _tel_thread = threading.Thread(target=_telemetry_background_loop, daemon=True)
 _tel_thread.start()
 
+def _peer_mesh_sync_loop():
+    """Background Mesh Synchronizer: Replicates missing media from NTA Media Server"""
+    time.sleep(10)
+    while True:
+        try:
+            peer_url = "https://ntamediaserver.pages.dev"
+            list_req = urllib.request.Request(f"{peer_url}/api/sync/list", headers={"User-Agent": "Redmi-AI-Node/MeshSync"})
+            with urllib.request.urlopen(list_req, timeout=8) as res:
+                if res.status == 200:
+                    catalog = json.loads(res.read().decode())
+                    missing_tasks = []
+                    for folder, files in catalog.items():
+                        if not isinstance(files, dict):
+                            continue
+                        local_dir = f"/sdcard/Download/NetuarkMedia/{folder}"
+                        os.makedirs(local_dir, exist_ok=True)
+                        for fname, sz in files.items():
+                            local_file = os.path.join(local_dir, fname)
+                            if not os.path.exists(local_file) or os.path.getsize(local_file) != sz:
+                                _, meta = _object_store.find_object("public", fname)
+                                if not meta:
+                                    missing_tasks.append((peer_url, folder, fname, sz, local_file))
+                                    
+                    if missing_tasks:
+                        print(f"[*] Peer Mesh Sync: Found {len(missing_tasks)} missing files. Syncing batch...", flush=True)
+                        for p_url, fld, fn, fsz, lpath in missing_tasks[:8]:
+                            try:
+                                dl_candidates = [
+                                    f"{p_url}/v1/storage/objects/{fld}/{fn}",
+                                    f"{p_url}/media/{fld}/{fn}",
+                                    f"{p_url}/v1/storage/objects/media/{fn}"
+                                ]
+                                for dl_url in dl_candidates:
+                                    try:
+                                        dl_req = urllib.request.Request(dl_url, headers={"User-Agent": "Redmi-AI-Node/MeshSync"})
+                                        with urllib.request.urlopen(dl_req, timeout=25) as dl_res:
+                                            if dl_res.status == 200:
+                                                payload = dl_res.read()
+                                                tmp_p = lpath + ".tmp"
+                                                with open(tmp_p, "wb") as f_out:
+                                                    f_out.write(payload)
+                                                os.replace(tmp_p, lpath)
+                                                ct = dl_res.headers.get("Content-Type") or mimetypes.guess_type(fn)[0] or "application/octet-stream"
+                                                _object_store.put_object("public", f"{fld}/{fn}", payload, content_type=ct)
+                                                print(f"[+] Mesh Sync: Synced {fn} ({len(payload)} bytes)", flush=True)
+                                                break
+                                    except Exception:
+                                        continue
+                            except Exception:
+                                pass
+        except Exception:
+            pass
+        time.sleep(60)
+
+_mesh_sync_thread = threading.Thread(target=_peer_mesh_sync_loop, daemon=True)
+_mesh_sync_thread.start()
+
 class MultiModalGatewayHandler(BaseHTTPRequestHandler):
     def handle_one_request(self):
         self._req_start_time = time.perf_counter()
@@ -5466,6 +5527,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         elif path.startswith("/v1/cron/jobs/"):
             job_id = path[len("/v1/cron/jobs/"):].rstrip("/")
             self.handle_cron_get_job(job_id)
+        elif path in ["/api/sync/list", "/v1/sync/list", "/sync/list"]:
+            self.handle_sync_list()
         elif path == "/v1/storage/objects":
             self.handle_storage_list_objects()
         elif parsed.path.startswith("/v1/storage/objects/"):
@@ -6851,6 +6914,118 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(err)
 
+    def handle_sync_list(self):
+        """Returns JSON catalog of all local files across NetuarkMedia and ObjectStore for cluster peer synchronizers"""
+        catalog = {
+            "chat": {},
+            "feed": {},
+            "videos": {},
+            "docs": {},
+            "media": {},
+            "avatars": {},
+            "stickers": {}
+        }
+        for fld in ["chat", "feed", "videos", "docs"]:
+            dir_path = f"/sdcard/Download/NetuarkMedia/{fld}"
+            if os.path.isdir(dir_path):
+                try:
+                    for f in os.listdir(dir_path):
+                        fp = os.path.join(dir_path, f)
+                        if os.path.isfile(fp):
+                            catalog[fld][f] = os.path.getsize(fp)
+                except Exception:
+                    pass
+        try:
+            with _object_store.lock:
+                for k, (t_id, fp, meta) in _object_store._universal_objects.items():
+                    if fp and os.path.isfile(fp):
+                        sz = meta.get("size") or os.path.getsize(fp)
+                        bname = os.path.basename(k)
+                        if "/" in k:
+                            fld = k.split("/")[0]
+                            if fld not in catalog:
+                                catalog[fld] = {}
+                            catalog[fld][bname] = sz
+                        else:
+                            catalog["media"][bname] = sz
+        except Exception:
+            pass
+
+        data = json.dumps(catalog).encode("utf-8")
+        self.send_response(200)
+        self._send_cors_headers()
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(data)))
+        self.send_header("Cache-Control", "no-cache")
+        self.end_headers()
+        self.wfile.write(data)
+
+    def _fetch_from_peer_mesh(self, scope_id, raw_key):
+        """On-Demand Pull-Through Caching from Peer Mesh (Netuark Media Server)"""
+        clean_key = (raw_key or "").replace("\\", "/").strip("/ ")
+        if not clean_key:
+            return None, None
+            
+        base_name = os.path.basename(clean_key)
+        parts = clean_key.split("/")
+        folder = parts[0] if len(parts) > 1 else "media"
+        filename = parts[-1]
+        
+        peer_origins = ["https://ntamediaserver.pages.dev"]
+        try:
+            req = urllib.request.Request("https://firestore.googleapis.com/v1/projects/ntamedia-1f03d/databases/(default)/documents/serverSync/coordinator")
+            with urllib.request.urlopen(req, timeout=3) as response:
+                coord = json.loads(response.read().decode())
+                for k, v in coord.get('fields', {}).items():
+                    if k.startswith('peer_url_') and v and isinstance(v, dict):
+                        p_val = v.get('stringValue', '')
+                        if p_val and p_val.startswith('https://') and p_val not in peer_origins:
+                            peer_origins.append(p_val.rstrip('/'))
+        except Exception:
+            pass
+
+        candidate_paths = [
+            f"/v1/storage/objects/{clean_key}",
+            f"/v1/storage/objects/{folder}/{filename}",
+            f"/v1/storage/objects/avatars/{base_name}",
+            f"/v1/storage/objects/media/{base_name}",
+            f"/v1/storage/objects/stickers/{base_name}",
+            f"/media/{folder}/{filename}",
+            f"/media/docs/{base_name}",
+            f"/media/videos/{base_name}",
+            f"/media/chat/{base_name}",
+            f"/media/feed/{base_name}",
+            f"/s/public/{base_name}"
+        ]
+        
+        for peer in peer_origins:
+            for p_path in candidate_paths:
+                target_url = f"{peer}{p_path}"
+                try:
+                    p_req = urllib.request.Request(target_url, headers={"User-Agent": "Redmi-AI-Node/MeshSync"})
+                    with urllib.request.urlopen(p_req, timeout=6) as p_res:
+                        if p_res.status == 200:
+                            content = p_res.read()
+                            if content and len(content) > 0:
+                                ct = p_res.headers.get("Content-Type") or mimetypes.guess_type(base_name)[0] or "application/octet-stream"
+                                meta = _object_store.put_object(scope_id or "public", clean_key, content, content_type=ct)
+                                try:
+                                    save_dir = f"/sdcard/Download/NetuarkMedia/{folder}"
+                                    if folder in ["avatars", "banners"]:
+                                        save_dir = "/sdcard/Download/NetuarkMedia/docs"
+                                    os.makedirs(save_dir, exist_ok=True)
+                                    tmp_path = os.path.join(save_dir, f".tmp_{filename}")
+                                    final_path = os.path.join(save_dir, filename)
+                                    with open(tmp_path, "wb") as f_out:
+                                        f_out.write(content)
+                                    os.replace(tmp_path, final_path)
+                                except Exception:
+                                    pass
+                                return content, meta
+                except Exception:
+                    continue
+        return None, None
+
     def handle_storage_head_object(self, raw_key):
         t0 = time.perf_counter_ns()
         tenant = self._authenticate_storage_request()
@@ -6874,6 +7049,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         meta = _object_store.head_object(scope_id, raw_key)
         if not meta:
             _, meta = _object_store.find_object(scope_id, raw_key)
+        if not meta:
+            _, meta = self._fetch_from_peer_mesh(scope_id, raw_key)
         if not meta:
             self.send_response(404)
             self._send_cors_headers()
@@ -6920,6 +7097,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         data, meta = _object_store.get_object(scope_id, raw_key)
         if not meta or data is None:
             data, meta = _object_store.find_object(scope_id, raw_key)
+        if not meta or data is None:
+            data, meta = self._fetch_from_peer_mesh(scope_id, raw_key)
         if not meta or data is None:
             err = json.dumps({"error": "Object not found"}).encode("utf-8")
             self.send_response(404)
