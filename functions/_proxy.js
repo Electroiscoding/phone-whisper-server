@@ -183,48 +183,67 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 3000) {
   }
 }
 
-export async function getLiveOrigin(forceRefresh = false) {
+const deadOrigins = new Set();
+
+export async function getLiveOrigin(forceRefresh = false, failedOrigin = null) {
+  if (failedOrigin) {
+    deadOrigins.add(failedOrigin);
+    if (cachedOrigin === failedOrigin) {
+      cachedOrigin = null;
+    }
+  }
+
   const now = Date.now();
-  if (!forceRefresh && cachedOrigin && (now - lastFetchTime < CACHE_TTL_MS)) {
+  if (!forceRefresh && cachedOrigin && !deadOrigins.has(cachedOrigin) && (now - lastFetchTime < CACHE_TTL_MS)) {
     return cachedOrigin;
   }
 
-  // 1. Primary: Raw GitHub (fast, no rate limits)
+  // 1. Primary: GitHub API raw contents (Never cached by GitHub CDN edge, real-time commit data)
   try {
-    const res = await fetchWithTimeout(`${GITHUB_ENDPOINT_URL}?_t=${now}`, {
-      headers: { "User-Agent": "Cloudflare-Pages-Functions/3.0", "Cache-Control": "no-cache, no-store, must-revalidate" }
-    }, 4000);
-    if (res.ok) {
-      const data = await res.json();
-      if (data && data.endpoint && data.endpoint.startsWith("https://")) {
-        cachedOrigin = data.endpoint.replace(/\/+$/, "");
-        lastFetchTime = now;
-        return cachedOrigin;
-      }
-    }
-  } catch (err) {}
-
-  // 2. Secondary: GitHub API raw contents
-  try {
-    const ghApiRes = await fetchWithTimeout(GITHUB_API_ENDPOINT_URL, {
+    const ghApiRes = await fetchWithTimeout(`${GITHUB_API_ENDPOINT_URL}?_t=${now}`, {
       headers: {
         "User-Agent": "Cloudflare-Pages-Functions/3.0",
         "Accept": "application/vnd.github.v3.raw",
         "Cache-Control": "no-cache, no-store, must-revalidate"
       }
-    }, 4000);
+    }, 3500);
     if (ghApiRes.ok) {
       const text = await ghApiRes.text();
       try {
         const data = JSON.parse(text);
         if (data && data.endpoint && data.endpoint.startsWith("https://")) {
-          cachedOrigin = data.endpoint.replace(/\/+$/, "");
-          lastFetchTime = now;
-          return cachedOrigin;
+          const originCandidate = data.endpoint.replace(/\/+$/, "");
+          if (!deadOrigins.has(originCandidate)) {
+            cachedOrigin = originCandidate;
+            lastFetchTime = now;
+            return cachedOrigin;
+          }
         }
       } catch (pe) {}
     }
   } catch (err) {}
+
+  // 2. Secondary: Raw GitHub with cache-busting timestamp
+  try {
+    const res = await fetchWithTimeout(`${GITHUB_ENDPOINT_URL}?_t=${now}`, {
+      headers: { "User-Agent": "Cloudflare-Pages-Functions/3.0", "Cache-Control": "no-cache, no-store, must-revalidate" }
+    }, 3500);
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.endpoint && data.endpoint.startsWith("https://")) {
+        const originCandidate = data.endpoint.replace(/\/+$/, "");
+        if (!deadOrigins.has(originCandidate)) {
+          cachedOrigin = originCandidate;
+          lastFetchTime = now;
+          return cachedOrigin;
+        }
+      }
+    }
+  } catch (err) {}
+
+  if (DEFAULT_FALLBACK_ORIGIN && !deadOrigins.has(DEFAULT_FALLBACK_ORIGIN)) {
+    return DEFAULT_FALLBACK_ORIGIN;
+  }
 
   return cachedOrigin || DEFAULT_FALLBACK_ORIGIN;
 }
@@ -330,7 +349,7 @@ export async function handleRequest(context) {
       if ([403, 502, 503, 504, 530].includes(response.status) && attempt < maxAttempts) {
         cachedOrigin = null;
         await new Promise(r => setTimeout(r, attempt * 150));
-        origin = await getLiveOrigin(true);
+        origin = await getLiveOrigin(true, origin);
         targetUrl = `${origin}${url.pathname}${url.search}`;
         continue;
       }
@@ -340,7 +359,7 @@ export async function handleRequest(context) {
       if (attempt < maxAttempts) {
         cachedOrigin = null;
         await new Promise(r => setTimeout(r, attempt * 150));
-        origin = await getLiveOrigin(true);
+        origin = await getLiveOrigin(true, origin);
         targetUrl = `${origin}${url.pathname}${url.search}`;
         continue;
       }

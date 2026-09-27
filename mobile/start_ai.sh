@@ -82,24 +82,39 @@ while true; do
     sleep 3
   fi
 
-  # D. Verify Cloudflared Process (Process existence check)
+  # D. Verify Cloudflared Process (PID check + pgrep fallback)
   IS_TUNNEL_DEAD=0
-  if ! pgrep -f "cloudflared.*8080" > /dev/null; then
+  CF_ALIVE=0
+  if [ -f "$HOME/cloudflared.pid" ]; then
+    CF_PID=$(cat "$HOME/cloudflared.pid" 2>/dev/null)
+    if [ -n "$CF_PID" ] && kill -0 "$CF_PID" 2>/dev/null; then
+      CF_ALIVE=1
+    fi
+  fi
+  if [ "$CF_ALIVE" -eq 0 ] && pgrep -x "cloudflared" > /dev/null; then
+    CF_ALIVE=1
+  fi
+
+  # Don't restart if tunnel was launched recently (<90 seconds ago)
+  if [ "$CF_ALIVE" -eq 0 ] && [ $((NOW - TUNNEL_START_TIME)) -ge 90 ]; then
     IS_TUNNEL_DEAD=1
   fi
 
-  # E. Active Worldwide Tunnel Health Probe (Every 30s with 60s startup grace period)
+  # E. Active Worldwide Tunnel Health Probe (Every 30s with 90s startup grace period)
   CURRENT_ACTIVE_URL=$(grep -oE "https://[a-zA-Z0-9-]+\.trycloudflare\.com" $HOME/cf_tunnel.log 2>/dev/null | grep -v "api.trycloudflare.com" | tail -n 1)
-  if [ -n "$CURRENT_ACTIVE_URL" ] && [ $((NOW - TUNNEL_START_TIME)) -ge 60 ] && [ $((NOW - LAST_PROBE_TIME)) -ge 30 ]; then
+  if [ -n "$CURRENT_ACTIVE_URL" ] && [ $((NOW - TUNNEL_START_TIME)) -ge 90 ] && [ $((NOW - LAST_PROBE_TIME)) -ge 30 ]; then
     LAST_PROBE_TIME=$NOW
-    PROBE_STATUS=$(curl -s -4 -m 12 -o /dev/null -w "%{http_code}" "$CURRENT_ACTIVE_URL/telemetry" 2>/dev/null || echo "000")
+    PROBE_STATUS=$(curl -s -4 -m 10 -o /dev/null -w "%{http_code}" "$CURRENT_ACTIVE_URL/telemetry" 2>/dev/null)
+    if [ -z "$PROBE_STATUS" ]; then
+      PROBE_STATUS="000"
+    fi
     if [ "$PROBE_STATUS" = "200" ]; then
       FAIL_COUNT=0
     else
       FAIL_COUNT=$((FAIL_COUNT + 1))
-      echo "$(date): [HEALTH PROBE WARN] Status $PROBE_STATUS on $CURRENT_ACTIVE_URL (fail $FAIL_COUNT/10)" >> $HOME/nuclear_supervisor.log
-      if [ "$FAIL_COUNT" -ge 10 ]; then
-        echo "$(date): [CRITICAL] 10 consecutive tunnel probe failures. Triggering Qwen 0.5B SLM Self-Healing..." >> $HOME/nuclear_supervisor.log
+      echo "$(date): [HEALTH PROBE WARN] Status $PROBE_STATUS on $CURRENT_ACTIVE_URL (fail $FAIL_COUNT/8)" >> $HOME/nuclear_supervisor.log
+      if [ "$FAIL_COUNT" -ge 8 ]; then
+        echo "$(date): [CRITICAL] 8 consecutive tunnel probe failures. Triggering Qwen 0.5B SLM Self-Healing..." >> $HOME/nuclear_supervisor.log
         IS_TUNNEL_DEAD=1
         FAIL_COUNT=0
       fi
@@ -111,9 +126,10 @@ while true; do
     if [ -f "$HOME/slm_self_heal.py" ]; then
       python3 $HOME/slm_self_heal.py >> $HOME/slm_self_heal.log 2>&1 || true
     fi
-    pkill -9 -f "cloudflared.*8080" 2>/dev/null || true
+    pkill -9 -x "cloudflared" 2>/dev/null || true
     sleep 1
     cloudflared tunnel --url http://127.0.0.1:8080 --protocol http2 --edge-ip-version 4 --no-autoupdate > $HOME/cf_tunnel.log 2>&1 &
+    echo $! > $HOME/cloudflared.pid
     TUNNEL_START_TIME=$(date +%s)
     LAST_PROBE_TIME=$(date +%s)
     FAIL_COUNT=0
