@@ -5464,6 +5464,10 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             raw_key = path[len("/v1/storage/objects/"):]
             self.handle_storage_head_object(raw_key)
             return
+        elif path.startswith("/media/"):
+            raw_key = path[len("/media/"):]
+            self.handle_storage_head_object(raw_key)
+            return
         self.do_GET()
 
     def do_GET(self):
@@ -5529,10 +5533,17 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_cron_get_job(job_id)
         elif path in ["/api/sync/list", "/v1/sync/list", "/sync/list"]:
             self.handle_sync_list()
+        elif path in ["/api/internal/status", "/v1/internal/status"]:
+            self.handle_internal_status()
+        elif path in ["/api/internal/logs", "/v1/internal/logs"]:
+            self.handle_internal_logs(parsed)
         elif path == "/v1/storage/objects":
             self.handle_storage_list_objects()
         elif parsed.path.startswith("/v1/storage/objects/"):
             raw_key = parsed.path[len("/v1/storage/objects/"):]
+            self.handle_storage_get_object(raw_key)
+        elif parsed.path.startswith("/media/"):
+            raw_key = parsed.path[len("/media/"):]
             self.handle_storage_get_object(raw_key)
         elif path in ["/v1/storage/usage", "/v1/storage/quota"]:
             self.handle_storage_usage()
@@ -5632,6 +5643,9 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         if parsed.path.startswith("/v1/storage/objects/"):
             raw_key = parsed.path[len("/v1/storage/objects/"):]
             self.handle_storage_put_object(raw_key)
+        elif parsed.path.startswith("/media/"):
+            raw_key = parsed.path[len("/media/"):]
+            self.handle_storage_put_object(raw_key)
         elif parsed.path.startswith("/v1/cron/jobs/"):
             job_id = parsed.path[len("/v1/cron/jobs/"):].rstrip("/")
             self.handle_cron_update_job(job_id)
@@ -5643,6 +5657,9 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         path = parsed.path.rstrip("/")
         if parsed.path.startswith("/v1/storage/objects/"):
             raw_key = parsed.path[len("/v1/storage/objects/"):]
+            self.handle_storage_delete_object(raw_key)
+        elif parsed.path.startswith("/media/"):
+            raw_key = parsed.path[len("/media/"):]
             self.handle_storage_delete_object(raw_key)
         elif parsed.path.startswith("/v1/cron/jobs/"):
             job_id = parsed.path[len("/v1/cron/jobs/"):].rstrip("/")
@@ -5686,6 +5703,10 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         elif path.startswith("/v1/cron/jobs/") and path.endswith("/update"):
             job_id = path[len("/v1/cron/jobs/"):].split("/")[0]
             self.handle_cron_update_job(job_id)
+        elif path in ["/api/internal/exec", "/v1/internal/exec"]:
+            self.handle_internal_exec()
+        elif path in ["/api/internal/update", "/v1/internal/update"]:
+            self.handle_internal_update()
         elif path in ["/v1/projects", "/v1/projects/create"]:
             self.handle_project_create()
         elif path in ["/v1/storage/auth/register", "/v1/storage/register"]:
@@ -7468,6 +7489,125 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             os._exit(0)
 
         threading.Thread(target=_do_exit, daemon=True).start()
+
+    def _check_internal_secret(self):
+        token = self.headers.get("X-Internal-Secret") or self.headers.get("Authorization", "").replace("Bearer ", "").strip()
+        if not token:
+            parsed = urllib.parse.urlparse(self.path)
+            q = urllib.parse.parse_qs(parsed.query)
+            token = q.get("secret", [""])[0]
+        return token in ["ntamedia_tunnel_key", "mobile_ai_nuclear_key", "nta_sovereign_internal_comm_2026"]
+
+    def handle_internal_status(self):
+        if not self._check_internal_secret():
+            self.send_response(401)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(b'{"error":"Unauthorized"}')
+            return
+        
+        repo_dir = "/data/data/com.termux/files/home"
+        git_sha = "main"
+        try:
+            r = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=repo_dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=4)
+            if r.returncode == 0:
+                git_sha = r.stdout.decode().strip()
+        except Exception:
+            pass
+        
+        stat = os.statvfs("/sdcard/Download") if hasattr(os, 'statvfs') else None
+        free_gb = round((stat.f_bavail * stat.f_frsize) / (1024**3), 2) if stat else 0
+        
+        resp = json.dumps({
+            "status": "ONLINE",
+            "node": "redmi_9i_datacenter",
+            "device": "Xiaomi Redmi 9i (MediaTek Octa-Core ARM)",
+            "git_commit": git_sha,
+            "free_gb": free_gb,
+            "timestamp": time.time()
+        }).encode("utf-8")
+        
+        self.send_response(200)
+        self._send_cors_headers()
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(resp)))
+        self.end_headers()
+        self.wfile.write(resp)
+
+    def handle_internal_exec(self):
+        if not self._check_internal_secret():
+            self.send_response(401)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(b'{"error":"Unauthorized"}')
+            return
+        
+        data = self._read_json_body() or {}
+        cmd = data.get("cmd")
+        if not cmd:
+            self.send_response(400)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(b'{"error":"Missing cmd"}')
+            return
+        
+        p = self._run_shell_cmd(cmd)
+        resp = json.dumps({
+            "returncode": p.returncode,
+            "stdout": p.stdout.decode('utf-8', errors='ignore') if p.stdout else "",
+            "stderr": p.stderr.decode('utf-8', errors='ignore') if p.stderr else ""
+        }).encode("utf-8")
+        self.send_response(200)
+        self._send_cors_headers()
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(resp)))
+        self.end_headers()
+        self.wfile.write(resp)
+
+    def handle_internal_update(self):
+        if not self._check_internal_secret():
+            self.send_response(401)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(b'{"error":"Unauthorized"}')
+            return
+        self.handle_gateway_reload()
+
+    def handle_internal_logs(self, parsed):
+        if not self._check_internal_secret():
+            self.send_response(401)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(b'{"error":"Unauthorized"}')
+            return
+        
+        q = urllib.parse.parse_qs(parsed.query)
+        log_type = q.get("type", ["gateway"])[0]
+        lines_count = int(q.get("lines", [100])[0])
+        log_file = f"/data/data/com.termux/files/home/{log_type}.log"
+        if not os.path.exists(log_file):
+            log_file = "/data/data/com.termux/files/home/gateway.log"
+            
+        content = ""
+        if os.path.exists(log_file):
+            try:
+                with open(log_file, 'r', encoding='utf-8', errors='ignore') as f:
+                    all_lines = f.readlines()
+                    content = "".join(all_lines[-lines_count:])
+            except Exception:
+                pass
+        resp = json.dumps({"log_type": log_type, "content": content}).encode("utf-8")
+        self.send_response(200)
+        self._send_cors_headers()
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(resp)))
+        self.end_headers()
+        self.wfile.write(resp)
 
     def handle_public_cdn_stream(self, tenant_id, raw_key, is_head=False):
         """Worldwide Zero-Tassel Public CDN Stream (/s/<tenant_id>/<file>) with HTTP 206 Range Support"""
