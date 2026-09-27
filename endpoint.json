@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://camp-metric-open-ada.trycloudflare.com",
-  "inference": "https://camp-metric-open-ada.trycloudflare.com/inference",
-  "telemetry": "https://camp-metric-open-ada.trycloudflare.com/telemetry",
+  "endpoint": "https://color-serial-myth-adjust.trycloudflare.com",
+  "inference": "https://color-serial-myth-adjust.trycloudflare.com/inference",
+  "telemetry": "https://color-serial-myth-adjust.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-09-27T10:27:17Z"
+  "updated_at": "2026-09-27T10:56:51Z"
 }
