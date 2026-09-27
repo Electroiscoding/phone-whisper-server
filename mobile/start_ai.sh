@@ -38,6 +38,7 @@ fi
 SYNCED_URL=""
 LAST_PROBE_TIME=$(date +%s)
 LAST_LOG_TRIM=$(date +%s)
+LAST_PAGES_HEARTBEAT=0
 FAIL_COUNT=0
 GW_FAIL_COUNT=0
 
@@ -121,10 +122,19 @@ while true; do
 
   # F. Broadcaster: Sync Live Tunnel URL to Cloudflare Pages and GitHub
   URL=$(grep -oE "https://[a-zA-Z0-9-]+\.trycloudflare\.com" $HOME/cf_tunnel.log 2>/dev/null | grep -v "api.trycloudflare.com" | tail -n 1)
+
+  # 1. Periodic Edge Pulse (Every 45s keeps ephemeral Cloudflare Pages memory hot)
+  if [ -n "$URL" ] && [ $((NOW - LAST_PAGES_HEARTBEAT)) -ge 45 ]; then
+    LAST_PAGES_HEARTBEAT=$NOW
+    curl -s -m 4 -X POST https://phone-whisper-server.pages.dev/register_tunnel \
+      -H "Content-Type: application/json" \
+      -d '{"endpoint": "'"$URL"'", "secret": "mobile_ai_nuclear_key"}' >/dev/null 2>&1 &
+  fi
+
   if [ -n "$URL" ] && [ "$URL" != "$SYNCED_URL" ]; then
     echo "$URL" > $HOME/current_url.txt
 
-    # 1. Direct Edge Registration with Multi-Attempt Exponential Retry
+    # Immediate Edge Registration with Exponential Retry
     for RETRY in 1 2 3 4 5; do
       REG_RESP=$(curl -s -m 5 -X POST https://phone-whisper-server.pages.dev/register_tunnel \
         -H "Content-Type: application/json" \
@@ -136,12 +146,12 @@ while true; do
       sleep 1
     done
 
-    # 2. Push to GitHub Repo
+    # 2. Push to GitHub Repo with Clean Fast-Forward
     GIT_OK=0
     if [ -d "$HOME/phone-whisper-server/.git" ]; then
       cd $HOME/phone-whisper-server
-      git checkout -- . 2>/dev/null || true
-      git pull --rebase origin main 2>/dev/null || true
+      git fetch origin main 2>/dev/null || true
+      git reset --hard origin/main 2>/dev/null || true
       cat << JSON_EOF > endpoint.json
 {
   "endpoint": "$URL",
@@ -153,9 +163,8 @@ while true; do
   "updated_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 }
 JSON_EOF
-      rm -f _redirects 2>/dev/null || true
-      git rm _redirects 2>/dev/null || true
-      git add endpoint.json 2>/dev/null || true
+      sed -i "s|const DEFAULT_FALLBACK_ORIGIN = \".*\";|const DEFAULT_FALLBACK_ORIGIN = \"$URL\";|" functions/_proxy.js 2>/dev/null || true
+      git add endpoint.json functions/_proxy.js 2>/dev/null || true
       git commit -m "chore(tunnel): Autonomous sync live endpoint [$URL]" 2>/dev/null || true
       if git push origin main 2>/dev/null; then
         echo "$(date): [SUCCESS] Synced fresh tunnel URL to GitHub: $URL" >> $HOME/nuclear_supervisor.log
