@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://focal-fifth-risks-disk.trycloudflare.com",
-  "inference": "https://focal-fifth-risks-disk.trycloudflare.com/inference",
-  "telemetry": "https://focal-fifth-risks-disk.trycloudflare.com/telemetry",
+  "endpoint": "https://partition-adoption-heavily-integrity.trycloudflare.com",
+  "inference": "https://partition-adoption-heavily-integrity.trycloudflare.com/inference",
+  "telemetry": "https://partition-adoption-heavily-integrity.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-09-27T14:36:51Z"
+  "updated_at": "2026-09-27T14:44:47Z"
 }
