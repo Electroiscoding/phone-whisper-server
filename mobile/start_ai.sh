@@ -98,8 +98,7 @@ while true; do
     CF_ALIVE=1
   fi
 
-  # Don't restart if tunnel was launched recently (<90 seconds ago)
-  if [ "$CF_ALIVE" -eq 0 ] && [ $((NOW - TUNNEL_START_TIME)) -ge 90 ]; then
+  if [ "$CF_ALIVE" -eq 0 ]; then
     IS_TUNNEL_DEAD=1
   fi
 
