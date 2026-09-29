@@ -13,27 +13,35 @@ REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 echo "⚡ [1/5] Connecting to phone via ADB ($PHONE_IP)..."
 adb connect "$PHONE_IP" >/dev/null 2>&1 || true
 
-# Verify ADB connection
-if ! adb devices | grep -q "$PHONE_IP.*device"; then
-  echo "❌ Could not reach phone at $PHONE_IP. Make sure phone is on Wi-Fi and Wireless Debugging is on."
+# Auto-detect target device (prefer USB if connected, else Wi-Fi)
+USB_DEV=$(adb devices | grep -v "$PHONE_IP" | grep -v "List of" | grep "device$" | awk '{print $1}' | head -n 1 || echo "")
+if [ -n "$USB_DEV" ]; then
+  TARGET_DEV="$USB_DEV"
+elif adb devices | grep -q "$PHONE_IP.*device"; then
+  TARGET_DEV="$PHONE_IP"
+else
+  echo "❌ Could not reach phone at $PHONE_IP or via USB. Make sure phone is powered on."
   exit 1
 fi
 
+ADB_CMD="adb -s $TARGET_DEV"
+echo "   Target ADB device: $TARGET_DEV"
+
 echo "🔋 [2/5] Checking hardware & daemon status..."
-RUNNING=$(adb shell "run-as com.termux sh -c 'pgrep -f gateway.py >/dev/null && pgrep -f cloudflared >/dev/null && echo 1 || echo 0'" 2>/dev/null | tr -d '\r\n')
+RUNNING=$($ADB_CMD shell "run-as com.termux sh -c 'pgrep -f gateway.py >/dev/null && pgrep -f cloudflared >/dev/null && echo 1 || echo 0'" 2>/dev/null | tr -d '\r\n')
 
 if [ "$RUNNING" != "1" ]; then
   echo "⚠️ Phone server or tunnel not detected running. Starting autonomous supervisor..."
-  adb shell "run-as com.termux sh -c 'export PATH=/data/data/com.termux/files/usr/bin:\$PATH; export HOME=/data/data/com.termux/files/home; nohup bash \$HOME/start_ai.sh >/dev/null 2>&1 &'"
+  $ADB_CMD shell "run-as com.termux sh -c 'export PATH=/data/data/com.termux/files/usr/bin:\$PATH; export HOME=/data/data/com.termux/files/home; nohup bash \$HOME/start_ai.sh >/dev/null 2>&1 &'"
   echo "⏳ Waiting 6s for cloudflared tunnel to negotiate..."
   sleep 6
 fi
 
 echo "🌐 [3/5] Resolving active Cloudflare Quick Tunnel..."
-TUNNEL_URL=$(adb shell "run-as com.termux cat /data/data/com.termux/files/home/current_url.txt 2>/dev/null" 2>/dev/null | tr -d '\r\n')
+TUNNEL_URL=$($ADB_CMD shell "run-as com.termux cat /data/data/com.termux/files/home/current_url.txt 2>/dev/null" 2>/dev/null | tr -d '\r\n')
 
 if [ -z "$TUNNEL_URL" ] || ! echo "$TUNNEL_URL" | grep -qE "https://[a-zA-Z0-9.-]+\.trycloudflare\.com"; then
-  TUNNEL_URL=$(adb shell "run-as com.termux grep -oE 'https://[a-zA-Z0-9.-]+\.trycloudflare\.com' /data/data/com.termux/files/home/cf_tunnel.log 2>/dev/null | tail -n 1" 2>/dev/null | tr -d '\r\n')
+  TUNNEL_URL=$($ADB_CMD shell "run-as com.termux grep -oE 'https://[a-zA-Z0-9.-]+\.trycloudflare\.com' /data/data/com.termux/files/home/cf_tunnel.log 2>/dev/null | tail -n 1" 2>/dev/null | tr -d '\r\n')
 fi
 
 if [ -z "$TUNNEL_URL" ]; then

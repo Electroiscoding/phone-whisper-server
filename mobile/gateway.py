@@ -7542,9 +7542,11 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.send_header("Content-Type", "application/json")
             self.end_headers()
             self.wfile.write(b'{"error":"Unauthorized"}')
-            return
-        
-        data = self._read_json_body() or {}
+        try:
+            content_length = int(self.headers.get('Content-Length', 0))
+            data = json.loads(self.rfile.read(content_length).decode('utf-8')) if content_length > 0 else {}
+        except Exception:
+            data = {}
         cmd = data.get("cmd")
         if not cmd:
             self.send_response(400)
@@ -10568,16 +10570,8 @@ def start_tunnel_registration_daemon():
                 alive = st.get("alive")
                 cf_running = st.get("cloudflared_running")
 
-                if not cf_running or not alive:
-                    consecutive_failures += 1
-                    if consecutive_failures >= 2:
-                        print(f"[TUNNEL-SUPERVISOR] Tunnel unhealthy (alive={alive}, cf={cf_running}, fail={consecutive_failures}). Triggering auto-heal restart...")
-                        res = restart_cloudflared_tunnel()
-                        url = res.get("url")
-                        consecutive_failures = 0
-                else:
-                    consecutive_failures = 0
-
+                # Note: Process lifecycle and auto-recovery is handled exclusively by start_ai.sh.
+                # This worker daemon only registers the active tunnel URL with Cloudflare Edge.
                 if url and url != last_registered:
                     try:
                         payload = json.dumps({"endpoint": url, "secret": "mobile_ai_nuclear_key"}).encode("utf-8")
