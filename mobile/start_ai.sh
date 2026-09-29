@@ -12,8 +12,8 @@ termux-wake-lock 2>/dev/null || true
 
 echo "$(date): [STARTUP] Starting Autonomous AI Supervisor..." >> $HOME/nuclear_supervisor.log
 
-# Ensure USB charging is isolated to protect battery health and prevent overheating
-dumpsys battery set usb 0 2>/dev/null || true
+# Allow USB charging so the hardware never runs out of battery
+dumpsys battery reset 2>/dev/null || true
 
 # 2. Start Persistent Android Kernel Battery Daemon
 if ! pgrep -f "battery_daemon.sh" > /dev/null && ! pgrep -f "update_hardware.sh" > /dev/null; then
@@ -45,8 +45,7 @@ GW_FAIL_COUNT=0
 while true; do
   NOW=$(date +%s)
 
-  # A. Protect Battery: Keep USB charging disabled
-  dumpsys battery set usb 0 2>/dev/null || true
+  # A. Battery check: Ensure device charges properly
 
   # B. Verify Battery Daemon
   if ! pgrep -f "battery_daemon.sh" > /dev/null && ! pgrep -f "update_hardware.sh" > /dev/null; then
