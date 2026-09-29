@@ -337,7 +337,7 @@ export async function handleRequest(context) {
     url.pathname.includes("/chat") || 
     url.pathname.includes("/inference")
   );
-  const timeoutMs = isStorageReq ? 8000 : (isLongRunning ? 60000 : 15000);
+  const timeoutMs = isStorageReq ? 25000 : (isLongRunning ? 60000 : 15000);
 
   while (attempt < maxAttempts) {
     attempt++;
@@ -408,23 +408,15 @@ export async function handleRequest(context) {
         respHeaders.set("Content-Type", STORAGE_MIME[ext]);
       }
 
-      const bodyBuf = await response.arrayBuffer();
-      const b = new Uint8Array(bodyBuf);
-      const isZstd = b.length >= 4 && b[0] === 0x28 && b[1] === 0xb5 && b[2] === 0x2f && b[3] === 0xfd;
-      const finalCt = (respHeaders.get("content-type") || "").toLowerCase();
-
-      // Only cache and serve if not corrupted with raw zstd
-      if (!(finalCt.startsWith("image/") && isZstd && respHeaders.get("content-encoding") !== "zstd")) {
-        const edgeResp = new Response(request.method === "HEAD" ? null : bodyBuf, {
-          status: response.status,
-          statusText: response.statusText,
-          headers: respHeaders
-        });
-        if (cfCache && cacheKey) {
-          try { await cfCache.put(cacheKey, edgeResp.clone()); } catch(e) {}
-        }
-        return edgeResp;
+      const edgeResp = new Response(request.method === "HEAD" ? null : response.body, {
+        status: response.status,
+        statusText: response.statusText,
+        headers: respHeaders
+      });
+      if (cfCache && cacheKey) {
+        try { await cfCache.put(cacheKey, edgeResp.clone()); } catch(e) {}
       }
+      return edgeResp;
     }
 
     // ⚡ Try Peer Node (Netuark Media Server) before B2
