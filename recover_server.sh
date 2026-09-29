@@ -27,6 +27,22 @@ fi
 ADB_CMD="adb -s $TARGET_DEV"
 echo "   Target ADB device: $TARGET_DEV"
 
+# MIUI & Android background execution hardening
+$ADB_CMD shell "dumpsys deviceidle whitelist +com.termux >/dev/null 2>&1 || true"
+$ADB_CMD shell "dumpsys deviceidle disable all >/dev/null 2>&1 || true"
+$ADB_CMD shell "appops set com.termux SYSTEM_ALERT_WINDOW allow >/dev/null 2>&1 || true"
+$ADB_CMD shell "appops set com.termux RUN_IN_BACKGROUND allow >/dev/null 2>&1 || true"
+$ADB_CMD shell "appops set com.termux RUN_ANY_IN_BACKGROUND allow >/dev/null 2>&1 || true"
+$ADB_CMD shell "appops set com.termux WAKE_LOCK allow >/dev/null 2>&1 || true"
+$ADB_CMD shell "appops set com.termux START_FOREGROUND allow >/dev/null 2>&1 || true"
+$ADB_CMD shell "appops set com.termux 10008 allow >/dev/null 2>&1 || true"
+$ADB_CMD shell "appops set com.termux 10020 allow >/dev/null 2>&1 || true"
+$ADB_CMD shell "appops set com.termux 10021 allow >/dev/null 2>&1 || true"
+$ADB_CMD shell "appops set com.miui.powerkeeper WRITE_SETTINGS deny >/dev/null 2>&1 || true"
+$ADB_CMD shell "appops set com.miui.powerkeeper GET_USAGE_STATS deny >/dev/null 2>&1 || true"
+$ADB_CMD shell "appops set com.miui.powerkeeper RUN_IN_BACKGROUND deny >/dev/null 2>&1 || true"
+$ADB_CMD shell "pm disable-user --user 0 com.xiaomi.powerchecker >/dev/null 2>&1 || true"
+
 echo "🔋 [2/5] Checking hardware & daemon status..."
 RUNNING=$($ADB_CMD shell "run-as com.termux sh -c 'pgrep -f gateway.py >/dev/null && pgrep -f cloudflared >/dev/null && echo 1 || echo 0'" 2>/dev/null | tr -d '\r\n')
 
