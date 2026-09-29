@@ -419,13 +419,17 @@ export async function handleRequest(context) {
       return edgeResp;
     }
 
-    // ⚡ Try Peer Node (Netuark Media Server) before B2
-    try {
-      const peerUrl = `https://ntamediaserver.pages.dev${url.pathname}${url.search}`;
-      const peerRes = await fetchWithTimeout(peerUrl, {
-        method: request.method,
-        headers: request.headers
-      }, 3500);
+    // ⚡ Try Peer Node (Netuark Media Server) before B2 (Guarded against recursive mesh loops)
+    const hasHop = request.headers.get("X-Edge-Hop") || request.headers.get("X-Mesh-Hop");
+    if (!hasHop) {
+      try {
+        const peerReqHeaders = new Headers(request.headers);
+        peerReqHeaders.set("X-Edge-Hop", "1");
+        const peerUrl = `https://ntamediaserver.pages.dev${url.pathname}${url.search}`;
+        const peerRes = await fetchWithTimeout(peerUrl, {
+          method: request.method,
+          headers: peerReqHeaders
+        }, 3500);
       if (peerRes && [200, 206].includes(peerRes.status)) {
         const pBuf = await peerRes.arrayBuffer();
         const pb = new Uint8Array(pBuf);
@@ -448,8 +452,8 @@ export async function handleRequest(context) {
           }
           return edgeResp;
         }
-      }
-    } catch (_) {}
+      } catch (_) {}
+    }
 
     // Phone returned 404, 502, 503, or timed out -> try B2
     const b2Fallback = await tryB2StorageFallback(request, url);
