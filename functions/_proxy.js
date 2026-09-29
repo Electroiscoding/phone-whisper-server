@@ -329,16 +329,15 @@ export async function handleRequest(context) {
 
   let response = null;
   let attempt = 0;
-  // Storage requests: ONLY 1 attempt (phone streams within ~1s when file exists; hangs when file is missing)
-  const maxAttempts = isStorageReq ? 1 : 3;
+  // Storage requests: 2 attempts, 8000ms timeout to allow multi-MB images/media over cellular/Wi-Fi
+  const maxAttempts = 2;
   const isLongRunning = !isStorageReq && (
     url.pathname.includes("/speech") || 
     url.pathname.includes("/transcriptions") || 
     url.pathname.includes("/chat") || 
     url.pathname.includes("/inference")
   );
-  // Storage requests timeout at 3000ms. If phone hasn't answered in 3s, it does not exist or tunnel stalled.
-  const timeoutMs = isStorageReq ? 3000 : (isLongRunning ? 60000 : 15000);
+  const timeoutMs = isStorageReq ? 8000 : (isLongRunning ? 60000 : 15000);
 
   while (attempt < maxAttempts) {
     attempt++;
