@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://associations-gibson-reaches-making.trycloudflare.com",
-  "inference": "https://associations-gibson-reaches-making.trycloudflare.com/inference",
-  "telemetry": "https://associations-gibson-reaches-making.trycloudflare.com/telemetry",
+  "endpoint": "https://per-oxford-carefully-courier.trycloudflare.com",
+  "inference": "https://per-oxford-carefully-courier.trycloudflare.com/inference",
+  "telemetry": "https://per-oxford-carefully-courier.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-09-27T14:58:20Z"
+  "updated_at": "2026-09-29T08:04:21Z"
 }
