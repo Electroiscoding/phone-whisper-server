@@ -478,9 +478,10 @@ export async function handleRequest(context) {
       png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',webp:'image/webp',
       gif:'image/gif',svg:'image/svg+xml',pdf:'application/pdf'
     };
+    const isDefinitive404 = response && response.status === 404;
     const notFoundHeaders = {
       ...CORS_HEADERS,
-      "Cache-Control": "public, max-age=86400, s-maxage=86400",
+      "Cache-Control": isDefinitive404 ? "public, max-age=15, s-maxage=15" : "no-cache, no-store, must-revalidate",
       "Content-Type": STORAGE_MIME[ext] || "application/octet-stream",
       "X-Debug-Origin": origin || "empty",
       "X-Debug-Target-Url": targetUrl || "empty",
@@ -491,7 +492,7 @@ export async function handleRequest(context) {
       statusText: "Not Found",
       headers: notFoundHeaders
     });
-    if (cfCache && cacheKey) {
+    if (isDefinitive404 && cfCache && cacheKey) {
       try { await cfCache.put(cacheKey, notFoundResp.clone()); } catch(e) {}
     }
     return notFoundResp;

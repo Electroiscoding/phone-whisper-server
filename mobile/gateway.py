@@ -6982,9 +6982,14 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         self.wfile.write(data)
 
     def _fetch_from_peer_mesh(self, scope_id, raw_key):
-        """On-Demand Pull-Through Caching from Peer Mesh (Netuark Media Server)"""
+        """On-Demand Pull-Through Caching from Peer Mesh (Netuark Media Server) with Anti-Loop Guard"""
         clean_key = (raw_key or "").replace("\\", "/").strip("/ ")
         if not clean_key:
+            return None, None
+
+        # Anti-Deadlock Guard: Refuse recursive peer lookup if request originated from peer mesh
+        incoming_ua = (self.headers.get("User-Agent") or "").lower()
+        if self.headers.get("X-Mesh-Hop") or "meshsync" in incoming_ua or "nta-mediaserver" in incoming_ua:
             return None, None
             
         base_name = os.path.basename(clean_key)
@@ -6993,38 +6998,20 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         filename = parts[-1]
         
         peer_origins = ["https://ntamediaserver.pages.dev"]
-        try:
-            req = urllib.request.Request("https://firestore.googleapis.com/v1/projects/ntamedia-1f03d/databases/(default)/documents/serverSync/coordinator")
-            with urllib.request.urlopen(req, timeout=3) as response:
-                coord = json.loads(response.read().decode())
-                for k, v in coord.get('fields', {}).items():
-                    if k.startswith('peer_url_') and v and isinstance(v, dict):
-                        p_val = v.get('stringValue', '')
-                        if p_val and p_val.startswith('https://') and p_val not in peer_origins:
-                            peer_origins.append(p_val.rstrip('/'))
-        except Exception:
-            pass
-
         candidate_paths = [
             f"/v1/storage/objects/{clean_key}",
-            f"/v1/storage/objects/{folder}/{filename}",
-            f"/v1/storage/objects/avatars/{base_name}",
-            f"/v1/storage/objects/media/{base_name}",
-            f"/v1/storage/objects/stickers/{base_name}",
-            f"/media/{folder}/{filename}",
-            f"/media/docs/{base_name}",
-            f"/media/videos/{base_name}",
-            f"/media/chat/{base_name}",
-            f"/media/feed/{base_name}",
-            f"/s/public/{base_name}"
+            f"/media/{folder}/{filename}"
         ]
         
         for peer in peer_origins:
             for p_path in candidate_paths:
                 target_url = f"{peer}{p_path}"
                 try:
-                    p_req = urllib.request.Request(target_url, headers={"User-Agent": "Redmi-AI-Node/MeshSync"})
-                    with urllib.request.urlopen(p_req, timeout=6) as p_res:
+                    p_req = urllib.request.Request(target_url, headers={
+                        "User-Agent": "Redmi-AI-Node/MeshSync",
+                        "X-Mesh-Hop": "1"
+                    })
+                    with urllib.request.urlopen(p_req, timeout=1.5) as p_res:
                         if p_res.status == 200:
                             content = p_res.read()
                             if content and len(content) > 0:
