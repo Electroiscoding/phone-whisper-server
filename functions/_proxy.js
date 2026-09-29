@@ -183,18 +183,13 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 3000) {
   }
 }
 
-const deadOrigins = new Set();
-
-export async function getLiveOrigin(forceRefresh = false, failedOrigin = null) {
-  if (failedOrigin) {
-    deadOrigins.add(failedOrigin);
-    if (cachedOrigin === failedOrigin) {
-      cachedOrigin = null;
-    }
-  }
-
+export async function getLiveOrigin(forceRefresh = false, excludeOrigins = null) {
+  const excludes = excludeOrigins || new Set();
   const now = Date.now();
-  if (!forceRefresh && cachedOrigin && !deadOrigins.has(cachedOrigin) && (now - lastFetchTime < CACHE_TTL_MS)) {
+
+  if (forceRefresh) {
+    cachedOrigin = null;
+  } else if (cachedOrigin && !excludes.has(cachedOrigin) && (now - lastFetchTime < CACHE_TTL_MS)) {
     return cachedOrigin;
   }
 
@@ -213,7 +208,7 @@ export async function getLiveOrigin(forceRefresh = false, failedOrigin = null) {
         const data = JSON.parse(text);
         if (data && data.endpoint && data.endpoint.startsWith("https://")) {
           const originCandidate = data.endpoint.replace(/\/+$/, "");
-          if (!deadOrigins.has(originCandidate)) {
+          if (!excludes.has(originCandidate)) {
             cachedOrigin = originCandidate;
             lastFetchTime = now;
             return cachedOrigin;
@@ -232,7 +227,7 @@ export async function getLiveOrigin(forceRefresh = false, failedOrigin = null) {
       const data = await res.json();
       if (data && data.endpoint && data.endpoint.startsWith("https://")) {
         const originCandidate = data.endpoint.replace(/\/+$/, "");
-        if (!deadOrigins.has(originCandidate)) {
+        if (!excludes.has(originCandidate)) {
           cachedOrigin = originCandidate;
           lastFetchTime = now;
           return cachedOrigin;
@@ -241,7 +236,7 @@ export async function getLiveOrigin(forceRefresh = false, failedOrigin = null) {
     }
   } catch (err) {}
 
-  if (DEFAULT_FALLBACK_ORIGIN && !deadOrigins.has(DEFAULT_FALLBACK_ORIGIN)) {
+  if (DEFAULT_FALLBACK_ORIGIN && !excludes.has(DEFAULT_FALLBACK_ORIGIN)) {
     return DEFAULT_FALLBACK_ORIGIN;
   }
 
@@ -349,7 +344,7 @@ export async function handleRequest(context) {
       if ([403, 502, 503, 504, 530].includes(response.status) && attempt < maxAttempts) {
         cachedOrigin = null;
         await new Promise(r => setTimeout(r, attempt * 150));
-        origin = await getLiveOrigin(true, origin);
+        origin = await getLiveOrigin(true, new Set([origin]));
         targetUrl = `${origin}${url.pathname}${url.search}`;
         continue;
       }
@@ -359,7 +354,7 @@ export async function handleRequest(context) {
       if (attempt < maxAttempts) {
         cachedOrigin = null;
         await new Promise(r => setTimeout(r, attempt * 150));
-        origin = await getLiveOrigin(true, origin);
+        origin = await getLiveOrigin(true, new Set([origin]));
         targetUrl = `${origin}${url.pathname}${url.search}`;
         continue;
       }
