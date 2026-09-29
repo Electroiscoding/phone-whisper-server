@@ -21,7 +21,9 @@ if ! pgrep -f "battery_daemon.sh" > /dev/null && ! pgrep -f "update_hardware.sh"
 fi
 
 # 3. Start Multi-Modal Gateway Server (:8080)
-if [ -f "/sdcard/Download/gateway.py" ]; then
+if [ -f "$HOME/phone-whisper-server/mobile/gateway.py" ]; then
+  cp -f "$HOME/phone-whisper-server/mobile/gateway.py" "$HOME/gateway.py" 2>/dev/null || true
+elif [ -f "/sdcard/Download/gateway.py" ]; then
   cp -f /sdcard/Download/gateway.py $HOME/gateway.py 2>/dev/null || true
 fi
 if ! pgrep -f "gateway.py" > /dev/null; then
@@ -74,7 +76,9 @@ while true; do
     echo "$(date): [CRITICAL] gateway.py dead/unresponsive! Re-spawning..." >> $HOME/nuclear_supervisor.log
     pkill -9 -f "gateway.py" 2>/dev/null || true
     sleep 1
-    if [ -f "/sdcard/Download/gateway.py" ]; then
+    if [ -f "$HOME/phone-whisper-server/mobile/gateway.py" ]; then
+      cp -f "$HOME/phone-whisper-server/mobile/gateway.py" "$HOME/gateway.py" 2>/dev/null || true
+    elif [ -f "/sdcard/Download/gateway.py" ]; then
       cp -f /sdcard/Download/gateway.py $HOME/gateway.py 2>/dev/null || true
     fi
     python3 $HOME/gateway.py >> $HOME/gateway.log 2>&1 &
