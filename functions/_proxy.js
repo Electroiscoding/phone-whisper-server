@@ -277,13 +277,40 @@ export async function handleRequest(context) {
   // ⚡ 1. CLOUDFLARE EDGE CACHE LOOKUP (<10ms global hits)
   let cfCache = null;
   let cacheKey = null;
+  const isNoCache = (request.headers.get("cache-control") || "").includes("no-cache") || 
+                    (request.headers.get("pragma") || "").includes("no-cache") ||
+                    url.searchParams.has("refresh") ||
+                    url.searchParams.has("purge") ||
+                    url.searchParams.has("nocache");
+
   if (isStorageReq && typeof caches !== "undefined" && caches.default) {
     try {
       cfCache = caches.default;
-      cacheKey = new Request(url.toString(), request);
-      const cached = await cfCache.match(cacheKey);
-      if (cached) {
-        return cached;
+      cacheKey = new Request(url.toString(), { method: "GET" });
+      if (isNoCache) {
+        await cfCache.delete(cacheKey);
+      } else {
+        const cached = await cfCache.match(cacheKey);
+        if (cached) {
+          const ct = (cached.headers.get("content-type") || "").toLowerCase();
+          // Integrity safeguard: check if cached image was corrupted with zstd magic bytes
+          if (ct.startsWith("image/") && cached.headers.get("content-encoding") !== "zstd") {
+            const buf = await cached.arrayBuffer();
+            const b = new Uint8Array(buf);
+            if (b.length >= 4 && b[0] === 0x28 && b[1] === 0xb5 && b[2] === 0x2f && b[3] === 0xfd) {
+              // Corrupted raw zstd in image cache! Delete from cache and fall through to live fetch
+              await cfCache.delete(cacheKey);
+            } else {
+              return new Response(buf, {
+                status: cached.status,
+                statusText: cached.statusText,
+                headers: cached.headers
+              });
+            }
+          } else {
+            return cached;
+          }
+        }
       }
     } catch (e) {}
   }
@@ -381,15 +408,24 @@ export async function handleRequest(context) {
       if ((!ct || ct === "application/octet-stream") && STORAGE_MIME[ext]) {
         respHeaders.set("Content-Type", STORAGE_MIME[ext]);
       }
-      const edgeResp = new Response(request.method === "HEAD" ? null : response.body, {
-        status: response.status,
-        statusText: response.statusText,
-        headers: respHeaders
-      });
-      if (cfCache && cacheKey) {
-        try { await cfCache.put(cacheKey, edgeResp.clone()); } catch(e) {}
+
+      const bodyBuf = await response.arrayBuffer();
+      const b = new Uint8Array(bodyBuf);
+      const isZstd = b.length >= 4 && b[0] === 0x28 && b[1] === 0xb5 && b[2] === 0x2f && b[3] === 0xfd;
+      const finalCt = (respHeaders.get("content-type") || "").toLowerCase();
+
+      // Only cache and serve if not corrupted with raw zstd
+      if (!(finalCt.startsWith("image/") && isZstd && respHeaders.get("content-encoding") !== "zstd")) {
+        const edgeResp = new Response(request.method === "HEAD" ? null : bodyBuf, {
+          status: response.status,
+          statusText: response.statusText,
+          headers: respHeaders
+        });
+        if (cfCache && cacheKey) {
+          try { await cfCache.put(cacheKey, edgeResp.clone()); } catch(e) {}
+        }
+        return edgeResp;
       }
-      return edgeResp;
     }
 
     // ⚡ Try Peer Node (Netuark Media Server) before B2
@@ -400,19 +436,27 @@ export async function handleRequest(context) {
         headers: request.headers
       }, 3500);
       if (peerRes && [200, 206].includes(peerRes.status)) {
-        const respHeaders = new Headers(peerRes.headers);
-        Object.entries(CORS_HEADERS).forEach(([k, v]) => respHeaders.set(k, v));
-        respHeaders.set("Cache-Control", "public, max-age=2592000, s-maxage=2592000, immutable");
-        respHeaders.set("Accept-Ranges", "bytes");
-        const edgeResp = new Response(request.method === "HEAD" ? null : peerRes.body, {
-          status: peerRes.status,
-          statusText: peerRes.statusText,
-          headers: respHeaders
-        });
-        if (cfCache && cacheKey) {
-          try { await cfCache.put(cacheKey, edgeResp.clone()); } catch(e) {}
+        const pBuf = await peerRes.arrayBuffer();
+        const pb = new Uint8Array(pBuf);
+        const pIsZstd = pb.length >= 4 && pb[0] === 0x28 && pb[1] === 0xb5 && pb[2] === 0x2f && pb[3] === 0xfd;
+        const pct = (peerRes.headers.get("content-type") || "").toLowerCase();
+
+        // Reject if peer sent corrupt zstd media
+        if (!(pct.startsWith("image/") && pIsZstd && peerRes.headers.get("content-encoding") !== "zstd")) {
+          const respHeaders = new Headers(peerRes.headers);
+          Object.entries(CORS_HEADERS).forEach(([k, v]) => respHeaders.set(k, v));
+          respHeaders.set("Cache-Control", "public, max-age=2592000, s-maxage=2592000, immutable");
+          respHeaders.set("Accept-Ranges", "bytes");
+          const edgeResp = new Response(request.method === "HEAD" ? null : pBuf, {
+            status: peerRes.status,
+            statusText: peerRes.statusText,
+            headers: respHeaders
+          });
+          if (cfCache && cacheKey) {
+            try { await cfCache.put(cacheKey, edgeResp.clone()); } catch(e) {}
+          }
+          return edgeResp;
         }
-        return edgeResp;
       }
     } catch (_) {}
 
