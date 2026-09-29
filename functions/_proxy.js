@@ -292,13 +292,20 @@ export async function handleRequest(context) {
       } else {
         const cached = await cfCache.match(cacheKey);
         if (cached) {
-          const ct = (cached.headers.get("content-type") || "").toLowerCase();
-          // Integrity safeguard: check if cached image was corrupted with zstd magic bytes
-          if (ct.startsWith("image/") && cached.headers.get("content-encoding") !== "zstd") {
-            const buf = await cached.arrayBuffer();
+          if (request.method === "HEAD") {
+            return new Response(null, {
+              status: cached.status,
+              statusText: cached.statusText,
+              headers: cached.headers
+            });
+          }
+          const buf = await cached.arrayBuffer();
+          if (buf.byteLength === 0) {
+            await cfCache.delete(cacheKey);
+          } else {
+            const ct = (cached.headers.get("content-type") || "").toLowerCase();
             const b = new Uint8Array(buf);
-            if (b.length >= 4 && b[0] === 0x28 && b[1] === 0xb5 && b[2] === 0x2f && b[3] === 0xfd) {
-              // Corrupted raw zstd in image cache! Delete from cache and fall through to live fetch
+            if (ct.startsWith("image/") && cached.headers.get("content-encoding") !== "zstd" && b.length >= 4 && b[0] === 0x28 && b[1] === 0xb5 && b[2] === 0x2f && b[3] === 0xfd) {
               await cfCache.delete(cacheKey);
             } else {
               return new Response(buf, {
@@ -307,8 +314,6 @@ export async function handleRequest(context) {
                 headers: cached.headers
               });
             }
-          } else {
-            return cached;
           }
         }
       }
@@ -408,15 +413,34 @@ export async function handleRequest(context) {
         respHeaders.set("Content-Type", STORAGE_MIME[ext]);
       }
 
-      const edgeResp = new Response(request.method === "HEAD" ? null : response.body, {
-        status: response.status,
-        statusText: response.statusText,
-        headers: respHeaders
-      });
-      if (cfCache && cacheKey) {
-        try { await cfCache.put(cacheKey, edgeResp.clone()); } catch(e) {}
+      if (request.method === "HEAD") {
+        return new Response(null, {
+          status: response.status,
+          statusText: response.statusText,
+          headers: respHeaders
+        });
       }
-      return edgeResp;
+
+      const pBuf = await response.arrayBuffer();
+      const pb = new Uint8Array(pBuf);
+      const isZstd = pb.length >= 4 && pb[0] === 0x28 && pb[1] === 0xb5 && pb[2] === 0x2f && pb[3] === 0xfd;
+      const effectiveCt = (respHeaders.get("content-type") || "").toLowerCase();
+
+      // Check if upstream returned unflagged raw zstd for an image
+      if (effectiveCt.startsWith("image/") && isZstd && respHeaders.get("content-encoding") !== "zstd") {
+        response = null; // Fall through to peer / B2
+      } else {
+        respHeaders.set("Content-Length", String(pBuf.byteLength));
+        const edgeResp = new Response(pBuf, {
+          status: response.status,
+          statusText: response.statusText,
+          headers: respHeaders
+        });
+        if (cfCache && cacheKey && pBuf.byteLength > 0) {
+          try { await cfCache.put(cacheKey, edgeResp.clone()); } catch(e) {}
+        }
+        return edgeResp;
+      }
     }
 
     // ⚡ Try Peer Node (Netuark Media Server) before B2 (Guarded against recursive mesh loops)
@@ -442,12 +466,20 @@ export async function handleRequest(context) {
           Object.entries(CORS_HEADERS).forEach(([k, v]) => respHeaders.set(k, v));
           respHeaders.set("Cache-Control", "public, max-age=2592000, s-maxage=2592000, immutable");
           respHeaders.set("Accept-Ranges", "bytes");
-          const edgeResp = new Response(request.method === "HEAD" ? null : pBuf, {
+          if (request.method === "HEAD") {
+            return new Response(null, {
+              status: peerRes.status,
+              statusText: peerRes.statusText,
+              headers: respHeaders
+            });
+          }
+          respHeaders.set("Content-Length", String(pBuf.byteLength));
+          const edgeResp = new Response(pBuf, {
             status: peerRes.status,
             statusText: peerRes.statusText,
             headers: respHeaders
           });
-          if (cfCache && cacheKey) {
+          if (cfCache && cacheKey && pBuf.byteLength > 0) {
             try { await cfCache.put(cacheKey, edgeResp.clone()); } catch(e) {}
           }
           return edgeResp;
