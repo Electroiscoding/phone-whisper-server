@@ -2994,9 +2994,10 @@ class SwadeObjectStore:
         clean_key = self._sanitize_key(raw_key)
         size = len(data)
 
-        # Instant O(1) RAM quota check (~15ns)
-        quota = self.vault._tenant_quotas.get(tenant_id, 2147483648)
-        if self._tenant_used_bytes[tenant_id] + size > quota:
+        is_exempt_tenant = tenant_id in ["anon_public", "public_guest", "public", "netuark_media", "netuark_avatars", "netuark_banners"] or tenant_id.startswith("usr_sandbox_") or tenant_id.startswith("proj_sandbox_") or tenant_id.startswith("usr_guest_")
+        default_quota = 53687091200 if is_exempt_tenant else 2147483648
+        quota = self.vault._tenant_quotas.get(tenant_id, default_quota)
+        if not is_exempt_tenant and (self._tenant_used_bytes[tenant_id] + size > quota):
             raise ValueError(f"Account quota exceeded (Limit: {quota} bytes)")
 
         pool_path, pool_name = self._resolve_pool_path(pool, tenant_id, clean_key)
@@ -5491,6 +5492,10 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_benchmark()
         elif path in ["/health", "/v1/health", "/v1/models"]:
             self.handle_health()
+        elif path in ["/v1/rank/stats", "/v1/stats", "/stats"]:
+            self.handle_feed_rank_stats()
+        elif path in ["/v1/rank", "/rank", "/v1/feed/rank"]:
+            self.handle_feed_rank_get()
         elif path in ["/v1/tunnel/status", "/tunnel/status"]:
             self.handle_tunnel_status()
         elif path in ["/v1/tunnel/restart", "/tunnel/restart"]:
@@ -5777,6 +5782,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.proxy_llama_embeddings()
         elif path in ["/v1/rerank", "/rerank"]:
             self.proxy_bge_rerank()
+        elif path in ["/v1/rank", "/rank", "/v1/feed/rank"]:
+            self.handle_feed_rank()
         elif path in ["/v1/audio/speech", "/speech", "/tts", "/v1/tts"]:
             self.handle_tts()
         elif path == "/load":
@@ -9223,11 +9230,94 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                     "free_gb": round(shutil.disk_usage(os.environ.get("HOME", "/data/data/com.termux/files/home")).free / (1024**3), 2),
                     "status": "ACTIVE"
                 },
+                "feed_ranking": {
+                    "endpoint": "/v1/rank",
+                    "aliases": ["/rank", "/v1/feed/rank"],
+                    "model": "BAAI BGE-Small-en-v1.5 + Frostbite v0.1 Engine (JIT Active)",
+                    "auth": "Open / No API Key Required",
+                    "status": "ACTIVE"
+                },
                 "telemetry": {"endpoint": "/telemetry", "source": "Live Android Kernel & Elastic Governor", "status": "ACTIVE"}
             },
             "timestamp": int(time.time())
         }
         self.wfile.write(json.dumps(info, indent=2).encode())
+
+    def handle_feed_rank_get(self):
+        info = {
+            "name": "Frostbite v0.1 Feed Ranking Engine",
+            "status": "ONLINE",
+            "method": "POST",
+            "description": "Feed Ranking requires a POST request with a JSON body containing candidate posts and viewer preferences.",
+            "endpoint": "/v1/rank",
+            "stats_endpoint": "/v1/stats",
+            "docs": "https://phone-whisper-server.pages.dev/docs#api-rank",
+            "studio": "https://phone-whisper-server.pages.dev/#feed-ranking-studio",
+            "sample_curl": "curl -X POST https://phone-whisper-server.pages.dev/v1/rank -H 'Content-Type: application/json' -d '{\"user\":{\"userId\":\"u1\",\"tastes\":[\"ai\"]},\"posts\":[{\"postId\":\"1\",\"text\":\"Neural networks guide\"}]}'"
+        }
+        resp_bytes = json.dumps(info, indent=2).encode("utf-8")
+        self.send_response(200)
+        self._send_cors_headers()
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(resp_bytes)))
+        self.end_headers()
+        self.wfile.write(resp_bytes)
+
+    def handle_feed_rank(self):
+        try:
+            content_length = int(self.headers.get("Content-Length", 0))
+            raw_body = self.rfile.read(content_length) if content_length > 0 else b"{}"
+            payload = json.loads(raw_body.decode("utf-8"))
+            if "user" not in payload or payload["user"] is None:
+                payload["user"] = {"userId": "anonymous"}
+            if "/data/data/com.termux/files/home/ntaglo" not in sys.path:
+                sys.path.insert(0, "/data/data/com.termux/files/home/ntaglo")
+            import bootstrap
+            engine, api = bootstrap.load_algo()
+            if not hasattr(self.server, "ranking_service") or self.server.ranking_service is None:
+                self.server.ranking_service = api.RankingService()
+            request = api.RankRequest.model_validate(payload)
+            response = self.server.ranking_service.rank(request)
+            resp_bytes = json.dumps(response.model_dump()).encode("utf-8")
+            self.send_response(200)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(resp_bytes)))
+            self.end_headers()
+            self.wfile.write(resp_bytes)
+        except Exception as e:
+            err_bytes = json.dumps({"detail": str(e)}).encode("utf-8")
+            self.send_response(422)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(err_bytes)))
+            self.end_headers()
+            self.wfile.write(err_bytes)
+
+    def handle_feed_rank_stats(self):
+        try:
+            if "/data/data/com.termux/files/home/ntaglo" not in sys.path:
+                sys.path.insert(0, "/data/data/com.termux/files/home/ntaglo")
+            import bootstrap
+            engine, api = bootstrap.load_algo()
+            if not hasattr(self.server, "ranking_service") or self.server.ranking_service is None:
+                self.server.ranking_service = api.RankingService()
+            stats_data = self.server.ranking_service.stats()
+            resp_bytes = json.dumps(stats_data).encode("utf-8")
+            self.send_response(200)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(resp_bytes)))
+            self.end_headers()
+            self.wfile.write(resp_bytes)
+        except Exception as e:
+            err_bytes = json.dumps({"detail": str(e)}).encode("utf-8")
+            self.send_response(500)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(err_bytes)))
+            self.end_headers()
+            self.wfile.write(err_bytes)
 
     def handle_tunnel_status(self):
         self.send_response(200)

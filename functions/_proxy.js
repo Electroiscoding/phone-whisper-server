@@ -6,7 +6,7 @@
 const GITHUB_ENDPOINT_URL = "https://raw.githubusercontent.com/Electroiscoding/phone-whisper-server/main/endpoint.json";
 const GITHUB_API_ENDPOINT_URL = "https://api.github.com/repos/Electroiscoding/phone-whisper-server/contents/endpoint.json";
 const JSDELIVR_ENDPOINT_URL = "https://cdn.jsdelivr.net/gh/Electroiscoding/phone-whisper-server@main/endpoint.json";
-const DEFAULT_FALLBACK_ORIGIN = "https://motor-predictions-cursor-timely.trycloudflare.com";
+const DEFAULT_FALLBACK_ORIGIN = "https://feeding-northern-sodium-kits.trycloudflare.com";
 
 let cachedOrigin = null;
 let lastFetchTime = 0;
@@ -484,7 +484,8 @@ export async function handleRequest(context) {
           }
           return edgeResp;
         }
-      } catch (_) {}
+      }
+    } catch (_) {}
     }
 
     // Phone returned 404, 502, 503, or timed out -> try B2

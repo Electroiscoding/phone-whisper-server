@@ -633,6 +633,24 @@ class Swades:
             except Exception:
                 return data
 
+    def rank(self, posts, user=None, events=None, trending_texts=None, taste_weight=0.3, roadmap_weight=0.25, top_k=20, enforce_exposure_cap=True):
+        payload = {
+            "posts": posts,
+            "user": user or {},
+            "events": events or [],
+            "trendingTexts": trending_texts or [],
+            "tasteWeight": taste_weight,
+            "roadmapWeight": roadmap_weight,
+            "topK": top_k,
+            "enforceExposureCap": enforce_exposure_cap
+        }
+        res = self._req("POST", "/v1/rank", json=payload, timeout=60)
+        if not res.ok:
+            raise RuntimeError(f"Ranking failed: HTTP {res.status_code} - {res.text}")
+        return res.json()
 
-
-
+    def rank_stats(self):
+        res = self._req("GET", "/v1/stats", timeout=15)
+        if not res.ok:
+            raise RuntimeError(f"Ranking stats failed: HTTP {res.status_code} - {res.text}")
+        return res.json()

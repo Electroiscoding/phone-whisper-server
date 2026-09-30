@@ -784,6 +784,33 @@ class SwadesClient {
   async imageInfo() {
     return this.images.info();
   }
+  async rank(options = {}) {
+    const payload = {
+      user: options.user || {},
+      posts: options.posts || [],
+      events: options.events || [],
+      trendingTexts: options.trendingTexts || [],
+      tasteWeight: options.tasteWeight ?? 0.3,
+      roadmapWeight: options.roadmapWeight ?? 0.25,
+      topK: options.topK ?? 20,
+      enforceExposureCap: options.enforceExposureCap ?? true
+    };
+    const res = await fetch(`${this.endpoint}/v1/rank`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || err.error || `HTTP ${res.status}`);
+    }
+    return await res.json();
+  }
+  async rankStats() {
+    const res = await fetch(`${this.endpoint}/v1/stats`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  }
 }
 
 const Swades = {

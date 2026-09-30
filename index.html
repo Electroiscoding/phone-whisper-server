@@ -2647,6 +2647,7 @@
     <!-- Desktop Navigation Links (Nir Eyal Streamlined Habit-Loop Hierarchy) -->
     <div class="nav-links-desktop">
       <a href="#studio" class="nav-link">Studio</a>
+      <a href="#feed-ranking-studio" class="nav-link" style="color: #38bdf8; font-weight: 600;"><i class="fa-solid fa-ranking-star mr-1"></i> Feed Ranking</a>
       <a href="#phone-remote-studio" class="nav-link" style="color: #f87171; font-weight: 600;"><i class="fa-solid fa-mobile-screen-button mr-1"></i> Phone Remote</a>
 
       <!-- Platform Dropdown -->
@@ -2656,6 +2657,15 @@
           <i class="fa-solid fa-chevron-down dropdown-chevron"></i>
         </button>
         <div class="nav-dropdown-menu">
+          <a href="#feed-ranking-studio" class="nav-dropdown-item">
+            <div class="nav-dropdown-icon" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8;">
+              <i class="fa-solid fa-ranking-star"></i>
+            </div>
+            <div>
+              <div class="nav-dropdown-title">Feed Ranking (Frostbite v0.1)</div>
+              <div class="nav-dropdown-desc">Neural multi-factor item scoring</div>
+            </div>
+          </a>
           <a href="/dashboard.html" class="nav-dropdown-item">
             <div class="nav-dropdown-icon" style="background: rgba(168, 85, 247, 0.15); color: #c084fc;">
               <i class="fa-solid fa-sliders"></i>
@@ -2789,6 +2799,9 @@
       </a>
 
       <div class="mobile-nav-section-title">Platform</div>
+      <a href="#feed-ranking-studio" class="mobile-nav-item" onclick="closeMobileDrawer()" style="color: #38bdf8;">
+        <i class="fa-solid fa-ranking-star mr-2 text-sky-400"></i> <span>Feed Ranking</span>
+      </a>
       <a href="/dashboard.html" class="mobile-nav-item" onclick="closeMobileDrawer()" style="color: #c084fc;">
         <i class="fa-solid fa-sliders mr-2 text-purple-400"></i> <span>Cloud Console</span>
       </a>
@@ -3249,6 +3262,80 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
         <div id="rerankResultsContainer" style="display: flex; flex-direction: column; gap: 0.75rem;">
           <div style="background: #080808; padding: 1rem; border-radius: 12px; border: 1px solid var(--card-border); color: var(--text-muted); font-size: 0.9rem;">
             Click <b>"Execute Deep Cross-Attention Reranking"</b> above to test real-time semantic discrimination and contradiction detection.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MODE 5.5: SOVEREIGN FEED RANKING ALGORITHM STUDIO (FROSTBITE v0.1) -->
+    <section id="feed-ranking-studio" style="margin-top: 2rem;">
+      <div class="section-head">
+        <span class="section-tag" style="background: rgba(6, 182, 212, 0.15); border-color: rgba(6, 182, 212, 0.3); color: #22d3ee;">
+          <i class="fa-solid fa-ranking-star text-cyan-400"></i>
+          <span>Mode 5.5: Multi-Signal Feed Ranking &amp; Anti-Spam Exposure Governor</span>
+        </span>
+        <h2 class="section-title">Worldwide Sovereign Feed Ranking Engine (Frostbite v0.1)</h2>
+        <p class="section-desc">Ranks candidate posts live on phone silicon using 384-d BAAI BGE neural embeddings, viewer roadmap alignment, taste matching, soft access recency, and anti-spam exposure capping.</p>
+      </div>
+
+      <div class="chat-container-card" style="border: 1px solid rgba(6, 182, 212, 0.35); background: rgba(10, 15, 29, 0.9);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+          <div style="font-size: 0.85rem; color: #cbd5e1; font-weight: 700;">
+            <i class="fa-solid fa-sliders text-cyan-400 mr-1"></i> Interactive Live Ranking Playground
+          </div>
+          <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
+            <button class="btn-action" style="font-size: 0.75rem; padding: 0.25rem 0.6rem;" onclick="loadFeedRankingPreset('ai')">Preset: AI &amp; Robotics</button>
+            <button class="btn-action" style="font-size: 0.75rem; padding: 0.25rem 0.6rem;" onclick="loadFeedRankingPreset('web')">Preset: Web Dev</button>
+            <button class="btn-action" style="font-size: 0.75rem; padding: 0.25rem 0.6rem;" onclick="loadFeedRankingPreset('food')">Preset: Culinary</button>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+          <div>
+            <label style="font-size: 0.8rem; color: #38bdf8; display: block; margin-bottom: 0.3rem; font-weight: 700;">Viewer Long-Term Goal / Roadmap:</label>
+            <input type="text" id="feedRankRoadmap" class="chat-input" style="width: 100%; font-size: 0.85rem;" value="master autonomous AI systems, neural networks, and robotics" />
+          </div>
+          <div>
+            <label style="font-size: 0.8rem; color: #34d399; display: block; margin-bottom: 0.3rem; font-weight: 700;">Viewer Tastes (Comma-separated):</label>
+            <input type="text" id="feedRankTastes" class="chat-input" style="width: 100%; font-size: 0.85rem;" value="machine learning, python, robotics, arm silicon" />
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1rem; background: rgba(0,0,0,0.4); padding: 0.75rem 1rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+          <div>
+            <label style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 0.2rem;">Taste Weight: <span id="feedRankTasteVal" style="color: #38bdf8; font-weight: 700;">0.35</span></label>
+            <input type="range" id="feedRankTasteWeight" min="0" max="1" step="0.05" value="0.35" style="width: 100%;" oninput="document.getElementById('feedRankTasteVal').innerText=this.value" />
+          </div>
+          <div>
+            <label style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 0.2rem;">Roadmap Weight: <span id="feedRankRoadmapVal" style="color: #34d399; font-weight: 700;">0.30</span></label>
+            <input type="range" id="feedRankRoadmapWeight" min="0" max="1" step="0.05" value="0.30" style="width: 100%;" oninput="document.getElementById('feedRankRoadmapVal').innerText=this.value" />
+          </div>
+          <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.8rem;">
+            <input type="checkbox" id="feedRankExposureCap" checked style="accent-color: #06b6d4;" />
+            <label for="feedRankExposureCap" style="font-size: 0.8rem; color: #cbd5e1; cursor: pointer;">Enforce Exposure Cap</label>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 1rem;">
+          <label style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 0.4rem;">Candidate Posts (One post per line):</label>
+          <textarea id="feedRankPosts" class="chat-input" style="width: 100%; height: 110px; font-family: monospace; font-size: 0.82rem; resize: vertical;">Complete step-by-step guide to training and optimizing neural networks on ARM processors
+How to build a sovereign autonomous AI datacenter with zero cloud dependencies
+The ultimate recipe for baking sourdough bread with high hydration and golden crust
+Spam advertisement: Click here to buy cheap luxury watches online now!!</textarea>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1.25rem;">
+          <div style="font-size: 0.78rem; color: var(--text-muted);">
+            <i class="fa-solid fa-bolt text-cyan-400 mr-1"></i> Evaluated via live BAAI BGE embeddings on phone node • Zero API Key
+          </div>
+          <button class="btn-send-chat" id="executeFeedRankBtn" onclick="executeFeedRankingDemo()" style="background: linear-gradient(135deg, #06b6d4, #3b82f6); color: #fff; font-weight: 700; border: none; padding: 0.65rem 1.4rem; cursor: pointer;">
+            <i class="fa-solid fa-ranking-star mr-1.5"></i> <span>Execute Live Feed Ranking</span>
+          </button>
+        </div>
+
+        <div id="feedRankResultsContainer" style="display: flex; flex-direction: column; gap: 0.75rem;">
+          <div style="background: #080808; padding: 1rem; border-radius: 12px; border: 1px solid var(--card-border); color: var(--text-muted); font-size: 0.88rem; text-align: center;">
+            Click <b>"Execute Live Feed Ranking"</b> above to score and rank posts through the phone's native Frostbite v0.1 engine.
           </div>
         </div>
       </div>
@@ -4937,6 +5024,95 @@ play();</code></pre>
       "The company rejected the investment proposal."
     ]
   }'</code></pre>
+        </div>
+
+        <!-- FEED RANKING ENGINE CARD (FROSTBITE v0.1 ALGORITHM) -->
+        <div class="endpoint-card" data-category="rank">
+          <div class="endpoint-card-header">
+            <div class="endpoint-path">
+              <span class="method-badge method-post" style="background: #06b6d4; color: #000;">POST</span>
+              <span>/v1/rank &amp; /v1/stats</span>
+            </div>
+            <div class="feature-tags-row" style="margin: 0;">
+              <span class="feature-tag"><i class="fa-solid fa-ranking-star mr-1 text-cyan-400"></i> Feed Ranking</span>
+              <span class="feature-tag"><i class="fa-solid fa-brain mr-1 text-purple-400"></i> BAAI BGE Embeddings</span>
+              <span class="feature-tag"><i class="fa-solid fa-shield-halved mr-1 text-emerald-400"></i> Exposure Governor</span>
+              <span class="feature-tag"><i class="fa-solid fa-lock-open mr-1 text-amber-400"></i> Keyless Open API</span>
+            </div>
+          </div>
+          <div class="endpoint-body">
+            <div style="background: rgba(6, 182, 212, 0.08); border-left: 3px solid #06b6d4; padding: 0.75rem 1rem; border-radius: 0 8px 8px 0; margin-bottom: 1rem;">
+              <strong style="color: #22d3ee;"><i class="fa-solid fa-lightbulb mr-1 text-amber-400"></i> Newbie 101: What is this?</strong>
+              <p style="margin: 0.25rem 0 0; font-size: 0.88rem; color: var(--text-muted); line-height: 1.4;">
+                The sovereign feed ranking algorithm ranks up to 2000 posts for any user using live semantic vector embeddings, engagement dwell signals, content recency decay, user roadmap alignment, and taste matching with automatic anti-spam exposure capping. Runs natively on phone silicon with zero external API fees.
+              </p>
+            </div>
+
+            <h4 style="font-size: 0.82rem; text-transform: uppercase; color: var(--text-subtle); letter-spacing: 0.05em; margin-bottom: 0.4rem;">Parameters</h4>
+            <div style="overflow-x: auto;">
+              <table style="width: 100%; font-size: 0.85rem;">
+                <thead><tr><th>Field</th><th>Type</th><th>Required</th><th>Default</th><th>Description</th></tr></thead>
+                <tbody>
+                  <tr><td><code>posts</code></td><td>Array of Objects</td><td><strong style="color: var(--danger)">Yes</strong></td><td>-</td><td>List of posts with <code>postId</code> and <code>text</code> (1 to 2000 items).</td></tr>
+                  <tr><td><code>user</code></td><td>Object</td><td>No</td><td><code>{}</code></td><td>Viewer profile: <code>userId</code>, <code>roadmap</code> (goal), <code>tastes</code> (interests).</td></tr>
+                  <tr><td><code>events</code></td><td>Array of Objects</td><td>No</td><td><code>[]</code></td><td>User interaction history: <code>dwellSeconds</code>, <code>liked</code>, <code>replied</code>.</td></tr>
+                  <tr><td><code>tasteWeight</code></td><td>Float</td><td>No</td><td><code>0.3</code></td><td>Weight of taste affinity (0.0 to 2.0).</td></tr>
+                  <tr><td><code>roadmapWeight</code></td><td>Float</td><td>No</td><td><code>0.25</code></td><td>Weight of user roadmap goal alignment (0.0 to 2.0).</td></tr>
+                  <tr><td><code>topK</code></td><td>Integer</td><td>No</td><td><code>20</code></td><td>Number of top ranked items to return.</td></tr>
+                  <tr><td><code>enforceExposureCap</code></td><td>Boolean</td><td>No</td><td><code>true</code></td><td>Limits repetitive low-quality content to ~5% exposure per user.</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div style="margin-top: 1rem;">
+              <h4 style="font-size: 0.82rem; text-transform: uppercase; color: var(--text-subtle); letter-spacing: 0.05em; margin-bottom: 0.4rem;">1-Click Drop-In Snippets</h4>
+              <div class="docs-tabs" style="font-size: 0.8rem; margin-bottom: 0.5rem;">
+                <button class="docs-tab active" onclick="switchSnippetTab(this, 'snip-rank-curl')">cURL</button>
+                <button class="docs-tab" onclick="switchSnippetTab(this, 'snip-rank-py')">Python</button>
+                <button class="docs-tab" onclick="switchSnippetTab(this, 'snip-rank-js')">JavaScript</button>
+              </div>
+              <div id="snip-rank-curl" class="snippet-pane active">
+                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>curl -X POST "https://phone-whisper-server.pages.dev/v1/rank" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "user": {"userId": "user1", "roadmap": "master python and AI", "tastes": ["coding", "ai"]},
+    "posts": [
+      {"postId": "p1", "text": "Deep learning tutorial with python", "ageHours": 1.0},
+      {"postId": "p2", "text": "Homemade chocolate chip cookies", "ageHours": 2.0}
+    ],
+    "topK": 5
+  }'</code></pre>
+              </div>
+              <div id="snip-rank-py" class="snippet-pane" style="display: none;">
+                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>from swades import Swades
+
+client = Swades()
+res = client.rank(
+    posts=[
+        {"postId": "p1", "text": "Deep learning tutorial with python", "ageHours": 1.0},
+        {"postId": "p2", "text": "Homemade chocolate chip cookies", "ageHours": 2.0}
+    ],
+    user={"userId": "user1", "roadmap": "master python and AI", "tastes": ["coding", "ai"]},
+    top_k=5
+)
+for item in res["items"]:
+    print(f"#{item['rank']} {item['postId']} - Score: {item['finalScore']:.3f}")</code></pre>
+              </div>
+              <div id="snip-rank-js" class="snippet-pane" style="display: none;">
+                <pre><button class="code-copy-btn" onclick="copyCode(this)">Copy</button><code>import { SwadesClient } from './swades.js';
+
+const client = new SwadesClient();
+const res = await client.rank({
+  user: { userId: 'user1', roadmap: 'master python and AI', tastes: ['coding', 'ai'] },
+  posts: [
+    { postId: 'p1', text: 'Deep learning tutorial with python', ageHours: 1.0 },
+    { postId: 'p2', text: 'Homemade chocolate chip cookies', ageHours: 2.0 }
+  ],
+  topK: 5
+});
+console.log(res.items);</code></pre>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -6605,6 +6781,128 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       }
     }
     window.executeRerankerPlayground = executeRerankerPlayground;
+
+    function loadFeedRankingPreset(type) {
+      const roadmapEl = document.getElementById("feedRankRoadmap");
+      const tastesEl = document.getElementById("feedRankTastes");
+      const postsEl = document.getElementById("feedRankPosts");
+      if (type === "ai") {
+        roadmapEl.value = "master autonomous AI systems, neural networks, and robotics";
+        tastesEl.value = "machine learning, python, robotics, arm silicon";
+        postsEl.value = "Complete step-by-step guide to training and optimizing neural networks on ARM processors\nHow to build a sovereign autonomous AI datacenter with zero cloud dependencies\nThe ultimate recipe for baking sourdough bread with high hydration and golden crust\nSpam advertisement: Click here to buy cheap luxury watches online now!!";
+      } else if (type === "web") {
+        roadmapEl.value = "master fullstack web architectures, ultra-fast APIs, and CSS design";
+        tastesEl.value = "javascript, typescript, web apis, frontend, performance";
+        postsEl.value = "Building ultra-fast modern web applications in Javascript and Node.js\nTailwind CSS vs vanilla modern CSS: responsive grid architectures\nThe ultimate guide to home gardening and organic tomato growing\nClick here to claim your free lottery cash gift right now!";
+      } else if (type === "food") {
+        roadmapEl.value = "learn artisan french baking and pastry techniques";
+        tastesEl.value = "baking, pastry, sourdough, french cooking, culinary";
+        postsEl.value = "Mastering artisan sourdough bread: hydration, fermentation, and scoring tips\nClassic French croissant laminated dough techniques from scratch\nIntroduction to writing Linux device drivers on ARM Cortex-A53\nExclusive investment crypto trading bot double your money fast!";
+      }
+    }
+    window.loadFeedRankingPreset = loadFeedRankingPreset;
+
+    async function executeFeedRankingDemo() {
+      const roadmap = document.getElementById("feedRankRoadmap").value.trim();
+      const tastesStr = document.getElementById("feedRankTastes").value.trim();
+      const tasteWeight = parseFloat(document.getElementById("feedRankTasteWeight").value) || 0.35;
+      const roadmapWeight = parseFloat(document.getElementById("feedRankRoadmapWeight").value) || 0.30;
+      const enforceCap = document.getElementById("feedRankExposureCap").checked;
+      const rawPosts = document.getElementById("feedRankPosts").value.trim();
+      const container = document.getElementById("feedRankResultsContainer");
+      const btn = document.getElementById("executeFeedRankBtn");
+
+      if (!rawPosts || !container) return;
+      const lines = rawPosts.split("\n").map(l => l.trim()).filter(l => l.length > 0);
+      if (lines.length === 0) return;
+
+      const tastes = tastesStr.split(",").map(t => t.trim()).filter(t => t.length > 0);
+      const posts = lines.map((text, idx) => ({
+        postId: `post_${idx + 1}`,
+        text: text,
+        ageHours: (idx + 1) * 0.75,
+        impressionCount: (idx + 1) * 5
+      }));
+
+      btn.disabled = true;
+      btn.innerHTML = '<span><i class="fa-solid fa-spinner fa-spin mr-1.5"></i> Ranking Posts on Phone Silicon...</span>';
+      container.innerHTML = `<div style="color: #22d3ee; font-size: 0.9rem; padding: 1rem; text-align: center;"><i class="fa-solid fa-bolt mr-1"></i> Running Frostbite v0.1 algorithm &amp; BAAI BGE neural embeddings across ${posts.length} posts...</div>`;
+
+      try {
+        const resp = await nuclearFetch(`${BASE_ENDPOINT}/v1/rank`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            user: { userId: "web_demo_user", roadmap: roadmap, tastes: tastes },
+            posts: posts,
+            tasteWeight: tasteWeight,
+            roadmapWeight: roadmapWeight,
+            enforceExposureCap: enforceCap,
+            topK: 20
+          })
+        });
+        const data = await resp.json();
+
+        if (!data.items || data.items.length === 0) {
+          container.innerHTML = `<div style="color: var(--danger); padding: 1rem;">No ranking items returned.</div>`;
+          return;
+        }
+
+        const medalIcons = ['🥇 #1', '🥈 #2', '🥉 #3', '#4', '#5', '#6'];
+        let htmlCards = `
+          <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(6,182,212,0.1); border: 1px solid rgba(6,182,212,0.3); border-radius: 8px; padding: 0.6rem 0.9rem; margin-bottom: 0.5rem;">
+            <div style="font-size: 0.82rem; color: #22d3ee; font-weight: 700;">
+              <i class="fa-solid fa-check-circle mr-1"></i> Ranked ${data.count} Posts Successfully
+            </div>
+            <div style="font-size: 0.8rem; color: #34d399; font-family: monospace; font-weight: 700;">
+              Latency: ${data.latencyMs.toFixed(1)} ms
+            </div>
+          </div>
+        `;
+
+        data.items.forEach((item, idx) => {
+          const originalPost = posts.find(p => p.postId === item.postId);
+          const postText = originalPost ? originalPost.text : item.postId;
+          const scorePct = Math.min(100, Math.max(0, item.finalScore * 250));
+          const medal = medalIcons[idx] || `#${item.rank}`;
+          const isSpamCapped = item.exposureCap < 0.5;
+
+          htmlCards += `
+            <div style="background: rgba(10, 15, 29, 0.95); padding: 1rem; border-radius: 12px; border: 1px solid ${isSpamCapped ? 'rgba(239, 68, 68, 0.4)' : 'rgba(255,255,255,0.08)'}; display: flex; flex-direction: column; gap: 0.5rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                  <span style="background: ${idx === 0 ? 'rgba(234, 179, 8, 0.2)' : 'rgba(56, 189, 248, 0.15)'}; color: ${idx === 0 ? '#eab308' : '#38bdf8'}; font-weight: 800; font-size: 0.82rem; padding: 0.2rem 0.6rem; border-radius: 6px;">${medal}</span>
+                  ${isSpamCapped ? '<span style="font-size: 0.72rem; color: #ef4444; border: 1px solid #ef4444; padding: 0.1rem 0.4rem; border-radius: 4px; font-weight: 700;"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Exposure Capped (Low Quality)</span>' : ''}
+                </div>
+                <div style="display: flex; align-items: baseline; gap: 0.4rem;">
+                  <span style="font-size: 1.1rem; font-weight: 800; color: #22d3ee;">${item.finalScore.toFixed(4)}</span>
+                  <span style="font-size: 0.72rem; color: var(--text-subtle);">(Final Score)</span>
+                </div>
+              </div>
+              <div style="font-size: 0.88rem; color: #f1f5f9; line-height: 1.4;">${postText}</div>
+              <div style="width: 100%; height: 6px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; margin: 0.25rem 0;">
+                <div style="width: ${Math.max(2, scorePct)}%; height: 100%; background: linear-gradient(90deg, #06b6d4, #10b981); border-radius: 3px;"></div>
+              </div>
+              <div style="display: flex; gap: 0.4rem; flex-wrap: wrap; font-size: 0.72rem; font-family: monospace;">
+                <span style="background: rgba(56, 189, 248, 0.1); color: #38bdf8; padding: 0.15rem 0.45rem; border-radius: 4px;">Taste: ${item.tasteScore.toFixed(3)}</span>
+                <span style="background: rgba(52, 211, 153, 0.1); color: #34d399; padding: 0.15rem 0.45rem; border-radius: 4px;">Roadmap: ${item.roadmapScore.toFixed(3)}</span>
+                <span style="background: rgba(168, 85, 247, 0.1); color: #c084fc; padding: 0.15rem 0.45rem; border-radius: 4px;">Engagement: ${item.engagementQuality.toFixed(3)}</span>
+                <span style="background: rgba(245, 158, 11, 0.1); color: #fbbf24; padding: 0.15rem 0.45rem; border-radius: 4px;">Recency: ${item.regencyScore.toFixed(3)}</span>
+                <span style="background: ${item.exposureCap < 0.5 ? 'rgba(239, 68, 68, 0.15)' : 'rgba(255,255,255,0.05)'}; color: ${item.exposureCap < 0.5 ? '#f87171' : '#94a3b8'}; padding: 0.15rem 0.45rem; border-radius: 4px;">Exposure Cap: ${item.exposureCap.toFixed(2)}</span>
+              </div>
+            </div>
+          `;
+        });
+
+        container.innerHTML = htmlCards;
+      } catch (err) {
+        container.innerHTML = `<div style="color: var(--danger); padding: 1rem;">Error: ${err.message}</div>`;
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-ranking-star mr-1.5"></i> <span>Execute Live Feed Ranking</span>';
+      }
+    }
+    window.executeFeedRankingDemo = executeFeedRankingDemo;
 
     const API_ENDPOINT = `${BASE_ENDPOINT}/inference`;
     const TELEMETRY_ENDPOINT = `${BASE_ENDPOINT}/telemetry`;
@@ -11363,6 +11661,7 @@ console.log("Recovered:", text);`;
       { id: 'zstd', title: 'Zstd Hardware Compression', badge: 'v1.5.7', icon: 'fa-file-zipper text-emerald-400', action: () => document.getElementById('zstd-studio')?.scrollIntoView({behavior: 'smooth'}) },
       { id: 'telemetry', title: 'Live Hardware Telemetry', badge: 'Kernel Stats', icon: 'fa-chart-line text-emerald-400', action: () => document.getElementById('telemetry')?.scrollIntoView({behavior: 'smooth'}) },
       { id: 'cheatsheet', title: 'API Cheatsheet & cURL Snippets', badge: 'REST API', icon: 'fa-bolt text-amber-400', action: () => document.getElementById('cheatsheet')?.scrollIntoView({behavior: 'smooth'}) },
+      { id: 'feed_rank', title: 'Feed Ranking Algorithm (Frostbite v0.1)', badge: 'Mode 5.5', icon: 'fa-ranking-star text-cyan-400', action: () => document.getElementById('feed-ranking-studio')?.scrollIntoView({behavior: 'smooth'}) },
       { id: 'console', title: 'Open Full Cloud Console', badge: '/dashboard.html', icon: 'fa-sliders text-purple-400', action: () => window.location.href = '/dashboard.html' },
       { id: 'copy_curl', title: 'Copy Active Inference cURL', badge: 'Clipboard', icon: 'fa-copy text-zinc-400', action: () => copyActiveCurlCommand() }
     ];
