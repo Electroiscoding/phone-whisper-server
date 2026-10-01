@@ -345,15 +345,14 @@ export async function handleRequest(context) {
 
   let response = null;
   let attempt = 0;
-  // Storage requests: 2 attempts, 8000ms timeout to allow multi-MB images/media over cellular/Wi-Fi
-  const maxAttempts = 2;
+  const maxAttempts = isStorageReq ? 1 : 2;
   const isLongRunning = !isStorageReq && (
     url.pathname.includes("/speech") || 
     url.pathname.includes("/transcriptions") || 
     url.pathname.includes("/chat") || 
     url.pathname.includes("/inference")
   );
-  const timeoutMs = isStorageReq ? 25000 : (isLongRunning ? 60000 : 15000);
+  const timeoutMs = isStorageReq ? 2500 : (isLongRunning ? 60000 : 15000);
 
   while (attempt < maxAttempts) {
     attempt++;
