@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://motor-predictions-cursor-timely.trycloudflare.com",
-  "inference": "https://motor-predictions-cursor-timely.trycloudflare.com/inference",
-  "telemetry": "https://motor-predictions-cursor-timely.trycloudflare.com/telemetry",
+  "endpoint": "https://reach-trademark-hawaii-survive.trycloudflare.com",
+  "inference": "https://reach-trademark-hawaii-survive.trycloudflare.com/inference",
+  "telemetry": "https://reach-trademark-hawaii-survive.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-09-29T08:13:58Z"
+  "updated_at": "2026-10-01T13:05:00Z"
 }

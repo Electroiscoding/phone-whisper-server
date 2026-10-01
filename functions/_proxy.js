@@ -6,15 +6,21 @@
 const GITHUB_ENDPOINT_URL = "https://raw.githubusercontent.com/Electroiscoding/phone-whisper-server/main/endpoint.json";
 const GITHUB_API_ENDPOINT_URL = "https://api.github.com/repos/Electroiscoding/phone-whisper-server/contents/endpoint.json";
 const JSDELIVR_ENDPOINT_URL = "https://cdn.jsdelivr.net/gh/Electroiscoding/phone-whisper-server@main/endpoint.json";
-const DEFAULT_FALLBACK_ORIGIN = "https://feeding-northern-sodium-kits.trycloudflare.com";
+const DEFAULT_FALLBACK_ORIGIN = "https://reach-trademark-hawaii-survive.trycloudflare.com";
 
+let liveRegisteredOrigin = null;
+let lastRegisteredTime = 0;
+const REGISTRATION_TTL_MS = 180000;
 let cachedOrigin = null;
 let lastFetchTime = 0;
-const CACHE_TTL_MS = 15000;
+const CACHE_TTL_MS = 60000;
 
 export function setLiveOrigin(newOrigin) {
   if (newOrigin && newOrigin.startsWith("https://")) {
-    cachedOrigin = newOrigin.replace(/\/+$/, "");
+    const clean = newOrigin.replace(/\/+$/, "");
+    liveRegisteredOrigin = clean;
+    lastRegisteredTime = Date.now();
+    cachedOrigin = clean;
     lastFetchTime = Date.now();
   }
 }
@@ -189,8 +195,13 @@ export async function getLiveOrigin(forceRefresh = false, excludeOrigins = null)
 
   if (forceRefresh) {
     cachedOrigin = null;
-  } else if (cachedOrigin && !excludes.has(cachedOrigin) && (now - lastFetchTime < CACHE_TTL_MS)) {
-    return cachedOrigin;
+  } else {
+    if (liveRegisteredOrigin && !excludes.has(liveRegisteredOrigin) && (now - lastRegisteredTime < REGISTRATION_TTL_MS)) {
+      return liveRegisteredOrigin;
+    }
+    if (cachedOrigin && !excludes.has(cachedOrigin) && (now - lastFetchTime < CACHE_TTL_MS)) {
+      return cachedOrigin;
+    }
   }
 
   // 1. Primary: GitHub API raw contents (Never cached by GitHub CDN edge, real-time commit data)
