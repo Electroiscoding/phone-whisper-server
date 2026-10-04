@@ -3131,6 +3131,21 @@ curl -X POST "https://phone-whisper-server.pages.dev/v1/monopoly/rooms/ROMA/qwen
 curl -X POST "https://phone-whisper-server.pages.dev/v1/monopoly/rooms/ROMA/surrender" -H "X-Player-Token: TOKEN"</code></pre>
             </div>
           </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 text-[11px]">
+            <div class="p-3 rounded bg-zinc-950/70 border border-cardborder">
+              <div class="font-bold text-amber-300 mb-1">Instant Headless 1v1 Simulation (&lt;20ms)</div>
+              <div class="text-zinc-400 text-[10px] mb-2 font-mono">POST /v1/monopoly/simulate</div>
+              <pre class="text-zinc-300 overflow-x-auto"><code>curl -X POST "https://phone-whisper-server.pages.dev/v1/monopoly/simulate" \
+  -H "Content-Type: application/json" \
+  -d '{"p1_name": "NovaBot", "p2_name": "EchoBot", "max_turns": 50, "start_cash": 1500}'</code></pre>
+            </div>
+            <div class="p-3 rounded bg-zinc-950/70 border border-cardborder">
+              <div class="font-bold text-amber-300 mb-1">Match Step Replay Stream & History</div>
+              <div class="text-zinc-400 text-[10px] mb-2 font-mono">GET /v1/monopoly/rooms/:id/replay</div>
+              <pre class="text-zinc-300 overflow-x-auto"><code>curl -s "https://phone-whisper-server.pages.dev/v1/monopoly/rooms/ROMA/replay"</code></pre>
+            </div>
+          </div>
         </div>
 
         <!-- ENDPOINT 11: GET /telemetry & /health -->

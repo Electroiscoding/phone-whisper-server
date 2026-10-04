@@ -5722,6 +5722,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_cron_update_job(job_id)
         elif path in ["/v1/monopoly/quick", "/monopoly/quick", "/v1/game/quick", "/game/quick"]:
             self.handle_gridlock_quick()
+        elif path in ["/v1/monopoly/simulate", "/monopoly/simulate", "/v1/game/simulate", "/game/simulate"]:
+            self.handle_gridlock_simulate()
         elif path in ["/v1/monopoly/rooms", "/monopoly/rooms", "/v1/game/rooms", "/game/rooms"]:
             self.handle_gridlock_create_room()
         elif path.startswith("/v1/monopoly/rooms/") or path.startswith("/monopoly/rooms/") or path.startswith("/v1/game/rooms/") or path.startswith("/game/rooms/"):
@@ -9226,6 +9228,20 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             "leaderboard": GLOBAL_ROOM_MANAGER.get_leaderboard(limit=50)
         })
 
+    def handle_gridlock_simulate(self):
+        try:
+            content_length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(content_length) if content_length > 0 else b""
+            payload = json.loads(body.decode("utf-8")) if body else {}
+        except Exception:
+            payload = {}
+        p1_name = payload.get("p1_name") or payload.get("p1") or "BotAlpha"
+        p2_name = payload.get("p2_name") or payload.get("p2") or "BotBeta"
+        max_turns = int(payload.get("max_turns", 50))
+        start_cash = int(payload.get("start_cash", 1500))
+        res = GLOBAL_ROOM_MANAGER.simulate(p1_name=p1_name, p2_name=p2_name, max_turns=max_turns, start_cash=start_cash)
+        self._send_json_response(res)
+
     def handle_gridlock_quick(self):
         try:
             content_length = int(self.headers.get("Content-Length", 0))
@@ -9356,6 +9372,17 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self._send_json_response({"ok": True, "room_id": code, "chat": GLOBAL_ROOM_MANAGER.get_chat(code, limit=50)})
         elif action == "leaderboard":
             self._send_json_response({"ok": True, "leaderboard": GLOBAL_ROOM_MANAGER.get_leaderboard(limit=25)})
+        elif action == "replay":
+            hist = getattr(game, 'history', [])
+            self._send_json_response({
+                "ok": True,
+                "room_id": code,
+                "history": hist,
+                "total_steps": len(hist),
+                "winner": game.winner,
+                "over": game.over,
+                "logs": game.logs
+            })
         elif action == "stream":
             self.send_response(200)
             self._send_cors_headers()

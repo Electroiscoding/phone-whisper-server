@@ -777,6 +777,19 @@ class Swades:
             raise RuntimeError(f"Surrender failed: HTTP {res.status_code} - {res.text}")
         return res.json()
 
+    def simulate_game(self, p1_name="BotAlpha", p2_name="BotBeta", max_turns=50, start_cash=1500):
+        payload = {"p1_name": p1_name, "p2_name": p2_name, "max_turns": max_turns, "start_cash": start_cash}
+        res = self._req("POST", "/v1/monopoly/simulate", json=payload, timeout=30)
+        if not res.ok:
+            raise RuntimeError(f"Simulate game failed: HTTP {res.status_code} - {res.text}")
+        return res.json()
+
+    def get_game_replay(self, room_id):
+        res = self._req("GET", f"/v1/monopoly/rooms/{room_id}/replay", timeout=15)
+        if not res.ok:
+            raise RuntimeError(f"Get replay failed: HTTP {res.status_code} - {res.text}")
+        return res.json()
+
     @property
     def monopoly(self):
         class _MonopolyAPI:
@@ -818,6 +831,10 @@ class Swades:
                 return self._c.quick_match_game(*a, **kw)
             def history(self, room_id):
                 return self._c.get_game_history(room_id)
+            def replay(self, room_id):
+                return self._c.get_game_replay(room_id)
+            def simulate(self, *a, **kw):
+                return self._c.simulate_game(*a, **kw)
             def stats(self):
                 return self._c.get_game_stats()
         return _MonopolyAPI(self)

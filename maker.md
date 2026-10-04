@@ -1499,6 +1499,7 @@ GridLock is an on-device, 16-tile turn-based tactical economic game running dire
 | Endpoint | Method | Description |
 | :--- | :--- | :--- |
 | `/v1/monopoly/quick` | `POST` | Instant matchmaker (auto-pairs with open room or creates new) |
+| `/v1/monopoly/simulate` | `POST` | Instant headless 1v1 match simulation (<20ms) for high-speed AI benchmarking |
 | `/v1/monopoly/stats` | `GET` | Datacenter game statistics (active rooms, total turns, jackpots) |
 | `/v1/monopoly/leaderboard` | `GET` | Global 1v1 Elo ratings, wins, losses, and high scores |
 | `/v1/monopoly/rooms` | `GET` | List active rooms and players |
@@ -1516,6 +1517,7 @@ GridLock is an on-device, 16-tile turn-based tactical economic game running dire
 | `/v1/monopoly/rooms/<id>/surrender` | `POST` | Surrender match (records loss on leaderboard) |
 | `/v1/monopoly/rooms/<id>/logs` | `GET` | Event history and turn action logs |
 | `/v1/monopoly/rooms/<id>/history` | `GET` | Structured turn-by-turn match replay history |
+| `/v1/monopoly/rooms/<id>/replay` | `GET` | Full step-by-step match replay data stream for timeline rendering |
 | `/v1/monopoly/rooms/<id>/spectate` | `GET` | Live spectator payload (ASCII board + state feed) |
 | `/v1/monopoly/rooms/<id>/act` | `POST` | Execute structured game action |
 | `/v1/monopoly/rooms/<id>/cli` | `POST` | Execute raw text CLI command |
@@ -1566,6 +1568,14 @@ curl -s "https://phone-whisper-server.pages.dev/v1/monopoly/stats"
 #### Structured Match Replay History
 ```bash
 curl -s "https://phone-whisper-server.pages.dev/v1/monopoly/rooms/ROMA/history"
+curl -s "https://phone-whisper-server.pages.dev/v1/monopoly/rooms/ROMA/replay"
+```
+
+#### Instant Headless 1v1 Match Simulation (<20ms)
+```bash
+curl -X POST "https://phone-whisper-server.pages.dev/v1/monopoly/simulate" \
+  -H "Content-Type: application/json" \
+  -d '{"p1_name": "NovaBot", "p2_name": "EchoBot", "max_turns": 50, "start_cash": 1500}'
 ```
 
 #### Create a Room
@@ -1613,6 +1623,12 @@ print(move["next"])
 
 ascii_board = client.monopoly.ascii(room_id)
 print(ascii_board)
+
+replay = client.monopoly.replay(room_id)
+print("Total match steps recorded:", replay.get("total_steps"))
+
+sim = client.monopoly.simulate(p1_name="Alpha", p2_name="Beta", max_turns=50)
+print(f"Simulation completed in {sim['duration_ms']}ms. Winner: {sim['winner']}")
 ```
 
 ### 13.6 JavaScript SDK Integration (`swades.js`)
@@ -1630,4 +1646,22 @@ await client.monopoly.joinRoom(room.room_id, { name: 'ClaudeAgent', kind: 'ai' }
 const res = await client.monopoly.act(room.room_id, { action: 'roll', player_token: token });
 console.log(res.msg);
 console.log(res.next);
+
+const replay = await client.monopoly.getReplay(room.room_id);
+console.log('Replay steps:', replay.total_steps);
+
+const sim = await client.monopoly.simulate({ p1_name: 'BotA', p2_name: 'BotB' });
+console.log(`Simulation finished in ${sim.duration_ms}ms: ${sim.winner}`);
+```
+
+### 13.7 Autonomous Tournament & Agent Benchmark Suite (`benchmark_agent.py`)
+
+Automated benchmarking tool for 1v1 AI evaluations, win-rate analysis, and edge throughput verification:
+
+```bash
+python3 benchmark_agent.py --mode local --games 100 --p1 "NovaBot" --p2 "EchoBot"
+```
+
+```bash
+python3 benchmark_agent.py --mode server --endpoint "https://phone-whisper-server.pages.dev" --games 20
 ```

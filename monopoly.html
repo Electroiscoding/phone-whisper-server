@@ -363,6 +363,14 @@ body.calm *{animation-duration:.01ms!important;animation-iteration-count:1!impor
       </div>
       <div id="roomListContainer" style="display:flex;flex-direction:column;gap:6px;max-height:160px;overflow-y:auto"></div>
     </div>
+    <div style="margin-top:12px;padding:12px 14px;border-radius:14px;background:rgba(255,255,255,.03);border:1px solid var(--line);display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <b style="font-size:12px">⚡ Instant Headless 1v1 Simulation</b>
+        <div style="font-size:11px;color:var(--muted)">Run a complete AI vs AI tournament match on the phone edge engine in 20ms.</div>
+      </div>
+      <button class="btn sm" data-act="runsimbtn">▶ Simulate AI Match</button>
+    </div>
+    <div id="simResultBox" style="display:none;margin-top:8px;padding:10px 12px;border-radius:10px;background:rgba(0,0,0,.4);border:1px solid var(--line);font-size:11px;font-family:var(--mono)"></div>
     <div id="activeRoomInfo" style="display:none;margin-top:12px;padding:14px;border-radius:14px;background:rgba(56,189,248,.12);border:1px solid #38bdf8">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
         <div>
@@ -400,6 +408,14 @@ body.calm *{animation-duration:.01ms!important;animation-iteration-count:1!impor
     <div style="padding:12px;font-size:12px;color:var(--muted)">Loading datacenter rankings...</div>
   </div>
   <div class="sh-foot"><button class="btn sm primary" data-act="openleaderboard">🔄 Refresh</button><button class="btn" data-act="close">Close</button></div>
+</div></div>
+
+<div class="modal" id="m-replay"><div class="sheet wide">
+  <div class="sh-head"><h3>🎬 Match Turn Replay</h3><button class="x" data-act="close">✕</button></div>
+  <div class="sh-body" id="replayBody">
+    <div style="padding:16px;text-align:center;color:var(--muted)">Loading match history...</div>
+  </div>
+  <div class="sh-foot"><button class="btn" data-act="close">Close</button></div>
 </div></div>
 
 <div class="modal" id="m-lobby"><div class="sheet wide">
@@ -1369,6 +1385,41 @@ const UI={
       this.toast('💬', sender, text, 'sys');
     }catch(_){}
   },
+  async runSimulation(){
+    const box = $('#simResultBox');
+    if(!box)return;
+    box.style.display = 'block';
+    box.innerHTML = '⚡ Running edge AI simulation on smartphone datacenter...';
+    try{
+      const res = await fetch('/v1/monopoly/simulate', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({p1_name: 'NovaBot', p2_name: 'EchoBot', max_turns: 50, start_cash: 1500})
+      });
+      const data = await res.json();
+      box.innerHTML = `<span style="color:var(--acc)">🏆 Winner: <b>${esc(data.winner)}</b></span> • Turns: ${data.turns} • Steps: ${data.steps} • Engine: ${data.duration_ms}ms<br><span style="color:var(--muted)">NovaBot: $${data.p1.cash} (${data.p1.props} props) | EchoBot: $${data.p2.cash} (${data.p2.props} props) | Jackpot: $${data.jackpot}</span>`;
+    }catch(err){
+      box.innerHTML = `<span style="color:var(--bad)">Simulation failed: ${err.message}</span>`;
+    }
+  },
+  openReplay(){
+    this.open('m-replay');
+    const cont = $('#replayBody');
+    if(!cont || !game || !game.s)return;
+    const hist = game.s.history || [];
+    if(!hist.length){
+      cont.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted)">No turn history recorded for this match yet.</div>';
+      return;
+    }
+    cont.innerHTML = `<div style="max-height:260px;overflow-y:auto;display:flex;flex-direction:column;gap:6px">
+      ${hist.map((h, i)=>`
+        <div style="padding:8px 12px;border-radius:8px;background:rgba(255,255,255,.05);border:1px solid var(--line);font-size:12px;display:flex;justify-content:space-between">
+          <span><b style="color:var(--acc)">Step #${i+1} [T${h.turn||'?'}]</b> ${esc(h.player||'')}: <span style="font-family:var(--mono)">${esc(h.action||'')}</span></span>
+          <span style="color:var(--muted);font-size:11px">${esc(h.summary||'')}</span>
+        </div>
+      `).join('')}
+    </div>`;
+  },
   lobby:{n:2,seats:[],maxTurns:50,term:false},pf:{pid:0,debt:false},trade:{to:null,give:new Set(),get:new Set(),giveCash:0,getCash:0},cashShown:{},ptab:'shop',askRes:null,debtShown:false,lastLog:0,
   /* ----- generic ----- */
   open(id){$('#'+id).classList.add('open')},close(id){$('#'+id).classList.remove('open')},
@@ -1590,7 +1641,7 @@ const UI={
       <table style="width:100%;font-family:var(--mono);font-size:12px;margin:10px 0;text-align:right"><tr class="lbl"><th style="text-align:left">Player</th><th>Net</th><th>Rent</th><th>Builds</th></tr>${rows}</table>
       ${rw.xp?`<div class="infobox">${rw.won?'🏆 Victory!':'Good game!'} +${rw.xp} XP • +${rw.gems} 💎${rw.bonus?` • 🎁 lucky bonus +${rw.bonus} 💎`:''}</div>`:''}
       ${locked?`<p class="lbl" style="margin:8px 0">Next unlock: <b>${locked.name}</b> — ${P.gems}/${locked.price} 💎</p>`:''}
-      <div style="display:flex;gap:8px;justify-content:center;margin-top:10px"><button class="btn primary pulse" data-act="again">▶ Play again</button><button class="btn" data-act="newgame">⚙️ Change setup</button></div>`;
+      <div style="display:flex;gap:8px;justify-content:center;margin-top:10px"><button class="btn primary pulse" data-act="again">▶ Play again</button><button class="btn" data-act="openreplay">🎬 Match Replay</button><button class="btn" data-act="newgame">⚙️ Change setup</button></div>`;
     setTimeout(()=>{this.open('m-victory');FX.burst(innerWidth/2,innerHeight/3,{n:150})},Math.max(150,700*g.speed))},
   renderHelp(){$('#helpBody').innerHTML=`<div class="card"><b>How to win</b><br>Roll one die, buy tiles (or auction them), collect rent, build, trade. Last player standing wins — or the richest at the turn limit.</div>
     <div class="card"><b>Rules</b><ul style="padding-left:18px;line-height:1.7;margin-top:4px">
@@ -1655,6 +1706,8 @@ const UI={
       case 'copyroomlink':this.copyRoomLink();break;
       case 'sendonlinechat':this.sendOnlineChat();break;
       case 'onlineemote':this.sendOnlineChat(d.e);break;
+      case 'openreplay':this.openReplay();break;
+      case 'runsimbtn':this.runSimulation();break;
       case 'emote':if(g.s){const p=g.s.players.find(x=>x.id===g.s.cur&&x.kind==='human')||g.s.players.find(x=>x.kind==='human');if(p){this.emote(p.id,d.e);g.chat(p.name,p.color,d.e)}}break}}
 };
 

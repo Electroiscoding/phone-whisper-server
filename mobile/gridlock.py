@@ -1524,6 +1524,37 @@ class GridLockRoomManager:
                 'engine': 'GridLock Sovereign 16-Tile Tactical Phone Datacenter v2.0'
             }
 
+    def simulate(self, p1_name='Bot 1', p2_name='Bot 2', max_turns=50, start_cash=1500):
+        t0 = time.perf_counter()
+        game = GridLockGame(start_cash=start_cash, max_turns=max_turns)
+        p1 = game.add_player(name=p1_name, kind='ai', avatar='fox')
+        p2 = game.add_player(name=p2_name, kind='ai', avatar='bunny')
+        total_steps = 0
+        while not game.over and total_steps < 800:
+            stepped = game.step_ai_once()
+            if not stepped:
+                if game.phase == 'pre':
+                    game.roll_dice(game.cur)
+                elif game.phase == 'post':
+                    game.end_turn(game.cur)
+                else:
+                    break
+            total_steps += 1
+        dur = round((time.perf_counter() - t0) * 1000, 2)
+        winner_p = game.players[game.winner] if game.winner is not None else None
+        return {
+            'ok': True,
+            'winner': winner_p['name'] if winner_p else 'Nobody',
+            'winner_id': game.winner,
+            'turns': game.turn,
+            'steps': total_steps,
+            'duration_ms': dur,
+            'p1': {'name': p1['name'], 'cash': p1['cash'], 'net': game.net_worth(p1), 'props': len(game.tiles_of(0))},
+            'p2': {'name': p2['name'], 'cash': p2['cash'], 'net': game.net_worth(p2), 'props': len(game.tiles_of(1))},
+            'jackpot': game.jackpot,
+            'logs_count': len(game.logs)
+        }
+
     def cleanup_old_rooms(self, max_idle_sec=14400):
         now = time.time()
         to_del = []

@@ -947,6 +947,20 @@ class SwadesClient {
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return await res.json();
+      },
+      getReplay: async (roomId) => {
+        const res = await fetch(`${this.endpoint}/v1/monopoly/rooms/${roomId}/replay`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return await res.json();
+      },
+      simulate: async (options = {}) => {
+        const res = await fetch(`${this.endpoint}/v1/monopoly/simulate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(options)
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return await res.json();
       }
     };
   }
