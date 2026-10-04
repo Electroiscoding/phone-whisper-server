@@ -258,6 +258,7 @@ body.calm *{animation-duration:.01ms!important;animation-iteration-count:1!impor
     <button class="tbtn" id="btnManage" data-act="manage" title="Portfolio (P)">🏛️<span class="lb">Portfolio</span></button>
     <button class="tbtn" id="btnTrade" data-act="trade" title="Trade (T)">🤝<span class="lb">Trade</span></button>
     <button class="tbtn" data-act="open" data-m="m-help" title="Rules & shortcuts">📖</button>
+    <button class="tbtn" id="btnLeaderboard" data-act="openleaderboard" title="Sovereign Leaderboard">🏆<span class="lb">Ranks</span></button>
     <button class="tbtn" id="btnOnlineRoom" data-act="openroommodal" title="1v1 Online Rooms & Agent Match">🌐<span class="lb">Online 1v1</span></button>
     <span class="chip" id="roomChip" style="display:none;cursor:pointer;border-color:var(--acc);color:var(--acc)" data-act="openroommodal">🌐 <b id="roomCodeText"></b></span>
     <button class="tbtn" id="btnTerm" data-act="termmode" title="Text / terminal mode">⌨️</button>
@@ -362,9 +363,43 @@ body.calm *{animation-duration:.01ms!important;animation-iteration-count:1!impor
       </div>
       <div id="roomListContainer" style="display:flex;flex-direction:column;gap:6px;max-height:160px;overflow-y:auto"></div>
     </div>
-    <div id="activeRoomInfo" style="display:none;margin-top:12px;padding:12px;border-radius:14px;background:rgba(56,189,248,.1);border:1px solid #38bdf8"></div>
+    <div id="activeRoomInfo" style="display:none;margin-top:12px;padding:14px;border-radius:14px;background:rgba(56,189,248,.12);border:1px solid #38bdf8">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div>
+          <span style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Connected Room</span>
+          <div style="font-size:20px;font-weight:900;font-family:var(--mono);color:var(--acc)" id="arRoomCode">----</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn sm" data-act="copyroomlink" title="Copy match invite URL">📋 Copy Link</button>
+          <button class="btn sm primary" data-act="botstepbtn" title="Ask phone AI bot to take move">🤖 Bot Move</button>
+          <button class="btn sm warn" data-act="timeoutbtn" title="Force timeout if turn stalled">⏱️ Poke</button>
+          <button class="btn sm bad" data-act="surrenderbtn" title="Surrender match">🏳️ Forfeit</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;margin-top:8px">
+        <input type="text" id="onlineChatInput" placeholder="Quick chat or taunt..." style="flex:1;padding:6px 10px;border-radius:8px;background:rgba(0,0,0,.3);border:1px solid var(--line);color:#fff;font-size:12px">
+        <button class="btn sm good" data-act="sendonlinechat">Send</button>
+      </div>
+      <div style="display:flex;gap:6px;margin-top:8px">
+        <button class="btn xs" data-act="onlineemote" data-e="🚀">🚀</button>
+        <button class="btn xs" data-act="onlineemote" data-e="🔥">🔥</button>
+        <button class="btn xs" data-act="onlineemote" data-e="💀">💀</button>
+        <button class="btn xs" data-act="onlineemote" data-e="🤑">🤑</button>
+        <button class="btn xs" data-act="onlineemote" data-e="🎲">🎲</button>
+        <button class="btn xs" data-act="onlineemote" data-e="🧱">🧱</button>
+        <button class="btn xs" data-act="onlineemote" data-e="👏">👏</button>
+      </div>
+    </div>
   </div>
   <div class="sh-foot"><button class="btn" data-act="close">Close</button></div>
+</div></div>
+
+<div class="modal" id="m-leaderboard"><div class="sheet wide">
+  <div class="sh-head"><h3>🏆 Sovereign 1v1 Leaderboard</h3><button class="x" data-act="close">✕</button></div>
+  <div class="sh-body" id="leaderboardBody">
+    <div style="padding:12px;font-size:12px;color:var(--muted)">Loading datacenter rankings...</div>
+  </div>
+  <div class="sh-foot"><button class="btn sm primary" data-act="openleaderboard">🔄 Refresh</button><button class="btn" data-act="close">Close</button></div>
 </div></div>
 
 <div class="modal" id="m-lobby"><div class="sheet wide">
@@ -1103,6 +1138,8 @@ const UI={
     this.close('m-lobby');
     $('#roomChip').style.display = 'inline-flex';
     $('#roomCodeText').textContent = this.onlineRoom.id;
+    if($('#activeRoomInfo'))$('#activeRoomInfo').style.display = 'block';
+    if($('#arRoomCode'))$('#arRoomCode').textContent = this.onlineRoom.id;
     this.toast('🌐', `Room ${this.onlineRoom.id} Connected!`, 'Live synchronized 1v1 match', 'good');
     const pl = (data.state && data.state.players) ? data.state.players : [{name:'Player 1',kind:'human',avatar:'cat'},{name:'Player 2',kind:'ai',avatar:'bunny'}];
     this.lobby.n = 2;
@@ -1116,6 +1153,7 @@ const UI={
   leaveOnlineRoom(){
     this.onlineRoom = null;
     $('#roomChip').style.display = 'none';
+    if($('#activeRoomInfo'))$('#activeRoomInfo').style.display = 'none';
     if(this.onlinePollTimer){
       clearInterval(this.onlinePollTimer);
       this.onlinePollTimer = null;
@@ -1212,6 +1250,123 @@ const UI={
         const data = await res.json();
         if(data.state)this.syncOnlineState(data.state);
       }
+    }catch(_){}
+  },
+  async openLeaderboard(){
+    this.open('m-leaderboard');
+    const cont = $('#leaderboardBody');
+    if(!cont)return;
+    cont.innerHTML = '<div style="padding:16px;text-align:center;color:var(--muted)">Loading leaderboard from Phone Datacenter...</div>';
+    try{
+      const res = await fetch('/v1/monopoly/leaderboard');
+      const data = await res.json();
+      if(!data.ok || !data.leaderboard || !data.leaderboard.length){
+        cont.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted)">No ranked matches recorded yet. Play a 1v1 match to earn your spot on the Sovereign Leaderboard!</div>';
+        return;
+      }
+      let html = `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead>
+          <tr style="border-bottom:1px solid var(--line);color:var(--muted);text-align:left">
+            <th style="padding:8px">#</th>
+            <th style="padding:8px">Player</th>
+            <th style="padding:8px">Rating</th>
+            <th style="padding:8px">W / L</th>
+            <th style="padding:8px">Win%</th>
+            <th style="padding:8px">Max Cash</th>
+          </tr>
+        </thead>
+        <tbody>`;
+      data.leaderboard.forEach((p, idx)=>{
+        const medal = idx === 0 ? '🥇 ' : idx === 1 ? '🥈 ' : idx === 2 ? '🥉 ' : `${idx + 1}. `;
+        const winRate = p.games > 0 ? Math.round((p.wins / p.games) * 100) : 0;
+        html += `<tr style="border-bottom:1px solid rgba(255,255,255,.05);${idx < 3 ? 'background:rgba(251,191,36,.06)' : ''}">
+          <td style="padding:8px;font-weight:700">${medal}</td>
+          <td style="padding:8px;font-weight:600;color:var(--acc)">${esc(p.name)}</td>
+          <td style="padding:8px;font-family:var(--mono);font-weight:700">${p.rating}</td>
+          <td style="padding:8px">${p.wins} / ${p.losses}</td>
+          <td style="padding:8px;color:${winRate >= 50 ? 'var(--good)' : 'var(--muted)'}">${winRate}%</td>
+          <td style="padding:8px;font-family:var(--mono)">$${p.max_cash.toLocaleString()}</td>
+        </tr>`;
+      });
+      html += '</tbody></table></div>';
+      cont.innerHTML = html;
+    }catch(err){
+      cont.innerHTML = `<div style="padding:16px;color:var(--bad)">Error fetching leaderboard: ${err.message}</div>`;
+    }
+  },
+  async onlineBotStep(){
+    if(!this.onlineRoom)return;
+    try{
+      const res = await fetch(`/v1/monopoly/rooms/${this.onlineRoom.id}/bot_step`, {method:'POST'});
+      const data = await res.json();
+      if(data.ok){
+        this.toast('🤖', `Bot executed: ${data.action}`, '', 'good');
+        if(data.state)this.syncOnlineState(data.state);
+      }else{
+        this.toast('⚠️', data.msg || 'Bot move failed', '', 'bad');
+      }
+    }catch(e){
+      this.toast('⚠️', 'Request failed', String(e), 'bad');
+    }
+  },
+  async onlineTimeout(){
+    if(!this.onlineRoom)return;
+    try{
+      const res = await fetch(`/v1/monopoly/rooms/${this.onlineRoom.id}/timeout`, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({timeout_sec:0})
+      });
+      const data = await res.json();
+      if(data.ok && data.timeout){
+        this.toast('⏱️', `Timeout forced: ${data.action}`, '', 'good');
+        if(data.state)this.syncOnlineState(data.state);
+      }else{
+        this.toast('⏱️', data.msg || 'Timeout processed', '', 'sys');
+      }
+    }catch(e){
+      this.toast('⚠️', 'Timeout check failed', String(e), 'bad');
+    }
+  },
+  async onlineSurrender(){
+    if(!this.onlineRoom)return;
+    if(!confirm('Are you sure you want to forfeit this online match?'))return;
+    try{
+      const res = await fetch(`/v1/monopoly/rooms/${this.onlineRoom.id}/surrender`, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({player_token:this.onlineRoom.token})
+      });
+      const data = await res.json();
+      this.toast('🏳️', 'Match forfeited', '', 'bad');
+      if(data.state)this.syncOnlineState(data.state);
+    }catch(e){
+      this.toast('⚠️', 'Surrender failed', String(e), 'bad');
+    }
+  },
+  copyRoomLink(){
+    if(!this.onlineRoom)return;
+    const url = `${location.origin}${location.pathname}?room=${this.onlineRoom.id}`;
+    navigator.clipboard.writeText(url).then(()=>{
+      this.toast('📋', 'Room Link Copied!', url, 'good');
+    }).catch(()=>{
+      prompt('Copy room URL:', url);
+    });
+  },
+  async sendOnlineChat(overrideText){
+    if(!this.onlineRoom)return;
+    const input = $('#onlineChatInput');
+    const text = overrideText || (input ? input.value.trim() : '');
+    if(!text)return;
+    if(input && !overrideText)input.value = '';
+    const sender = (Store.p && Store.p.name) || (this.onlineRoom.seat === 1 ? 'Host' : 'Challenger');
+    try{
+      await fetch(`/v1/monopoly/rooms/${this.onlineRoom.id}/chat`, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({sender, text, role:'player', avatar:Store.p.sel.avatar||'cat'})
+      });
+      this.toast('💬', sender, text, 'sys');
     }catch(_){}
   },
   lobby:{n:2,seats:[],maxTurns:50,term:false},pf:{pid:0,debt:false},trade:{to:null,give:new Set(),get:new Set(),giveCash:0,getCash:0},cashShown:{},ptab:'shop',askRes:null,debtShown:false,lastLog:0,
@@ -1487,6 +1642,19 @@ const UI={
       case 'ptab':this.ptab=d.t;this.renderProfile();break;
       case 'shopbuy':this.buyItem(d.k,d.id);break;case 'shopeq':this.equip(d.k,d.id);break;
       case 'claimdaily':this.claimDaily();break;
+      case 'openroommodal':this.openRoomModal();break;
+      case 'refreshroomsbtn':this.refreshRooms();break;
+      case 'quickmatchbtn':this.quickMatchOnline();break;
+      case 'createroombtn':this.createOnlineRoom();break;
+      case 'joinroombtn':this.joinOnlineRoom($('#rmJoinCode').value);break;
+      case 'joinroomitem':this.joinOnlineRoom(d.code);break;
+      case 'openleaderboard':this.openLeaderboard();break;
+      case 'botstepbtn':this.onlineBotStep();break;
+      case 'timeoutbtn':this.onlineTimeout();break;
+      case 'surrenderbtn':this.onlineSurrender();break;
+      case 'copyroomlink':this.copyRoomLink();break;
+      case 'sendonlinechat':this.sendOnlineChat();break;
+      case 'onlineemote':this.sendOnlineChat(d.e);break;
       case 'emote':if(g.s){const p=g.s.players.find(x=>x.id===g.s.cur&&x.kind==='human')||g.s.players.find(x=>x.kind==='human');if(p){this.emote(p.id,d.e);g.chat(p.name,p.color,d.e)}}break}}
 };
 

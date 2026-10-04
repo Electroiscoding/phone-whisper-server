@@ -896,6 +896,57 @@ class SwadesClient {
         const res = await fetch(`${this.endpoint}/v1/monopoly/stats`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return await res.json();
+      },
+      chat: async (roomId, options = {}) => {
+        const res = await fetch(`${this.endpoint}/v1/monopoly/rooms/${roomId}/chat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(options)
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return await res.json();
+      },
+      getChat: async (roomId) => {
+        const res = await fetch(`${this.endpoint}/v1/monopoly/rooms/${roomId}/chat`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return await res.json();
+      },
+      getLeaderboard: async () => {
+        const res = await fetch(`${this.endpoint}/v1/monopoly/leaderboard`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return await res.json();
+      },
+      botStep: async (roomId) => {
+        const res = await fetch(`${this.endpoint}/v1/monopoly/rooms/${roomId}/bot_step`, {
+          method: 'POST'
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return await res.json();
+      },
+      qwenStep: async (roomId) => {
+        const res = await fetch(`${this.endpoint}/v1/monopoly/rooms/${roomId}/qwen_step`, {
+          method: 'POST'
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return await res.json();
+      },
+      timeout: async (roomId, options = {}) => {
+        const res = await fetch(`${this.endpoint}/v1/monopoly/rooms/${roomId}/timeout`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(options)
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return await res.json();
+      },
+      surrender: async (roomId, options = {}) => {
+        const res = await fetch(`${this.endpoint}/v1/monopoly/rooms/${roomId}/surrender`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(options)
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return await res.json();
       }
     };
   }

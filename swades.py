@@ -732,6 +732,51 @@ class Swades:
             raise RuntimeError(f"Get stats failed: HTTP {res.status_code} - {res.text}")
         return res.json()
 
+    def send_game_chat(self, room_id, text, sender="Player", role="player", avatar="cat"):
+        payload = {"text": text, "sender": sender, "role": role, "avatar": avatar}
+        res = self._req("POST", f"/v1/monopoly/rooms/{room_id}/chat", json=payload, timeout=15)
+        if not res.ok:
+            raise RuntimeError(f"Send chat failed: HTTP {res.status_code} - {res.text}")
+        return res.json()
+
+    def get_game_chat(self, room_id):
+        res = self._req("GET", f"/v1/monopoly/rooms/{room_id}/chat", timeout=15)
+        if not res.ok:
+            raise RuntimeError(f"Get chat failed: HTTP {res.status_code} - {res.text}")
+        return res.json()
+
+    def get_game_leaderboard(self):
+        res = self._req("GET", "/v1/monopoly/leaderboard", timeout=15)
+        if not res.ok:
+            raise RuntimeError(f"Get leaderboard failed: HTTP {res.status_code} - {res.text}")
+        return res.json()
+
+    def bot_step_game(self, room_id):
+        res = self._req("POST", f"/v1/monopoly/rooms/{room_id}/bot_step", json={}, timeout=20)
+        if not res.ok:
+            raise RuntimeError(f"Bot step failed: HTTP {res.status_code} - {res.text}")
+        return res.json()
+
+    def qwen_step_game(self, room_id):
+        res = self._req("POST", f"/v1/monopoly/rooms/{room_id}/qwen_step", json={}, timeout=30)
+        if not res.ok:
+            raise RuntimeError(f"Qwen step failed: HTTP {res.status_code} - {res.text}")
+        return res.json()
+
+    def timeout_game(self, room_id, timeout_sec=45):
+        payload = {"timeout_sec": timeout_sec}
+        res = self._req("POST", f"/v1/monopoly/rooms/{room_id}/timeout", json=payload, timeout=20)
+        if not res.ok:
+            raise RuntimeError(f"Timeout check failed: HTTP {res.status_code} - {res.text}")
+        return res.json()
+
+    def surrender_game(self, room_id, player_token=None):
+        payload = {"player_token": player_token}
+        res = self._req("POST", f"/v1/monopoly/rooms/{room_id}/surrender", json=payload, timeout=15)
+        if not res.ok:
+            raise RuntimeError(f"Surrender failed: HTTP {res.status_code} - {res.text}")
+        return res.json()
+
     @property
     def monopoly(self):
         class _MonopolyAPI:
@@ -755,4 +800,24 @@ class Swades:
                 return self._c.cli_game(room_id, command, **kw)
             def reset(self, room_id):
                 return self._c.reset_game_room(room_id)
+            def chat(self, room_id, text, **kw):
+                return self._c.send_game_chat(room_id, text, **kw)
+            def get_chat(self, room_id):
+                return self._c.get_game_chat(room_id)
+            def leaderboard(self):
+                return self._c.get_game_leaderboard()
+            def bot_step(self, room_id):
+                return self._c.bot_step_game(room_id)
+            def qwen_step(self, room_id):
+                return self._c.qwen_step_game(room_id)
+            def timeout(self, room_id, **kw):
+                return self._c.timeout_game(room_id, **kw)
+            def surrender(self, room_id, **kw):
+                return self._c.surrender_game(room_id, **kw)
+            def quick_match(self, *a, **kw):
+                return self._c.quick_match_game(*a, **kw)
+            def history(self, room_id):
+                return self._c.get_game_history(room_id)
+            def stats(self):
+                return self._c.get_game_stats()
         return _MonopolyAPI(self)

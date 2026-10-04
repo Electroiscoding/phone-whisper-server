@@ -11,6 +11,7 @@ def parse_args():
     parser.add_argument("--avatar", default="fox", help="Avatar style: cat, bunny, bear, fox, etc.")
     parser.add_argument("--room", default=None, help="Room code to join")
     parser.add_argument("--quick", action="store_true", help="Matchmake into an open room or create one")
+    parser.add_argument("--leaderboard", action="store_true", help="Display global leaderboard and exit")
     parser.add_argument("--mode", default="heuristic", choices=["heuristic", "qwen", "random"], help="Decision engine")
     parser.add_argument("--delay", type=float, default=0.6, help="Delay between actions in seconds")
     return parser.parse_args()
@@ -105,6 +106,19 @@ def pick_move_qwen(endpoint, state, legal, my_pid):
 def main():
     args = parse_args()
     endpoint = args.endpoint.rstrip("/")
+
+    if args.leaderboard:
+        res = requests.get(f"{endpoint}/v1/monopoly/leaderboard", timeout=10)
+        if res.ok:
+            lb = res.json().get("leaderboard", [])
+            print("\n=== GRIDLOCK SOVEREIGN LEADERBOARD ===")
+            print(f"{'#':<4} {'Player':<16} {'Rating':<8} {'W / L':<10} {'Max Cash'}")
+            print("-" * 50)
+            for idx, p in enumerate(lb):
+                print(f"{idx+1:<4} {p['name']:<16} {p['rating']:<8} {p['wins']}/{p['losses']:<8} ${p['max_cash']:,}")
+            print("-" * 50)
+        return
+
     print(f"Connecting to GridLock Datacenter: {endpoint}")
 
     room_id = None
@@ -138,6 +152,15 @@ def main():
         pid = data["player_id"]
         print(f"Joined Room {room_id} as Seat {data['seat']}")
 
+    try:
+        requests.post(
+            f"{endpoint}/v1/monopoly/rooms/{room_id}/chat",
+            json={"sender": args.name, "text": f"🤖 {args.name} entered the room. Game on!", "role": "player", "avatar": args.avatar},
+            timeout=5
+        )
+    except Exception:
+        pass
+
     print(f"Engine: {args.mode.upper()} Agent | Token: {token[:8]}...")
 
     while True:
@@ -154,6 +177,14 @@ def main():
                 print(f"\n==========================================")
                 print(f"🏆 MATCH FINISHED! Winner: {w_name}")
                 print(f"==========================================")
+                try:
+                    requests.post(
+                        f"{endpoint}/v1/monopoly/rooms/{room_id}/chat",
+                        json={"sender": args.name, "text": f"GG! Winner is {w_name}.", "role": "player", "avatar": args.avatar},
+                        timeout=5
+                    )
+                except Exception:
+                    pass
                 break
 
             players = state.get("players", [])

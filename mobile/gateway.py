@@ -5548,6 +5548,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_internal_logs(parsed)
         elif path in ["/v1/monopoly/stats", "/monopoly/stats", "/v1/game/stats", "/game/stats"]:
             self.handle_gridlock_stats()
+        elif path in ["/v1/monopoly/leaderboard", "/monopoly/leaderboard", "/v1/game/leaderboard", "/game/leaderboard"]:
+            self.handle_gridlock_leaderboard()
         elif path in ["/v1/monopoly/rooms", "/monopoly/rooms", "/v1/game/rooms", "/game/rooms"]:
             self.handle_gridlock_list_rooms()
         elif path.startswith("/v1/monopoly/rooms/") or path.startswith("/monopoly/rooms/") or path.startswith("/v1/game/rooms/") or path.startswith("/game/rooms/"):
@@ -9218,6 +9220,12 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
     def handle_gridlock_stats(self):
         self._send_json_response(GLOBAL_ROOM_MANAGER.stats())
 
+    def handle_gridlock_leaderboard(self):
+        self._send_json_response({
+            "ok": True,
+            "leaderboard": GLOBAL_ROOM_MANAGER.get_leaderboard(limit=50)
+        })
+
     def handle_gridlock_quick(self):
         try:
             content_length = int(self.headers.get("Content-Length", 0))
@@ -9344,6 +9352,10 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 "over": game.over,
                 "winner": game.winner
             })
+        elif action == "chat":
+            self._send_json_response({"ok": True, "room_id": code, "chat": GLOBAL_ROOM_MANAGER.get_chat(code, limit=50)})
+        elif action == "leaderboard":
+            self._send_json_response({"ok": True, "leaderboard": GLOBAL_ROOM_MANAGER.get_leaderboard(limit=25)})
         elif action == "stream":
             self.send_response(200)
             self._send_cors_headers()
@@ -9415,6 +9427,122 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 "state": game.to_dict(),
                 "legal": game.legal_moves(),
                 "status": game.status_line()
+            })
+            return
+
+        if action == "chat":
+            sender = payload.get("sender") or payload.get("name") or "Player"
+            text = payload.get("text") or payload.get("message") or payload.get("msg") or ""
+            role = payload.get("role") or "player"
+            avatar = payload.get("avatar") or "cat"
+            ok, res_or_err = GLOBAL_ROOM_MANAGER.add_chat(code, sender=sender, text=text, role=role, avatar=avatar)
+            if not ok:
+                self._send_json_response({"ok": False, "error": res_or_err}, status=400)
+                return
+            self._send_json_response({
+                "ok": True,
+                "room_id": code,
+                "message": res_or_err,
+                "chat": GLOBAL_ROOM_MANAGER.get_chat(code, limit=50)
+            })
+            return
+
+        if action in ["bot_step", "bot", "ai_step"]:
+            bot_res = game.step_bot_forced()
+            self._send_json_response({
+                "ok": bot_res.get("ok", False),
+                "action": bot_res.get("action"),
+                "room_id": code,
+                "status": game.status_line(),
+                "next": game.legal_line(),
+                "legal": game.legal_moves(),
+                "state": game.to_dict()
+            })
+            return
+
+        if action in ["timeout", "poke"]:
+            sec = int(payload.get("timeout_sec", 45))
+            res = game.handle_timeout(timeout_sec=sec)
+            self._send_json_response({
+                "ok": res.get("ok", False),
+                "timeout": res.get("timeout", False),
+                "action": res.get("action"),
+                "msg": res.get("msg"),
+                "room_id": code,
+                "status": game.status_line(),
+                "legal": game.legal_moves(),
+                "state": game.to_dict()
+            })
+            return
+
+        if action in ["surrender", "forfeit"]:
+            p = game.player_by_token(token) if token else None
+            pid = p["id"] if p else game.cur
+            res = game.bankrupt_player(pid)
+            self._send_json_response({
+                "ok": res.get("ok", True),
+                "msg": res.get("msg", "Surrendered match"),
+                "room_id": code,
+                "status": game.status_line(),
+                "over": game.over,
+                "winner": game.winner,
+                "state": game.to_dict()
+            })
+            return
+
+        if action in ["qwen_step", "llm_step"]:
+            legal = game.legal_moves()
+            if not legal or game.over:
+                self._send_json_response({"ok": False, "msg": "No legal moves available"}, status=400)
+                return
+            cp = game.current_player()
+            p_prompt = (
+                f"You are playing GridLock 1v1 tactical monopoly as {cp['name']}.\n"
+                f"Status: {game.status_line()}\n"
+                f"Legal actions: {', '.join(legal)}\n"
+                f"Reply with ONLY one legal action from the list above, nothing else."
+            )
+            llm_action = None
+            try:
+                llama_port = _governor.ensure_service("llama")
+                if llama_port:
+                    l_req = urllib.request.Request(
+                        f"http://127.0.0.1:{llama_port}/v1/chat/completions",
+                        data=json.dumps({
+                            "model": "qwen2.5-0.5b",
+                            "messages": [{"role": "user", "content": p_prompt}],
+                            "max_tokens": 15,
+                            "temperature": 0.2
+                        }).encode("utf-8"),
+                        headers={"Content-Type": "application/json"},
+                        method="POST"
+                    )
+                    with urllib.request.urlopen(l_req, timeout=6) as l_resp:
+                        l_data = json.loads(l_resp.read().decode("utf-8"))
+                        ans = l_data["choices"][0]["message"]["content"].strip().lower()
+                        for act in legal:
+                            if act == ans or act in ans:
+                                llm_action = act
+                                break
+            except Exception:
+                llm_action = None
+
+            if not llm_action:
+                bot_res = game.step_bot_forced()
+                used_act = bot_res.get("action", "heuristic")
+            else:
+                game.exec_cli(llm_action, player_token=token)
+                used_act = llm_action
+
+            self._send_json_response({
+                "ok": True,
+                "llm_consulted": bool(llm_action),
+                "action": used_act,
+                "room_id": code,
+                "status": game.status_line(),
+                "next": game.legal_line(),
+                "legal": game.legal_moves(),
+                "state": game.to_dict()
             })
             return
 

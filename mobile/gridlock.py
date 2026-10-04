@@ -106,6 +106,9 @@ class GridLockGame:
         self.history = []
         self.created_at = time.time()
         self.last_activity = time.time()
+        self.turn_start_time = time.time()
+        self.manager = None
+        self.room_code = None
         self.players = []
         self.tiles = [{'owner': None, 'level': 0, 'mortgaged': False} for _ in range(16)]
 
@@ -891,6 +894,13 @@ class GridLockGame:
         self.winner = winner['id'] if winner else None
         w_name = winner['name'] if winner else 'Nobody'
         self.log(f"🏆 MATCH OVER! {w_name} is victorious! (Reason: {reason})", 'good')
+        if hasattr(self, 'manager') and self.manager and len(self.players) >= 2:
+            try:
+                loser = [p for p in self.players if p['id'] != self.winner][0] if winner else None
+                if winner and loser:
+                    self.manager.record_match_result(winner['name'], loser['name'], winner['cash'], loser['cash'], self.turn)
+            except Exception:
+                pass
 
     def reset_game(self):
         with self.lock:
@@ -981,6 +991,70 @@ class GridLockGame:
             steps += 1
         return steps
 
+    def step_bot_forced(self):
+        with self.lock:
+            if self.over:
+                return {'ok': False, 'msg': 'Game already over'}
+            if self.phase == 'auction' and self.auction:
+                tp = self.players[self.auction['turn']]
+                t = TILES[self.auction['tid']]
+                limit = int(t['cost'] * 0.9)
+                cur_bid = self.auction['bid']
+                next_bid = cur_bid + 10 if cur_bid > 0 else 10
+                if next_bid <= limit and next_bid <= tp['cash'] - 50:
+                    res = self.bid_auction(tp['id'], next_bid)
+                    return {'ok': True, 'action': 'bid', 'amount': next_bid, 'result': res}
+                else:
+                    res = self.fold_auction(tp['id'])
+                    return {'ok': True, 'action': 'fold', 'result': res}
+
+            cp = self.current_player()
+            if self.phase == 'pre':
+                if cp['in_jail'] and cp['cash'] >= 270:
+                    self.pay_jail(cp['id'])
+                for tid in self.tiles_of(cp['id']):
+                    if not self.why_no_build(cp['id'], tid) and cp['cash'] >= 300:
+                        self.build_upgrade(cp['id'], tid)
+                res = self.roll_dice(cp['id'])
+                return {'ok': True, 'action': 'roll', 'result': res}
+
+            if self.phase == 'decide':
+                t = TILES[self.pending]
+                if cp['cash'] >= t['cost'] + 150:
+                    res = self.buy_property(cp['id'])
+                    return {'ok': True, 'action': 'buy', 'result': res}
+                else:
+                    res = self.decline_property(cp['id'])
+                    return {'ok': True, 'action': 'decline', 'result': res}
+
+            if self.phase == 'debt':
+                res = self.auto_raise(cp['id'])
+                if self.debt:
+                    res = self.bankrupt_player(cp['id'])
+                    return {'ok': True, 'action': 'bankrupt', 'result': res}
+                return {'ok': True, 'action': 'autoraise', 'result': res}
+
+            if self.phase == 'post':
+                for tid in self.tiles_of(cp['id']):
+                    if not self.why_no_build(cp['id'], tid) and cp['cash'] >= 300:
+                        self.build_upgrade(cp['id'], tid)
+                res = self.end_turn(cp['id'])
+                return {'ok': True, 'action': 'end', 'result': res}
+
+            return {'ok': False, 'msg': f'No bot action available for phase {self.phase}'}
+
+    def handle_timeout(self, timeout_sec=45):
+        with self.lock:
+            if self.over or len(self.players) < 2:
+                return {'ok': False, 'msg': 'No timeout active'}
+            elapsed = time.time() - getattr(self, 'turn_start_time', time.time())
+            if elapsed < timeout_sec:
+                return {'ok': False, 'msg': f'Turn time remaining ({round(timeout_sec - elapsed, 1)}s left)'}
+            self.log(f'⏱️ Turn timeout ({round(elapsed, 1)}s elapsed). Auto-playing turn.', 'warn')
+            bot_res = self.step_bot_forced()
+            self.turn_start_time = time.time()
+            return {'ok': True, 'timeout': True, 'action': bot_res.get('action'), 'result': bot_res}
+
     def exec_cli(self, command_str, player_token=None):
         with self.lock:
             line = (command_str or '').strip()
@@ -997,7 +1071,7 @@ class GridLockGame:
                     "ACTIONS:   roll | buy | decline | bid <n> | fold | end | jail | autoraise | bankrupt",
                     "BUILDING:  build <tile> | sell <tile> | mortgage <tile> | unmortgage <tile>",
                     "TRADING:   trade <seat> give=<ids> get=<ids> givecash=<n> getcash=<n>",
-                    "VIEW:      status | board | legal | state | tiles | reset",
+                    "VIEW:      status | board | legal | state | tiles | reset | bot | timeout | surrender",
                     "Every command outputs status and NEXT legal moves for AI agents."
                 ])
                 return {'ok': True, 'msg': help_text, 'next': self.legal_line()}
@@ -1020,6 +1094,14 @@ class GridLockGame:
             if cmd == 'reset':
                 r = self.reset_game()
                 return {'ok': r['ok'], 'msg': r['msg'], 'next': self.legal_line()}
+
+            if cmd in ['bot', 'ai', 'hint']:
+                r = self.step_bot_forced()
+                return {'ok': r['ok'], 'msg': f"Bot executed {r.get('action')}", 'next': self.legal_line()}
+
+            if cmd == 'timeout':
+                r = self.handle_timeout(timeout_sec=0)
+                return {'ok': r['ok'], 'msg': f"Timeout processed: {r.get('action')}", 'next': self.legal_line()}
 
             pid = None
             if player_token:
@@ -1062,7 +1144,7 @@ class GridLockGame:
                 res = self.pay_jail(pid)
             elif cmd == 'autoraise':
                 res = self.auto_raise(pid)
-            elif cmd == 'bankrupt':
+            elif cmd in ['bankrupt', 'surrender', 'forfeit']:
                 res = self.bankrupt_player(pid)
             elif cmd == 'end':
                 res = self.end_turn(pid)
@@ -1238,6 +1320,7 @@ class GridLockGame:
 class GridLockRoomManager:
     def __init__(self):
         self.rooms = {}
+        self.leaderboard = {}
         self.lock = threading.RLock()
 
     def generate_code(self):
@@ -1248,10 +1331,98 @@ class GridLockRoomManager:
                 return c
         return uuid.uuid4().hex[:4].upper()
 
+    def record_match_result(self, winner_name, loser_name, winner_cash, loser_cash, turns):
+        with self.lock:
+            w_key = str(winner_name or '').strip()
+            l_key = str(loser_name or '').strip()
+            if not w_key or not l_key or w_key.lower() == l_key.lower():
+                return
+
+            if w_key not in self.leaderboard:
+                self.leaderboard[w_key] = {
+                    'name': w_key,
+                    'rating': 1200,
+                    'wins': 0,
+                    'losses': 0,
+                    'games': 0,
+                    'max_cash': 0,
+                    'last_seen': time.time()
+                }
+            if l_key not in self.leaderboard:
+                self.leaderboard[l_key] = {
+                    'name': l_key,
+                    'rating': 1200,
+                    'wins': 0,
+                    'losses': 0,
+                    'games': 0,
+                    'max_cash': 0,
+                    'last_seen': time.time()
+                }
+
+            w_rec = self.leaderboard[w_key]
+            l_rec = self.leaderboard[l_key]
+
+            ra = float(w_rec['rating'])
+            rb = float(l_rec['rating'])
+            ea = 1.0 / (1.0 + math.pow(10.0, (rb - ra) / 400.0))
+            eb = 1.0 / (1.0 + math.pow(10.0, (ra - rb) / 400.0))
+
+            k = 32
+            w_rec['rating'] = round(ra + k * (1.0 - ea))
+            l_rec['rating'] = max(100, round(rb + k * (0.0 - eb)))
+
+            w_rec['wins'] += 1
+            w_rec['games'] += 1
+            w_rec['max_cash'] = max(w_rec['max_cash'], int(winner_cash))
+            w_rec['last_seen'] = time.time()
+
+            l_rec['losses'] += 1
+            l_rec['games'] += 1
+            l_rec['max_cash'] = max(l_rec['max_cash'], int(loser_cash))
+            l_rec['last_seen'] = time.time()
+
+    def get_leaderboard(self, limit=25):
+        with self.lock:
+            board = list(self.leaderboard.values())
+            board.sort(key=lambda x: (x['rating'], x['wins']), reverse=True)
+            return board[:limit]
+
+    def add_chat(self, code, sender, text, role='spectator', avatar='cat'):
+        with self.lock:
+            code = code.upper().strip()
+            r = self.rooms.get(code)
+            if not r:
+                return False, 'Room not found'
+            if 'chat' not in r:
+                r['chat'] = []
+            msg_obj = {
+                'id': str(uuid.uuid4())[:8],
+                'sender': str(sender or 'Anon')[:24],
+                'text': str(text or '')[:300],
+                'role': str(role or 'spectator')[:16],
+                'avatar': str(avatar or 'cat')[:16],
+                'time': time.time()
+            }
+            r['chat'].append(msg_obj)
+            if len(r['chat']) > 80:
+                r['chat'].pop(0)
+            r['last_activity'] = time.time()
+            return True, msg_obj
+
+    def get_chat(self, code, limit=50):
+        with self.lock:
+            code = code.upper().strip()
+            r = self.rooms.get(code)
+            if not r:
+                return []
+            return r.get('chat', [])[-limit:]
+
     def create_room(self, host_name='Host', host_kind='human', host_avatar='cat', max_turns=50, start_cash=1500, auto_ai=True):
         with self.lock:
             code = self.generate_code()
             game = GridLockGame(start_cash=start_cash, max_turns=max_turns)
+            game.manager = self
+            game.room_code = code
             p1 = game.add_player(name=host_name, kind=host_kind, avatar=host_avatar)
             room_entry = {
                 'id': code,
@@ -1259,6 +1430,7 @@ class GridLockRoomManager:
                 'created_at': time.time(),
                 'last_activity': time.time(),
                 'auto_ai': auto_ai,
+                'chat': [],
                 'subscribers': []
             }
             self.rooms[code] = room_entry
@@ -1298,6 +1470,7 @@ class GridLockRoomManager:
                     'turn': g.turn,
                     'phase': g.phase,
                     'over': g.over,
+                    'chat_count': len(r.get('chat', [])),
                     'created_at': r['created_at'],
                     'last_activity': r['last_activity']
                 })
@@ -1347,6 +1520,7 @@ class GridLockRoomManager:
                 'waiting_rooms': waiting_rooms,
                 'completed_games': completed_games,
                 'total_turns': total_turns,
+                'leaderboard_count': len(self.leaderboard),
                 'engine': 'GridLock Sovereign 16-Tile Tactical Phone Datacenter v2.0'
             }
 
