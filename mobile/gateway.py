@@ -48,6 +48,10 @@ from email.mime.multipart import MIMEMultipart
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from socketserver import ThreadingMixIn
 from concurrent.futures import ThreadPoolExecutor
+try:
+    from mobile.gridlock import GLOBAL_ROOM_MANAGER
+except ImportError:
+    from gridlock import GLOBAL_ROOM_MANAGER
 
 try:
     from PIL import Image, ImageDraw, ImageFilter, ImageOps
@@ -5542,6 +5546,10 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_internal_status()
         elif path in ["/api/internal/logs", "/v1/internal/logs"]:
             self.handle_internal_logs(parsed)
+        elif path in ["/v1/monopoly/rooms", "/monopoly/rooms", "/v1/game/rooms", "/game/rooms"]:
+            self.handle_gridlock_list_rooms()
+        elif path.startswith("/v1/monopoly/rooms/") or path.startswith("/monopoly/rooms/") or path.startswith("/v1/game/rooms/") or path.startswith("/game/rooms/"):
+            self.handle_gridlock_get(path)
         elif path == "/v1/storage/objects":
             self.handle_storage_list_objects()
         elif parsed.path.startswith("/v1/storage/objects/"):
@@ -5708,6 +5716,10 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         elif path.startswith("/v1/cron/jobs/") and path.endswith("/update"):
             job_id = path[len("/v1/cron/jobs/"):].split("/")[0]
             self.handle_cron_update_job(job_id)
+        elif path in ["/v1/monopoly/rooms", "/monopoly/rooms", "/v1/game/rooms", "/game/rooms"]:
+            self.handle_gridlock_create_room()
+        elif path.startswith("/v1/monopoly/rooms/") or path.startswith("/monopoly/rooms/") or path.startswith("/v1/game/rooms/") or path.startswith("/game/rooms/"):
+            self.handle_gridlock_post(path)
         elif path in ["/api/internal/exec", "/v1/internal/exec"]:
             self.handle_internal_exec()
         elif path in ["/api/internal/update", "/v1/internal/update"]:
@@ -9198,6 +9210,259 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.wfile.write(html_content)
         else:
             self.handle_health()
+
+    def handle_gridlock_list_rooms(self):
+        rooms = GLOBAL_ROOM_MANAGER.list_rooms()
+        self._send_json_response({"ok": True, "count": len(rooms), "rooms": rooms})
+
+    def handle_gridlock_create_room(self):
+        try:
+            content_length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(content_length) if content_length > 0 else b""
+            payload = json.loads(body.decode("utf-8")) if body else {}
+        except Exception:
+            payload = {}
+        host_name = payload.get("name") or payload.get("host_name") or "Player 1"
+        host_kind = payload.get("kind") or payload.get("host_kind") or "human"
+        host_avatar = payload.get("avatar") or "cat"
+        max_turns = int(payload.get("max_turns", 50))
+        start_cash = int(payload.get("start_cash", 1500))
+        auto_ai = bool(payload.get("auto_ai", True))
+        code, p1, game = GLOBAL_ROOM_MANAGER.create_room(
+            host_name=host_name,
+            host_kind=host_kind,
+            host_avatar=host_avatar,
+            max_turns=max_turns,
+            start_cash=start_cash,
+            auto_ai=auto_ai
+        )
+        self._send_json_response({
+            "ok": True,
+            "room_id": code,
+            "seat": 1,
+            "player_id": 0,
+            "player_token": p1["token"],
+            "state": game.to_dict(),
+            "legal": game.legal_moves(),
+            "status": game.status_line()
+        })
+
+    def handle_gridlock_get(self, path):
+        sub = path
+        for pfx in ["/v1/monopoly/rooms/", "/monopoly/rooms/", "/v1/game/rooms/", "/game/rooms/"]:
+            if sub.startswith(pfx):
+                sub = sub[len(pfx):]
+                break
+        parts = sub.strip("/").split("/")
+        code = parts[0].upper()
+        entry = GLOBAL_ROOM_MANAGER.get_room(code)
+        if not entry:
+            self._send_json_response({"ok": False, "error": f"Room '{code}' not found"}, status=404)
+            return
+        game = entry["game"]
+        action = parts[1].lower() if len(parts) > 1 else ""
+
+        if action == "" or action == "info":
+            self._send_json_response({
+                "ok": True,
+                "room_id": code,
+                "players_count": len(game.players),
+                "waiting_for_p2": len(game.players) < 2,
+                "players": [{"seat": p["id"] + 1, "name": p["name"], "kind": p["kind"], "avatar": p["avatar"], "cash": p["cash"], "pos": p["pos"]} for p in game.players],
+                "cur_seat": (game.cur + 1) if game.players else None,
+                "cur_player": game.current_player()["name"] if game.players else None,
+                "phase": game.phase,
+                "turn": game.turn,
+                "status": game.status_line(),
+                "legal": game.legal_moves(),
+                "state": game.to_dict()
+            })
+        elif action == "state":
+            self._send_json_response({"ok": True, "room_id": code, "state": game.to_dict()})
+        elif action == "legal":
+            self._send_json_response({
+                "ok": True,
+                "room_id": code,
+                "turn": game.turn,
+                "cur_seat": game.cur + 1,
+                "cur_player": game.current_player()["name"],
+                "phase": game.phase,
+                "legal": game.legal_moves(),
+                "next": game.legal_line()
+            })
+        elif action == "ascii":
+            accept = (self.headers.get("Accept") or "").lower()
+            board_str = game.ascii_board()
+            if "text/plain" in accept:
+                out_b = board_str.encode("utf-8")
+                self.send_response(200)
+                self._send_cors_headers()
+                self.send_header("Content-Type", "text/plain; charset=utf-8")
+                self.send_header("Content-Length", str(len(out_b)))
+                self.end_headers()
+                self.wfile.write(out_b)
+            else:
+                self._send_json_response({"ok": True, "room_id": code, "board": board_str, "status": game.status_line()})
+        elif action == "logs":
+            self._send_json_response({"ok": True, "room_id": code, "logs": game.logs[-50:]})
+        elif action == "stream":
+            self.send_response(200)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "text/event-stream")
+            self.send_header("Cache-Control", "no-cache")
+            self.send_header("Connection", "keep-alive")
+            self.end_headers()
+            init_str = "data: " + json.dumps(game.to_dict()) + "\n\n"
+            init_data = init_str.encode("utf-8")
+            self.wfile.write(init_data)
+            self.wfile.flush()
+        else:
+            self._send_json_response({"ok": False, "error": f"Unknown action '{action}'"}, status=404)
+
+    def handle_gridlock_post(self, path):
+        sub = path
+        for pfx in ["/v1/monopoly/rooms/", "/monopoly/rooms/", "/v1/game/rooms/", "/game/rooms/"]:
+            if sub.startswith(pfx):
+                sub = sub[len(pfx):]
+                break
+        parts = sub.strip("/").split("/")
+        code = parts[0].upper()
+        entry = GLOBAL_ROOM_MANAGER.get_room(code)
+        if not entry and (len(parts) == 0 or parts[0] == ""):
+            self.handle_gridlock_create_room()
+            return
+        if not entry:
+            self._send_json_response({"ok": False, "error": f"Room '{code}' not found"}, status=404)
+            return
+
+        game = entry["game"]
+        action = parts[1].lower() if len(parts) > 1 else ""
+
+        try:
+            content_length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(content_length) if content_length > 0 else b""
+            payload = json.loads(body.decode("utf-8")) if body else {}
+        except Exception:
+            payload = {}
+
+        token = payload.get("player_token") or payload.get("token") or self.headers.get("X-Player-Token")
+
+        if action == "join":
+            name = payload.get("name") or "Player 2"
+            kind = payload.get("kind") or "human"
+            avatar = payload.get("avatar") or "bunny"
+            p2, err = GLOBAL_ROOM_MANAGER.join_room(code, name=name, kind=kind, avatar=avatar)
+            if err:
+                self._send_json_response({"ok": False, "error": err}, status=400)
+                return
+            self._send_json_response({
+                "ok": True,
+                "room_id": code,
+                "seat": 2,
+                "player_id": 1,
+                "player_token": p2["token"],
+                "state": game.to_dict(),
+                "legal": game.legal_moves(),
+                "status": game.status_line()
+            })
+            return
+
+        if action == "reset":
+            res = game.reset_game()
+            self._send_json_response({
+                "ok": res["ok"],
+                "msg": res["msg"],
+                "room_id": code,
+                "state": game.to_dict(),
+                "legal": game.legal_moves(),
+                "status": game.status_line()
+            })
+            return
+
+        if action == "step":
+            steps = game.auto_step_ai()
+            self._send_json_response({
+                "ok": True,
+                "steps": steps,
+                "status": game.status_line(),
+                "state": game.to_dict(),
+                "legal": game.legal_moves()
+            })
+            return
+
+        if action == "cli" or ("command" in payload and action != "act"):
+            cmd_str = payload.get("command") or payload.get("cmd") or ""
+            res = game.exec_cli(cmd_str, player_token=token)
+            self._send_json_response({
+                "ok": res["ok"],
+                "msg": res["msg"],
+                "room_id": code,
+                "status": res["status"],
+                "next": res["next"],
+                "legal": res["legal"],
+                "state": res["state"]
+            })
+            return
+
+        if action == "act" or "action" in payload:
+            act_name = (payload.get("action") or "").lower().strip()
+            res = {"ok": False, "msg": f"Invalid action '{act_name}'"}
+            p = game.player_by_token(token) if token else None
+            pid = p["id"] if p else (game.auction["turn"] if game.phase == "auction" and game.auction else game.cur)
+
+            if act_name == "roll":
+                res = game.roll_dice(pid)
+            elif act_name == "buy":
+                res = game.buy_property(pid)
+            elif act_name == "decline":
+                res = game.decline_property(pid)
+            elif act_name == "bid":
+                amt = int(payload.get("amount", 0))
+                res = game.bid_auction(pid, amt)
+            elif act_name == "fold":
+                res = game.fold_auction(pid)
+            elif act_name in ["build", "upgrade", "up"]:
+                tid = int(payload.get("tile", -1))
+                res = game.build_upgrade(pid, tid)
+            elif act_name == "sell":
+                tid = int(payload.get("tile", -1))
+                res = game.sell_building(pid, tid)
+            elif act_name == "mortgage":
+                tid = int(payload.get("tile", -1))
+                res = game.mortgage_tile(pid, tid)
+            elif act_name == "unmortgage":
+                tid = int(payload.get("tile", -1))
+                res = game.unmortgage_tile(pid, tid)
+            elif act_name == "jail":
+                res = game.pay_jail(pid)
+            elif act_name == "autoraise":
+                res = game.auto_raise(pid)
+            elif act_name == "bankrupt":
+                res = game.bankrupt_player(pid)
+            elif act_name == "end":
+                res = game.end_turn(pid)
+            elif act_name == "trade":
+                to_seat = int(payload.get("partner", 2 if pid == 0 else 1))
+                give_t = payload.get("give", [])
+                get_t = payload.get("get", [])
+                give_c = int(payload.get("give_cash", 0))
+                get_c = int(payload.get("get_cash", 0))
+                res = game.trade_properties(pid, to_seat, give_t, get_t, give_c, get_c)
+
+            game.auto_step_ai()
+
+            self._send_json_response({
+                "ok": res["ok"],
+                "msg": res["msg"],
+                "room_id": code,
+                "status": game.status_line(),
+                "next": game.legal_line(),
+                "legal": game.legal_moves(),
+                "state": game.to_dict()
+            })
+            return
+
+        self._send_json_response({"ok": False, "error": f"Unknown POST action '{action}'"}, status=400)
 
     def handle_health(self):
         self.send_response(200)

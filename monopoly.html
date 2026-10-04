@@ -258,6 +258,8 @@ body.calm *{animation-duration:.01ms!important;animation-iteration-count:1!impor
     <button class="tbtn" id="btnManage" data-act="manage" title="Portfolio (P)">🏛️<span class="lb">Portfolio</span></button>
     <button class="tbtn" id="btnTrade" data-act="trade" title="Trade (T)">🤝<span class="lb">Trade</span></button>
     <button class="tbtn" data-act="open" data-m="m-help" title="Rules & shortcuts">📖</button>
+    <button class="tbtn" id="btnOnlineRoom" data-act="openroommodal" title="1v1 Online Rooms & Agent Match">🌐<span class="lb">Online 1v1</span></button>
+    <span class="chip" id="roomChip" style="display:none;cursor:pointer;border-color:var(--acc);color:var(--acc)" data-act="openroommodal">🌐 <b id="roomCodeText"></b></span>
     <button class="tbtn" id="btnTerm" data-act="termmode" title="Text / terminal mode">⌨️</button>
     <button class="tbtn" id="btnSound" data-act="sound" title="Sound (M)">🔊</button>
     <button class="tbtn" id="btnVoice" data-act="voice" title="Voice narration (V)">🔇</button>
@@ -312,6 +314,52 @@ body.calm *{animation-duration:.01ms!important;animation-iteration-count:1!impor
 </main>
 
 <!-- ============ MODALS ============ -->
+<div class="modal" id="m-room"><div class="sheet wide">
+  <div class="sh-head"><h3>🌐 GridLock 1v1 Sovereign Rooms</h3><button class="x" data-act="close">✕</button></div>
+  <div class="sh-body" id="roomModalBody">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+      <div style="padding:14px;border-radius:16px;background:rgba(255,255,255,.05);border:1px solid var(--line)">
+        <h4 style="margin:0 0 8px">Create 1v1 Room</h4>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:10px">Host a match against another player or AI bot.</p>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <input type="text" id="rmHostName" placeholder="Your Name" value="Player 1" style="padding:8px 12px;border-radius:10px;background:rgba(0,0,0,.3);border:1px solid var(--line);color:#fff">
+          <div style="display:flex;gap:8px">
+            <select id="rmHostAvatar" style="flex:1;padding:8px;border-radius:10px;background:rgba(0,0,0,.3);border:1px solid var(--line);color:#fff">
+              <option value="cat">Mochi Cat</option>
+              <option value="bunny">Bun Bun</option>
+              <option value="bear">Teddy</option>
+              <option value="fox">Foxy</option>
+            </select>
+            <select id="rmHostKind" style="padding:8px;border-radius:10px;background:rgba(0,0,0,.3);border:1px solid var(--line);color:#fff">
+              <option value="human">Human</option>
+              <option value="ai">AI Bot</option>
+            </select>
+          </div>
+          <button class="btn primary" data-act="createroombtn" style="margin-top:4px">🚀 Host New 1v1 Room</button>
+        </div>
+      </div>
+      <div style="padding:14px;border-radius:16px;background:rgba(255,255,255,.05);border:1px solid var(--line)">
+        <h4 style="margin:0 0 8px">Join 1v1 Room</h4>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:10px">Enter a 4-letter room code to connect.</p>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <input type="text" id="rmJoinCode" placeholder="ROOM CODE" maxlength="4" style="text-transform:uppercase;font-family:var(--mono);font-size:18px;font-weight:900;letter-spacing:4px;text-align:center;padding:8px 12px;border-radius:10px;background:rgba(0,0,0,.3);border:1px solid var(--line);color:var(--acc)">
+          <input type="text" id="rmJoinName" placeholder="Your Name" value="Challenger" style="padding:8px 12px;border-radius:10px;background:rgba(0,0,0,.3);border:1px solid var(--line);color:#fff">
+          <button class="btn good" data-act="joinroombtn" style="margin-top:4px">⚔️ Join Match</button>
+        </div>
+      </div>
+    </div>
+    <div style="padding:14px;border-radius:16px;background:rgba(0,0,0,.25);border:1px solid var(--line)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <h4 style="margin:0">Active Public Rooms</h4>
+        <button class="btn sm" data-act="refreshroomsbtn">🔄 Refresh</button>
+      </div>
+      <div id="roomListContainer" style="display:flex;flex-direction:column;gap:6px;max-height:160px;overflow-y:auto"></div>
+    </div>
+    <div id="activeRoomInfo" style="display:none;margin-top:12px;padding:12px;border-radius:14px;background:rgba(56,189,248,.1);border:1px solid #38bdf8"></div>
+  </div>
+  <div class="sh-foot"><button class="btn" data-act="close">Close</button></div>
+</div></div>
+
 <div class="modal" id="m-lobby"><div class="sheet wide">
   <div class="sh-head"><h3>🎮 New Match</h3></div>
   <div class="sh-body" id="lobbyBody"></div>
@@ -908,6 +956,9 @@ class Game{
     const out=[];for(let r=1;r<=5;r++){out.push(r===3||r===4?open:full);for(let k=0;k<3;k++){if(r>=2&&r<=4){const mid=(k===1&&r===3)?pad(`  POOL ${money(s.jackpot)}  T${s.turn}`,W*3+2):' '.repeat(W*3+2);out.push('|'+g[r+',1'][k]+'|'+mid+'|'+g[r+',5'][k]+'|')}else out.push('|'+[1,2,3,4,5].map(c=>g[r+','+c][k]).join('|')+'|')}}
     out.push(full);out.push('Legend: P#=player token • P# L# owner/level • M=mortgaged • *=trade-locked (upgrades)');return out.join('\n')}
   async exec(line){
+    if(UI.onlineRoom){
+      return await UI.onlineCli(line);
+    }
     line=(line||'').trim();if(!line)return{ok:true,msg:''};const[c0,...a]=line.split(/\s+/),c=c0.toLowerCase(),s=this.s;
     const info={help:()=>HELP_CLI,status:()=>this.statusText(),board:()=>this.ascii(),tiles:()=>this.tilesText(),legal:()=>this.legal().join('\n'),state:()=>JSON.stringify(this.state(),null,1),props:()=>this.propsText(a[0]?+a[0]-1:s.cur),tile:()=>this.tileText(+a[0]),log:()=>this.logs.slice(-(+a[0]||12)).map(l=>l.text).join('\n')};
     if(c==='help')return{ok:true,msg:HELP_CLI};
@@ -936,6 +987,205 @@ class Game{
    7. UI LAYER
    ===================================================================== */
 const UI={
+  onlineRoom:null,
+  onlinePollTimer:null,
+  async openRoomModal(){
+    this.open('m-room');
+    await this.refreshRooms();
+  },
+  async refreshRooms(){
+    const cont = $('#roomListContainer');
+    if(!cont)return;
+    cont.innerHTML = '<div style="padding:8px;font-size:12px;color:var(--muted)">Loading active rooms...</div>';
+    try{
+      const res = await fetch('/v1/monopoly/rooms');
+      const data = await res.json();
+      if(!data.ok || !data.rooms || !data.rooms.length){
+        cont.innerHTML = '<div style="padding:8px;font-size:12px;color:var(--muted)">No active rooms right now. Create one above!</div>';
+        return;
+      }
+      cont.innerHTML = data.rooms.map(r=>`
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid var(--line)">
+          <div>
+            <b style="font-family:var(--mono);color:var(--acc)">${r.id}</b>
+            <span style="font-size:12px;color:var(--muted);margin-left:8px">${r.players.map(p=>p.name).join(' vs ') || 'Waiting'}</span>
+            <span style="font-size:11px;padding:2px 6px;border-radius:6px;background:rgba(0,0,0,.3);margin-left:6px">${r.waiting_for_p2 ? 'Open Seat' : 'Full'}</span>
+          </div>
+          <button class="btn sm ${r.waiting_for_p2 ? 'good' : 'primary'}" data-act="joinroomitem" data-code="${r.id}">${r.waiting_for_p2 ? '⚔️ Join' : '👁️ Spectate'}</button>
+        </div>
+      `).join('');
+    }catch(err){
+      cont.innerHTML = `<div style="padding:8px;font-size:12px;color:var(--bad)">Error loading rooms: ${err.message}</div>`;
+    }
+  },
+  async createOnlineRoom(){
+    const name = ($('#rmHostName').value || 'Host').trim();
+    const avatar = $('#rmHostAvatar').value || 'cat';
+    const kind = $('#rmHostKind').value || 'human';
+    try{
+      const res = await fetch('/v1/monopoly/rooms', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({name, avatar, kind, max_turns: 50, start_cash: 1500, auto_ai: true})
+      });
+      const data = await res.json();
+      if(!data.ok){
+        this.toast('⚠️', data.error || 'Failed to create room', '', 'bad');
+        return;
+      }
+      this.onlineRoom = {id: data.room_id, token: data.player_token, seat: 1, isHost: true};
+      this.onRoomJoined(data);
+    }catch(e){
+      this.toast('⚠️', 'Connection failed', String(e), 'bad');
+    }
+  },
+  async joinOnlineRoom(code, name){
+    code = (code || '').toUpperCase().trim();
+    if(!code){
+      this.toast('⚠️', 'Please enter a 4-letter room code', '', 'bad');
+      return;
+    }
+    name = (name || $('#rmJoinName').value || 'Challenger').trim();
+    try{
+      const res = await fetch(`/v1/monopoly/rooms/${code}/join`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({name, kind: 'human', avatar: 'bunny'})
+      });
+      const data = await res.json();
+      if(!data.ok){
+        const spectateRes = await fetch(`/v1/monopoly/rooms/${code}/state`);
+        if(spectateRes.ok){
+          const spData = await spectateRes.json();
+          this.onlineRoom = {id: code, token: null, seat: 0, isSpectator: true};
+          this.onRoomJoined(spData);
+          return;
+        }
+        this.toast('⚠️', data.error || 'Failed to join room', '', 'bad');
+        return;
+      }
+      this.onlineRoom = {id: code, token: data.player_token, seat: 2, isHost: false};
+      this.onRoomJoined(data);
+    }catch(e){
+      this.toast('⚠️', 'Join failed', String(e), 'bad');
+    }
+  },
+  onRoomJoined(data){
+    this.close('m-room');
+    this.close('m-lobby');
+    $('#roomChip').style.display = 'inline-flex';
+    $('#roomCodeText').textContent = this.onlineRoom.id;
+    this.toast('🌐', `Room ${this.onlineRoom.id} Connected!`, 'Live synchronized 1v1 match', 'good');
+    const pl = (data.state && data.state.players) ? data.state.players : [{name:'Player 1',kind:'human',avatar:'cat'},{name:'Player 2',kind:'ai',avatar:'bunny'}];
+    this.lobby.n = 2;
+    this.lobby.seats = pl.map(p=>({name:p.name,kind:p.kind,avatar:p.avatar||'cat',acc:'none'}));
+    this.startFromLobby(false);
+    if(data.state)this.syncOnlineState(data.state);
+    if(!this.onlinePollTimer){
+      this.onlinePollTimer = setInterval(()=>this.pollOnlineRoom(), 750);
+    }
+  },
+  leaveOnlineRoom(){
+    this.onlineRoom = null;
+    $('#roomChip').style.display = 'none';
+    if(this.onlinePollTimer){
+      clearInterval(this.onlinePollTimer);
+      this.onlinePollTimer = null;
+    }
+    this.toast('🌐', 'Disconnected from online room', '', 'sys');
+  },
+  async onlineAct(payload){
+    if(!this.onlineRoom)return{ok:false};
+    try{
+      const res = await fetch(`/v1/monopoly/rooms/${this.onlineRoom.id}/act`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if(!data.ok){
+        this.toast('⚠️', data.msg || data.error || 'Action failed', '', 'bad');
+        Sfx.play('err');
+        return data;
+      }
+      if(data.msg)this.toast('⚡', data.msg, '', 'good');
+      if(data.state)this.syncOnlineState(data.state);
+      return data;
+    }catch(e){
+      this.toast('⚠️', 'Network error', String(e), 'bad');
+      return{ok:false, msg:String(e)};
+    }
+  },
+  async onlineCli(cmdStr){
+    if(!this.onlineRoom)return{ok:false};
+    try{
+      const res = await fetch(`/v1/monopoly/rooms/${this.onlineRoom.id}/cli`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({command: cmdStr, player_token: this.onlineRoom.token})
+      });
+      const data = await res.json();
+      if(data.state)this.syncOnlineState(data.state);
+      return data;
+    }catch(e){
+      return{ok:false, msg:String(e)};
+    }
+  },
+  syncOnlineState(st){
+    if(!game || !game.s || !st)return;
+    const s = game.s;
+    s.turn = st.turn;
+    s.phase = st.phase;
+    s.cur = st.cur;
+    s.jackpot = st.jackpot;
+    s.extra = st.extra;
+    s.over = st.over;
+    s.winner = st.winner;
+    s.debt = st.debt;
+    s.pending = st.pending;
+    if(st.auction){
+      s.auction = {
+        tid: st.auction.tid,
+        bid: st.auction.bid,
+        high: st.auction.high,
+        order: [0, 1],
+        turn: st.auction.turn,
+        folded: new Set(st.auction.folded || [])
+      };
+    }else{
+      s.auction = null;
+    }
+    if(st.players && st.players.length === s.players.length){
+      st.players.forEach((sp, i)=>{
+        const p = s.players[i];
+        p.cash = sp.cash;
+        p.pos = sp.pos;
+        p.inJail = sp.in_jail;
+        p.shield = sp.shield;
+        p.bankrupt = sp.bankrupt;
+        p.name = sp.name;
+        p.kind = sp.kind;
+      });
+    }
+    if(st.tiles && st.tiles.length === s.tiles.length){
+      st.tiles.forEach((stTile, i)=>{
+        s.tiles[i].owner = stTile.owner;
+        s.tiles[i].level = stTile.level;
+        s.tiles[i].mortgaged = stTile.mortgaged;
+      });
+    }
+    game.render();
+  },
+  async pollOnlineRoom(){
+    if(!this.onlineRoom)return;
+    try{
+      const res = await fetch(`/v1/monopoly/rooms/${this.onlineRoom.id}/state`);
+      if(res.ok){
+        const data = await res.json();
+        if(data.state)this.syncOnlineState(data.state);
+      }
+    }catch(_){}
+  },
   lobby:{n:2,seats:[],maxTurns:50,term:false},pf:{pid:0,debt:false},trade:{to:null,give:new Set(),get:new Set(),giveCash:0,getCash:0},cashShown:{},ptab:'shop',askRes:null,debtShown:false,lastLog:0,
   /* ----- generic ----- */
   open(id){$('#'+id).classList.add('open')},close(id){$('#'+id).classList.remove('open')},
@@ -1083,7 +1333,16 @@ const UI={
   tabTo(t){$$('.pane').forEach(p=>p.classList.toggle('on',p.id==='pane-'+t));$$('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));if(t==='chat')$('#chatDot').style.display='none'},
   setTerm(on){document.body.classList.toggle('term',on);$('#btnTerm').classList.toggle('on',on);game.autoboard=on;
     if(on){game.speed=.12;this.tabTo('term');setTimeout(()=>$('#termIn').focus(),60)}else game.speed=Store.p.fast?.4:1},
-  async do(name,...a){const g=game;if(!g.s)return;const gk={upgrade:'build',downgrade:'sell',payJail:'jail',endTurn:'end',autoRaise:'autoraise'}[name]||name;
+  async do(name,...a){
+    if(this.onlineRoom){
+      const actMap={roll:'roll',buy:'buy',decline:'decline',endTurn:'end',payJail:'jail',autoRaise:'autoraise',upgrade:'build',downgrade:'sell',mortgage:'mortgage',unmortgage:'unmortgage',bid:'bid',fold:'fold'};
+      const act=actMap[name]||name;
+      const payload={action:act,player_token:this.onlineRoom.token};
+      if(['build','sell','mortgage','unmortgage'].includes(act)&&a[0]!==undefined)payload.tile=+a[0];
+      if(act==='bid'&&a[0]!==undefined)payload.amount=+a[0];
+      return await this.onlineAct(payload);
+    }
+    const g=game;if(!g.s)return;const gk={upgrade:'build',downgrade:'sell',payJail:'jail',endTurn:'end',autoRaise:'autoraise'}[name]||name;
     const why=g.guardHuman(gk);if(why){this.toast('⏳','Hold on',why,'bad');Sfx.play('err');return}
     const r=await g[name](...a);if(r&&r.ok===false){this.toast('⚠️',r.msg,'','bad');Sfx.play('err')}return r},
   /* ----- shop / profile ----- */
@@ -1245,7 +1504,12 @@ window.addEventListener('DOMContentLoaded',()=>{
   game=new Game();window.game=game;game.speed=Store.p.fast?.4:1;
   window.GridLockAPI={exec:l=>game.apiExec(l),state:()=>game.state(),legal:()=>game.legal(),guide:HELP_CLI};
   UI.renderChip();UI.renderHelp();UI.dieFace(1);UI.renderLobby();UI.open('m-lobby');
-  const q=new URLSearchParams(location.search);if(q.get('fast')==='1')game.speed=.1;
+  const q=new URLSearchParams(location.search);
+  const roomParam = q.get('room') || q.get('join');
+  if(roomParam){
+    setTimeout(()=>UI.joinOnlineRoom(roomParam), 300);
+  }
+if(q.get('fast')==='1')game.speed=.1;
   if(q.get('mode')==='terminal'){UI.lobby.term=true;UI.lobby.fromCli=false;UI.startFromLobby(true)}else UI.checkDaily();
 });
 </script>

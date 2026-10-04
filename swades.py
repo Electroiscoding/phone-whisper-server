@@ -654,3 +654,86 @@ class Swades:
         if not res.ok:
             raise RuntimeError(f"Ranking stats failed: HTTP {res.status_code} - {res.text}")
         return res.json()
+
+    def create_game_room(self, name="Player 1", kind="human", avatar="cat", max_turns=50, start_cash=1500, auto_ai=True):
+        payload = {"name": name, "kind": kind, "avatar": avatar, "max_turns": max_turns, "start_cash": start_cash, "auto_ai": auto_ai}
+        res = self._req("POST", "/v1/monopoly/rooms", json=payload, timeout=20)
+        if not res.ok:
+            raise RuntimeError(f"Create room failed: HTTP {res.status_code} - {res.text}")
+        return res.json()
+
+    def list_game_rooms(self):
+        res = self._req("GET", "/v1/monopoly/rooms", timeout=15)
+        if not res.ok:
+            raise RuntimeError(f"List rooms failed: HTTP {res.status_code} - {res.text}")
+        return res.json()
+
+    def join_game_room(self, room_id, name="Challenger", kind="human", avatar="bunny"):
+        payload = {"name": name, "kind": kind, "avatar": avatar}
+        res = self._req("POST", f"/v1/monopoly/rooms/{room_id}/join", json=payload, timeout=20)
+        if not res.ok:
+            raise RuntimeError(f"Join room failed: HTTP {res.status_code} - {res.text}")
+        return res.json()
+
+    def get_game_state(self, room_id):
+        res = self._req("GET", f"/v1/monopoly/rooms/{room_id}/state", timeout=15)
+        if not res.ok:
+            raise RuntimeError(f"Get state failed: HTTP {res.status_code} - {res.text}")
+        return res.json()
+
+    def get_game_legal_moves(self, room_id):
+        res = self._req("GET", f"/v1/monopoly/rooms/{room_id}/legal", timeout=15)
+        if not res.ok:
+            raise RuntimeError(f"Get legal moves failed: HTTP {res.status_code} - {res.text}")
+        return res.json()
+
+    def get_game_ascii_board(self, room_id):
+        res = self._req("GET", f"/v1/monopoly/rooms/{room_id}/ascii", headers={"Accept": "text/plain"}, timeout=15)
+        if not res.ok:
+            raise RuntimeError(f"Get ascii board failed: HTTP {res.status_code} - {res.text}")
+        return res.text
+
+    def act_game(self, room_id, action, player_token=None, **kwargs):
+        payload = {"action": action, "player_token": player_token, **kwargs}
+        res = self._req("POST", f"/v1/monopoly/rooms/{room_id}/act", json=payload, timeout=25)
+        if not res.ok:
+            raise RuntimeError(f"Game action failed: HTTP {res.status_code} - {res.text}")
+        return res.json()
+
+    def cli_game(self, room_id, command, player_token=None):
+        payload = {"command": command, "player_token": player_token}
+        res = self._req("POST", f"/v1/monopoly/rooms/{room_id}/cli", json=payload, timeout=25)
+        if not res.ok:
+            raise RuntimeError(f"CLI command failed: HTTP {res.status_code} - {res.text}")
+        return res.json()
+
+    def reset_game_room(self, room_id):
+        res = self._req("POST", f"/v1/monopoly/rooms/{room_id}/reset", json={}, timeout=15)
+        if not res.ok:
+            raise RuntimeError(f"Reset room failed: HTTP {res.status_code} - {res.text}")
+        return res.json()
+
+    @property
+    def monopoly(self):
+        class _MonopolyAPI:
+            def __init__(self, client):
+                self._c = client
+            def create_room(self, *a, **kw):
+                return self._c.create_game_room(*a, **kw)
+            def list_rooms(self):
+                return self._c.list_game_rooms()
+            def join_room(self, *a, **kw):
+                return self._c.join_game_room(*a, **kw)
+            def state(self, room_id):
+                return self._c.get_game_state(room_id)
+            def legal(self, room_id):
+                return self._c.get_game_legal_moves(room_id)
+            def ascii(self, room_id):
+                return self._c.get_game_ascii_board(room_id)
+            def act(self, room_id, action, **kw):
+                return self._c.act_game(room_id, action, **kw)
+            def cli(self, room_id, command, **kw):
+                return self._c.cli_game(room_id, command, **kw)
+            def reset(self, room_id):
+                return self._c.reset_game_room(room_id)
+        return _MonopolyAPI(self)

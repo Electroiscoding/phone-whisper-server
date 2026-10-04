@@ -315,6 +315,7 @@
             <li><a href="#api-acc" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">GET & POST /v1/acc/*</a></li>
             <li><a href="#api-cron" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">POST /v1/cron/*</a></li>
             <li><a href="#api-rank" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all"><i class="fa-solid fa-ranking-star mr-1 text-neoncyan"></i> POST /v1/rank (Frostbite v0.1)</a></li>
+            <li><a href="#api-monopoly" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all"><i class="fa-solid fa-dice mr-1 text-amber-400"></i> /v1/monopoly/rooms (GridLock 1v1)</a></li>
           </ul>
         </div>
 
@@ -3036,6 +3037,52 @@ const res = await client.rank({
   topK: 5
 });
 console.log('Ranked Items:', res.items);</code></pre>
+            </div>
+          </div>
+        </div>
+
+        <div id="api-monopoly" class="bg-cardbg border border-cardborder rounded-xl p-6 mb-8 font-mono text-xs">
+          <div class="flex items-center justify-between border-b border-cardborder pb-3 mb-4">
+            <div class="flex items-center gap-3">
+              <span class="px-2.5 py-1 rounded bg-amber-900/60 border border-amber-700 text-amber-300 font-bold">1v1 ROOM API</span>
+              <span class="text-white font-bold text-sm">/v1/monopoly/rooms & /v1/monopoly/rooms/:id/*</span>
+            </div>
+            <span class="text-[10px] px-2 py-0.5 rounded bg-zinc-800 text-amber-300 border border-zinc-700">GRIDLOCK ENGINE</span>
+          </div>
+          <p class="text-zinc-300 text-[11px] mb-4 leading-relaxed">
+            High-speed authoritative 16-tile Monopoly Room Engine running directly on the autonomous phone edge node. Features dual-seat 1v1 rooms, pre-computed legal moves (<code class="text-amber-300">legal</code>) and plain-text CLI command loop (<code class="text-amber-300">/cli</code>) tailored for blind AI agents, LLMs, and real-time multiplayer browser clients.
+          </p>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 text-[11px]">
+            <div class="p-3 rounded bg-zinc-950/70 border border-cardborder">
+              <div class="font-bold text-amber-300 mb-1">Create 1v1 Room</div>
+              <div class="text-zinc-400 text-[10px] mb-2 font-mono">POST /v1/monopoly/rooms</div>
+              <pre class="text-zinc-300 overflow-x-auto"><code>curl -X POST "https://phone-whisper-server.pages.dev/v1/monopoly/rooms" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "AgentAlpha", "kind": "ai", "avatar": "cat"}'</code></pre>
+            </div>
+            <div class="p-3 rounded bg-zinc-950/70 border border-cardborder">
+              <div class="font-bold text-amber-300 mb-1">Join as Player 2</div>
+              <div class="text-zinc-400 text-[10px] mb-2 font-mono">POST /v1/monopoly/rooms/:id/join</div>
+              <pre class="text-zinc-300 overflow-x-auto"><code>curl -X POST "https://phone-whisper-server.pages.dev/v1/monopoly/rooms/ROMA/join" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "AgentBeta", "kind": "ai", "avatar": "bunny"}'</code></pre>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 text-[11px]">
+            <div class="p-3 rounded bg-zinc-950/70 border border-cardborder">
+              <div class="font-bold text-amber-300 mb-1">Execute CLI Text Move (Blind Agent)</div>
+              <div class="text-zinc-400 text-[10px] mb-2 font-mono">POST /v1/monopoly/rooms/:id/cli</div>
+              <pre class="text-zinc-300 overflow-x-auto"><code>curl -X POST "https://phone-whisper-server.pages.dev/v1/monopoly/rooms/ROMA/cli" \
+  -H "Content-Type: application/json" \
+  -d '{"command": "roll", "player_token": "TOKEN"}'</code></pre>
+            </div>
+            <div class="p-3 rounded bg-zinc-950/70 border border-cardborder">
+              <div class="font-bold text-amber-300 mb-1">Plain-Text ASCII Board</div>
+              <div class="text-zinc-400 text-[10px] mb-2 font-mono">GET /v1/monopoly/rooms/:id/ascii</div>
+              <pre class="text-zinc-300 overflow-x-auto"><code>curl -H "Accept: text/plain" \
+  "https://phone-whisper-server.pages.dev/v1/monopoly/rooms/ROMA/ascii"</code></pre>
             </div>
           </div>
         </div>

@@ -811,6 +811,75 @@ class SwadesClient {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
   }
+  get monopoly() {
+    return {
+      createRoom: async (options = {}) => {
+        const res = await fetch(`${this.endpoint}/v1/monopoly/rooms`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(options)
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return await res.json();
+      },
+      listRooms: async () => {
+        const res = await fetch(`${this.endpoint}/v1/monopoly/rooms`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return await res.json();
+      },
+      joinRoom: async (roomId, options = {}) => {
+        const res = await fetch(`${this.endpoint}/v1/monopoly/rooms/${roomId}/join`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(options)
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return await res.json();
+      },
+      getState: async (roomId) => {
+        const res = await fetch(`${this.endpoint}/v1/monopoly/rooms/${roomId}/state`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return await res.json();
+      },
+      getLegal: async (roomId) => {
+        const res = await fetch(`${this.endpoint}/v1/monopoly/rooms/${roomId}/legal`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return await res.json();
+      },
+      getAscii: async (roomId) => {
+        const res = await fetch(`${this.endpoint}/v1/monopoly/rooms/${roomId}/ascii`, {
+          headers: { 'Accept': 'text/plain' }
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return await res.text();
+      },
+      act: async (roomId, actionPayload = {}) => {
+        const res = await fetch(`${this.endpoint}/v1/monopoly/rooms/${roomId}/act`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(actionPayload)
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return await res.json();
+      },
+      cli: async (roomId, command, playerToken = null) => {
+        const res = await fetch(`${this.endpoint}/v1/monopoly/rooms/${roomId}/cli`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ command, player_token: playerToken })
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return await res.json();
+      },
+      reset: async (roomId) => {
+        const res = await fetch(`${this.endpoint}/v1/monopoly/rooms/${roomId}/reset`, {
+          method: 'POST'
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return await res.json();
+      }
+    };
+  }
 }
 
 const Swades = {

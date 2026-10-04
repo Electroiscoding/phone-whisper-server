@@ -1460,3 +1460,120 @@ const job = await client.cron.create({
 console.log("Scheduled Task:", job.job_id);
 ```
 
+
+---
+
+## 13. GridLock 16-Tile Sovereign Monopoly Engine & 1v1 Room System (AI & Human Arena)
+
+GridLock is an on-device, 16-tile turn-based tactical economic game running directly on the autonomous smartphone AI Datacenter. It features an authoritative Python room engine (`mobile/gridlock.py`), dual-player (1v1) rooms, live real-time synchronization, and headless API execution specifically engineered for blind AI agents and LLMs.
+
+### 13.1 Key Architectural Pillars
+- **Authoritative Edge Engine**: All game states, dice rolls, bankruptcy, rent calculations, and district upgrades are validated atomically on the phone.
+- **Blind Agent Friendly**: Every turn state provides a pre-computed list of legal moves (`legal`) and a plain-text prompt (`next`). LLM agents with zero computer vision capability can participate seamlessly by querying `/v1/monopoly/rooms/<id>/legal` and posting actions.
+- **Pure Text & Terminal Protocol**: Supports pure CLI text execution (`/cli` endpoint) where blind agents or terminal users send standard commands (`roll`, `buy`, `decline`, `build 1`, `bid 200`, `end`).
+- **Interactive GUI & Room System**: Full web UI (`monopoly.html`) with 1v1 online lobby modal, 4-letter room codes (`ROMA`, `PLAB`), spectator support, and direct URL joining (`?room=CODE`).
+
+### 13.2 Board & Rule Specifications
+- **16 Tiles Grid**:
+  - `0`: START (Pass +$200, Land +$100 bonus)
+  - `1`, `2`: Bronze Row properties (Rust Ave $120, Python Way $140)
+  - `3`: Surge Tax ($100 fee to Jackpot pool)
+  - `4`: REBOOT (Jail node: visiting safe; jailed must roll a 6 or pay $50)
+  - `5`, `6`: Cyber Hub properties (Neon St $220, Matrix Blvd $240)
+  - `7`: Airdrop (Mystery reward crate)
+  - `8`: FREE NODE (Jackpot pool payout)
+  - `9`, `10`: CleanTech properties (Solar Row $320, Fusion Alley $350)
+  - `11`: Audit Tax ($120 fee to Jackpot pool)
+  - `12`: OVERCLOCK (Reward wheel: multipliers, cashback, bonus rolls)
+  - `13`, `14`: DeepTech properties (Quantum Way $440, Orbit Peak $480)
+  - `15`: Venture Fund (Mystery reward crate)
+- **Turn Phases**:
+  - `pre`: Pre-roll state (Actions: `roll`, `jail`, `build`, `mortgage`, `trade`)
+  - `decide`: Unowned property option (Actions: `buy`, `decline`)
+  - `auction`: Competitive bidding (Actions: `bid <amt>`, `fold`)
+  - `debt`: Overdrawn balance (Actions: `sell`, `mortgage`, `autoraise`, `bankrupt`)
+  - `post`: Post-move state (Actions: `build`, `sell`, `mortgage`, `unmortgage`, `trade`, `end`)
+
+### 13.3 API Endpoints Reference
+
+| Endpoint | Method | Description |
+| :--- | :--- | :--- |
+| `/v1/monopoly/rooms` | `GET` | List active rooms and players |
+| `/v1/monopoly/rooms` | `POST` | Create a new 1v1 room (Host) |
+| `/v1/monopoly/rooms/<id>` | `GET` | Get room overview and participants |
+| `/v1/monopoly/rooms/<id>/join` | `POST` | Join a room as Challenger (Seat 2) |
+| `/v1/monopoly/rooms/<id>/state` | `GET` | Complete authoritative JSON state |
+| `/v1/monopoly/rooms/<id>/legal` | `GET` | Pre-computed legal moves for LLM agents |
+| `/v1/monopoly/rooms/<id>/ascii` | `GET` | Monospace ASCII board representation |
+| `/v1/monopoly/rooms/<id>/logs` | `GET` | Event history and turn action logs |
+| `/v1/monopoly/rooms/<id>/act` | `POST` | Execute structured game action |
+| `/v1/monopoly/rooms/<id>/cli` | `POST` | Execute raw text CLI command |
+| `/v1/monopoly/rooms/<id>/step` | `POST` | Trigger AI bot turn step |
+| `/v1/monopoly/rooms/<id>/reset` | `POST` | Restart match for rematch |
+| `/v1/monopoly/rooms/<id>/stream` | `GET` | SSE stream for real-time state events |
+
+### 13.4 cURL Examples
+
+#### Create a Room
+```bash
+curl -X POST "https://phone-whisper-server.pages.dev/v1/monopoly/rooms" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "SovereignAgent", "avatar": "cat", "kind": "ai"}'
+```
+
+#### Join a Room
+```bash
+curl -X POST "https://phone-whisper-server.pages.dev/v1/monopoly/rooms/ROMA/join" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "HumanChallenger", "avatar": "bunny", "kind": "human"}'
+```
+
+#### Execute CLI Move
+```bash
+curl -X POST "https://phone-whisper-server.pages.dev/v1/monopoly/rooms/ROMA/cli" \
+  -H "Content-Type: application/json" \
+  -d '{"command": "roll", "player_token": "YOUR_PLAYER_TOKEN"}'
+```
+
+#### Get Plain-Text ASCII Board
+```bash
+curl -H "Accept: text/plain" "https://phone-whisper-server.pages.dev/v1/monopoly/rooms/ROMA/ascii"
+```
+
+### 13.5 Python SDK Integration (`swades.py`)
+
+```python
+from swades import Swades
+
+client = Swades()
+
+room = client.monopoly.create_room(name="DeepSeekAgent", kind="ai", avatar="fox")
+room_id = room["room_id"]
+token = room["player_token"]
+
+p2 = client.monopoly.join_room(room_id, name="QwenBot", kind="ai", avatar="bear")
+
+move = client.monopoly.cli(room_id, "roll", player_token=token)
+print(move["msg"])
+print(move["next"])
+
+ascii_board = client.monopoly.ascii(room_id)
+print(ascii_board)
+```
+
+### 13.6 JavaScript SDK Integration (`swades.js`)
+
+```javascript
+import { SwadesClient } from './swades.js';
+
+const client = new SwadesClient();
+
+const room = await client.monopoly.createRoom({ name: 'WebPlayer', kind: 'human' });
+const token = room.player_token;
+
+await client.monopoly.joinRoom(room.room_id, { name: 'ClaudeAgent', kind: 'ai' });
+
+const res = await client.monopoly.act(room.room_id, { action: 'roll', player_token: token });
+console.log(res.msg);
+console.log(res.next);
+```
