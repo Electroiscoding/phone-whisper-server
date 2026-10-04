@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://designed-hotel-lexmark-allows.trycloudflare.com",
-  "inference": "https://designed-hotel-lexmark-allows.trycloudflare.com/inference",
-  "telemetry": "https://designed-hotel-lexmark-allows.trycloudflare.com/telemetry",
+  "endpoint": "https://signed-safari-knights-beast.trycloudflare.com",
+  "inference": "https://signed-safari-knights-beast.trycloudflare.com/inference",
+  "telemetry": "https://signed-safari-knights-beast.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-04T07:46:18Z"
+  "updated_at": "2026-10-04T07:54:00Z"
 }
