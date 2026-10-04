@@ -103,6 +103,7 @@ class GridLockGame:
         self.over = False
         self.winner = None
         self.logs = []
+        self.history = []
         self.created_at = time.time()
         self.last_activity = time.time()
         self.players = []
@@ -146,6 +147,25 @@ class GridLockGame:
         })
         if len(self.logs) > 100:
             self.logs.pop(0)
+        self.record_history('log', text, kind=kind)
+
+    def record_history(self, action, detail, **extra):
+        if not hasattr(self, 'history'):
+            self.history = []
+        cp = self.current_player()
+        entry = {
+            'time': round(time.time() - self.created_at, 2),
+            'turn': self.turn,
+            'phase': self.phase,
+            'player': cp['name'] if cp else 'System',
+            'tag': cp['tag'] if cp else 'SYS',
+            'action': action,
+            'detail': detail
+        }
+        entry.update(extra)
+        self.history.append(entry)
+        if len(self.history) > 300:
+            self.history.pop(0)
 
     def current_player(self):
         if not self.players:
@@ -1282,6 +1302,53 @@ class GridLockRoomManager:
                     'last_activity': r['last_activity']
                 })
             return sorted(res, key=lambda x: x['last_activity'], reverse=True)
+
+    def quick_match(self, name='Player', kind='human', avatar='cat'):
+        with self.lock:
+            for code, r in self.rooms.items():
+                g = r['game']
+                if len(g.players) == 1 and not g.over:
+                    p2, err = self.join_room(code, name=name, kind=kind, avatar=avatar)
+                    if not err and p2:
+                        return {
+                            'matched': True,
+                            'room_id': code,
+                            'seat': 2,
+                            'player_id': 1,
+                            'player_token': p2['token'],
+                            'state': g.to_dict(),
+                            'legal': g.legal_moves(),
+                            'status': g.status_line()
+                        }
+            code, p1, game = self.create_room(host_name=name, host_kind=kind, host_avatar=avatar)
+            return {
+                'matched': False,
+                'created': True,
+                'room_id': code,
+                'seat': 1,
+                'player_id': 0,
+                'player_token': p1['token'],
+                'state': game.to_dict(),
+                'legal': game.legal_moves(),
+                'status': game.status_line()
+            }
+
+    def stats(self):
+        with self.lock:
+            total_rooms = len(self.rooms)
+            active_games = sum(1 for r in self.rooms.values() if not r['game'].over)
+            waiting_rooms = sum(1 for r in self.rooms.values() if len(r['game'].players) == 1 and not r['game'].over)
+            completed_games = sum(1 for r in self.rooms.values() if r['game'].over)
+            total_turns = sum(r['game'].turn for r in self.rooms.values())
+            return {
+                'ok': True,
+                'total_rooms': total_rooms,
+                'active_games': active_games,
+                'waiting_rooms': waiting_rooms,
+                'completed_games': completed_games,
+                'total_turns': total_turns,
+                'engine': 'GridLock Sovereign 16-Tile Tactical Phone Datacenter v2.0'
+            }
 
     def cleanup_old_rooms(self, max_idle_sec=14400):
         now = time.time()

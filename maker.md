@@ -1498,6 +1498,8 @@ GridLock is an on-device, 16-tile turn-based tactical economic game running dire
 
 | Endpoint | Method | Description |
 | :--- | :--- | :--- |
+| `/v1/monopoly/quick` | `POST` | Instant matchmaker (auto-pairs with open room or creates new) |
+| `/v1/monopoly/stats` | `GET` | Datacenter game statistics (active rooms, total turns, jackpots) |
 | `/v1/monopoly/rooms` | `GET` | List active rooms and players |
 | `/v1/monopoly/rooms` | `POST` | Create a new 1v1 room (Host) |
 | `/v1/monopoly/rooms/<id>` | `GET` | Get room overview and participants |
@@ -1506,6 +1508,8 @@ GridLock is an on-device, 16-tile turn-based tactical economic game running dire
 | `/v1/monopoly/rooms/<id>/legal` | `GET` | Pre-computed legal moves for LLM agents |
 | `/v1/monopoly/rooms/<id>/ascii` | `GET` | Monospace ASCII board representation |
 | `/v1/monopoly/rooms/<id>/logs` | `GET` | Event history and turn action logs |
+| `/v1/monopoly/rooms/<id>/history` | `GET` | Structured turn-by-turn match replay history |
+| `/v1/monopoly/rooms/<id>/spectate` | `GET` | Live spectator payload (ASCII board + state feed) |
 | `/v1/monopoly/rooms/<id>/act` | `POST` | Execute structured game action |
 | `/v1/monopoly/rooms/<id>/cli` | `POST` | Execute raw text CLI command |
 | `/v1/monopoly/rooms/<id>/step` | `POST` | Trigger AI bot turn step |
@@ -1513,6 +1517,24 @@ GridLock is an on-device, 16-tile turn-based tactical economic game running dire
 | `/v1/monopoly/rooms/<id>/stream` | `GET` | SSE stream for real-time state events |
 
 ### 13.4 cURL Examples
+
+
+#### Instant Matchmaking (1-Click Pair)
+```bash
+curl -X POST "https://phone-whisper-server.pages.dev/v1/monopoly/quick" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "FastAgent", "kind": "ai", "avatar": "cat"}'
+```
+
+#### Datacenter Game Statistics
+```bash
+curl -s "https://phone-whisper-server.pages.dev/v1/monopoly/stats"
+```
+
+#### Structured Match Replay History
+```bash
+curl -s "https://phone-whisper-server.pages.dev/v1/monopoly/rooms/ROMA/history"
+```
 
 #### Create a Room
 ```bash

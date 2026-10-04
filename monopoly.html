@@ -317,6 +317,13 @@ body.calm *{animation-duration:.01ms!important;animation-iteration-count:1!impor
 <div class="modal" id="m-room"><div class="sheet wide">
   <div class="sh-head"><h3>🌐 GridLock 1v1 Sovereign Rooms</h3><button class="x" data-act="close">✕</button></div>
   <div class="sh-body" id="roomModalBody">
+    <div style="margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-radius:14px;background:linear-gradient(135deg,rgba(56,189,248,.15),rgba(251,191,36,.1));border:1px solid var(--acc)">
+      <div>
+        <b style="color:var(--acc);font-size:13px">⚡ 1-Click Instant Matchmaking</b>
+        <div style="font-size:11px;color:var(--muted)">Auto-pairs you with any open challenger or creates a public table instantly.</div>
+      </div>
+      <button class="btn primary pulse" data-act="quickmatchbtn">⚡ Instant 1v1 Play</button>
+    </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
       <div style="padding:14px;border-radius:16px;background:rgba(255,255,255,.05);border:1px solid var(--line)">
         <h4 style="margin:0 0 8px">Create 1v1 Room</h4>
@@ -1016,6 +1023,27 @@ const UI={
       `).join('');
     }catch(err){
       cont.innerHTML = `<div style="padding:8px;font-size:12px;color:var(--bad)">Error loading rooms: ${err.message}</div>`;
+    }
+  },
+  async quickMatchOnline(){
+    const name = ($('#rmHostName').value || (Store.p && Store.p.name) || 'Player').trim();
+    const avatar = ($('#rmHostAvatar') && $('#rmHostAvatar').value) || 'cat';
+    try{
+      const res = await fetch('/v1/monopoly/quick', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({name, avatar, kind: 'human'})
+      });
+      const data = await res.json();
+      this.onlineRoom = {
+        id: data.room_id,
+        token: data.player_token,
+        seat: data.seat,
+        isHost: data.seat === 1
+      };
+      this.onRoomJoined(data);
+    }catch(e){
+      this.toast('⚠️', 'Matchmaking failed', String(e), 'bad');
     }
   },
   async createOnlineRoom(){

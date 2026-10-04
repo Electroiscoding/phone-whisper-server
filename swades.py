@@ -713,6 +713,25 @@ class Swades:
             raise RuntimeError(f"Reset room failed: HTTP {res.status_code} - {res.text}")
         return res.json()
 
+    def quick_match_game(self, name="Player", kind="human", avatar="cat"):
+        payload = {"name": name, "kind": kind, "avatar": avatar}
+        res = self._req("POST", "/v1/monopoly/quick", json=payload, timeout=20)
+        if not res.ok:
+            raise RuntimeError(f"Quick match failed: HTTP {res.status_code} - {res.text}")
+        return res.json()
+
+    def get_game_history(self, room_id):
+        res = self._req("GET", f"/v1/monopoly/rooms/{room_id}/history", timeout=15)
+        if not res.ok:
+            raise RuntimeError(f"Get history failed: HTTP {res.status_code} - {res.text}")
+        return res.json()
+
+    def get_game_stats(self):
+        res = self._req("GET", "/v1/monopoly/stats", timeout=15)
+        if not res.ok:
+            raise RuntimeError(f"Get stats failed: HTTP {res.status_code} - {res.text}")
+        return res.json()
+
     @property
     def monopoly(self):
         class _MonopolyAPI:

@@ -5546,6 +5546,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_internal_status()
         elif path in ["/api/internal/logs", "/v1/internal/logs"]:
             self.handle_internal_logs(parsed)
+        elif path in ["/v1/monopoly/stats", "/monopoly/stats", "/v1/game/stats", "/game/stats"]:
+            self.handle_gridlock_stats()
         elif path in ["/v1/monopoly/rooms", "/monopoly/rooms", "/v1/game/rooms", "/game/rooms"]:
             self.handle_gridlock_list_rooms()
         elif path.startswith("/v1/monopoly/rooms/") or path.startswith("/monopoly/rooms/") or path.startswith("/v1/game/rooms/") or path.startswith("/game/rooms/"):
@@ -5716,6 +5718,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         elif path.startswith("/v1/cron/jobs/") and path.endswith("/update"):
             job_id = path[len("/v1/cron/jobs/"):].split("/")[0]
             self.handle_cron_update_job(job_id)
+        elif path in ["/v1/monopoly/quick", "/monopoly/quick", "/v1/game/quick", "/game/quick"]:
+            self.handle_gridlock_quick()
         elif path in ["/v1/monopoly/rooms", "/monopoly/rooms", "/v1/game/rooms", "/game/rooms"]:
             self.handle_gridlock_create_room()
         elif path.startswith("/v1/monopoly/rooms/") or path.startswith("/monopoly/rooms/") or path.startswith("/v1/game/rooms/") or path.startswith("/game/rooms/"):
@@ -9211,6 +9215,22 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         else:
             self.handle_health()
 
+    def handle_gridlock_stats(self):
+        self._send_json_response(GLOBAL_ROOM_MANAGER.stats())
+
+    def handle_gridlock_quick(self):
+        try:
+            content_length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(content_length) if content_length > 0 else b""
+            payload = json.loads(body.decode("utf-8")) if body else {}
+        except Exception:
+            payload = {}
+        name = payload.get("name") or "Player"
+        kind = payload.get("kind") or "human"
+        avatar = payload.get("avatar") or "cat"
+        res = GLOBAL_ROOM_MANAGER.quick_match(name=name, kind=kind, avatar=avatar)
+        self._send_json_response(res)
+
     def handle_gridlock_list_rooms(self):
         rooms = GLOBAL_ROOM_MANAGER.list_rooms()
         self._send_json_response({"ok": True, "count": len(rooms), "rooms": rooms})
@@ -9305,6 +9325,25 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 self._send_json_response({"ok": True, "room_id": code, "board": board_str, "status": game.status_line()})
         elif action == "logs":
             self._send_json_response({"ok": True, "room_id": code, "logs": game.logs[-50:]})
+        elif action == "history":
+            hist = getattr(game, 'history', [])
+            self._send_json_response({"ok": True, "room_id": code, "history": hist[-100:]})
+        elif action == "spectate":
+            self._send_json_response({
+                "ok": True,
+                "room_id": code,
+                "status": game.status_line(),
+                "board": game.ascii_board(),
+                "turn": game.turn,
+                "phase": game.phase,
+                "jackpot": game.jackpot,
+                "cur_player": game.current_player()["name"] if game.players else None,
+                "cur_seat": (game.cur + 1) if game.players else None,
+                "players": [{"seat": p["id"] + 1, "name": p["name"], "kind": p["kind"], "avatar": p["avatar"], "cash": p["cash"], "pos": p["pos"], "props": game.tiles_of(p["id"])} for p in game.players],
+                "logs": game.logs[-20:],
+                "over": game.over,
+                "winner": game.winner
+            })
         elif action == "stream":
             self.send_response(200)
             self._send_cors_headers()
