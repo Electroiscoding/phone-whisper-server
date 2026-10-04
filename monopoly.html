@@ -1,0 +1,1253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GridLock — Build. Trade. Own the Grid.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/* ================= THEME TOKENS ================= */
+:root{--bg:#070b18;--bg2:#101a3a;--panel:rgba(16,24,52,.78);--panel2:rgba(8,12,28,.92);--line:rgba(160,174,255,.16);--text:#eef2ff;--muted:#8f9bc7;--acc:#5eead4;--acc2:#60a5fa;--good:#34d399;--bad:#fb7185;--warn:#fbbf24;--tile:#121a3a;--tile2:#1b2655;--glow:rgba(94,234,212,.35);--font:'Nunito','Segoe UI',system-ui,sans-serif;--mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;--sw:56px}
+[data-theme=candy]{--bg:#2b1238;--bg2:#4b1f63;--panel:rgba(74,30,96,.8);--panel2:rgba(40,14,56,.92);--line:rgba(255,170,230,.2);--text:#fff1fb;--muted:#e0a9d6;--acc:#ff8fd8;--acc2:#b69cff;--tile:#4a1f66;--tile2:#6a2c8c;--glow:rgba(255,143,216,.4)}
+[data-theme=matcha]{--bg:#0b1a14;--bg2:#13301f;--panel:rgba(18,50,34,.78);--panel2:rgba(8,26,18,.92);--line:rgba(160,255,200,.16);--text:#effff5;--muted:#8fbfa3;--acc:#a3e635;--acc2:#4ade80;--tile:#123826;--tile2:#1b5238;--glow:rgba(163,230,53,.35)}
+[data-theme=sunset]{--bg:#1c0b17;--bg2:#3b1230;--panel:rgba(62,20,48,.8);--panel2:rgba(30,8,24,.92);--line:rgba(255,190,150,.18);--text:#fff3ea;--muted:#d9a592;--acc:#fb923c;--acc2:#f472b6;--tile:#3f1736;--tile2:#5c2146;--glow:rgba(251,146,60,.4)}
+body.hc{--bg:#000;--bg2:#000;--panel:#000;--panel2:#000;--line:#fff;--text:#fff;--muted:#e5e5e5;--tile:#000;--tile2:#111}
+body.hc .tile{border:2px solid #fff}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:var(--font);background:radial-gradient(1200px 700px at 20% -10%,var(--bg2),var(--bg));color:var(--text);overflow:hidden;user-select:none;-webkit-tap-highlight-color:transparent}
+button{font-family:inherit;color:inherit;cursor:pointer;border:0;background:none}
+input,select{font-family:inherit}
+.sr{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+.bg{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:0}
+.bg i{position:absolute;width:42vmax;height:42vmax;border-radius:50%;filter:blur(90px);opacity:.22;animation:drift 26s ease-in-out infinite alternate}
+.bg i:nth-child(1){background:var(--acc);left:-10vmax;top:-12vmax}
+.bg i:nth-child(2){background:var(--acc2);right:-12vmax;bottom:-14vmax;animation-delay:-9s}
+.bg i:nth-child(3){background:#f472b6;left:40%;top:30%;opacity:.08;animation-delay:-16s}
+@keyframes drift{to{transform:translate(8vmax,6vmax) scale(1.15)}}
+#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:90}
+/* ================= HEADER ================= */
+.top{position:relative;z-index:5;height:56px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 14px;border-bottom:1px solid var(--line);background:var(--panel2);backdrop-filter:blur(12px)}
+.brand{display:flex;align-items:center;gap:10px}
+.logo{width:34px;height:34px;border-radius:11px;background:linear-gradient(135deg,var(--acc),var(--acc2));display:grid;place-items:center;font-weight:900;color:#071022;box-shadow:0 6px 18px var(--glow)}
+.brand b{display:block;font-weight:900;letter-spacing:.06em;text-transform:uppercase;font-size:14px}
+.brand small{color:var(--muted);font-size:10px;font-weight:700}
+.profile-chip{display:flex;align-items:center;gap:10px;padding:5px 12px;border-radius:99px;border:1px solid var(--line);background:rgba(255,255,255,.04);cursor:pointer;font-size:12px;font-weight:800;transition:.2s}
+.profile-chip:hover{border-color:var(--acc);box-shadow:0 0 0 3px var(--glow)}
+.xpbar{width:70px;height:7px;border-radius:9px;background:rgba(255,255,255,.1);overflow:hidden}
+.xpbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--acc),var(--acc2));transition:width .6s}
+.tools{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.tbtn{height:34px;min-width:34px;padding:0 10px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.05);font-size:12px;font-weight:800;display:flex;align-items:center;gap:6px;transition:.15s}
+.tbtn:hover{background:rgba(255,255,255,.12);transform:translateY(-1px)}
+.tbtn.on{border-color:var(--acc);color:var(--acc)}
+/* ================= LAYOUT ================= */
+.layout{position:relative;z-index:2;display:grid;grid-template-columns:minmax(0,1fr) 390px;gap:12px;padding:12px;height:calc(100vh - 56px)}
+.stage{display:flex;align-items:center;justify-content:center;min-width:0;min-height:0}
+#board{--bs:min(calc(100vh - 100px),calc(100vw - 440px));width:var(--bs);height:var(--bs);display:grid;grid-template-columns:repeat(5,1fr);grid-template-rows:repeat(5,1fr);gap:6px;position:relative}
+#board.shake{animation:shake .4s}
+@keyframes shake{20%{transform:translate(-5px,2px)}40%{transform:translate(5px,-2px)}60%{transform:translate(-3px,1px)}80%{transform:translate(3px,0)}}
+/* ================= TILES ================= */
+.tile{position:relative;border-radius:14px;background:linear-gradient(160deg,var(--tile2),var(--tile));border:1px solid var(--line);padding:6px 7px 4px;display:flex;flex-direction:column;overflow:hidden;cursor:pointer;transition:transform .15s,box-shadow .2s;min-width:0}
+.tile:hover{transform:translateY(-3px) scale(1.02);z-index:6;box-shadow:0 14px 30px rgba(0,0,0,.45)}
+.tile.owned{box-shadow:inset 0 0 0 2px var(--own),0 0 14px color-mix(in srgb,var(--own) 35%,transparent)}
+.tile.set{background:linear-gradient(160deg,color-mix(in srgb,var(--own) 28%,var(--tile2)),var(--tile))}
+.tile.hot{animation:hot .9s}
+@keyframes hot{0%,100%{filter:none}40%{filter:brightness(1.7) saturate(1.4);transform:scale(1.05)}}
+.tile.mort::after{content:'MORTGAGED';position:absolute;inset:0;display:grid;place-items:center;background:repeating-linear-gradient(135deg,rgba(0,0,0,.55) 0 8px,rgba(0,0,0,.35) 8px 16px);font-size:9px;font-weight:900;letter-spacing:.12em;color:#fecaca;transform:none}
+.band{height:7px;border-radius:6px;margin-bottom:3px;flex:none}
+.t-top{display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:9.5px;color:var(--muted);font-weight:700}
+.t-price{color:var(--warn)}
+.t-ico{font-size:clamp(14px,2vw,24px);line-height:1.1;margin-top:1px}
+.t-name{font-weight:900;font-size:clamp(9px,1.05vw,13px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.t-rent{font-family:var(--mono);font-size:9.5px;color:var(--muted)}
+.t-pips{position:absolute;right:6px;top:22px;display:flex;gap:2px}
+.t-pips b{width:7px;height:7px;border-radius:2px;background:linear-gradient(var(--warn),#f97316);box-shadow:0 0 6px rgba(251,191,36,.7)}
+.t-pips .crown{font-size:13px;animation:float 2s ease-in-out infinite}
+.t-lock{position:absolute;left:5px;bottom:4px;font-size:11px}
+.t-own{position:absolute;right:5px;bottom:4px;font-family:var(--mono);font-size:9px;font-weight:800;color:#051022;background:var(--own);padding:0 5px;border-radius:6px}
+.tile.corner{align-items:center;justify-content:center;text-align:center;background:linear-gradient(150deg,var(--tile2),color-mix(in srgb,var(--acc) 14%,var(--tile)))}
+.tile.corner .t-ico{font-size:clamp(22px,3.4vw,40px)}
+.tile.corner .t-rent{white-space:normal}
+@keyframes float{50%{transform:translateY(-3px)}}
+/* ================= SPRITES ================= */
+#sprites{position:absolute;inset:0;pointer-events:none;z-index:8}
+.sprite{position:absolute;width:var(--sw);transform:translate(-50%,-100%);transition:left .2s ease-out,top .2s ease-out,margin-left .3s,opacity .6s,filter .6s;filter:drop-shadow(0 6px 4px rgba(0,0,0,.35))}
+.sprite svg{display:block;width:100%;height:auto;overflow:visible}
+.sprite .bob{animation:bob 2.2s ease-in-out infinite;transform-origin:50% 100%}
+.sprite:nth-child(2) .bob{animation-delay:-.7s}.sprite:nth-child(3) .bob{animation-delay:-1.3s}.sprite:nth-child(4) .bob{animation-delay:-1.8s}
+@keyframes bob{50%{transform:translateY(-7px)}}
+.sprite .shadow{width:70%;height:7px;margin:-3px auto 0;border-radius:50%;background:rgba(0,0,0,.35);animation:shad 2.2s ease-in-out infinite}
+@keyframes shad{50%{transform:scale(.78);opacity:.5}}
+.sprite.active{z-index:3;filter:drop-shadow(0 0 10px var(--c)) drop-shadow(0 6px 4px rgba(0,0,0,.35))}
+.sprite.active::before{content:'▼';position:absolute;top:-16px;left:50%;transform:translateX(-50%);color:var(--c);font-size:13px;animation:float 1s ease-in-out infinite;text-shadow:0 0 8px var(--c)}
+.sprite.gone{opacity:0;filter:grayscale(1);pointer-events:none}
+.sprite .tagname{position:absolute;bottom:-14px;left:50%;transform:translateX(-50%);font-size:9px;font-weight:900;padding:0 6px;border-radius:7px;background:var(--c);color:#06101f;white-space:nowrap}
+.sprite .bubble{position:absolute;left:50%;top:-34px;transform:translateX(-50%) scale(0);font-size:20px;background:#fff;border-radius:14px;padding:2px 8px;transition:transform .25s cubic-bezier(.3,1.6,.5,1);box-shadow:0 4px 12px rgba(0,0,0,.3);z-index:4}
+.sprite .bubble.show{transform:translateX(-50%) scale(1)}
+.eyes{animation:blink 4.6s infinite;transform-box:fill-box;transform-origin:center}
+@keyframes blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.08)}}
+.m{display:none}
+.sprite[data-mood=calm] .m-calm,.sprite[data-mood=happy] .m-happy,.sprite[data-mood=sad] .m-sad{display:inline}
+/* ================= HUB ================= */
+#hub{grid-area:2/2/5/5;border-radius:22px;background:linear-gradient(160deg,rgba(255,255,255,.07),rgba(255,255,255,.02)),var(--panel2);border:1px solid var(--line);padding:14px 16px;display:flex;flex-direction:column;justify-content:space-between;align-items:center;position:relative;overflow:hidden;backdrop-filter:blur(8px);z-index:4}
+#hub::before{content:'';position:absolute;inset:-40%;background:conic-gradient(from 0deg,transparent,var(--glow),transparent 30%);animation:spin 14s linear infinite;opacity:.35}
+#hub>.hub-top,#hub>.hub-mid,#hub>.hub-bot{position:relative}
+@keyframes spin{to{transform:rotate(360deg)}}
+.hub-top{width:100%;display:flex;justify-content:space-between;align-items:center;gap:8px;z-index:2}
+.chip{padding:4px 11px;border-radius:99px;font-size:11px;font-weight:900;font-family:var(--mono);border:1px solid var(--line);background:rgba(0,0,0,.25)}
+#jackpotChip{color:var(--warn);border-color:rgba(251,191,36,.35)}
+.hub-mid{display:flex;flex-direction:column;align-items:center;gap:9px;text-align:center;z-index:2}
+.die{width:74px;height:74px;border-radius:20px;background:linear-gradient(145deg,#fff,#c9d3ff);position:relative;box-shadow:0 12px 26px rgba(0,0,0,.4),inset 0 -5px 0 rgba(0,0,0,.08);cursor:pointer}
+.die i{position:absolute;width:13px;height:13px;border-radius:50%;background:#1b2250;transform:translate(-50%,-50%);box-shadow:inset 0 2px 3px rgba(0,0,0,.5)}
+.die.tumble{animation:tumble .45s linear infinite}
+@keyframes tumble{to{transform:rotate(360deg) scale(.9)}}
+#hubTitle{font-weight:900;font-size:clamp(14px,1.7vw,20px)}
+#hubSub{font-family:var(--mono);font-size:11px;color:var(--muted);min-height:15px;max-width:95%}
+#hubBtns{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.btn{padding:10px 18px;border-radius:14px;font-weight:900;font-size:13px;border:1px solid var(--line);background:rgba(255,255,255,.08);transition:.15s;display:inline-flex;gap:6px;align-items:center}
+.btn:hover:not(:disabled){transform:translateY(-2px);background:rgba(255,255,255,.16)}
+.btn:active:not(:disabled){transform:scale(.96)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.primary{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#05101f;border:0;box-shadow:0 8px 22px var(--glow)}
+.btn.pulse{animation:pulse 1.6s infinite}
+.btn.good{background:linear-gradient(135deg,#34d399,#14b8a6);color:#04180f;border:0}
+.btn.warn{background:linear-gradient(135deg,#fbbf24,#f97316);color:#1c0d00;border:0}
+.btn.bad{background:linear-gradient(135deg,#fb7185,#e11d48);color:#fff;border:0}
+.btn.sm{padding:5px 10px;font-size:11px;border-radius:10px}
+@keyframes pulse{0%{box-shadow:0 0 0 0 var(--glow)}70%{box-shadow:0 0 0 14px transparent}100%{box-shadow:0 0 0 0 transparent}}
+.hub-bot{width:100%;display:flex;align-items:center;gap:10px;font-size:11px;color:var(--muted);z-index:2;border-top:1px solid var(--line);padding-top:7px}
+#meter{flex:none;width:90px;height:9px;border-radius:9px;background:rgba(255,255,255,.1);overflow:hidden}
+#meterFill{display:block;height:100%;width:0;background:linear-gradient(90deg,#fbbf24,#fb7185,#a78bfa);transition:width .5s}
+#coach{flex:1;text-align:right;font-weight:700}
+.dots i{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--acc);margin:0 2px;animation:dot 1s infinite}
+.dots i:nth-child(2){animation-delay:.15s}.dots i:nth-child(3){animation-delay:.3s}
+@keyframes dot{50%{transform:translateY(-5px);opacity:.4}}
+.reveal{position:absolute;inset:0;display:grid;place-items:center;background:rgba(5,8,20,.82);backdrop-filter:blur(6px);opacity:0;pointer-events:none;transition:opacity .25s;z-index:10}
+.reveal.show{opacity:1}
+.rv-card{text-align:center;padding:18px 26px;border-radius:22px;border:2px solid var(--rc,#94a3b8);background:linear-gradient(160deg,rgba(255,255,255,.1),rgba(255,255,255,.02));box-shadow:0 0 40px color-mix(in srgb,var(--rc,#94a3b8) 55%,transparent);animation:pop .5s cubic-bezier(.3,1.6,.5,1)}
+.reveal.common{--rc:#94a3b8}.reveal.rare{--rc:#38bdf8}.reveal.epic{--rc:#c084fc}.reveal.legend{--rc:#fbbf24}.reveal.slot{--rc:var(--acc)}
+.rv-ico{font-size:52px;animation:float 1.4s ease-in-out infinite}
+.rv-rar{font-size:10px;font-weight:900;letter-spacing:.2em;text-transform:uppercase;color:var(--rc)}
+.rv-title{font-size:20px;font-weight:900;margin-top:2px}
+.rv-desc{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:3px}
+@keyframes pop{0%{transform:scale(.4) rotate(-6deg);opacity:0}100%{transform:none;opacity:1}}
+#banner{position:absolute;left:0;right:0;top:44%;text-align:center;font-weight:900;font-size:clamp(20px,3.4vw,42px);letter-spacing:.04em;z-index:12;pointer-events:none;opacity:0;text-shadow:0 4px 24px rgba(0,0,0,.6)}
+#banner.go{animation:banner 1.2s ease-out}
+@keyframes banner{0%{opacity:0;transform:translateX(-60px) scale(.8)}20%{opacity:1;transform:none}80%{opacity:1}100%{opacity:0;transform:translateX(60px)}}
+/* ================= DOCK ================= */
+.dock{display:flex;flex-direction:column;gap:8px;min-height:0;height:100%}
+.players{display:grid;grid-template-columns:1fr 1fr;gap:8px;flex:none}
+.pcard{padding:8px 10px;border-radius:16px;background:var(--panel);border:1px solid var(--line);display:flex;gap:8px;align-items:center;cursor:pointer;position:relative;transition:.2s}
+.pcard:hover{transform:translateY(-2px)}
+.pcard.act{border-color:var(--c);box-shadow:0 0 0 2px color-mix(in srgb,var(--c) 40%,transparent),0 8px 24px color-mix(in srgb,var(--c) 25%,transparent)}
+.pcard.out{opacity:.4;filter:grayscale(1)}
+.pcard .av{width:40px;flex:none}
+.pcard .av svg{width:100%;display:block}
+.pcard .nm{font-weight:900;font-size:12px;display:flex;gap:5px;align-items:center;white-space:nowrap;overflow:hidden}
+.pcard .tg{font-family:var(--mono);font-size:8px;padding:0 5px;border-radius:5px;background:var(--c);color:#06101f}
+.pcard .cash{font-family:var(--mono);font-weight:800;font-size:17px}
+.pcard .meta{font-size:10px;color:var(--muted);display:flex;gap:6px;flex-wrap:wrap}
+.pcard .pd{display:flex;gap:2px;margin-top:2px;min-height:8px}
+.pcard .pd i{width:8px;height:8px;border-radius:2px}
+.tabs{display:flex;gap:4px;padding:4px;border-radius:14px;background:var(--panel);border:1px solid var(--line);flex:none}
+.tabs button{flex:1;padding:7px 4px;border-radius:10px;font-size:11px;font-weight:900;color:var(--muted);transition:.15s;position:relative}
+.tabs button.on{background:rgba(255,255,255,.12);color:var(--text)}
+.tabs .dot{position:absolute;top:4px;right:8px;width:7px;height:7px;border-radius:50%;background:var(--acc);display:none}
+.panes{flex:1;min-height:0;border-radius:16px;background:var(--panel);border:1px solid var(--line);overflow:hidden;display:flex;flex-direction:column}
+.pane{display:none;flex:1;min-height:0;flex-direction:column}
+.pane.on{display:flex}
+.scroll{flex:1;min-height:0;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:6px;font-size:12px}
+.scroll::-webkit-scrollbar{width:5px}.scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:9px}
+.msg{padding:6px 9px;border-radius:12px;background:rgba(0,0,0,.25);animation:pop .3s}
+.msg b{font-size:11px}.msg small{float:right;color:var(--muted);font-family:var(--mono);font-size:9px}
+.lg{font-family:var(--mono);font-size:11px;line-height:1.35;animation:pop .25s}
+.lg.good{color:var(--good)}.lg.warn{color:var(--warn)}.lg.move{color:var(--acc)}.lg.sys{color:var(--muted)}.lg.bad{color:var(--bad)}
+.row-in{display:flex;gap:6px;padding:8px;border-top:1px solid var(--line);background:rgba(0,0,0,.2)}
+.row-in input{flex:1;background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:10px;color:var(--text);padding:7px 10px;font-size:12px;outline:none}
+.row-in input:focus{border-color:var(--acc)}
+.emotes{display:flex;gap:4px;padding:6px 8px;border-top:1px solid var(--line);overflow-x:auto}
+.emotes button{font-size:18px;padding:2px 7px;border-radius:10px;background:rgba(255,255,255,.07);transition:.12s}
+.emotes button:hover{transform:scale(1.25)}
+#termOut{font-family:var(--mono);font-size:11px;color:#86efac;white-space:pre-wrap;word-break:break-word;gap:2px}
+#termOut .e{color:#fca5a5}#termOut .c{color:#93c5fd}#termOut .d{color:var(--muted)}
+.quest{padding:9px 11px;border-radius:14px;background:rgba(0,0,0,.25);border:1px solid var(--line)}
+.quest.done{border-color:var(--good);background:rgba(52,211,153,.1)}
+.qbar{height:6px;border-radius:9px;background:rgba(255,255,255,.1);margin-top:6px;overflow:hidden}
+.qbar i{display:block;height:100%;background:linear-gradient(90deg,var(--acc),var(--acc2));transition:width .5s}
+/* ================= MODALS / TOASTS ================= */
+.modal{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;padding:14px;background:rgba(3,6,16,.72);backdrop-filter:blur(8px)}
+.modal.open{display:flex}
+.sheet{width:min(560px,100%);max-height:90vh;display:flex;flex-direction:column;border-radius:22px;background:linear-gradient(170deg,rgba(255,255,255,.08),rgba(255,255,255,.02)),var(--bg2);border:1px solid var(--line);box-shadow:0 30px 80px rgba(0,0,0,.6);animation:pop .35s cubic-bezier(.3,1.4,.5,1);overflow:hidden}
+.sheet.wide{width:min(760px,100%)}
+.sh-head{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line)}
+.sh-head h3{font-size:16px;font-weight:900}
+.x{width:30px;height:30px;border-radius:9px;background:rgba(255,255,255,.08);font-weight:900}
+.sh-body{padding:14px 18px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:10px;font-size:13px}
+.sh-foot{padding:12px 18px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end;align-items:center;flex-wrap:wrap}
+.card{padding:10px 12px;border-radius:14px;background:rgba(0,0,0,.25);border:1px solid var(--line)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid3{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px}
+.prow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;background:rgba(0,0,0,.25);border:1px solid var(--line)}
+.prow .acts{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}
+.tag{font-family:var(--mono);font-size:10px;padding:1px 7px;border-radius:7px;background:rgba(255,255,255,.1)}
+.tag.gold{background:rgba(251,191,36,.18);color:var(--warn)}.tag.lock{background:rgba(251,113,133,.18);color:var(--bad)}.tag.ok{background:rgba(52,211,153,.18);color:var(--good)}
+.warnbox{padding:10px 12px;border-radius:12px;background:rgba(251,113,133,.12);border:1px solid rgba(251,113,133,.4);font-size:12px}
+.infobox{padding:10px 12px;border-radius:12px;background:rgba(94,234,212,.1);border:1px solid rgba(94,234,212,.35);font-size:12px}
+.lbl{font-size:11px;color:var(--muted);font-weight:800}
+.fld{width:100%;background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:10px;color:var(--text);padding:8px 10px;font-family:var(--mono);font-size:13px;outline:none}
+.chk{display:flex;gap:8px;align-items:center;padding:6px 8px;border-radius:10px;background:rgba(255,255,255,.05);cursor:pointer;font-size:12px}
+.chk.dis{opacity:.45;cursor:not-allowed}
+.seat{padding:10px;border-radius:16px;border:1px solid var(--c);background:rgba(0,0,0,.22);display:flex;gap:10px;align-items:center}
+.seat .av{width:52px;cursor:pointer;flex:none;transition:.15s}.seat .av:hover{transform:scale(1.12) rotate(-4deg)}
+.seat .av svg{width:100%;display:block}
+.seg{display:flex;gap:4px}
+.seg button{padding:4px 10px;border-radius:9px;background:rgba(255,255,255,.07);font-size:11px;font-weight:900}
+.seg button.on{background:var(--acc);color:#05101f}
+.shopitem{padding:10px;border-radius:16px;border:1px solid var(--line);background:rgba(0,0,0,.25);text-align:center;display:flex;flex-direction:column;gap:5px;align-items:center}
+.shopitem.eq{border-color:var(--acc);box-shadow:0 0 0 2px var(--glow)}
+.shopitem .av{width:60px}.shopitem .av svg{width:100%;display:block}
+.stbar{display:flex;gap:6px;margin:4px 0}
+.day{flex:1;padding:8px 2px;border-radius:12px;background:rgba(255,255,255,.07);text-align:center;font-size:10px;font-weight:900}
+.day.on{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#05101f}
+.chest{font-size:84px;cursor:pointer;display:inline-block;animation:float 1.6s ease-in-out infinite;filter:drop-shadow(0 10px 20px var(--glow))}
+.chest.open{animation:pop .5s}
+#toasts{position:fixed;right:14px;bottom:14px;z-index:95;display:flex;flex-direction:column;gap:8px;align-items:flex-end;pointer-events:none}
+.toast{display:flex;gap:10px;align-items:center;padding:10px 14px;border-radius:16px;background:var(--bg2);border:1px solid var(--line);box-shadow:0 14px 34px rgba(0,0,0,.5);animation:slidein .4s cubic-bezier(.3,1.4,.5,1);max-width:340px}
+.toast.out{opacity:0;transform:translateX(30px);transition:.4s}
+.toast .ti{font-size:24px}.toast b{display:block;font-size:13px}.toast small{color:var(--muted);font-size:11px}
+.toast.ach{border-color:var(--warn)}.toast.bad{border-color:var(--bad)}.toast.quest{border-color:var(--good)}.toast.gem{border-color:#38bdf8}
+@keyframes slidein{from{opacity:0;transform:translateX(60px)}}
+.ft{position:fixed;z-index:92;pointer-events:none;font-weight:900;font-family:var(--mono);font-size:20px;text-shadow:0 3px 10px rgba(0,0,0,.7);animation:ft 1.3s ease-out forwards}
+.ft.up{color:#4ade80}.ft.down{color:#fb7185}
+@keyframes ft{0%{opacity:0;transform:translate(-50%,0) scale(.6)}15%{opacity:1;transform:translate(-50%,-10px) scale(1.2)}100%{opacity:0;transform:translate(-50%,-70px) scale(1)}}
+.kbd{font-family:var(--mono);font-size:10px;padding:1px 6px;border-radius:6px;background:rgba(255,255,255,.12);border:1px solid var(--line)}
+/* ================= TEXT MODE ================= */
+body.term .stage,body.term .players,body.term .tabs{display:none}
+body.term .layout{grid-template-columns:1fr}
+body.term .pane{display:none}body.term #pane-term{display:flex}
+body.term .panes{border-radius:12px}
+body.term #termOut{font-size:13px}
+/* ================= RESPONSIVE ================= */
+@media (max-width:980px){
+  body{overflow:auto}
+  .layout{grid-template-columns:1fr;height:auto}
+  #board{--bs:min(calc(100vw - 24px),calc(100vh - 80px))}
+  .dock{height:auto}.panes{min-height:360px}
+  .profile-chip .xpbar{display:none}
+  .brand small{display:none}
+  .tbtn span.lb{display:none}
+}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+body.calm *{animation-duration:.01ms!important;animation-iteration-count:1!important}
+</style>
+</head>
+<body data-theme="neon">
+<div class="bg"><i></i><i></i><i></i></div>
+<canvas id="fx"></canvas>
+<div id="sr" class="sr" aria-live="assertive" aria-atomic="true"></div>
+
+<header class="top">
+  <div class="brand"><div class="logo">G</div><div><b>GridLock</b><small>16-tile tactical empire</small></div></div>
+  <div class="profile-chip" id="profChip" data-act="open" data-m="m-profile" title="Profile, shop & achievements">
+    <span id="chipLvl">Lv 1</span><div class="xpbar"><i id="chipXp"></i></div>
+    <span>💎 <b id="chipGems">0</b></span><span>🔥 <b id="chipStreak">0</b></span>
+  </div>
+  <div class="tools">
+    <button class="tbtn" id="btnManage" data-act="manage" title="Portfolio (P)">🏛️<span class="lb">Portfolio</span></button>
+    <button class="tbtn" id="btnTrade" data-act="trade" title="Trade (T)">🤝<span class="lb">Trade</span></button>
+    <button class="tbtn" data-act="open" data-m="m-help" title="Rules & shortcuts">📖</button>
+    <button class="tbtn" id="btnTerm" data-act="termmode" title="Text / terminal mode">⌨️</button>
+    <button class="tbtn" id="btnSound" data-act="sound" title="Sound (M)">🔊</button>
+    <button class="tbtn" id="btnVoice" data-act="voice" title="Voice narration (V)">🔇</button>
+    <button class="tbtn" id="btnContrast" data-act="contrast" title="High contrast">👁️</button>
+    <button class="tbtn" id="btnMotion" data-act="motion" title="Reduce motion">🎞️</button>
+    <button class="tbtn" id="btnFast" data-act="fast" title="Fast animations">⏩</button>
+    <button class="tbtn" data-act="newgame" title="New game">🔄</button>
+  </div>
+</header>
+
+<main class="layout">
+  <section class="stage">
+    <div id="board">
+      <div id="hub">
+        <div class="hub-top"><span class="chip" id="turnChip">Turn 1</span><span class="chip" id="jackpotChip">🏆 Jackpot <b id="jackpot">$100</b></span></div>
+        <div class="hub-mid">
+          <div class="die" id="die" data-act="roll" title="Click to roll"></div>
+          <div id="hubTitle">Welcome</div>
+          <div id="hubSub"></div>
+          <div id="hubBtns"></div>
+        </div>
+        <div class="hub-bot"><span title="Fills every roll. At 100% you get a free Lucky Crate">🍀 Lucky</span><div id="meter"><span id="meterFill"></span></div><span id="coach"></span></div>
+        <div class="reveal" id="reveal"></div>
+        <div id="banner"></div>
+      </div>
+      <div id="sprites"></div>
+    </div>
+  </section>
+
+  <aside class="dock">
+    <div class="players" id="players"></div>
+    <nav class="tabs" id="tabs">
+      <button class="on" data-act="tab" data-t="chat">💬 Chat<i class="dot" id="chatDot"></i></button>
+      <button data-act="tab" data-t="log">📜 Log</button>
+      <button data-act="tab" data-t="term">&gt;_ CLI</button>
+      <button data-act="tab" data-t="quest">🎯 Quests</button>
+    </nav>
+    <div class="panes">
+      <div class="pane on" id="pane-chat">
+        <div class="scroll" id="chatList"></div>
+        <div class="emotes" id="emotes"><button data-act="emote" data-e="😀">😀</button><button data-act="emote" data-e="😭">😭</button><button data-act="emote" data-e="🔥">🔥</button><button data-act="emote" data-e="🙏">🙏</button><button data-act="emote" data-e="😈">😈</button><button data-act="emote" data-e="👑">👑</button><button data-act="emote" data-e="💸">💸</button><button data-act="emote" data-e="🤝">🤝</button></div>
+        <form class="row-in" id="chatForm"><input id="chatInput" maxlength="140" autocomplete="off" placeholder="Say something nice (or spicy)…"><button class="btn primary sm" type="submit">Send</button></form>
+      </div>
+      <div class="pane" id="pane-log"><div class="scroll" id="logList"></div></div>
+      <div class="pane" id="pane-term">
+        <div class="scroll" id="termOut"></div>
+        <form class="row-in" id="termForm"><span style="color:#86efac;font-family:var(--mono);padding-top:6px">&gt;</span><input id="termIn" autocomplete="off" spellcheck="false" placeholder="type 'help' — e.g. roll, buy, build 5, end"><button class="btn sm" type="submit">↵</button></form>
+      </div>
+      <div class="pane" id="pane-quest"><div class="scroll" id="questList"></div></div>
+    </div>
+  </aside>
+</main>
+
+<!-- ============ MODALS ============ -->
+<div class="modal" id="m-lobby"><div class="sheet wide">
+  <div class="sh-head"><h3>🎮 New Match</h3></div>
+  <div class="sh-body" id="lobbyBody"></div>
+  <div class="sh-foot"><button class="btn good" data-act="quick">⚡ Quick match vs Nova</button><button class="btn primary pulse" data-act="startgame">▶ Start Game</button></div>
+</div></div>
+
+<div class="modal" id="m-daily"><div class="sheet"><div class="sh-head"><h3>🎁 Daily Drop</h3><button class="x" data-act="close">✕</button></div><div class="sh-body" id="dailyBody" style="text-align:center"></div></div></div>
+
+<div class="modal" id="m-profile"><div class="sheet wide">
+  <div class="sh-head"><h3 id="profTitle">Profile</h3><button class="x" data-act="close">✕</button></div>
+  <div class="sh-body"><div class="seg" id="profTabs"><button class="on" data-act="ptab" data-t="shop">🛍️ Wardrobe & Shop</button><button data-act="ptab" data-t="ach">🏅 Achievements</button><button data-act="ptab" data-t="stats">📊 Stats</button></div><div id="profBody"></div></div>
+</div></div>
+
+<div class="modal" id="m-portfolio"><div class="sheet wide">
+  <div class="sh-head"><h3 id="pfTitle">Portfolio</h3><button class="x" data-act="close" id="pfX">✕</button></div>
+  <div class="sh-body" id="pfBody"></div>
+  <div class="sh-foot" id="pfFoot"></div>
+</div></div>
+
+<div class="modal" id="m-tile"><div class="sheet"><div class="sh-head"><h3 id="tlTitle">Tile</h3><button class="x" data-act="close">✕</button></div><div class="sh-body" id="tlBody"></div></div></div>
+
+<div class="modal" id="m-trade"><div class="sheet wide">
+  <div class="sh-head"><h3>🤝 Trade Floor</h3><button class="x" data-act="close">✕</button></div>
+  <div class="sh-body" id="trBody"></div>
+  <div class="sh-foot"><span id="trFair" class="lbl" style="margin-right:auto"></span><button class="btn" data-act="close">Cancel</button><button class="btn good" data-act="proposetrade">Propose Trade</button></div>
+</div></div>
+
+<div class="modal" id="m-auction"><div class="sheet">
+  <div class="sh-head"><h3>🔨 Auction</h3></div>
+  <div class="sh-body" id="auBody"></div>
+</div></div>
+
+<div class="modal" id="m-ask"><div class="sheet">
+  <div class="sh-head"><h3 id="askTitle">Confirm</h3></div>
+  <div class="sh-body" id="askBody"></div>
+  <div class="sh-foot"><button class="btn" id="askNo">Decline</button><button class="btn good" id="askOk">Accept</button></div>
+</div></div>
+
+<div class="modal" id="m-victory"><div class="sheet"><div class="sh-body" id="vicBody" style="text-align:center"></div></div></div>
+
+<div class="modal" id="m-help"><div class="sheet wide">
+  <div class="sh-head"><h3>📖 Rules, Keys & CLI</h3><button class="x" data-act="close">✕</button></div>
+  <div class="sh-body" id="helpBody"></div>
+</div></div>
+
+<div id="toasts"></div>
+
+<script>
+'use strict';
+/* =====================================================================
+   0. UTILITIES
+   ===================================================================== */
+const $=(s,r=document)=>r.querySelector(s);
+const $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const money=n=>(n<0?'-':'')+'$'+Math.abs(Math.round(n)).toLocaleString('en-US');
+const sleepRaw=ms=>new Promise(r=>setTimeout(r,ms));
+const sleep=ms=>(!window.game||game.speed<=0)?Promise.resolve():sleepRaw(ms*game.speed);
+const wpick=a=>{let t=a.reduce((s,x)=>s+x.w,0),r=Math.random()*t;for(const x of a){if((r-=x.w)<=0)return x}return a[a.length-1]};
+const centerOf=el=>{const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2}};
+const anim=(el,kf,o)=>{if(!el||!el.animate||Store.p.reduce)return Promise.resolve();try{return el.animate(kf,o).finished.catch(()=>{})}catch(e){return Promise.resolve()}};
+const dayStr=(d=new Date())=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const gridOf=id=>id<=4?[5,5-id]:id<=8?[5-(id-4),1]:id<=12?[1,1+(id-8)]:[1+(id-12),5];
+const pad=(s,n)=>{s=String(s);return s.length>=n?s.slice(0,n):s+' '.repeat(n-s.length)};
+
+/* =====================================================================
+   1. DATA
+   ===================================================================== */
+const CFG={passStart:200,jailFee:50,landBonus:100,sell:.5,fee:.1,seed:100};
+const SEAT_COLORS=['#38bdf8','#fb7185','#fbbf24','#a3e635'];
+const DISTRICTS={
+  BRONZE:{name:'Bronze Row',hex:'#f59e0b',tiles:[1,2],build:60},
+  CYBER:{name:'Cyber Hub',hex:'#22d3ee',tiles:[5,6],build:110},
+  CLEAN:{name:'CleanTech',hex:'#34d399',tiles:[9,10],build:160},
+  DEEP:{name:'DeepTech',hex:'#a78bfa',tiles:[13,14],build:220}
+};
+const TILES=[
+  {id:0,name:'START',type:'start',icon:'🏁',desc:'Pass: +$200 • Land: +$100 bonus'},
+  {id:1,name:'Rust Ave',type:'prop',d:'BRONZE',cost:120,rent:[20,60,130,240,420],icon:'🦀'},
+  {id:2,name:'Python Way',type:'prop',d:'BRONZE',cost:140,rent:[25,75,160,280,500],icon:'🐍'},
+  {id:3,name:'Surge Tax',type:'tax',amount:100,icon:'⚡',desc:'Pay $100 → Jackpot pool'},
+  {id:4,name:'REBOOT',type:'jail',icon:'🔌',desc:'Visiting is safe. Jailed: roll a 6 or pay $50'},
+  {id:5,name:'Neon St',type:'prop',d:'CYBER',cost:220,rent:[40,120,260,460,780],icon:'🌃'},
+  {id:6,name:'Matrix Blvd',type:'prop',d:'CYBER',cost:240,rent:[45,135,300,520,880],icon:'🟩'},
+  {id:7,name:'Airdrop',type:'crate',icon:'🎁',desc:'Mystery crate: random reward'},
+  {id:8,name:'FREE NODE',type:'jackpot',icon:'🎰',desc:'Win the whole Jackpot pool'},
+  {id:9,name:'Solar Row',type:'prop',d:'CLEAN',cost:320,rent:[60,180,400,700,1150],icon:'☀️'},
+  {id:10,name:'Fusion Alley',type:'prop',d:'CLEAN',cost:350,rent:[70,210,450,780,1300],icon:'⚛️'},
+  {id:11,name:'Audit Tax',type:'tax',amount:120,icon:'🧾',desc:'Pay $120 → Jackpot pool'},
+  {id:12,name:'OVERCLOCK',type:'wheel',icon:'🚀',desc:'Spin the wheel: surprise reward'},
+  {id:13,name:'Quantum Way',type:'prop',d:'DEEP',cost:440,rent:[95,290,620,1050,1750],icon:'🌀'},
+  {id:14,name:'Orbit Peak',type:'prop',d:'DEEP',cost:480,rent:[110,330,720,1200,2000],icon:'🛰️'},
+  {id:15,name:'Venture Fund',type:'crate',icon:'💎',desc:'Mystery crate: random reward'}
+];
+const AVATARS={
+  cat:{name:'Mochi Cat',fur:'#ffd7a8',ear:'#ff9fb8',price:0},
+  bunny:{name:'Bun Bun',fur:'#fff1f6',ear:'#ffb3c9',price:0},
+  bear:{name:'Teddy',fur:'#d9a273',ear:'#f2c4a0',price:0},
+  panda:{name:'Pandi',fur:'#ffffff',ear:'#2b2b3a',price:120},
+  fox:{name:'Foxy',fur:'#ffb066',ear:'#fff1de',price:150},
+  chick:{name:'Pip',fur:'#ffe766',ear:'#ffb347',price:180},
+  frog:{name:'Ribbit',fur:'#9be37f',ear:'#d9ffb8',price:200},
+  axo:{name:'Axo',fur:'#ffc2dd',ear:'#ff7fb0',price:250}
+};
+const ACCS={none:{name:'None',price:0},bow:{name:'Pink Bow',price:40},party:{name:'Party Hat',price:60},shades:{name:'Cool Shades',price:60},phones:{name:'Headphones',price:80},halo:{name:'Halo',price:120},crown:{name:'Crown',price:150}};
+const THEMES={neon:{name:'Midnight Neon',price:0},candy:{name:'Candy Pop',price:100},matcha:{name:'Matcha Dusk',price:100},sunset:{name:'Sunset Arcade',price:150}};
+const AI_STYLES=[{n:'Nova',reserve:220,bold:.5},{n:'Byte',reserve:150,bold:.8},{n:'Pixel',reserve:300,bold:.3},{n:'Echo',reserve:200,bold:.6}];
+const CRATE=[
+  {w:34,k:'cash',min:60,max:140,icon:'💵',t:'Pocket Change'},
+  {w:30,k:'cash',min:150,max:260,icon:'💰',t:'Nice Haul'},
+  {w:14,k:'cash',min:300,max:500,icon:'🤑',t:'Big Payout!'},
+  {w:5,k:'cash',min:700,max:900,icon:'👑',t:'LEGENDARY HAUL'},
+  {w:8,k:'shield',icon:'🛡️',t:'Rent Shield'},
+  {w:6,k:'roll',icon:'🎲',t:'Free Roll'},
+  {w:7,k:'gems',min:5,max:25,icon:'💎',t:'Gem Stash'}
+];
+const WHEEL=[
+  {w:22,icon:'💵',name:'+$150',fn:(g,p)=>g.credit(p,150)},
+  {w:16,icon:'💰',name:'+$300',fn:(g,p)=>g.credit(p,300)},
+  {w:6,icon:'🤑',name:'+$600',fn:(g,p)=>g.credit(p,600)},
+  {w:14,icon:'🎲',name:'Bonus Roll',fn:(g,p)=>{g.s.extra=true}},
+  {w:14,icon:'🛡️',name:'Rent Shield',fn:(g,p)=>{p.shield=true}},
+  {w:12,icon:'💎',name:'+15 gems',fn:(g,p)=>g.gems(p,15)},
+  {w:10,icon:'📈',name:'Cashback 10%',fn:(g,p)=>g.credit(p,Math.min(250,Math.max(50,Math.round(g.net(p)*.1/10)*10)))},
+  {w:6,icon:'🧨',name:'Glitch −$60',fn:(g,p)=>{if(p.cash>=60){p.cash-=60;g.s.jackpot+=60;UI.money(p,-60)}}}
+];
+const QUEST_POOL=[
+  {id:'rent500',txt:'Collect $500 in rent',goal:500,ev:'rentGot',gems:25},
+  {id:'set1',txt:'Complete a district',goal:1,ev:'setDone',gems:30},
+  {id:'lvl3',txt:'Upgrade a tile to Level 3',goal:1,ev:'lvl3',gems:30},
+  {id:'crate2',txt:'Open 2 crates',goal:2,ev:'crate',gems:20},
+  {id:'jack',txt:'Hit the FREE NODE jackpot',goal:1,ev:'jackpot',gems:35},
+  {id:'trade1',txt:'Complete a trade',goal:1,ev:'trade',gems:20},
+  {id:'six',txt:'Roll three 6s',goal:3,ev:'six',gems:20},
+  {id:'own3',txt:'Own 3 properties',goal:3,ev:'own',gems:20}
+];
+const ACH={
+  first_win:{icon:'🏆',name:'First Victory',desc:'Win a match',gems:50},
+  monopoly:{icon:'⚡',name:'Set Complete',desc:'Complete a district',gems:30},
+  landmark:{icon:'👑',name:'Landmark Builder',desc:'Reach Level 5',gems:60},
+  jackpot:{icon:'🎰',name:'Jackpot!',desc:'Hit the FREE NODE',gems:40},
+  bigrent:{icon:'💸',name:'Landlord',desc:'Collect $500+ rent at once',gems:40},
+  trader:{icon:'🤝',name:'Dealmaker',desc:'Complete a trade',gems:25},
+  streak3:{icon:'🔥',name:'On Fire',desc:'3-day streak',gems:40},
+  streak7:{icon:'🌈',name:'Week Warrior',desc:'7-day streak',gems:100},
+  wipeout:{icon:'💀',name:'Wipeout',desc:'Bankrupt an opponent',gems:60},
+  comeback:{icon:'🦸',name:'Comeback Kid',desc:'Win after dropping under $100',gems:80},
+  collector:{icon:'🧸',name:'Collector',desc:'Unlock 4 avatars',gems:50}
+};
+const HELP_CLI=`GRIDLOCK CLI — plain text, agent-friendly. Seats are 1-based (P1..P4).
+ACTIONS   roll | buy | decline | bid <n> | fold | end | jail (pay & leave REBOOT)
+BUILDING  build <tile> | sell <tile> (sell one building) | mortgage <tile> | unmortgage <tile> | autoraise
+TRADING   trade <seat#> give=<ids|-> get=<ids|-> givecash=<n> getcash=<n>
+INFO      status | board | tiles | props [seat#] | tile <id> | legal | state (JSON) | log [n] | wait
+OTHER     say <msg> | fast on|off | autoboard on|off | new [players] | help
+Every action reply ends with "NEXT:" — the exact legal moves right now.
+API       GridLockAPI.exec("roll") → {ok,msg,state,legal}`;
+
+/* =====================================================================
+   2. PROFILE STORE (the "Investment" phase of the Hook model)
+   ===================================================================== */
+const Store={
+  key:'gridlock.profile.v3',p:null,
+  def(){return{name:'You',xp:0,gems:50,streak:0,best:0,lastDay:'',games:0,wins:0,rent:0,
+    unlocked:{avatar:['cat','bunny','bear'],acc:['none'],theme:['neon']},sel:{avatar:'cat',acc:'none',theme:'neon'},
+    ach:{},muted:false,reduce:undefined,fast:false,contrast:false}},
+  load(){const d=this.def();try{const r=JSON.parse(localStorage.getItem(this.key)||'null');if(r){this.p=Object.assign(d,r);this.p.unlocked=Object.assign(d.unlocked,r.unlocked||{});this.p.sel=Object.assign(d.sel,r.sel||{})}else this.p=d}catch(e){this.p=d}
+    if(this.p.reduce===undefined)this.p.reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+    return this.p},
+  save(){try{localStorage.setItem(this.key,JSON.stringify(this.p))}catch(e){}}
+};
+const levelInfo=xp=>{let lvl=1,need=100,left=xp;while(left>=need){left-=need;lvl++;need=100+(lvl-1)*40}return{lvl,cur:left,need}};
+const Prof={
+  addXp(n){const p=Store.p,b=levelInfo(p.xp).lvl;p.xp+=n;const a=levelInfo(p.xp).lvl;if(a>b){p.gems+=10*(a-b);UI.levelUp(a)}Store.save();UI.renderChip()},
+  addGems(n,why){Store.p.gems+=n;Store.save();UI.renderChip();if(why)UI.toast('💎','+'+n+' gems',why,'gem')},
+  ach(id){const p=Store.p;if(p.ach[id])return;p.ach[id]=Date.now();const a=ACH[id];p.gems+=a.gems;Store.save();UI.toast(a.icon,'Achievement: '+a.name,a.desc+' • +'+a.gems+' 💎','ach');Sfx.play('ach');UI.renderChip()}
+};
+
+/* =====================================================================
+   3. AUDIO (synthesised — zero assets)
+   ===================================================================== */
+const Sfx={ctx:null,
+  init(){if(!this.ctx){const C=window.AudioContext||window.webkitAudioContext;if(!C)return;this.ctx=new C()}if(this.ctx.state==='suspended')this.ctx.resume()},
+  tone(f,{t='sine',d=.12,v=.07,at=0,slide=0}={}){if(Store.p.muted)return;this.init();const c=this.ctx;if(!c)return;try{const o=c.createOscillator(),g=c.createGain(),t0=c.currentTime+at;o.type=t;o.frequency.setValueAtTime(f,t0);if(slide)o.frequency.exponentialRampToValueAtTime(Math.max(40,f+slide),t0+d);g.gain.setValueAtTime(v,t0);g.gain.exponentialRampToValueAtTime(.0001,t0+d);o.connect(g);g.connect(c.destination);o.start(t0);o.stop(t0+d+.02)}catch(e){}},
+  seq(n,step=.07,o={}){n.forEach((f,i)=>this.tone(f,{...o,at:i*step}))},
+  play(n,k=0){switch(n){
+    case 'tick':this.tone(420+k*40,{t:'triangle',d:.06,v:.05});break;
+    case 'roll':this.seq([300,360,330,420,380,460],.05,{t:'triangle',d:.06,v:.06});break;
+    case 'coin':this.seq([988,1319],.07,{t:'square',d:.1,v:.03});break;
+    case 'jackpot':this.seq([523,659,784,1047,1319],.08,{d:.18,v:.08});break;
+    case 'buy':this.seq([523,659,784],.07,{d:.12});break;
+    case 'build':this.seq([330,440,554,740],.06,{t:'triangle',d:.12,v:.08});break;
+    case 'rent':this.seq([330,220],.09,{t:'sawtooth',d:.15,v:.05});break;
+    case 'tax':this.tone(180,{t:'sawtooth',d:.2,v:.05,slide:-60});break;
+    case 'err':this.tone(160,{t:'square',d:.15,v:.04});break;
+    case 'pop':this.tone(660,{d:.08,v:.06,slide:200});break;
+    case 'win':this.seq([523,659,784,1047,784,1047,1319],.1,{d:.22,v:.09});break;
+    case 'lvl':this.seq([440,554,659,880,1109],.08,{d:.2,v:.08});break;
+    case 'ach':this.seq([784,988,1175],.09,{d:.18,v:.07});break;
+    case 'bomb':this.tone(120,{t:'sawtooth',d:.5,v:.08,slide:-70});break}}
+};
+
+/* =====================================================================
+   4. PARTICLES, FLOATING TEXT, TOASTS
+   ===================================================================== */
+const FX={cv:null,cx:null,P:[],raf:0,
+  init(){this.cv=$('#fx');this.cx=this.cv.getContext('2d');const r=()=>{const d=devicePixelRatio||1;this.cv.width=innerWidth*d;this.cv.height=innerHeight*d;this.cx.setTransform(d,0,0,d,0,0)};r();addEventListener('resize',r)},
+  burst(x,y,o={}){if(Store.p.reduce)return;const n=o.n||28,kind=o.kind||'confetti',cols=o.colors||['#5eead4','#60a5fa','#fbbf24','#fb7185','#a78bfa','#f9a8d4'];
+    for(let i=0;i<n;i++){const a=Math.random()*Math.PI*2,sp=(o.speed||7)*(.35+Math.random());this.P.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-(o.up??3),g:.2,life:1,dec:.01+Math.random()*.012,s:3+Math.random()*5,r:Math.random()*6,vr:(Math.random()-.5)*.4,c:pick(cols),kind})}
+    if(!this.raf)this.loop()},
+  loop(){const c=this.cx;c.clearRect(0,0,innerWidth,innerHeight);this.P=this.P.filter(p=>p.life>0&&p.y<innerHeight+40);
+    for(const p of this.P){p.vy+=p.g;p.x+=p.vx;p.y+=p.vy;p.vx*=.99;p.r+=p.vr;p.life-=p.dec;c.globalAlpha=Math.max(0,p.life);
+      if(p.kind==='coin'){c.fillStyle='#fbbf24';c.beginPath();c.ellipse(p.x,p.y,p.s,p.s*Math.abs(Math.cos(p.r)),0,0,7);c.fill();c.strokeStyle='#b45309';c.stroke()}
+      else if(p.kind==='spark'){c.fillStyle=p.c;c.save();c.translate(p.x,p.y);c.rotate(p.r);c.fillRect(-p.s/2,-1,p.s,2);c.fillRect(-1,-p.s/2,2,p.s);c.restore()}
+      else{c.fillStyle=p.c;c.save();c.translate(p.x,p.y);c.rotate(p.r);c.fillRect(-p.s/2,-p.s/3,p.s,p.s*.6);c.restore()}}
+    c.globalAlpha=1;this.raf=this.P.length?requestAnimationFrame(()=>this.loop()):0}
+};
+
+/* =====================================================================
+   5. DOLL-STYLE AVATAR SPRITES (pure SVG, animated via CSS/WAAPI)
+   ===================================================================== */
+function avatarSVG(kind,outfit,acc='none'){
+  const a=AVATARS[kind]||AVATARS.cat,f=a.fur,e=a.ear;let back='',mid='',front='';
+  switch(kind){
+    case 'cat':back=`<path d="M11 24 L14 4 L31 15Z" fill="${f}"/><path d="M53 24 L50 4 L33 15Z" fill="${f}"/><path d="M16 18 L17 9 L25 15Z" fill="${e}"/><path d="M48 18 L47 9 L39 15Z" fill="${e}"/>`;front=`<g stroke="#b9855a" stroke-width="1" opacity=".55"><path d="M5 39h10M6 44l9-2M59 39h-10M58 44l-9-2"/></g>`;break;
+    case 'bunny':back=`<ellipse cx="22" cy="9" rx="6.5" ry="15" fill="${f}" transform="rotate(-8 22 9)"/><ellipse cx="42" cy="9" rx="6.5" ry="15" fill="${f}" transform="rotate(8 42 9)"/><ellipse cx="22" cy="10" rx="3" ry="10" fill="${e}" transform="rotate(-8 22 10)"/><ellipse cx="42" cy="10" rx="3" ry="10" fill="${e}" transform="rotate(8 42 10)"/>`;break;
+    case 'bear':back=`<circle cx="13" cy="17" r="8" fill="${f}"/><circle cx="51" cy="17" r="8" fill="${f}"/><circle cx="13" cy="17" r="4.2" fill="${e}"/><circle cx="51" cy="17" r="4.2" fill="${e}"/>`;mid=`<ellipse cx="32" cy="43" rx="9" ry="6.5" fill="${e}"/>`;break;
+    case 'panda':back=`<circle cx="13" cy="17" r="8" fill="${e}"/><circle cx="51" cy="17" r="8" fill="${e}"/>`;mid=`<ellipse cx="23.5" cy="36" rx="6.5" ry="8" fill="${e}" transform="rotate(20 23.5 36)"/><ellipse cx="40.5" cy="36" rx="6.5" ry="8" fill="${e}" transform="rotate(-20 40.5 36)"/>`;break;
+    case 'fox':back=`<path d="M11 24 L13 3 L31 15Z" fill="${f}"/><path d="M53 24 L51 3 L33 15Z" fill="${f}"/><path d="M13 3 L17 12 L10 13Z" fill="#3b2a24"/><path d="M51 3 L47 12 L54 13Z" fill="#3b2a24"/>`;mid=`<path d="M9 41 Q20 36 30 47 Q18 53 9 41Z" fill="${e}"/><path d="M55 41 Q44 36 34 47 Q46 53 55 41Z" fill="${e}"/>`;break;
+    case 'chick':back=`<path d="M32 15 Q27 3 22 6 Q27 8 29 16Z M32 15 Q37 2 43 5 Q37 8 35 16Z" fill="${f}"/>`;front=`<path d="M28 41 L36 41 L32 48Z" fill="${e}"/>`;break;
+    case 'frog':back=`<circle cx="19" cy="16" r="9" fill="${f}"/><circle cx="45" cy="16" r="9" fill="${f}"/><circle cx="19" cy="16" r="4.5" fill="${e}"/><circle cx="45" cy="16" r="4.5" fill="${e}"/>`;break;
+    case 'axo':back=`<g fill="${e}"><ellipse cx="8" cy="27" rx="8" ry="3" transform="rotate(-25 8 27)"/><ellipse cx="5" cy="35" rx="8" ry="3"/><ellipse cx="8" cy="43" rx="8" ry="3" transform="rotate(25 8 43)"/><ellipse cx="56" cy="27" rx="8" ry="3" transform="rotate(25 56 27)"/><ellipse cx="59" cy="35" rx="8" ry="3"/><ellipse cx="56" cy="43" rx="8" ry="3" transform="rotate(-25 56 43)"/></g>`;break}
+  let accs='';
+  switch(acc){
+    case 'bow':accs=`<g transform="translate(48 15) rotate(18)"><path d="M0 0 L-10 -7 L-10 7Z M0 0 L10 -7 L10 7Z" fill="#ff5c9a"/><circle r="3.2" fill="#ff9cc2"/></g>`;break;
+    case 'party':accs=`<path d="M32 -8 L21 15 L43 15Z" fill="#8b5cf6"/><circle cx="29" cy="6" r="2" fill="#fde047"/><circle cx="35" cy="10" r="2" fill="#f9a8d4"/><circle cx="32" cy="-8" r="3" fill="#fde047"/>`;break;
+    case 'shades':accs=`<rect x="13" y="30" width="17" height="11" rx="5" fill="#111"/><rect x="34" y="30" width="17" height="11" rx="5" fill="#111"/><path d="M30 35h4" stroke="#111" stroke-width="2.4"/><path d="M16 33l5-1" stroke="#fff" stroke-opacity=".6" stroke-width="1.6"/>`;break;
+    case 'phones':accs=`<path d="M10 36 Q10 8 32 8 Q54 8 54 36" fill="none" stroke="#2f2f45" stroke-width="4"/><rect x="5" y="31" width="9" height="15" rx="4.5" fill="#ff5c9a"/><rect x="50" y="31" width="9" height="15" rx="4.5" fill="#ff5c9a"/>`;break;
+    case 'halo':accs=`<ellipse cx="32" cy="9" rx="14" ry="4.2" fill="none" stroke="#ffe27a" stroke-width="3.4"/>`;break;
+    case 'crown':accs=`<path d="M19 17 L21 3 L27 11 L32 0 L37 11 L43 3 L45 17Z" fill="#ffd34d" stroke="#e0a800" stroke-width="1.2"/><circle cx="32" cy="9" r="2.2" fill="#fb7185"/>`;break}
+  return`<svg viewBox="0 -10 64 88" xmlns="http://www.w3.org/2000/svg">
+  ${back}
+  <ellipse cx="25" cy="73" rx="7" ry="3.6" fill="${f}"/><ellipse cx="39" cy="73" rx="7" ry="3.6" fill="${f}"/>
+  <path d="M19 56 Q32 50 45 56 L47 69 Q32 75 17 69Z" fill="${outfit}"/>
+  <path d="M25 55 Q32 60 39 55" stroke="#fff" stroke-opacity=".65" fill="none" stroke-width="2"/>
+  <ellipse cx="14" cy="63" rx="4" ry="6" fill="${f}" transform="rotate(12 14 63)"/><ellipse cx="50" cy="63" rx="4" ry="6" fill="${f}" transform="rotate(-12 50 63)"/>
+  <ellipse cx="32" cy="36" rx="23" ry="21" fill="${f}" stroke="rgba(0,0,0,.1)"/>
+  <ellipse cx="23" cy="25" rx="8" ry="3.6" fill="#fff" opacity=".28" transform="rotate(-22 23 25)"/>
+  ${mid}
+  <g class="eyes" style="animation-delay:${(Math.random()*3).toFixed(2)}s"><ellipse cx="23.5" cy="36" rx="3.8" ry="5" fill="#2b2140"/><ellipse cx="40.5" cy="36" rx="3.8" ry="5" fill="#2b2140"/><circle cx="22.2" cy="34" r="1.5" fill="#fff"/><circle cx="39.2" cy="34" r="1.5" fill="#fff"/><circle cx="24.6" cy="38" r=".8" fill="#fff"/><circle cx="41.6" cy="38" r=".8" fill="#fff"/></g>
+  <ellipse cx="15.5" cy="43" rx="4" ry="2.6" fill="#ff7fa6" opacity=".55"/><ellipse cx="48.5" cy="43" rx="4" ry="2.6" fill="#ff7fa6" opacity=".55"/>
+  <path class="m m-calm" d="M28.5 44 Q32 47.5 35.5 44" stroke="#5a3a3a" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+  <path class="m m-happy" d="M27 43 Q32 52 37 43Z" fill="#7a2f45"/>
+  <path class="m m-sad" d="M28.5 47 Q32 43.5 35.5 47" stroke="#5a3a3a" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+  ${front}${accs}</svg>`;
+}
+
+/* =====================================================================
+   6. GAME ENGINE
+   ===================================================================== */
+let game=null;
+class Game{
+  constructor(){this.s=null;this.busy=false;this.ticking=false;this._again=false;this._sched=0;this.speed=1;this.logs=[];this.quests=[];this.autoboard=false}
+  get cur(){return this.s.players[this.s.cur]}
+  P(id){return this.s.players[id]}
+  fail(msg){return{ok:false,msg}}
+
+  /* ---------- setup ---------- */
+  newGame(cfg){
+    const players=cfg.seats.map((st,i)=>({id:i,name:st.name,kind:st.kind,avatar:st.avatar,acc:st.acc||'none',color:SEAT_COLORS[i],tag:'P'+(i+1),
+      cash:cfg.startCash,pos:0,inJail:false,jailTurns:0,sixes:0,shield:false,bankrupt:false,meter:rnd(0,35),low:cfg.startCash,hops:0,profile:false,
+      ai:st.kind==='ai'?{...AI_STYLES[i%AI_STYLES.length],cool:0}:null,st:{rent:0,paid:0,rolls:0,builds:0,trades:0}}));
+    const h=players.find(p=>p.kind==='human');if(h)h.profile=true;
+    this.s={players,tiles:TILES.map(()=>({owner:null,level:0,mortgaged:false})),jackpot:CFG.seed,turn:1,cur:0,phase:'pre',extra:false,lastRoll:1,
+      debt:null,auction:null,pending:null,over:false,winner:null,settings:{maxTurns:cfg.maxTurns,startCash:cfg.startCash},ev:{title:'Game on!',sub:'Roll to begin'},t0:Date.now()};
+    this.logs=[];$('#logList').innerHTML='';$('#chatList').innerHTML='';
+    this.quests=[...QUEST_POOL].sort(()=>Math.random()-.5).slice(0,3).map(q=>({...q,prog:0,done:false}));
+    this.busy=false;this.ticking=false;
+    UI.mount();
+    this.log(`Match started: ${players.map(p=>p.name).join(' vs ')}`,'sys');
+    this.chat('System','#94a3b8',`Welcome! ${players.map(p=>p.name).join(', ')} — good luck!`);
+    this.announce(`New game. ${this.cur.name} goes first.`);
+    UI.banner(`${this.cur.name}'s turn`,this.cur.color);
+    this.afterAction();
+  }
+
+  /* ---------- helpers ---------- */
+  dTiles(dk){return DISTRICTS[dk].tiles}
+  setOwner(dk){const t=this.dTiles(dk),o=this.s.tiles[t[0]].owner;return(o!==null&&t.every(i=>this.s.tiles[i].owner===o))?o:null}
+  hasSet(pid,dk){return this.setOwner(dk)===pid}
+  tilesOf(pid){return TILES.filter(T=>T.type==='prop'&&this.s.tiles[T.id].owner===pid).map(T=>T.id)}
+  levels(dk){return this.dTiles(dk).map(i=>this.s.tiles[i].level)}
+  rentOf(tid){const T=TILES[tid],st=this.s.tiles[tid];if(st.owner===null||st.mortgaged)return 0;let r=T.rent[st.level-1];if(st.level===1&&this.setOwner(T.d)===st.owner)r*=2;return r}
+  buildCost(tid){return DISTRICTS[TILES[tid].d].build}
+  mortVal(tid){return TILES[tid].cost/2}
+  unmortCost(tid){return Math.ceil(this.mortVal(tid)*(1+CFG.fee))}
+  net(p){let v=p.cash;this.tilesOf(p.id).forEach(t=>{const st=this.s.tiles[t];v+=st.mortgaged?this.mortVal(t):TILES[t].cost;v+=(st.level-1)*this.buildCost(t)});return v}
+  richest(){return this.s.players.filter(p=>!p.bankrupt).sort((a,b)=>this.net(b)-this.net(a))[0]}
+  ev(title,sub=''){this.s.ev={title,sub}}
+  completes(pid,incoming){const ds=[...new Set(incoming.map(i=>TILES[i].d))];return ds.filter(dk=>this.dTiles(dk).every(i=>this.s.tiles[i].owner===pid||incoming.includes(i)))}
+
+  /* ---------- rule checks (return '' when allowed) ---------- */
+  lockReason(tid){const T=TILES[tid];if(T.type!=='prop')return'Not tradable';if(this.dTiles(T.d).some(i=>this.s.tiles[i].level>1))return`🔒 ${DISTRICTS[T.d].name} has upgrades — sell its buildings before trading`;return''}
+  whyNoBuild(pid,tid){const T=TILES[tid];if(!T||T.type!=='prop')return'Not a property';const st=this.s.tiles[tid],p=this.P(pid);
+    if(st.owner!==pid)return'You do not own it';if(!this.hasSet(pid,T.d))return`Need the full ${DISTRICTS[T.d].name} set`;
+    if(this.dTiles(T.d).some(i=>this.s.tiles[i].mortgaged))return'Unmortgage the whole district first';
+    if(st.level>=5)return'Already a Landmark';if(st.level>Math.min(...this.levels(T.d)))return'Build evenly: upgrade the lowest tile first';
+    const c=this.buildCost(tid);if(p.cash<c)return`Need ${money(c)}`;return''}
+  whyNoSell(pid,tid){const T=TILES[tid];if(!T||T.type!=='prop')return'Not a property';const st=this.s.tiles[tid];if(st.owner!==pid)return'You do not own it';if(st.level<=1)return'No buildings';if(st.level<Math.max(...this.levels(T.d)))return'Sell evenly: downgrade the highest tile first';return''}
+  whyNoMortgage(pid,tid){const T=TILES[tid];if(!T||T.type!=='prop')return'Not a property';const st=this.s.tiles[tid];if(st.owner!==pid)return'You do not own it';if(st.mortgaged)return'Already mortgaged';if(this.dTiles(T.d).some(i=>this.s.tiles[i].level>1))return'Sell all buildings in the district first';return''}
+  whyNoUnmortgage(pid,tid){const T=TILES[tid];if(!T||T.type!=='prop')return'Not a property';const st=this.s.tiles[tid];if(st.owner!==pid)return'You do not own it';if(!st.mortgaged)return'Not mortgaged';if(this.P(pid).cash<this.unmortCost(tid))return`Need ${money(this.unmortCost(tid))}`;return''}
+  liquidation(p){let v=0;this.tilesOf(p.id).forEach(t=>{const st=this.s.tiles[t];if(!st.mortgaged)v+=this.mortVal(t);v+=(st.level-1)*this.buildCost(t)*CFG.sell});return Math.floor(v)}
+  guardHuman(c){const s=this.s;if(!s||s.over)return'No active game';if(this.busy)return'Animations running — try again in a moment';
+    if(s.phase==='auction'){if(!['bid','fold'].includes(c)&&!['sell','mortgage'].includes(c))return'An auction is running: bid <n> or fold';if(this.P(s.auction.turn).kind!=='human')return'AI is bidding';return''}
+    if(['bid','fold'].includes(c))return'No auction is running';if(this.cur.kind!=='human')return'Not your turn — AI is playing';return''}
+
+  /* ---------- turn flow ---------- */
+  settle(){const s=this.s;if(s.over)return;const p=this.cur;if(p.bankrupt){s.extra=false;s.phase='post';return}s.phase=(s.extra&&!p.inJail)?'pre':'post'}
+  afterAction(){this.render();UI.title();this.schedule()}
+  render(){if(!this.s)return;UI.renderTiles();UI.placeSprites();UI.renderPlayers();UI.renderHub();UI.renderQuests();UI.syncModals()}
+  schedule(){if(this._sched)return;this._sched=setTimeout(()=>{this._sched=0;this.tick()},0)}
+  async tick(){if(this.ticking){this._again=true;return}this.ticking=true;try{do{this._again=false;await this.tickOnce()}while(this._again)}catch(e){console.error(e)}finally{this.ticking=false}}
+  async tickOnce(){const s=this.s;if(!s||s.over||this.busy)return;
+    if(s.phase==='auction')return this.auctionStep();
+    const p=this.cur;if(p.bankrupt&&s.phase==='post')return void await this.endTurn(true);
+    if(p.kind!=='ai')return;
+    switch(s.phase){
+      case 'pre':await sleep(550);if(p.inJail&&p.cash>=p.ai.reserve+CFG.jailFee)await this.payJail();await this.aiManage(p);await this.roll();break;
+      case 'decide':await sleep(650);this.aiDecide(p);break;
+      case 'debt':await sleep(500);await this.autoRaise(p);break;
+      case 'post':await sleep(350);await this.aiManage(p);if(Math.random()<.35&&s.turn>=3)await this.aiTryTrade(p);if(this.s.phase==='post'&&!this.busy){await sleep(450);await this.endTurn()}break}}
+
+  async roll(){
+    const s=this.s;if(this.busy||s.phase!=='pre')return this.fail('Not time to roll');
+    const p=this.cur;this.busy=true;s.phase='rolling';this.render();
+    try{
+      const r=rnd(1,6);await UI.diceRoll(r);s.lastRoll=r;p.st.rolls++;this.xp(p,1);
+      this.log(`🎲 ${p.name} rolled a ${r}`,'move');this.announce(`${p.name} rolled a ${r}`);
+      p.meter+=rnd(10,22);if(r===6)this.qHit(p,'six');
+      if(p.inJail){await this.jailRoll(p,r)}
+      else if(r===6){
+        p.sixes++;
+        if(p.sixes>=3){this.log(`😵 ${p.name} rolled three 6s in a row → REBOOT!`,'warn');await this.sendToJail(p)}
+        else{s.extra=true;UI.banner('🎁 BONUS ROLL!','#fbbf24');await this.move(p,r);await this.land(p)}
+      }else{p.sixes=0;s.extra=false;await this.move(p,r);await this.land(p)}
+      if(!s.over&&!p.bankrupt&&p.meter>=100&&s.phase!=='debt'){p.meter-=100;await this.openCrate(p,'Lucky Meter')}
+    }finally{this.busy=false}
+    if(s.phase==='rolling')this.settle();
+    this.afterAction();return{ok:true};
+  }
+  async move(p,steps){
+    for(let i=0;i<steps;i++){p.pos=(p.pos+1)%16;
+      if(p.pos===0){p.cash+=CFG.passStart;UI.money(p,CFG.passStart);this.log(`🏁 ${p.name} passed START: +${money(CFG.passStart)}`,'good');Sfx.play('coin')}
+      await UI.hop(p)}
+    UI.highlight(p.pos);
+  }
+  async sendToJail(p){const s=this.s;s.extra=false;p.sixes=0;p.inJail=true;p.jailTurns=0;p.pos=4;this.log(`🔌 ${p.name} was sent to REBOOT`,'warn');UI.placeSprites();UI.mood(p.id,'sad',1600);Sfx.play('bomb');this.ev('Sent to REBOOT','Roll a 6 or pay $50 to escape');await sleep(500)}
+  async jailRoll(p,r){const s=this.s;
+    if(r===6){p.inJail=false;p.jailTurns=0;s.extra=false;this.log(`🔓 ${p.name} rolled a 6 and escaped REBOOT!`,'good');this.ev('Escaped!','Rolled a 6');await this.move(p,6);await this.land(p);return}
+    p.jailTurns++;
+    if(p.jailTurns>=3){this.log(`${p.name} must pay ${money(CFG.jailFee)} to leave REBOOT`,'warn');
+      const go=async()=>{p.inJail=false;p.jailTurns=0;await this.move(p,r);await this.land(p)};
+      const ok=await this.charge(p,CFG.jailFee,'pool','jail',null,go);if(ok)await go();return}
+    this.ev('Still rebooting…',`Attempt ${p.jailTurns}/3 — need a 6`);this.log(`${p.name} is still in REBOOT (${p.jailTurns}/3)`,'sys')}
+  async payJail(){const s=this.s,p=this.cur;if(this.busy||s.phase!=='pre'||!p.inJail)return this.fail('You are not in REBOOT');if(p.cash<CFG.jailFee)return this.fail(`Need ${money(CFG.jailFee)} (or roll a 6)`);
+    this.pay(p,CFG.jailFee,'pool','jail');p.inJail=false;p.jailTurns=0;this.log(`${p.name} paid ${money(CFG.jailFee)} to leave REBOOT`,'sys');this.afterAction();return{ok:true}}
+  async endTurn(force=false){
+    const s=this.s;if(s.over)return this.fail('Game over');if(!force&&(this.busy||s.phase!=='post'))return this.fail('Finish your move first');
+    const p=this.cur;this.xp(p,3);p.sixes=0;s.extra=false;s.pending=null;
+    let idx=s.cur;do{idx=(idx+1)%s.players.length}while(s.players[idx].bankrupt);
+    if(idx<=s.cur)s.turn++;s.cur=idx;s.phase='pre';
+    if(s.settings.maxTurns>0&&s.turn>s.settings.maxTurns){await this.gameOver(this.richest(),'turn-limit');return{ok:true}}
+    const n=this.cur;this.log(`— Turn ${s.turn}: ${n.name} —`,'sys');UI.banner(`${n.name}'s turn`,n.color);this.announce(`${n.name}'s turn. Cash ${n.cash} dollars.`);
+    this.ev(n.inJail?'In REBOOT':'Your move',n.inJail?'Roll a 6 or pay $50':'Roll the dice');
+    this.afterAction();return{ok:true}}
+
+  /* ---------- landing ---------- */
+  async land(p){
+    const s=this.s,T=TILES[p.pos],st=s.tiles[T.id];
+    switch(T.type){
+      case 'start':this.credit(p,CFG.landBonus);this.log(`🎯 Perfect landing on START! +${money(CFG.landBonus)}`,'good');this.ev('Perfect landing!',`+${money(CFG.landBonus)} bonus`);UI.mood(p.id,'happy',1500);break;
+      case 'prop':
+        if(st.owner===null){s.phase='decide';s.pending=T.id;this.ev(`Buy ${T.name}?`,`${money(T.cost)} • ${DISTRICTS[T.d].name}`);this.log(`${p.name} landed on unowned ${T.name} (${money(T.cost)})`,'sys');return}
+        if(st.owner===p.id){this.ev(`Your ${T.name}`,`Level ${st.level} • rent ${money(this.rentOf(T.id))}`);return}
+        if(st.mortgaged){this.ev('Mortgaged!',`${T.name} collects no rent`);this.log(`${T.name} is mortgaged — no rent`,'sys');return}
+        {const rent=this.rentOf(T.id),o=this.P(st.owner);this.ev(`Rent ${money(rent)}`,`${T.name} → ${o.name}`);
+         const ok=await this.charge(p,rent,o.id,'rent',T.id);if(ok&&rent>=300){UI.shakeBoard()}}
+        return;
+      case 'tax':this.ev(`Paid ${money(T.amount)}`,'Added to the Jackpot pool');this.log(`${p.name} landed on ${T.name}`,'warn');await this.charge(p,T.amount,'pool','tax');return;
+      case 'crate':await this.openCrate(p,T.name);return;
+      case 'wheel':await this.spinWheel(p);return;
+      case 'jackpot':{const win=s.jackpot;s.jackpot=CFG.seed;this.credit(p,win);p.st.jackpots=(p.st.jackpots||0)+1;this.log(`🎉 ${p.name} hit the FREE NODE and won ${money(win)}!`,'good');this.ev('JACKPOT!',`Won ${money(win)}`);
+        await UI.reveal({icon:'🎰',title:'JACKPOT!',desc:`+${money(win)}`,tone:'legend',rar:'FREE NODE',coins:true},1700);this.qHit(p,'jackpot');if(p.profile)Prof.ach('jackpot');UI.mood(p.id,'happy',2000);return}
+      case 'jail':this.ev('Just visiting','REBOOT is a safe stop');return}}
+
+  /* ---------- money ---------- */
+  credit(p,amt){p.cash+=amt;UI.money(p,amt);Sfx.play(amt>=300?'jackpot':'coin')}
+  gems(p,n){if(p.profile)Prof.addGems(n,'From a surprise reward');else this.credit(p,100)}
+  xp(p,n){if(p.profile)Prof.addXp(n)}
+  pay(p,amt,creditor,reason){const s=this.s;p.cash-=amt;p.low=Math.min(p.low,p.cash);p.st.paid+=amt;
+    if(typeof creditor==='number'){const c=this.P(creditor);c.cash+=amt;if(reason==='rent'){c.st.rent+=amt;this.qHit(c,'rentGot',amt);if(c.profile){Store.p.rent+=amt;if(amt>=500)Prof.ach('bigrent')}}UI.money(c,amt);UI.mood(c.id,'happy',1400);this.log(`💸 ${p.name} paid ${money(amt)} ${reason} to ${c.name}`,'warn');this.aiReact(c,'win');this.aiReact(p,'lose')}
+    else if(creditor==='pool'){s.jackpot+=amt;this.log(`${p.name} paid ${money(amt)} (${reason}) → Jackpot`,'warn')}
+    UI.money(p,-amt);UI.mood(p.id,'sad',1400);Sfx.play(reason==='rent'?'rent':'tax');this.announce(`${p.name} paid ${amt} dollars.`)}
+  async charge(p,amt,creditor,reason,tid,resume){
+    const s=this.s;
+    if(reason==='rent'&&p.shield){p.shield=false;this.log(`🛡️ ${p.name}'s Rent Shield absorbed ${money(amt)}!`,'good');await UI.reveal({icon:'🛡️',title:'Shield!',desc:`${money(amt)} rent blocked`,tone:'rare'},1100);return true}
+    if(p.cash>=amt){this.pay(p,amt,creditor,reason);return true}
+    if(p.cash+this.liquidation(p)<amt){await this.bankrupt(p,creditor);return false}
+    s.debt={pid:p.id,amt,creditor,reason,resume};s.phase='debt';this.log(`⚠️ ${p.name} owes ${money(amt)} but has ${money(p.cash)} — raise funds!`,'warn');this.ev(`Raise ${money(amt-p.cash)}`,'Sell buildings or mortgage');UI.mood(p.id,'sad',2000);return false}
+  async resolveDebt(){
+    const s=this.s,d=s.debt;if(!d||s.phase!=='debt')return;const p=this.P(d.pid);if(p.cash<d.amt)return;
+    s.debt=null;this.pay(p,d.amt,d.creditor,d.reason);s.phase='rolling';
+    if(d.resume){this.busy=true;try{await d.resume()}finally{this.busy=false}}
+    if(s.phase==='rolling')this.settle();this.afterAction()}
+  nextLiquidation(p){const s=this.s,mine=this.tilesOf(p.id),noB=t=>this.dTiles(TILES[t].d).every(i=>s.tiles[i].level<=1);
+    let c=mine.filter(t=>!s.tiles[t].mortgaged&&noB(t)&&!this.hasSet(p.id,TILES[t].d)).sort((a,b)=>TILES[a].cost-TILES[b].cost)[0];if(c!==undefined)return{type:'mort',t:c};
+    const sell=mine.filter(t=>!this.whyNoSell(p.id,t)).sort((a,b)=>s.tiles[b].level-s.tiles[a].level)[0];if(sell!==undefined)return{type:'sell',t:sell};
+    c=mine.filter(t=>!s.tiles[t].mortgaged&&noB(t)).sort((a,b)=>TILES[a].cost-TILES[b].cost)[0];if(c!==undefined)return{type:'mort',t:c};return null}
+  async autoRaise(p){const d=this.s.debt;if(!d)return this.fail('No debt to pay');let g=0;
+    while(this.s.debt&&p.cash<d.amt&&g++<40){const st=this.nextLiquidation(p);if(!st)break;if(st.type==='mort')this.mortgage(st.t);else this.downgrade(st.t);await sleep(180)}
+    await this.resolveDebt();return{ok:true}}
+  async bankrupt(p,creditor){
+    const s=this.s;p.bankrupt=true;s.debt=null;const cred=typeof creditor==='number'?this.P(creditor):null;
+    this.log(`💀 BANKRUPT! ${p.name} is out${cred?` — assets go to ${cred.name}`:''}`,'bad');this.announce(`${p.name} is bankrupt.`);UI.mood(p.id,'sad',3000);Sfx.play('bomb');
+    if(cred){cred.cash+=p.cash;cred.st.wipes=(cred.st.wipes||0)+1;if(cred.profile)Prof.ach('wipeout')}else if(creditor==='pool')s.jackpot+=p.cash;
+    p.cash=0;
+    this.tilesOf(p.id).forEach(t=>{const st=s.tiles[t];if(cred){st.owner=cred.id;st.level=1;if(st.mortgaged)cred.cash=Math.max(0,cred.cash-Math.ceil(this.mortVal(t)*CFG.fee))}else{st.owner=null;st.level=0;st.mortgaged=false}});
+    s.extra=false;s.phase='post';
+    const alive=s.players.filter(x=>!x.bankrupt);if(alive.length<=1)await this.gameOver(alive[0],'last-standing')}
+
+  /* ---------- rewards ---------- */
+  async openCrate(p,src){
+    const it=wpick(CRATE);let amt=it.min!==undefined?Math.round(rnd(it.min,it.max)/10)*10:0;
+    const tone=it.w<=5?'legend':it.w<=8?'epic':it.w<=14?'rare':'common';
+    const desc=it.k==='cash'?`+${money(amt)}`:it.k==='gems'?`+${amt} gems`:it.k==='shield'?'Blocks your next rent':'Roll again after this turn';
+    this.log(`🎁 ${p.name} opened a crate (${src}): ${it.t} ${desc}`,'good');this.ev(it.t,desc);p.st.crates=(p.st.crates||0)+1;this.qHit(p,'crate');this.xp(p,6);
+    await UI.reveal({icon:it.icon,title:it.t,desc,tone,rar:tone.toUpperCase(),coins:it.k==='cash'},tone==='common'?1200:1700);
+    if(it.k==='cash')this.credit(p,amt);else if(it.k==='gems')this.gems(p,amt);else if(it.k==='shield')p.shield=true;else if(it.k==='roll')this.s.extra=true;
+    if(tone!=='common')UI.mood(p.id,'happy',1800)}
+  async spinWheel(p){
+    const res=wpick(WHEEL);await UI.slot(WHEEL,res);
+    this.log(`🚀 ${p.name} spun OVERCLOCK: ${res.name}`,'good');this.ev('OVERCLOCK',res.name);res.fn(this,p);
+    await UI.reveal({icon:res.icon,title:res.name,desc:'OVERCLOCK result',tone:res.w<=8?'epic':'rare',rar:'OVERCLOCK'},1100)}
+
+  /* ---------- buying, auctions ---------- */
+  acquire(p,tid,price,verb){const s=this.s,st=s.tiles[tid],T=TILES[tid];p.cash-=price;p.low=Math.min(p.low,p.cash);st.owner=p.id;st.level=1;st.mortgaged=false;
+    this.log(`🏠 ${p.name} ${verb} ${T.name} for ${money(price)}`,'good');UI.money(p,-price);Sfx.play('buy');UI.highlight(tid);this.xp(p,10);this.qHit(p,'own');UI.mood(p.id,'happy',1300);
+    const done=this.completes(p.id,[tid]).filter(dk=>this.hasSet(p.id,dk));
+    if(done.length){done.forEach(dk=>{this.log(`⚡ SET COMPLETE! ${p.name} owns all of ${DISTRICTS[dk].name} — rent ×2 & building unlocked`,'good');this.announce(`${p.name} completed ${DISTRICTS[dk].name}`);this.qHit(p,'setDone');this.xp(p,40);if(p.profile)Prof.ach('monopoly')});
+      const c=centerOf($('#hub'));FX.burst(c.x,c.y,{n:70});UI.banner('⚡ SET COMPLETE!','#fbbf24');Sfx.play('jackpot')}}
+  buy(){const s=this.s;if(this.busy||s.phase!=='decide')return this.fail('Nothing to buy right now');const p=this.cur,T=TILES[s.pending];
+    if(p.cash<T.cost)return this.fail(`Need ${money(T.cost)}`);this.acquire(p,T.id,T.cost,'bought');s.pending=null;this.ev(`Bought ${T.name}!`,'Nice pick');this.settle();this.afterAction();return{ok:true}}
+  decline(){const s=this.s;if(this.busy||s.phase!=='decide')return this.fail('Nothing to decline');const tid=s.pending;s.pending=null;this.log(`${this.cur.name} passed on ${TILES[tid].name} → auction`,'sys');this.startAuction(tid);this.afterAction();return{ok:true}}
+  startAuction(tid){const s=this.s,n=s.players.length,order=[];for(let i=1;i<=n;i++){const q=s.players[(s.cur+i)%n];if(!q.bankrupt)order.push(q.id)}
+    s.auction={tid,bid:0,high:null,folded:new Set(),order,turn:order[0]};s.phase='auction';this.ev(`Auction: ${TILES[tid].name}`,'Highest bid wins');UI.banner('🔨 AUCTION!','#fbbf24')}
+  nextBidder(a){const act=a.order.filter(i=>!a.folded.has(i));if(!act.length)return null;const idx=a.order.indexOf(a.turn);for(let k=1;k<=a.order.length;k++){const id=a.order[(idx+k)%a.order.length];if(!a.folded.has(id))return id}return act[0]}
+  async auctionStep(){
+    const s=this.s,a=s.auction;if(!a)return;const act=a.order.filter(i=>!a.folded.has(i));
+    if(act.length===0){this.log(`No bids — ${TILES[a.tid].name} stays unowned`,'sys');s.auction=null;this.ev('No sale','Nobody bid');this.settle();return this.afterAction()}
+    if(act.length===1&&a.high!==null){const w=this.P(a.high);s.auction=null;this.acquire(w,a.tid,a.bid,'won the auction for');this.ev(`${w.name} wins!`,`${TILES[a.tid].name} for ${money(a.bid)}`);this.settle();return this.afterAction()}
+    if(a.folded.has(a.turn))a.turn=this.nextBidder(a);
+    const bp=this.P(a.turn);if(bp.kind==='human')return;
+    await sleep(650);const T=TILES[a.tid];let v=T.cost*(.85+Math.random()*.3*bp.ai.bold*2);
+    if(this.completes(bp.id,[T.id]).length)v+=T.cost*.9;
+    if(this.dTiles(T.d).every(i=>i===T.id||this.s.tiles[i].owner!==null&&this.s.tiles[i].owner!==bp.id&&this.s.tiles[i].owner===this.s.tiles[this.dTiles(T.d).find(j=>j!==T.id)].owner))v+=T.cost*.35;
+    v=Math.min(v,bp.cash-60);const next=a.bid?a.bid+Math.max(10,Math.round(T.cost*.06/10)*10):10;
+    if(next<=v&&next<=bp.cash){a.bid=next;a.high=bp.id;this.log(`🔨 ${bp.name} bids ${money(next)}`,'sys');Sfx.play('pop');a.turn=this.nextBidder(a)}else{a.folded.add(bp.id);this.log(`${bp.name} folds`,'sys');a.turn=this.nextBidder(a)}
+    this.afterAction()}
+  bid(n){const s=this.s,a=s.auction;if(!a||s.phase!=='auction')return this.fail('No auction running');const p=this.P(a.turn);n=Math.floor(+n);
+    if(!n||n<=a.bid||n<10)return this.fail(`Bid must be above ${money(Math.max(a.bid,9))}`);if(n>p.cash)return this.fail('Not enough cash');
+    a.bid=n;a.high=p.id;this.log(`🔨 ${p.name} bids ${money(n)}`,'sys');Sfx.play('pop');a.turn=this.nextBidder(a);this.afterAction();return{ok:true}}
+  fold(){const s=this.s,a=s.auction;if(!a||s.phase!=='auction')return this.fail('No auction running');const p=this.P(a.turn);a.folded.add(p.id);this.log(`${p.name} folds`,'sys');a.turn=this.nextBidder(a);this.afterAction();return{ok:true}}
+
+  /* ---------- building / mortgage ---------- */
+  canManage(){const s=this.s;return!this.busy&&['pre','post'].includes(s.phase)}
+  upgrade(tid,pid=this.s.cur){const s=this.s;if(this.busy||!['pre','post'].includes(s.phase))return this.fail('Build before or after your roll');
+    const why=this.whyNoBuild(pid,tid);if(why)return this.fail(why);const p=this.P(pid),st=s.tiles[tid],c=this.buildCost(tid);
+    p.cash-=c;st.level++;p.st.builds++;const T=TILES[tid],nm=st.level===5?'👑 EMPIRE LANDMARK':`Level ${st.level}`;
+    this.log(`🏗️ ${p.name} upgraded ${T.name} → ${nm} (−${money(c)}) • rent ${money(this.rentOf(tid))}`,'good');this.announce(`${p.name} upgraded ${T.name} to level ${st.level}`);
+    UI.money(p,-c);Sfx.play('build');UI.highlight(tid);this.xp(p,12);UI.mood(p.id,'happy',1200);
+    if(st.level>=3)this.qHit(p,'lvl3');if(st.level===5){if(p.profile)Prof.ach('landmark');const cc=centerOf($('#hub'));FX.burst(cc.x,cc.y,{n:80});UI.banner('👑 LANDMARK!','#fbbf24')}
+    this.afterAction();return{ok:true}}
+  downgrade(tid,pid=this.s.cur){const s=this.s;if(this.busy||!['pre','post','debt','auction'].includes(s.phase))return this.fail('Not now');const why=this.whyNoSell(pid,tid);if(why)return this.fail(why);
+    const p=this.P(pid),st=s.tiles[tid],g=Math.floor(this.buildCost(tid)*CFG.sell);st.level--;p.cash+=g;this.log(`🔧 ${p.name} sold a building on ${TILES[tid].name} (+${money(g)})`,'warn');UI.money(p,g);Sfx.play('coin');
+    this.afterAction();this.resolveDebt();return{ok:true}}
+  mortgage(tid,pid=this.s.cur){const s=this.s;if(this.busy||!['pre','post','debt','auction'].includes(s.phase))return this.fail('Not now');const why=this.whyNoMortgage(pid,tid);if(why)return this.fail(why);
+    const p=this.P(pid),v=this.mortVal(tid);s.tiles[tid].mortgaged=true;p.cash+=v;this.log(`🏦 ${p.name} mortgaged ${TILES[tid].name} (+${money(v)})`,'warn');UI.money(p,v);Sfx.play('coin');
+    this.afterAction();this.resolveDebt();return{ok:true}}
+  unmortgage(tid,pid=this.s.cur){const s=this.s;if(!this.canManage())return this.fail('Not now');const why=this.whyNoUnmortgage(pid,tid);if(why)return this.fail(why);
+    const p=this.P(pid),c=this.unmortCost(tid);p.cash-=c;s.tiles[tid].mortgaged=false;this.log(`✅ ${p.name} lifted the mortgage on ${TILES[tid].name} (−${money(c)})`,'good');UI.money(p,-c);Sfx.play('buy');this.afterAction();return{ok:true}}
+
+  /* ---------- trading ---------- */
+  tradeCheck(sp){const{from,to,give,get,giveCash,getCash}=sp,A=this.P(from),B=this.P(to);
+    if(!B||from===to)return'Pick a partner';if(B.bankrupt)return'That player is out';
+    if(!give.length&&!get.length&&!giveCash&&!getCash)return'Empty trade';if(giveCash<0||getCash<0)return'Invalid cash';
+    for(const t of give){if(this.s.tiles[t].owner!==from)return`You do not own ${TILES[t].name}`;const l=this.lockReason(t);if(l)return l}
+    for(const t of get){if(this.s.tiles[t].owner!==to)return`${B.name} does not own ${TILES[t].name}`;const l=this.lockReason(t);if(l)return l}
+    if(giveCash>A.cash)return`${A.name} lacks the cash`;if(getCash>B.cash)return`${B.name} lacks the cash`;
+    const fee=ids=>ids.reduce((a,t)=>a+(this.s.tiles[t].mortgaged?Math.ceil(this.mortVal(t)*CFG.fee):0),0);
+    if(A.cash-giveCash+getCash<fee(get))return`${A.name} could not pay the 10% mortgage fee`;if(B.cash-getCash+giveCash<fee(give))return`${B.name} could not pay the 10% mortgage fee`;return''}
+  aiEvalTrade(q,sp){const isFrom=q.id===sp.from,gets=isFrom?sp.get:sp.give,gives=isFrom?sp.give:sp.get,gc=isFrom?sp.getCash:sp.giveCash,lc=isFrom?sp.giveCash:sp.getCash,other=this.P(isFrom?sp.to:sp.from);
+    const sum=dk=>this.dTiles(dk).reduce((a,i)=>a+TILES[i].cost,0);let gain=gc,loss=lc;
+    gets.forEach(t=>{gain+=TILES[t].cost*(this.s.tiles[t].mortgaged?.8:1.05)});this.completes(q.id,gets).forEach(dk=>gain+=sum(dk)*.7);
+    gives.forEach(t=>{loss+=TILES[t].cost*1.1;if(this.hasSet(q.id,TILES[t].d))loss+=sum(TILES[t].d)*.9});this.completes(other.id,gives).forEach(dk=>loss+=sum(dk)*.8);
+    return{ok:gain>=loss*1.08&&(q.cash-lc+gc)>=60,gain,loss}}
+  async trade(sp){
+    if(this.busy)return this.fail('Busy');const why=this.tradeCheck(sp);if(why)return this.fail(why);
+    const A=this.P(sp.from),B=this.P(sp.to);this.busy=true;let accepted=false;
+    try{
+      const desc=this.tradeText(sp);
+      if(B.kind==='ai'){await sleep(500);const ev=this.aiEvalTrade(B,sp);accepted=ev.ok;this.chat(B.name,B.color,accepted?pick(['Deal! 🤝','That works for me.','Pleasure doing business!']):pick(['Not enough value for me.','Nope — try sweeter terms.','Hmm, no. 😅']))}
+      else if(A.kind==='ai'||this.s.players.filter(x=>x.kind==='human').length>1){accepted=await UI.ask(`${B.name}: accept ${A.name}'s offer?`,desc,'Accept','Decline')}
+      else accepted=true;
+      if(accepted)this.execTrade(sp);else this.log(`❌ ${B.name} declined ${A.name}'s trade`,'warn');
+    }finally{this.busy=false}
+    this.afterAction();return accepted?{ok:true}:this.fail(`${B.name} declined`)}
+  tradeText(sp){const A=this.P(sp.from),B=this.P(sp.to),nm=l=>l.length?l.map(t=>TILES[t].name).join(', '):'nothing';
+    return`<div class="grid2"><div class="card"><b style="color:${A.color}">${esc(A.name)} gives</b><br>${esc(nm(sp.give))}<br>${sp.giveCash?money(sp.giveCash):''}</div><div class="card"><b style="color:${B.color}">${esc(B.name)} gives</b><br>${esc(nm(sp.get))}<br>${sp.getCash?money(sp.getCash):''}</div></div>`}
+  execTrade(sp){const A=this.P(sp.from),B=this.P(sp.to),s=this.s;
+    A.cash+=sp.getCash-sp.giveCash;B.cash+=sp.giveCash-sp.getCash;
+    sp.give.forEach(t=>{s.tiles[t].owner=B.id});sp.get.forEach(t=>{s.tiles[t].owner=A.id});
+    [[A,sp.get],[B,sp.give]].forEach(([p,ids])=>ids.forEach(t=>{if(s.tiles[t].mortgaged){const f=Math.ceil(this.mortVal(t)*CFG.fee);p.cash-=f}}));
+    A.st.trades++;B.st.trades++;this.log(`🤝 Trade done: ${A.name} ⇄ ${B.name}`,'good');Sfx.play('buy');
+    [[A,sp.get],[B,sp.give]].forEach(([p,ids])=>{this.qHit(p,'trade');this.xp(p,25);if(p.profile)Prof.ach('trader');
+      this.completes(p.id,ids).filter(dk=>this.hasSet(p.id,dk)).forEach(dk=>{this.log(`⚡ SET COMPLETE! ${p.name} owns ${DISTRICTS[dk].name}`,'good');this.qHit(p,'setDone');this.xp(p,40);if(p.profile)Prof.ach('monopoly');const c=centerOf($('#hub'));FX.burst(c.x,c.y,{n:60})})});
+    UI.money(A,sp.getCash-sp.giveCash);UI.money(B,sp.giveCash-sp.getCash)}
+  async tradeCmd(a){const seat=+a[0]-1;if(!(seat>=0)||!this.s.players[seat])return this.fail('Usage: trade <seat#> give=1,2 get=5 givecash=0 getcash=0');
+    const kv={};a.slice(1).forEach(x=>{const[k,v]=x.split('=');kv[(k||'').toLowerCase()]=v});const ids=v=>(!v||v==='-')?[]:v.split(',').map(Number).filter(n=>n>=0&&n<16);
+    return this.trade({from:this.s.cur,to:seat,give:ids(kv.give),get:ids(kv.get),giveCash:+kv.givecash||0,getCash:+kv.getcash||0})}
+
+  /* ---------- AI ---------- */
+  async aiManage(p){for(let k=0;k<5;k++){const s=this.s;if(s.over||p.bankrupt)return;
+    const um=this.tilesOf(p.id).filter(t=>s.tiles[t].mortgaged).map(t=>({t,c:this.unmortCost(t)})).sort((a,b)=>a.c-b.c)[0];
+    if(um&&p.cash-um.c>=p.ai.reserve){this.unmortgage(um.t);await sleep(320);continue}
+    const ups=this.tilesOf(p.id).filter(t=>!this.whyNoBuild(p.id,t)&&p.cash-this.buildCost(t)>=p.ai.reserve*.8).sort((a,b)=>(TILES[b].rent[3]/this.buildCost(b))-(TILES[a].rent[3]/this.buildCost(a)));
+    if(!ups.length)break;this.upgrade(ups[0]);await sleep(400)}}
+  aiDecide(p){const s=this.s,T=TILES[s.pending];if(!T)return;const done=this.completes(p.id,[T.id]).length>0,blocks=this.dTiles(T.d).some(i=>i!==T.id&&s.tiles[i].owner!==null&&s.tiles[i].owner!==p.id),after=p.cash-T.cost;
+    if(p.cash>=T.cost&&(done||after>=p.ai.reserve*.6||(blocks&&after>=40)))this.buy();else this.decline()}
+  async aiTryTrade(p){const s=this.s;if(p.ai.cool>s.turn)return;
+    for(const dk of Object.keys(DISTRICTS)){const ts=this.dTiles(dk),mine=ts.filter(i=>s.tiles[i].owner===p.id),theirs=ts.filter(i=>s.tiles[i].owner!==null&&s.tiles[i].owner!==p.id);
+      if(mine.length===1&&theirs.length===1&&!this.lockReason(theirs[0])&&!this.lockReason(mine[0])){const q=this.P(s.tiles[theirs[0]].owner);if(q.bankrupt)continue;
+        const offer=Math.round(TILES[theirs[0]].cost*1.5/10)*10;if(p.cash-offer<120)continue;p.ai.cool=s.turn+4;
+        this.chat(p.name,p.color,`Hey ${q.name}, ${money(offer)} for ${TILES[theirs[0]].name}?`);await this.trade({from:p.id,to:q.id,give:[],get:[theirs[0]],giveCash:offer,getCash:0});return}}}
+  aiReact(p,k){if(p.kind!=='ai'||Math.random()>.35)return;UI.emote(p.id,k==='win'?pick(['😈','🔥','👑','😎']):pick(['😭','🙏','💸','😤']))}
+
+  /* ---------- game over ---------- */
+  async gameOver(w,reason){
+    const s=this.s;if(s.over)return;s.over=true;s.phase='over';s.winner=w.id;this.busy=false;
+    this.log(`🏆 ${w.name} WINS${reason==='turn-limit'?' (richest at turn limit)':''}!`,'good');this.announce(`Game over. ${w.name} wins.`);Sfx.play('win');
+    const me=s.players.find(p=>p.profile);let rw={xp:0,gems:0,bonus:0,won:false};
+    if(me){const won=me.id===w.id;rw.won=won;rw.xp=won?150:45;rw.gems=won?40:10;rw.bonus=wpick([{w:55,v:0},{w:25,v:15},{w:12,v:40},{w:6,v:80},{w:2,v:200}]).v;
+      const P=Store.p;P.games++;if(won){P.wins++;Prof.ach('first_win');if(me.low<100)Prof.ach('comeback')}
+      Prof.addGems(rw.gems+rw.bonus);Prof.addXp(rw.xp);Store.save()}
+    UI.showVictory(w,rw,reason);this.afterAction()}
+
+  /* ---------- logging / chat ---------- */
+  log(text,type='sys'){const l={t:new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'}),text,type};this.logs.push(l);
+    const d=document.createElement('div');d.className='lg '+type;d.textContent=`[${l.t}] ${text}`;const el=$('#logList');el.appendChild(d);el.scrollTop=el.scrollHeight}
+  chat(author,color,text){const d=document.createElement('div');d.className='msg';d.innerHTML=`<small>${new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</small><b style="color:${color}">${esc(author)}</b><div>${esc(text)}</div>`;
+    const el=$('#chatList');el.appendChild(d);el.scrollTop=el.scrollHeight;if(!$('#pane-chat').classList.contains('on'))$('#chatDot').style.display='block';if(this.voice)this.speak(`${author} says ${text}`)}
+  announce(t){$('#sr').textContent=t;if(this.voice)this.speak(t)}
+  speak(t){if('speechSynthesis' in window){speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.rate=1.05;speechSynthesis.speak(u)}}
+  qHit(p,ev,n=1){if(!p.profile)return;this.quests.forEach(q=>{if(q.ev===ev&&!q.done){q.prog=Math.min(q.goal,q.prog+n);if(q.prog>=q.goal){q.done=true;Prof.addGems(q.gems);UI.toast('🎯','Quest complete!',`${q.txt} • +${q.gems} 💎`,'quest');Sfx.play('ach')}}})}
+
+  /* ---------- text interface (CLI / API) ---------- */
+  humanReady(){const s=this.s;if(!s||s.over)return true;if(this.busy)return false;if(s.phase==='auction')return this.P(s.auction.turn).kind==='human';if(this.cur.bankrupt)return false;return this.cur.kind==='human'&&['pre','decide','post','debt'].includes(s.phase)}
+  async waitHuman(ms=90000){const t=Date.now();await sleepRaw(0);while(!this.humanReady()&&Date.now()-t<ms)await sleepRaw(40)}
+  legal(){const s=this.s;if(!s||s.over)return['new'];const L=[],p=this.cur;
+    if(s.phase==='auction'){const a=s.auction,b=this.P(a.turn);if(b.kind==='human'){const min=a.bid?a.bid+1:10;if(b.cash>=min)L.push(`bid ${min}..${b.cash}`);L.push('fold')}else L.push('wait');return L}
+    if(p.kind!=='human')return['wait'];
+    if(s.phase==='pre'){L.push('roll');if(p.inJail&&p.cash>=CFG.jailFee)L.push('jail')}
+    if(s.phase==='decide'){const T=TILES[s.pending];if(p.cash>=T.cost)L.push('buy');L.push('decline')}
+    if(s.phase==='post')L.push('end');if(s.phase==='debt')L.push('autoraise');
+    if(['pre','post','debt'].includes(s.phase)){this.tilesOf(p.id).forEach(t=>{if(s.phase!=='debt'&&!this.whyNoBuild(p.id,t))L.push(`build ${t}`);if(!this.whyNoSell(p.id,t))L.push(`sell ${t}`);if(!this.whyNoMortgage(p.id,t))L.push(`mortgage ${t}`);if(s.phase!=='debt'&&!this.whyNoUnmortgage(p.id,t))L.push(`unmortgage ${t}`)});
+      if(s.phase!=='debt')L.push('trade <seat#> give=<ids> get=<ids> givecash=<n> getcash=<n>')}
+    return L}
+  state(){const s=this.s;if(!s)return{game:false};return{turn:s.turn,phase:s.phase,current:s.cur+1,lastRoll:s.lastRoll,jackpot:s.jackpot,bonusRoll:s.extra,over:s.over,winner:s.winner===null?null:s.winner+1,
+    auction:s.auction?{tile:s.auction.tid,bid:s.auction.bid,leader:s.auction.high===null?null:s.auction.high+1,bidder:s.auction.turn+1}:null,
+    debt:s.debt?{player:s.debt.pid+1,owes:s.debt.amt}:null,pending:s.pending,
+    players:s.players.map(p=>({seat:p.id+1,name:p.name,kind:p.kind,cash:p.cash,net:this.net(p),pos:p.pos,at:TILES[p.pos].name,inJail:p.inJail,shield:p.shield,bankrupt:p.bankrupt,props:this.tilesOf(p.id)})),
+    tiles:TILES.map(T=>{const st=s.tiles[T.id];return T.type==='prop'?{id:T.id,name:T.name,district:DISTRICTS[T.d].name,cost:T.cost,owner:st.owner===null?null:st.owner+1,level:st.level,mortgaged:st.mortgaged,rent:this.rentOf(T.id),tradeLocked:!!this.lockReason(T.id),buildCost:this.buildCost(T.id)}:{id:T.id,name:T.name,type:T.type}}),
+    legal:this.legal()}}
+  statusLine(){const s=this.s,p=this.cur;return`[T${s.turn}] ${p.name} (P${p.id+1}) ${money(p.cash)} @${p.pos} ${TILES[p.pos].name} • phase:${s.phase} • pool ${money(s.jackpot)}${p.inJail?' • IN REBOOT':''}${s.extra?' • BONUS ROLL':''}`}
+  statusText(){const s=this.s;return this.statusLine()+'\n'+s.players.map(p=>`P${p.id+1} ${pad(p.name,12)} ${pad(money(p.cash),8)} net ${pad(money(this.net(p)),8)} props:[${this.tilesOf(p.id).join(',')}]${p.bankrupt?' OUT':''}${p.shield?' 🛡':''}`).join('\n')}
+  tileText(id){const T=TILES[id];if(!T)return'Tile 0-15';const st=this.s.tiles[id];if(T.type!=='prop')return`#${id} ${T.name} — ${T.desc||T.type}`;
+    return`#${id} ${T.name} [${DISTRICTS[T.d].name}] cost ${money(T.cost)} build ${money(this.buildCost(id))}\nOwner: ${st.owner===null?'none':'P'+(st.owner+1)} Level:${st.level} ${st.mortgaged?'MORTGAGED ':''}Rent now: ${money(this.rentOf(id))}\nRent ladder: ${T.rent.map((r,i)=>`L${i+1}=${r}`).join(' ')} (L1 ×2 with full set)${this.lockReason(id)?'\n'+this.lockReason(id).replace('🔒','LOCKED:'):''}`}
+  tilesText(){return TILES.map(T=>{const st=this.s.tiles[T.id];return T.type==='prop'?`${pad('#'+T.id,4)}${pad(T.name,14)}${pad(DISTRICTS[T.d].name,11)}${pad(money(T.cost),6)} ${st.owner===null?'free':'P'+(st.owner+1)+' L'+st.level+(st.mortgaged?' MORT':'')+(this.lockReason(T.id)?' LOCK':'')}`:`${pad('#'+T.id,4)}${pad(T.name,14)}${T.type}`}).join('\n')}
+  propsText(seat){const p=this.s.players[seat];if(!p)return'Unknown seat';const L=this.tilesOf(p.id);return`${p.name} (P${p.id+1}) ${money(p.cash)}\n`+(L.length?L.map(t=>this.tileText(t).split('\n')[0]+` L${this.s.tiles[t].level}${this.s.tiles[t].mortgaged?' MORT':''}`).join('\n'):'(no properties)')}
+  ascii(){const W=15,s=this.s,cell=id=>{const T=TILES[id],st=s.tiles[id],here=s.players.filter(p=>!p.bankrupt&&p.pos===id).map(p=>p.tag).join('');
+      let l2=T.type==='prop'?(st.owner===null?money(T.cost):`P${st.owner+1} L${st.level}${st.mortgaged?'M':''}${this.lockReason(id)?'*':''}`):T.type;return[pad(`${String(id).padStart(2,'0')} ${T.name}`,W),pad(l2,W),pad(here?'<'+here+'>':'',W)]};
+    const g={};TILES.forEach(T=>{const[r,c]=gridOf(T.id);g[r+','+c]=cell(T.id)});const full='+'+Array(5).fill('-'.repeat(W)).join('+')+'+',open='+'+'-'.repeat(W)+'+'+' '.repeat(W*3+2)+'+'+'-'.repeat(W)+'+';
+    const out=[];for(let r=1;r<=5;r++){out.push(r===3||r===4?open:full);for(let k=0;k<3;k++){if(r>=2&&r<=4){const mid=(k===1&&r===3)?pad(`  POOL ${money(s.jackpot)}  T${s.turn}`,W*3+2):' '.repeat(W*3+2);out.push('|'+g[r+',1'][k]+'|'+mid+'|'+g[r+',5'][k]+'|')}else out.push('|'+[1,2,3,4,5].map(c=>g[r+','+c][k]).join('|')+'|')}}
+    out.push(full);out.push('Legend: P#=player token • P# L# owner/level • M=mortgaged • *=trade-locked (upgrades)');return out.join('\n')}
+  async exec(line){
+    line=(line||'').trim();if(!line)return{ok:true,msg:''};const[c0,...a]=line.split(/\s+/),c=c0.toLowerCase(),s=this.s;
+    const info={help:()=>HELP_CLI,status:()=>this.statusText(),board:()=>this.ascii(),tiles:()=>this.tilesText(),legal:()=>this.legal().join('\n'),state:()=>JSON.stringify(this.state(),null,1),props:()=>this.propsText(a[0]?+a[0]-1:s.cur),tile:()=>this.tileText(+a[0]),log:()=>this.logs.slice(-(+a[0]||12)).map(l=>l.text).join('\n')};
+    if(c==='help')return{ok:true,msg:HELP_CLI};
+    if(c==='new'){const n=Math.min(4,Math.max(2,+a[0]||2));UI.lobby.n=n;UI.startFromLobby(true);await sleepRaw(30);return{ok:true,msg:`New ${n}-player game.\n${this.statusLine()}\nNEXT: ${this.legal().join(' | ')}`}}
+    if(!s)return{ok:false,msg:'No game running. Type: new [players]'};
+    if(info[c])return{ok:true,msg:info[c]()};
+    if(c==='say'){const m=a.join(' ');if(m){const p=this.cur;this.chat(p.name,p.color,m)}return{ok:true,msg:'sent'}}
+    if(c==='fast'){this.speed=a[0]==='off'?1:.1;return{ok:true,msg:'fast '+(a[0]==='off'?'off':'on')}}
+    if(c==='autoboard'){this.autoboard=a[0]!=='off';return{ok:true,msg:'autoboard '+(this.autoboard?'on':'off')}}
+    if(c==='wait'){await this.waitHuman();return{ok:true,msg:this.statusLine()+'\nNEXT: '+this.legal().join(' | ')}}
+    await this.waitHuman();if(s.over)return{ok:false,msg:'Game over. Type: new'};
+    const why=this.guardHuman(c);if(why)return{ok:false,msg:why};const mark=this.logs.length;let r;
+    switch(c){
+      case 'roll':r=await this.roll();break;case 'buy':r=this.buy();break;case 'decline':r=this.decline();break;
+      case 'bid':r=this.bid(a[0]);break;case 'fold':r=this.fold();break;case 'end':r=await this.endTurn();break;case 'jail':r=await this.payJail();break;
+      case 'build':case 'up':case 'upgrade':r=this.upgrade(+a[0]);break;case 'sell':r=this.downgrade(+a[0]);break;
+      case 'mortgage':r=this.mortgage(+a[0]);break;case 'unmortgage':r=this.unmortgage(+a[0]);break;case 'autoraise':r=await this.autoRaise(this.cur);break;
+      case 'trade':r=await this.tradeCmd(a);break;default:return{ok:false,msg:`Unknown command "${c0}". Type: help`}}
+    if(r&&r.ok===false)return r;await this.waitHuman();
+    const out=this.logs.slice(mark).map(l=>l.text).join('\n');
+    return{ok:true,msg:out+(this.autoboard?'\n'+this.ascii():'')+(s.over?'\nGAME OVER':'')+'\n'+this.statusLine()+'\nNEXT: '+this.legal().slice(0,10).join(' | ')}}
+  async apiExec(line){const r=await this.exec(line);return{ok:r.ok,msg:r.msg,state:this.state(),legal:this.legal()}}
+}
+
+/* =====================================================================
+   7. UI LAYER
+   ===================================================================== */
+const UI={
+  lobby:{n:2,seats:[],maxTurns:50,term:false},pf:{pid:0,debt:false},trade:{to:null,give:new Set(),get:new Set(),giveCash:0,getCash:0},cashShown:{},ptab:'shop',askRes:null,debtShown:false,lastLog:0,
+  /* ----- generic ----- */
+  open(id){$('#'+id).classList.add('open')},close(id){$('#'+id).classList.remove('open')},
+  toast(icon,title,msg='',tone=''){const t=document.createElement('div');t.className='toast '+tone;t.innerHTML=`<span class="ti">${icon}</span><div><b>${esc(title)}</b><small>${esc(msg)}</small></div>`;$('#toasts').appendChild(t);setTimeout(()=>t.classList.add('out'),3600);setTimeout(()=>t.remove(),4100)},
+  floatText(x,y,text,cls){const d=document.createElement('div');d.className='ft '+cls;d.style.left=x+'px';d.style.top=y+'px';d.textContent=text;document.body.appendChild(d);setTimeout(()=>d.remove(),1400)},
+  title(){const g=game;if(!g||!g.s)return;document.title=(g.s.over?'🏆 ':(g.cur.kind==='human'&&!g.cur.bankrupt&&['pre','decide'].includes(g.s.phase))?'🎲 Your turn · ':'')+'GridLock'},
+  tween(el,from,to){if(!el)return;if(Store.p.reduce||from===to){el.textContent=money(to);return}const t0=performance.now();const st=t=>{const k=Math.min(1,(t-t0)/450);el.textContent=money(Math.round(from+(to-from)*k));if(k<1)requestAnimationFrame(st)};requestAnimationFrame(st)},
+  banner(text,color='#fff'){const b=$('#banner');b.textContent=text;b.style.color=color;b.classList.remove('go');void b.offsetWidth;b.classList.add('go')},
+  highlight(tid){const t=$('#tile-'+tid);if(!t)return;t.classList.remove('hot');void t.offsetWidth;t.classList.add('hot')},
+  shakeBoard(){const b=$('#board');b.classList.remove('shake');void b.offsetWidth;b.classList.add('shake');Sfx.play('bomb')},
+  /* ----- chip / levels ----- */
+  renderChip(){const p=Store.p,l=levelInfo(p.xp);$('#chipLvl').textContent='Lv '+l.lvl;$('#chipXp').style.width=Math.round(l.cur/l.need*100)+'%';$('#chipGems').textContent=p.gems;$('#chipStreak').textContent=p.streak;if($('#m-profile').classList.contains('open'))this.renderProfile()},
+  levelUp(n){Sfx.play('lvl');this.toast('⭐','LEVEL UP!',`You reached level ${n} • +10 💎`,'ach');FX.burst(innerWidth/2,innerHeight/3,{n:90})},
+  /* ----- board ----- */
+  mount(){
+    const b=$('#board');$$('.tile',b).forEach(e=>e.remove());
+    TILES.forEach(T=>{const[r,c]=gridOf(T.id);const d=document.createElement('div');d.id='tile-'+T.id;d.className='tile'+(T.type==='prop'?'':' corner');d.style.gridRow=r;d.style.gridColumn=c;d.dataset.tid=T.id;b.insertBefore(d,$('#hub'))});
+    const L=$('#sprites');L.innerHTML='';
+    game.s.players.forEach(p=>{const d=document.createElement('div');d.className='sprite';d.id='spr'+p.id;d.dataset.mood='calm';d.style.setProperty('--c',p.color);
+      d.innerHTML=`<div class="bubble"></div><div class="bob">${avatarSVG(p.avatar,p.color,p.acc)}</div><div class="shadow"></div><div class="tagname">${esc(p.name)}</div>`;L.appendChild(d)});
+    const P=$('#players');P.innerHTML='';this.cashShown={};
+    game.s.players.forEach(p=>{const d=document.createElement('div');d.className='pcard';d.id='pc'+p.id;d.dataset.act='portfolio';d.dataset.pid=p.id;d.style.setProperty('--c',p.color);
+      d.innerHTML=`<div class="av">${avatarSVG(p.avatar,p.color,p.acc)}</div><div style="min-width:0"><div class="nm"><span class="tg">${p.tag}</span><span>${esc(p.name)}</span><span class="st"></span></div><div class="cash">$0</div><div class="meta"><span class="np"></span><span class="nw"></span></div><div class="pd"></div></div>`;P.appendChild(d)});
+    $('#termOut').innerHTML='';this.term('GridLock CLI ready. Type "help". Tip: every reply ends with NEXT: legal moves.','d');
+    this.dieFace(1);this.debtShown=false;this.placeSprites();
+  },
+  renderTiles(){
+    const g=game,s=g.s;TILES.forEach(T=>{const el=$('#tile-'+T.id);if(!el)return;const st=s.tiles[T.id];
+      if(T.type!=='prop'){el.innerHTML=`<div class="t-ico">${T.icon}</div><div class="t-name">${T.name}</div><div class="t-rent">${T.type==='tax'?money(T.amount):T.type==='jackpot'?money(s.jackpot):''}</div>`;el.title=T.desc||T.name;return}
+      const o=st.owner===null?null:g.P(st.owner),D=DISTRICTS[T.d],set=o&&g.hasSet(o.id,T.d),lk=!!g.lockReason(T.id)&&o;
+      el.className='tile'+(o?' owned':'')+(set?' set':'')+(st.mortgaged?' mort':'');if(o)el.style.setProperty('--own',o.color);
+      const pips=st.level>=5?'<span class="crown">👑</span>':Array(Math.max(0,st.level-1)).fill('<b></b>').join('');
+      el.innerHTML=`<div class="band" style="background:${D.hex}"></div><div class="t-top"><span>#${T.id}</span><span class="t-price">${o?'':money(T.cost)}</span></div><div class="t-ico">${T.icon}</div><div class="t-name">${T.name}</div><div class="t-rent">${o?`Rent ${money(g.rentOf(T.id))}${set&&st.level===1?' ×2':''}`:`Rent ${money(T.rent[0])}`}</div><div class="t-pips">${pips}</div>${lk?'<div class="t-lock" title="Trade-locked: district has upgrades">🔒</div>':''}${o?`<div class="t-own">${o.tag}</div>`:''}`;
+      el.title=`${T.name} • ${D.name}`});
+    $('#jackpot').textContent=money(s.jackpot);$('#turnChip').textContent='Turn '+s.turn+(s.settings.maxTurns?` / ${s.settings.maxTurns}`:'')},
+  placeSprites(){const g=game;if(!g||!g.s)return;const s=g.s,size=$('#board').clientWidth,sw=Math.max(34,size/12.5);document.documentElement.style.setProperty('--sw',sw+'px');
+    const groups={};s.players.forEach(p=>{if(!p.bankrupt)(groups[p.pos]=groups[p.pos]||[]).push(p)});
+    s.players.forEach(p=>{const el=$('#spr'+p.id);if(!el)return;if(p.bankrupt){el.classList.add('gone');return}el.classList.remove('gone');const[r,c]=gridOf(p.pos),grp=groups[p.pos],i=grp.indexOf(p),n=grp.length;
+      el.style.left=((c-1)+.5)/5*100+'%';el.style.top=((r-1)+.93)/5*100+'%';el.style.marginLeft=(i-(n-1)/2)*sw*.72+'px';el.classList.toggle('active',p.id===s.cur&&!s.over)})},
+  async hop(p){this.placeSprites();Sfx.play('tick',p.hops++%12);const b=$('#spr'+p.id+' .bob');
+    await Promise.all([anim(b,[{transform:'translateY(0) scale(1,1)'},{transform:'translateY(-28px) scale(.92,1.1)',offset:.45},{transform:'translateY(0) scale(1.15,.82)',offset:.85},{transform:'translateY(0) scale(1,1)'}],{duration:Math.max(1,260*game.speed),easing:'ease-out'}),sleep(240)])},
+  mood(pid,m,ms=1500){const el=$('#spr'+pid);if(!el)return;el.dataset.mood=m;const b=$('.bob',el);
+    if(m==='happy')anim(b,[{transform:'translateY(0)'},{transform:'translateY(-22px) rotate(-8deg)'},{transform:'translateY(0) rotate(6deg)'},{transform:'translateY(-12px)'},{transform:'translateY(0)'}],{duration:700});
+    if(m==='sad')anim(b,[{transform:'translateX(0)'},{transform:'translateX(-5px)'},{transform:'translateX(5px)'},{transform:'translateX(-3px)'},{transform:'translateX(0)'}],{duration:450});
+    clearTimeout(el._mt);el._mt=setTimeout(()=>{el.dataset.mood='calm'},ms)},
+  async shakeSprite(pid){await anim($('#spr'+pid+' .bob'),[{transform:'rotate(0)'},{transform:'rotate(-14deg)'},{transform:'rotate(14deg)'},{transform:'rotate(0)'}],{duration:400,iterations:2})},
+  emote(pid,e){const el=$('#spr'+pid);if(!el)return;const b=$('.bubble',el);b.textContent=e;b.classList.add('show');Sfx.play('pop');clearTimeout(el._et);el._et=setTimeout(()=>b.classList.remove('show'),2200)},
+  money(p,amt){if(!amt)return;const el=$('#spr'+p.id),c=el?centerOf(el):{x:innerWidth/2,y:innerHeight/2};
+    this.floatText(c.x,c.y-50,(amt>0?'+':'−')+money(Math.abs(amt)).replace('-',''),amt>0?'up':'down');if(amt>0)FX.burst(c.x,c.y-30,{n:Math.min(28,6+(amt/25|0)),kind:'coin',speed:4,up:5})},
+  /* ----- dice ----- */
+  dieFace(v){const P={1:[[50,50]],2:[[26,26],[74,74]],3:[[26,26],[50,50],[74,74]],4:[[26,26],[26,74],[74,26],[74,74]],5:[[26,26],[26,74],[50,50],[74,26],[74,74]],6:[[28,22],[28,50],[28,78],[72,22],[72,50],[72,78]]}[v];$('#die').innerHTML=P.map(([x,y])=>`<i style="left:${x}%;top:${y}%"></i>`).join('')},
+  async diceRoll(r){const d=$('#die');Sfx.play('roll');d.classList.add('tumble');const n=game.speed<=.2?1:8;for(let i=0;i<n;i++){this.dieFace(rnd(1,6));await sleep(65)}this.dieFace(r);d.classList.remove('tumble');
+    await anim(d,[{transform:'scale(1.25) rotate(8deg)'},{transform:'scale(1) rotate(0)'}],{duration:260});if(r===6){const c=centerOf(d);FX.burst(c.x,c.y,{n:26,kind:'spark'})}},
+  /* ----- reveal overlays ----- */
+  async reveal(o,ms=1500){const r=$('#reveal');r.className='reveal show '+(o.tone||'common');r.innerHTML=`<div class="rv-card"><div class="rv-ico">${o.icon}</div><div class="rv-rar">${esc(o.rar||'')}</div><div class="rv-title">${esc(o.title)}</div><div class="rv-desc">${esc(o.desc||'')}</div></div>`;
+    const c=centerOf($('#hub'));FX.burst(c.x,c.y,{n:o.tone==='legend'?100:o.tone==='epic'?66:34});if(o.coins)FX.burst(c.x,c.y,{n:26,kind:'coin'});Sfx.play(o.tone==='legend'?'jackpot':o.tone==='common'?'coin':'ach');
+    await sleep(ms);r.classList.remove('show');await sleep(220)},
+  async slot(items,final){const r=$('#reveal');r.className='reveal show slot';let delay=45;for(let i=0;i<14;i++){const it=i===13?final:pick(items);r.innerHTML=`<div class="rv-card"><div class="rv-ico">${it.icon}</div><div class="rv-title">${esc(it.name)}</div><div class="rv-rar">spinning…</div></div>`;Sfx.play('tick',i);await sleep(delay);delay+=16}await sleep(250)},
+  /* ----- hub ----- */
+  renderHub(){const g=game,s=g.s;if(!s)return;const p=g.cur,T=TILES[p.pos],btns=[];let title=s.ev.title,sub=s.ev.sub;
+    const mine=!g.busy&&!s.over&&p.kind==='human';
+    $('#meterFill').style.width=Math.min(100,p.meter)+'%';
+    if(s.over){title='Game over';sub=`${g.P(s.winner).name} wins`}
+    else if(g.busy||s.phase==='rolling'){title=`${p.name} is moving…`;sub=''}
+    else if(s.phase==='auction'){const a=s.auction,b=g.P(a.turn);title=`Auction: ${TILES[a.tid].name}`;sub=`Bid ${money(a.bid)}${a.high!==null?' by '+g.P(a.high).name:''} • ${b.name}'s call`}
+    else if(p.kind==='ai'){title=`${p.name} is thinking`;sub='';$('#hubSub').innerHTML='<span class="dots"><i></i><i></i><i></i></span>'}
+    else switch(s.phase){
+      case 'pre':title=p.inJail?`🔌 REBOOTING (${p.jailTurns}/3)`:(s.extra?'🎁 Bonus roll!':`${p.name}, your move`);sub=p.inJail?'Roll a 6 to escape, or pay $50':'Tap the die or press Space';
+        btns.push({a:'roll',l:s.extra?'🎁 Bonus Roll':'🎲 Roll Dice',c:'primary pulse'});if(p.inJail)btns.push({a:'jailpay',l:`Pay ${money(CFG.jailFee)}`,c:'warn',d:p.cash<CFG.jailFee});break;
+      case 'decide':{const cost=T.cost;title=`Buy ${T.name}?`;sub=`${money(cost)} • base rent ${money(T.rent[0])} • ${DISTRICTS[T.d].name}`;btns.push({a:'buy',l:`💰 Buy ${money(cost)}`,c:'good pulse',d:p.cash<cost},{a:'decline',l:'🔨 Auction it',c:''});break}
+      case 'debt':title=`Raise ${money(s.debt.amt-p.cash)}`;sub='Sell buildings or mortgage — or auto-raise';btns.push({a:'autoraise',l:'⚡ Auto-raise',c:'warn pulse'},{a:'manage',l:'🏛️ Manage assets',c:''});break;
+      case 'post':btns.push({a:'endturn',l:'⏭️ End Turn',c:'primary'});btns.push({a:'manage',l:'🏛️ Portfolio',c:''});break}
+    $('#hubTitle').textContent=title;if(p.kind!=='ai'||s.over||g.busy)$('#hubSub').textContent=sub;
+    $('#hubBtns').innerHTML=btns.map(b=>`<button class="btn ${b.c||''}" data-act="${b.a}" ${b.d?'disabled':''}>${b.l}</button>`).join('');
+    $('#coach').textContent=this.coach();$('#die').style.opacity=mine&&s.phase==='pre'?1:.75},
+  coach(){const g=game,s=g.s,me=s.players.find(p=>p.profile);if(!me||s.over)return'';const mine=g.tilesOf(me.id);
+    if(!mine.length)return'💡 Buy your first property';
+    for(const dk of Object.keys(DISTRICTS)){const ts=g.dTiles(dk);if(ts.filter(i=>s.tiles[i].owner===me.id).length===1&&ts.some(i=>s.tiles[i].owner===null))return`💡 Grab the last ${DISTRICTS[dk].name} tile → set bonus`}
+    if(mine.some(t=>!g.whyNoBuild(me.id,t)))return'💡 You can build — rent explodes at Level 3+';
+    if(me.cash>800)return'💡 Cash-rich: trade for a set';return`💡 Lucky meter ${Math.min(100,me.meter)}% — crate at 100`},
+  /* ----- players dock ----- */
+  renderPlayers(){const g=game,s=g.s;s.players.forEach(p=>{const c=$('#pc'+p.id);if(!c)return;c.classList.toggle('act',p.id===s.cur&&!s.over);c.classList.toggle('out',p.bankrupt);
+    const cash=$('.cash',c),prev=this.cashShown[p.id];if(prev===undefined)cash.textContent=money(p.cash);else if(prev!==p.cash)this.tween(cash,prev,p.cash);this.cashShown[p.id]=p.cash;
+    $('.np',c).textContent=g.tilesOf(p.id).length+' props';$('.nw',c).textContent='Net '+money(g.net(p));
+    $('.st',c).textContent=(p.inJail?'🔌':'')+(p.shield?'🛡️':'')+(p.bankrupt?'💀':'')+(p.kind==='ai'?'🤖':'');
+    $('.pd',c).innerHTML=g.tilesOf(p.id).map(t=>`<i style="background:${DISTRICTS[TILES[t].d].hex};opacity:${s.tiles[t].mortgaged?.35:1}" title="${TILES[t].name} L${s.tiles[t].level}"></i>`).join('')})},
+  renderQuests(){const g=game;if(!g||!g.s)return;$('#questList').innerHTML=`<div class="lbl">Match quests — finish them for 💎</div>`+g.quests.map(q=>`<div class="quest ${q.done?'done':''}"><b>${q.done?'✅':'🎯'} ${esc(q.txt)}</b> <span class="tag gold">+${q.gems}💎</span><div class="qbar"><i style="width:${q.prog/q.goal*100}%"></i></div><small style="color:var(--muted)">${q.prog}/${q.goal}</small></div>`).join('')},
+  /* ----- modals sync ----- */
+  syncModals(){const g=game,s=g.s;
+    const au=s.phase==='auction'&&s.auction&&g.P(s.auction.turn).kind==='human';if(au){this.renderAuction();this.open('m-auction')}else this.close('m-auction');
+    if(s.phase==='debt'&&s.debt&&g.P(s.debt.pid).kind==='human'){if(!this.debtShown){this.debtShown=true;this.openPortfolio(s.debt.pid)}else if($('#m-portfolio').classList.contains('open'))this.renderPortfolio()}
+    else{if(this.debtShown){this.debtShown=false;if(this.pf.debt)this.close('m-portfolio')}if($('#m-portfolio').classList.contains('open'))this.renderPortfolio()}
+    if($('#m-trade').classList.contains('open'))this.updateFair();if($('#m-tile').classList.contains('open')&&this.tileId!==undefined)this.renderTile(this.tileId)},
+  /* ----- auction ----- */
+  renderAuction(){const g=game,a=g.s.auction,T=TILES[a.tid],b=g.P(a.turn),min=a.bid?a.bid+1:10;
+    $('#auBody').innerHTML=`<div class="card" style="text-align:center"><div style="font-size:40px">${T.icon}</div><b style="font-size:18px">${T.name}</b><div class="lbl">${DISTRICTS[T.d].name} • list price ${money(T.cost)}</div></div>
+    <div class="grid2"><div class="card"><div class="lbl">Current bid</div><b style="font-size:22px;font-family:var(--mono)">${money(a.bid)}</b><div class="lbl">${a.high!==null?'Leader: '+esc(g.P(a.high).name):'No bids yet'}</div></div><div class="card"><div class="lbl">Bidding now</div><b style="color:${b.color}">${esc(b.name)}</b><div class="lbl">Cash ${money(b.cash)}</div></div></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">${[10,50,100,250].map(n=>`<button class="btn sm" data-act="bidplus" data-n="${n}" ${a.bid+n>b.cash?'disabled':''}>+${n}</button>`).join('')}<button class="btn sm good" data-act="bidmax" ${min>b.cash?'disabled':''}>All-in ${money(b.cash)}</button></div>
+    <div style="display:flex;gap:6px"><input class="fld" id="auAmt" type="number" min="${min}" max="${b.cash}" value="${Math.min(b.cash,Math.max(min,a.bid+10))}"><button class="btn primary" data-act="bidcustom">Bid</button><button class="btn bad" data-act="fold">Fold</button></div>`},
+  /* ----- portfolio / debt ----- */
+  openPortfolio(pid){this.pf.pid=pid;this.pf.debt=!!(game.s&&game.s.debt&&game.s.debt.pid===pid);this.open('m-portfolio');this.renderPortfolio()},
+  renderPortfolio(){const g=game,s=g.s,p=g.P(this.pf.pid),mine=p.id===s.cur&&p.kind==='human'&&!g.busy,debt=s.debt&&s.debt.pid===p.id?s.debt:null;
+    $('#pfTitle').textContent=`${p.name} — Portfolio ${money(p.cash)}`;$('#pfX').style.display=debt?'none':'';
+    const ids=g.tilesOf(p.id);let h='';
+    if(debt)h+=`<div class="warnbox"><b>💸 You owe ${money(debt.amt)}</b> (${esc(debt.reason)}) — you hold ${money(p.cash)}. Raise ${money(debt.amt-p.cash)} by selling buildings or mortgaging. Selling is possible: <b>${money(g.liquidation(p))}</b> available.</div>`;
+    const sets=Object.keys(DISTRICTS).filter(dk=>g.hasSet(p.id,dk)).map(dk=>DISTRICTS[dk].name);h+=`<div class="infobox">Sets owned: ${sets.length?sets.join(', '):'none yet'} • Net worth ${money(g.net(p))}. Build evenly; 🔒 districts with upgrades can't be traded.</div>`;
+    if(!ids.length)h+='<div class="card" style="text-align:center">No properties yet — land on one and buy it!</div>';
+    ids.forEach(t=>{const T=TILES[t],st=s.tiles[t],D=DISTRICTS[T.d],bw=g.whyNoBuild(p.id,t),sw=g.whyNoSell(p.id,t),mw=g.whyNoMortgage(p.id,t),uw=g.whyNoUnmortgage(p.id,t),lk=g.lockReason(t),canM=g.canManage()&&mine,deb=!!debt&&mine;
+      h+=`<div class="prow" style="border-left:5px solid ${D.hex}"><div><b>${T.icon} ${T.name}</b> <span class="tag gold">${st.level>=5?'👑 Lv5':'★ Lv'+st.level}</span> ${g.hasSet(p.id,T.d)?'<span class="tag ok">⚡ SET</span>':''} ${st.mortgaged?'<span class="tag lock">MORTGAGED</span>':''} ${lk?'<span class="tag lock">🔒 trade-locked</span>':''}<div class="lbl">${D.name} • rent ${money(g.rentOf(t))} • build ${money(D.build)}</div></div>
+      <div class="acts">
+        ${st.level<5&&!st.mortgaged?`<button class="btn sm good" data-act="up" data-tid="${t}" ${canM&&!bw?'':'disabled'} title="${esc(bw||'Upgrade')}">⬆ ${money(D.build)}</button>`:''}
+        ${st.level>1?`<button class="btn sm warn" data-act="down" data-tid="${t}" ${(canM||deb)&&!sw?'':'disabled'} title="${esc(sw||'Sell building')}">⬇ +${money(D.build*CFG.sell)}</button>`:''}
+        ${st.mortgaged?`<button class="btn sm" data-act="unmort" data-tid="${t}" ${canM&&!uw?'':'disabled'} title="${esc(uw||'')}">Lift −${money(g.unmortCost(t))}</button>`:`<button class="btn sm" data-act="mort" data-tid="${t}" ${(canM||deb)&&!mw?'':'disabled'} title="${esc(mw||'Mortgage')}">🏦 +${money(g.mortVal(t))}</button>`}
+      </div></div>`});
+    $('#pfBody').innerHTML=h;$('#pfFoot').innerHTML=debt&&mine?`<button class="btn warn pulse" data-act="autoraise">⚡ Auto-raise ${money(debt.amt-p.cash)}</button>`:`<button class="btn" data-act="close">Close</button>`},
+  /* ----- tile inspector ----- */
+  inspect(tid){this.tileId=tid;this.renderTile(tid);this.open('m-tile')},
+  renderTile(tid){const g=game,s=g.s,T=TILES[tid],st=s.tiles[tid];$('#tlTitle').textContent=`${T.icon} ${T.name}`;
+    if(T.type!=='prop'){$('#tlBody').innerHTML=`<div class="card">${esc(T.desc||T.type)}</div>`;return}
+    const D=DISTRICTS[T.d],o=st.owner===null?null:g.P(st.owner),lk=g.lockReason(tid);
+    $('#tlBody').innerHTML=`<div class="infobox"><b>${D.name}</b> • price ${money(T.cost)} • build ${money(D.build)} per level • mortgage ${money(g.mortVal(tid))}<br>Owner: ${o?`<b style="color:${o.color}">${esc(o.name)}</b> (Level ${st.level}${st.mortgaged?', mortgaged':''})`:'Unowned'}</div>
+    <div class="card"><div class="lbl">Rent ladder</div>${T.rent.map((r,i)=>`<div style="display:flex;justify-content:space-between;font-family:var(--mono);${st.level===i+1?'color:var(--warn);font-weight:800':''}"><span>${i===4?'👑 Landmark':'Level '+(i+1)}${i===0?' (×2 with full set)':''}</span><span>${money(r)}</span></div>`).join('')}</div>${lk&&o?`<div class="warnbox">${esc(lk)}</div>`:''}`},
+  /* ----- trade ----- */
+  openTrade(){const g=game;if(!g||!g.s)return;if(g.busy||g.cur.kind!=='human'||!['pre','post'].includes(g.s.phase)){this.toast('⏳','Trading unavailable','Trade on your own turn, before or after rolling','bad');return}
+    const others=g.s.players.filter(p=>!p.bankrupt&&p.id!==g.s.cur);this.trade={to:others[0]?others[0].id:null,give:new Set(),get:new Set(),giveCash:0,getCash:0};this.open('m-trade');this.renderTrade()},
+  renderTrade(){const g=game,s=g.s,t=this.trade,me=g.cur,others=s.players.filter(p=>!p.bankrupt&&p.id!==me.id),them=t.to!==null?g.P(t.to):null;
+    const list=(p,set,key)=>{const ids=g.tilesOf(p.id);return ids.length?ids.map(i=>{const lk=g.lockReason(i);return`<label class="chk ${lk?'dis':''}" title="${esc(lk)}"><input type="checkbox" data-trk="${key}" value="${i}" ${set.has(i)?'checked':''} ${lk?'disabled':''}> ${TILES[i].icon} ${TILES[i].name} <span class="tag">${money(TILES[i].cost)}</span>${s.tiles[i].mortgaged?'<span class="tag lock">M</span>':''}${lk?'<span class="tag lock">🔒</span>':''}</label>`}).join(''):'<div class="lbl">No properties</div>'};
+    const locked=Object.keys(DISTRICTS).filter(dk=>g.dTiles(dk).some(i=>s.tiles[i].level>1)).map(dk=>DISTRICTS[dk].name);
+    $('#trBody').innerHTML=`<div class="seg">${others.map(o=>`<button class="${o.id===t.to?'on':''}" data-act="trpartner" data-pid="${o.id}">${esc(o.name)}</button>`).join('')}</div>
+    ${locked.length?`<div class="warnbox">🔒 <b>Locked from trading:</b> ${locked.join(', ')} — a district with even one upgraded tile can't be traded. Sell its buildings first.</div>`:''}
+    ${them?`<div class="grid2"><div class="card"><b style="color:${me.color}">You give</b> <span class="lbl">(${money(me.cash)})</span>${list(me,t.give,'give')}<div class="lbl" style="margin-top:6px">Cash you add</div><input class="fld" id="trGiveCash" type="number" min="0" value="${t.giveCash}"></div>
+    <div class="card"><b style="color:${them.color}">${esc(them.name)} gives</b> <span class="lbl">(${money(them.cash)})</span>${list(them,t.get,'get')}<div class="lbl" style="margin-top:6px">Cash you ask</div><input class="fld" id="trGetCash" type="number" min="0" value="${t.getCash}"></div></div>`:'<div class="card">No partner available.</div>'}`;
+    this.updateFair()},
+    updateFair(){const g=game,t=this.trade;if(!$('#m-trade').classList.contains('open')||t.to===null)return;const gc=$('#trGiveCash'),tc=$('#trGetCash');if(gc)t.giveCash=Math.max(0,+gc.value||0);if(tc)t.getCash=Math.max(0,+tc.value||0);
+    const sp=this.spec(),why=g.tradeCheck(sp),them=g.P(t.to);
+    $('#trFair').textContent=why?`⚠️ ${why}`:them.kind==='ai'?(g.aiEvalTrade(them,sp).ok?`🤖 ${them.name} would likely accept`:`🤖 ${them.name} would likely decline`):`Waiting for ${them.name}'s approval after you propose`},
+  spec(){const t=this.trade;return{from:game.s.cur,to:t.to,give:[...t.give],get:[...t.get],giveCash:t.giveCash,getCash:t.getCash}},
+  async proposeTrade(){this.updateFair();const why=game.guardHuman('trade');if(why){this.toast('⏳','Hold on',why,'bad');return}const sp=this.spec(),bad=game.tradeCheck(sp);
+    if(bad){this.toast('⚠️',bad,'','bad');Sfx.play('err');return}this.close('m-trade');const r=await game.trade(sp);
+    if(r.ok)this.toast('🤝','Trade complete!','Both sides signed','quest');else this.toast('❌',r.msg,'','bad')},
+  ask(title,html,ok='Accept',no='Decline'){return new Promise(res=>{$('#askTitle').textContent=title;$('#askBody').innerHTML=html;$('#askOk').textContent=ok;$('#askNo').textContent=no;this.open('m-ask');
+    const done=v=>{this.close('m-ask');$('#askOk').onclick=$('#askNo').onclick=null;res(v)};$('#askOk').onclick=()=>done(true);$('#askNo').onclick=()=>done(false)})},
+  /* ----- terminal / tabs / modes ----- */
+  term(text,cls=''){const o=$('#termOut'),d=document.createElement('div');if(cls)d.className=cls;d.textContent=text;o.appendChild(d);o.scrollTop=o.scrollHeight},
+  tabTo(t){$$('.pane').forEach(p=>p.classList.toggle('on',p.id==='pane-'+t));$$('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));if(t==='chat')$('#chatDot').style.display='none'},
+  setTerm(on){document.body.classList.toggle('term',on);$('#btnTerm').classList.toggle('on',on);game.autoboard=on;
+    if(on){game.speed=.12;this.tabTo('term');setTimeout(()=>$('#termIn').focus(),60)}else game.speed=Store.p.fast?.4:1},
+  async do(name,...a){const g=game;if(!g.s)return;const gk={upgrade:'build',downgrade:'sell',payJail:'jail',endTurn:'end',autoRaise:'autoraise'}[name]||name;
+    const why=g.guardHuman(gk);if(why){this.toast('⏳','Hold on',why,'bad');Sfx.play('err');return}
+    const r=await g[name](...a);if(r&&r.ok===false){this.toast('⚠️',r.msg,'','bad');Sfx.play('err')}return r},
+  /* ----- shop / profile ----- */
+  tableOf(k){return k==='avatar'?AVATARS:k==='acc'?ACCS:THEMES},
+  buyItem(k,id){const P=Store.p,it=this.tableOf(k)[id];if(!it||P.unlocked[k].includes(id))return;
+    if(P.gems<it.price){this.toast('💎','Not enough gems',`Need ${it.price-P.gems} more — play matches to earn them`,'bad');Sfx.play('err');return}
+    P.gems-=it.price;P.unlocked[k].push(id);Store.save();Sfx.play('ach');FX.burst(innerWidth/2,innerHeight/2,{n:60});this.toast('🎉','Unlocked!',it.name,'ach');
+    if(P.unlocked.avatar.length>=4)Prof.ach('collector');this.equip(k,id)},
+  equip(k,id){const P=Store.p;P.sel[k]=id;if(k==='theme')document.body.dataset.theme=id;
+    const s0=this.lobby.seats[0];if(s0&&s0.kind==='human'){if(k==='avatar')s0.avatar=id;if(k==='acc')s0.acc=id}Store.save();this.renderChip();this.renderProfile()},
+  renderProfile(){const P=Store.p,l=levelInfo(P.xp);$('#profTitle').textContent=`${P.name} • Lv ${l.lvl} • 💎 ${P.gems}`;$$('#profTabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===this.ptab));let h='';
+    if(this.ptab==='shop'){
+      const item=(k,id,it,pv)=>{const own=P.unlocked[k].includes(id),eq=P.sel[k]===id;return`<div class="shopitem ${eq?'eq':''}">${pv}<b>${it.name}</b>${own?`<button class="btn sm ${eq?'':'primary'}" data-act="shopeq" data-k="${k}" data-id="${id}" ${eq?'disabled':''}>${eq?'Equipped':'Equip'}</button>`:`<button class="btn sm warn" data-act="shopbuy" data-k="${k}" data-id="${id}" ${P.gems<it.price?'disabled':''}>💎 ${it.price}</button>`}</div>`};
+      h=`<div class="lbl">Avatars</div><div class="grid3">${Object.entries(AVATARS).map(([id,it])=>item('avatar',id,it,`<div class="av">${avatarSVG(id,SEAT_COLORS[0],P.sel.acc)}</div>`)).join('')}</div>
+      <div class="lbl">Accessories</div><div class="grid3">${Object.entries(ACCS).map(([id,it])=>item('acc',id,it,`<div class="av">${avatarSVG(P.sel.avatar,SEAT_COLORS[0],id)}</div>`)).join('')}</div>
+      <div class="lbl">Themes</div><div class="grid3">${Object.entries(THEMES).map(([id,it])=>item('theme',id,it,'<div style="font-size:34px">🎨</div>')).join('')}</div>
+      <div class="infobox">💎 Gems are earned only by playing: wins, quests, daily streaks, crates and level-ups.</div>`}
+    else if(this.ptab==='ach')h=Object.entries(ACH).map(([id,a])=>`<div class="prow" style="${P.ach[id]?'':'opacity:.55'}"><div><b>${a.icon} ${a.name}</b><div class="lbl">${a.desc}</div></div><span class="tag ${P.ach[id]?'ok':'gold'}">${P.ach[id]?'Unlocked':'+'+a.gems+' 💎'}</span></div>`).join('');
+    else h=`<div class="grid2"><div class="card"><div class="lbl">Level</div><b style="font-size:22px">${l.lvl}</b><div class="qbar"><i style="width:${l.cur/l.need*100}%"></i></div><div class="lbl">${l.cur}/${l.need} XP</div></div>
+      <div class="card"><div class="lbl">Streak</div><b style="font-size:22px">🔥 ${P.streak}</b><div class="lbl">Best ${P.best}</div></div>
+      <div class="card"><div class="lbl">Matches</div><b style="font-size:22px">${P.games}</b></div>
+      <div class="card"><div class="lbl">Wins</div><b style="font-size:22px">${P.wins}</b><div class="lbl">${P.games?Math.round(P.wins/P.games*100):0}% win rate</div></div>
+      <div class="card"><div class="lbl">Rent collected</div><b style="font-size:20px;font-family:var(--mono)">${money(P.rent)}</b></div>
+      <div class="card"><div class="lbl">Achievements</div><b style="font-size:22px">${Object.keys(P.ach).length}/${Object.keys(ACH).length}</b></div></div>`;
+    $('#profBody').innerHTML=h},
+  /* ----- daily drop (external trigger → internal habit) ----- */
+  daily:null,
+  checkDaily(){const P=Store.p,today=dayStr();if(P.lastDay===today)return;const y=new Date();y.setDate(y.getDate()-1);
+    this.daily={streak:P.lastDay===dayStr(y)?P.streak+1:1,opened:false};this.renderDaily();this.open('m-daily')},
+  renderDaily(){const d=this.daily,pos=((d.streak-1)%7)+1,days=Array.from({length:7},(_,i)=>`<div class="day ${i<pos?'on':''}">Day ${i+1}<br>${i===6?'🌟':'💎'}</div>`).join('');
+    $('#dailyBody').innerHTML=`<div class="lbl">Streak: ${d.streak} day${d.streak>1?'s':''} 🔥</div><div class="stbar">${days}</div>`+(d.opened
+      ?`<div class="chest open">🎉</div><h3>+${d.gems} 💎</h3><p class="lbl">${d.bonus?`Includes a +${d.bonus} lucky bonus!`:'Come back tomorrow for a bigger drop.'}</p><button class="btn primary" data-act="close">Let's play</button>`
+      :`<div class="chest" data-act="claimdaily">🎁</div><p class="lbl">Tap the chest to open today's drop</p>`)},
+  claimDaily(){const d=this.daily,P=Store.p;if(!d||d.opened)return;const bonus=wpick([{w:55,v:0},{w:25,v:15},{w:12,v:40},{w:6,v:80},{w:2,v:200}]).v;
+    d.gems=20+Math.min(d.streak,7)*8+bonus;d.bonus=bonus;d.opened=true;P.streak=d.streak;P.best=Math.max(P.best,d.streak);P.lastDay=dayStr();P.gems+=d.gems;Store.save();
+    if(P.streak>=3)Prof.ach('streak3');if(P.streak>=7)Prof.ach('streak7');Sfx.play(bonus>=80?'jackpot':'ach');FX.burst(innerWidth/2,innerHeight/2,{n:bonus>=80?130:55});this.renderDaily();this.renderChip()},
+  /* ----- lobby ----- */
+  ensureSeats(){const L=this.lobby,P=Store.p,names=['Nova','Byte','Pixel','Echo'],ak=Object.keys(AVATARS),cc=Object.keys(ACCS);
+    for(let i=0;i<4;i++)if(!L.seats[i])L.seats[i]=i===0?{kind:'human',name:P.name||'You',avatar:P.sel.avatar,acc:P.sel.acc}:{kind:'ai',name:names[i-1],avatar:ak[(i*3+rnd(0,4))%ak.length],acc:pick(cc)}},
+  renderLobby(){this.ensureSeats();const L=this.lobby;
+    const seat=(s,i)=>`<div class="seat" style="--c:${SEAT_COLORS[i]};border-color:${SEAT_COLORS[i]}"><div class="av" data-act="seatav" data-i="${i}" title="Tap to change avatar">${avatarSVG(s.avatar,SEAT_COLORS[i],s.acc)}</div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:6px"><div style="display:flex;gap:6px"><input class="fld" data-seatname="${i}" value="${esc(s.name)}" maxlength="12"><div class="seg"><button class="${s.kind==='human'?'on':''}" data-act="seatkind" data-i="${i}" data-k="human">Human</button><button class="${s.kind==='ai'?'on':''}" data-act="seatkind" data-i="${i}" data-k="ai">AI</button></div></div>
+      <div style="display:flex;gap:8px;align-items:center"><button class="btn sm" data-act="seatacc" data-i="${i}">👒 ${ACCS[s.acc].name}</button><span class="lbl">${AVATARS[s.avatar].name}</span></div></div></div>`;
+    $('#lobbyBody').innerHTML=`<div class="lbl">Players</div><div class="seg">${[2,3,4].map(n=>`<button class="${L.n===n?'on':''}" data-act="nplayers" data-n="${n}">${n} players</button>`).join('')}</div>
+      ${L.seats.slice(0,L.n).map(seat).join('')}
+      <div class="lbl">Match length (richest wins at the limit)</div><div class="seg">${[[30,'Short · 30'],[50,'Standard · 50'],[80,'Long · 80'],[0,'Endless']].map(([n,t])=>`<button class="${L.maxTurns===n?'on':''}" data-act="turns" data-n="${n}">${t}</button>`).join('')}</div>
+      <label class="chk"><input type="checkbox" id="lobTerm" ${L.term?'checked':''}> ⌨️ Text / terminal mode (for CLI players and AI agents)</label>`},
+  cycle(list,cur){return list[(Math.max(0,list.indexOf(cur))+1)%list.length]},
+  startFromLobby(quick){this.ensureSeats();const L=this.lobby;if(quick&&!L.fromCli)L.n=Math.max(2,Math.min(4,L.n));if(quick&&L.n>2&&!L.fromCli)L.n=2;
+    const seats=L.seats.slice(0,L.n).map((s,i)=>({...s,name:(s.name||'').trim().slice(0,12)||(s.kind==='ai'?AI_STYLES[i%4].n:'Player '+(i+1))}));
+    if(quick&&!L.fromCli){seats[0].kind='human';for(let i=1;i<seats.length;i++)seats[i].kind='ai'}
+    if(seats.every(s=>s.kind==='ai'))seats[0].kind='human';
+    if(seats[0].kind==='human'){Store.p.name=seats[0].name;Store.save()}
+    $$('.modal').forEach(m=>m.classList.remove('open'));game.speed=Store.p.fast?.4:1;
+    game.newGame({seats,maxTurns:L.maxTurns,startCash:1500});if(L.term||document.body.classList.contains('term'))this.setTerm(true);this.renderChip()},
+  /* ----- victory ----- */
+  showVictory(w,rw,reason){const g=game,s=g.s,P=Store.p;
+    const locked=[...Object.values(AVATARS).filter((_,i)=>!P.unlocked.avatar.includes(Object.keys(AVATARS)[i])),...Object.entries(ACCS).filter(([k])=>!P.unlocked.acc.includes(k)).map(([,v])=>v),...Object.entries(THEMES).filter(([k])=>!P.unlocked.theme.includes(k)).map(([,v])=>v)].sort((a,b)=>a.price-b.price)[0];
+    const rows=s.players.map(p=>`<tr><td style="color:${p.color};font-weight:900;text-align:left">${esc(p.name)}${p.id===w.id?' 👑':''}</td><td>${p.bankrupt?'💀 out':money(g.net(p))}</td><td>${p.st.rent?money(p.st.rent):'—'}</td><td>${p.st.builds}</td></tr>`).join('');
+    $('#vicBody').innerHTML=`<div style="width:110px;margin:0 auto;animation:bob 1.2s ease-in-out infinite">${avatarSVG(w.avatar,w.color,w.acc)}</div>
+      <h2 style="font-size:26px;margin-top:6px">${esc(w.name)} wins!</h2><p class="lbl">${reason==='turn-limit'?'Richest at the turn limit':'Last one standing'}</p>
+      <table style="width:100%;font-family:var(--mono);font-size:12px;margin:10px 0;text-align:right"><tr class="lbl"><th style="text-align:left">Player</th><th>Net</th><th>Rent</th><th>Builds</th></tr>${rows}</table>
+      ${rw.xp?`<div class="infobox">${rw.won?'🏆 Victory!':'Good game!'} +${rw.xp} XP • +${rw.gems} 💎${rw.bonus?` • 🎁 lucky bonus +${rw.bonus} 💎`:''}</div>`:''}
+      ${locked?`<p class="lbl" style="margin:8px 0">Next unlock: <b>${locked.name}</b> — ${P.gems}/${locked.price} 💎</p>`:''}
+      <div style="display:flex;gap:8px;justify-content:center;margin-top:10px"><button class="btn primary pulse" data-act="again">▶ Play again</button><button class="btn" data-act="newgame">⚙️ Change setup</button></div>`;
+    setTimeout(()=>{this.open('m-victory');FX.burst(innerWidth/2,innerHeight/3,{n:150})},Math.max(150,700*g.speed))},
+  renderHelp(){$('#helpBody').innerHTML=`<div class="card"><b>How to win</b><br>Roll one die, buy tiles (or auction them), collect rent, build, trade. Last player standing wins — or the richest at the turn limit.</div>
+    <div class="card"><b>Rules</b><ul style="padding-left:18px;line-height:1.7;margin-top:4px">
+      <li>A <b>6</b> gives a bonus roll; three 6s in a row sends you to <b>REBOOT</b> (jail: roll a 6 or pay $50, forced on the 3rd try).</li>
+      <li>Declined properties go to <b>auction</b>.</li>
+      <li>Own a full district → base rent ×2 and building unlocks (Levels 2–5, 👑 = Landmark). Build and sell <b>evenly</b>; selling refunds 50%.</li>
+      <li><b>Mortgage</b> pays 50% of price (blocked while the district has buildings); lifting costs +10%.</li>
+      <li><b>Trade lock 🔒:</b> if any tile in a district has been upgraded, the whole district can't be traded until its buildings are sold.</li>
+      <li>Mortgaged properties can be traded; the receiver pays a 10% fee.</li>
+      <li>Owe more than you hold? Sell/mortgage to raise funds. If you can't, you go bankrupt and the creditor takes your assets.</li>
+      <li>Tax tiles feed the <b>Jackpot</b>, won at FREE NODE. Airdrop & Venture Fund are mystery crates; OVERCLOCK is a prize wheel; the 🍀 Lucky meter earns free crates.</li></ul></div>
+    <div class="card"><b>Keys</b><br><span class="kbd">Space</span> roll <span class="kbd">B</span> buy <span class="kbd">A</span> auction <span class="kbd">U</span> build here <span class="kbd">E</span> end turn <span class="kbd">P</span> portfolio <span class="kbd">T</span> trade <span class="kbd">/</span> CLI <span class="kbd">V</span> voice <span class="kbd">M</span> mute <span class="kbd">Esc</span> close</div>
+    <div class="card"><b>Terminal / AI agents</b><pre style="white-space:pre-wrap;font-family:var(--mono);font-size:11px;margin-top:6px">${esc(HELP_CLI)}</pre></div>`},
+  /* ----- central click router ----- */
+  onAct(a,el){const d=el.dataset,g=game,L=this.lobby;
+    switch(a){
+      case 'open':this.open(d.m);if(d.m==='m-profile')this.renderProfile();break;
+      case 'close':{const m=el.closest('.modal');if(m)m.classList.remove('open');break}
+      case 'roll':this.do('roll');break;case 'buy':this.do('buy');break;case 'decline':this.do('decline');break;
+      case 'endturn':this.do('endTurn');break;case 'jailpay':this.do('payJail');break;
+      case 'autoraise':if(g.s)this.do('autoRaise',g.cur);break;
+      case 'manage':if(g.s)this.openPortfolio(g.s.cur);break;
+      case 'portfolio':if(g.s)this.openPortfolio(+d.pid);break;
+      case 'trade':this.openTrade();break;
+      case 'up':this.do('upgrade',+d.tid);break;case 'down':this.do('downgrade',+d.tid);break;
+      case 'mort':this.do('mortgage',+d.tid);break;case 'unmort':this.do('unmortgage',+d.tid);break;
+      case 'bidplus':this.do('bid',g.s.auction.bid+ +d.n);break;
+      case 'bidmax':this.do('bid',g.P(g.s.auction.turn).cash);break;
+      case 'bidcustom':this.do('bid',+$('#auAmt').value);break;
+      case 'fold':this.do('fold');break;
+      case 'trpartner':this.trade.to=+d.pid;this.trade.give.clear();this.trade.get.clear();this.renderTrade();break;
+      case 'proposetrade':this.proposeTrade();break;
+      case 'sound':Store.p.muted=!Store.p.muted;Store.save();$('#btnSound').textContent=Store.p.muted?'🔇':'🔊';break;
+      case 'voice':g.voice=!g.voice;$('#btnVoice').textContent=g.voice?'🎙️':'🔇';if(g.voice)g.speak('Voice narration on');break;
+      case 'contrast':Store.p.contrast=!Store.p.contrast;document.body.classList.toggle('hc',Store.p.contrast);Store.save();break;
+      case 'motion':Store.p.reduce=!Store.p.reduce;document.body.classList.toggle('calm',Store.p.reduce);$('#btnMotion').classList.toggle('on',Store.p.reduce);Store.save();break;
+      case 'fast':Store.p.fast=!Store.p.fast;g.speed=Store.p.fast?.4:1;$('#btnFast').classList.toggle('on',Store.p.fast);Store.save();break;
+      case 'termmode':this.setTerm(!document.body.classList.contains('term'));break;
+      case 'newgame':(async()=>{if(g.s&&!g.s.over&&!(await this.ask('Start a new match?','<p>Your current match will end.</p>','New match','Keep playing')))return;this.close('m-victory');this.renderLobby();this.open('m-lobby')})();break;
+      case 'quick':L.fromCli=false;this.startFromLobby(true);break;
+      case 'startgame':L.fromCli=false;this.startFromLobby(false);break;
+      case 'again':this.close('m-victory');L.fromCli=false;this.startFromLobby(false);break;
+      case 'nplayers':L.n=+d.n;this.renderLobby();break;
+      case 'turns':L.maxTurns=+d.n;this.renderLobby();break;
+      case 'seatkind':L.seats[+d.i].kind=d.k;this.renderLobby();break;
+      case 'seatav':{const s=L.seats[+d.i],list=s.kind==='human'?Store.p.unlocked.avatar:Object.keys(AVATARS);s.avatar=this.cycle(list,s.avatar);Sfx.play('pop');this.renderLobby();break}
+      case 'seatacc':{const s=L.seats[+d.i],list=s.kind==='human'?Store.p.unlocked.acc:Object.keys(ACCS);s.acc=this.cycle(list,s.acc);Sfx.play('pop');this.renderLobby();break}
+      case 'tab':this.tabTo(d.t);break;
+      case 'ptab':this.ptab=d.t;this.renderProfile();break;
+      case 'shopbuy':this.buyItem(d.k,d.id);break;case 'shopeq':this.equip(d.k,d.id);break;
+      case 'claimdaily':this.claimDaily();break;
+      case 'emote':if(g.s){const p=g.s.players.find(x=>x.id===g.s.cur&&x.kind==='human')||g.s.players.find(x=>x.kind==='human');if(p){this.emote(p.id,d.e);g.chat(p.name,p.color,d.e)}}break}}
+};
+
+/* =====================================================================
+   8. WIRING: events, shortcuts, chat, terminal, boot
+   ===================================================================== */
+const aiReply=v=>{const t=v.toLowerCase();
+  if(/trade|deal/.test(t))return'Open Trade (T) and make me an offer. 🤝';if(/gg|wp/.test(t))return'GG! May the best landlord win. 👑';
+  if(/rent|pay/.test(t))return'Rent is just friendship with invoices. 💸';if(/mercy|please/.test(t))return'No bailouts on the Grid! 😈';
+  return pick(['My skyline is growing. 🏙️','Careful where you land…','Saving up for a Landmark. 👑','Nice move!','Roll the dice, coward. 🎲'])};
+document.addEventListener('click',e=>{const el=e.target.closest('[data-act]');if(el){Sfx.init();UI.onAct(el.dataset.act,el);return}
+  const t=e.target.closest('.tile');if(t&&game&&game.s)UI.inspect(+t.dataset.tid)});
+document.addEventListener('change',e=>{const k=e.target.dataset&&e.target.dataset.trk;if(k){const set=UI.trade[k],v=+e.target.value;e.target.checked?set.add(v):set.delete(v);UI.renderTrade()}
+  if(e.target.id==='lobTerm')UI.lobby.term=e.target.checked});
+document.addEventListener('input',e=>{const t=e.target;if(t.id==='trGiveCash'||t.id==='trGetCash')UI.updateFair();
+  if(t.dataset&&t.dataset.seatname!==undefined)UI.lobby.seats[+t.dataset.seatname].name=t.value});
+$('#chatForm').addEventListener('submit',e=>{e.preventDefault();const i=$('#chatInput'),v=i.value.trim();if(!v||!game.s)return;i.value='';
+  const p=game.s.players.find(x=>x.id===game.s.cur&&x.kind==='human')||game.s.players.find(x=>x.kind==='human');if(!p)return;game.chat(p.name,p.color,v);UI.emote(p.id,'💬');
+  const ai=game.s.players.find(x=>x.kind==='ai'&&!x.bankrupt);if(ai)setTimeout(()=>game.chat(ai.name,ai.color,aiReply(v)),700+Math.random()*600)});
+(()=>{const hist=[];let hi=0;
+  $('#termForm').addEventListener('submit',async e=>{e.preventDefault();const i=$('#termIn'),v=i.value.trim();if(!v)return;hist.push(v);hi=hist.length;i.value='';UI.term('> '+v,'c');const r=await game.exec(v);UI.term(r.msg,r.ok?'':'e')});
+  $('#termIn').addEventListener('keydown',e=>{
+    if(e.key==='ArrowUp'){e.preventDefault();hi=Math.max(0,hi-1);e.target.value=hist[hi]||''}
+    else if(e.key==='ArrowDown'){e.preventDefault();hi=Math.min(hist.length,hi+1);e.target.value=hist[hi]||''}
+    else if(e.key==='Tab'){e.preventDefault();const cmds=['roll','buy','decline','bid','fold','end','jail','build','sell','mortgage','unmortgage','autoraise','trade','status','board','tiles','props','tile','legal','state','log','wait','say','fast','autoboard','new','help'];const m=cmds.filter(c=>c.startsWith(e.target.value.toLowerCase()));if(m.length===1)e.target.value=m[0]+' '}})})();
+addEventListener('keydown',e=>{
+  if(e.key==='Escape'){['m-tile','m-trade','m-help','m-profile','m-daily'].forEach(m=>UI.close(m));if(!(game.s&&game.s.debt))UI.close('m-portfolio');return}
+  if(['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName))return;
+  if(!game||!game.s||document.querySelector('.modal.open'))return;const k=e.key.toLowerCase();
+  if(e.code==='Space'||k==='r'){e.preventDefault();UI.do('roll')}
+  else if(k==='b')UI.do('buy');else if(k==='a')UI.do('decline');else if(k==='e')UI.do('endTurn');
+  else if(k==='u')UI.do('upgrade',game.cur.pos);else if(k==='p')UI.openPortfolio(game.s.cur);else if(k==='t')UI.openTrade();
+  else if(k==='v')UI.onAct('voice',document.body);else if(k==='m')UI.onAct('sound',document.body);
+  else if(e.key==='/'){e.preventDefault();UI.tabTo('term');$('#termIn').focus()}});
+addEventListener('resize',()=>{if(game&&game.s)UI.placeSprites()});
+document.addEventListener('visibilitychange',()=>UI.title());
+setInterval(()=>UI.toast('💧','Quick stretch?','You have been playing a while — hydrate and rest your eyes.',''),45*60*1000);
+
+window.addEventListener('DOMContentLoaded',()=>{
+  Store.load();FX.init();
+  document.body.dataset.theme=Store.p.sel.theme;document.body.classList.toggle('hc',!!Store.p.contrast);document.body.classList.toggle('calm',!!Store.p.reduce);
+  $('#btnSound').textContent=Store.p.muted?'🔇':'🔊';$('#btnMotion').classList.toggle('on',!!Store.p.reduce);$('#btnFast').classList.toggle('on',!!Store.p.fast);
+  game=new Game();window.game=game;game.speed=Store.p.fast?.4:1;
+  window.GridLockAPI={exec:l=>game.apiExec(l),state:()=>game.state(),legal:()=>game.legal(),guide:HELP_CLI};
+  UI.renderChip();UI.renderHelp();UI.dieFace(1);UI.renderLobby();UI.open('m-lobby');
+  const q=new URLSearchParams(location.search);if(q.get('fast')==='1')game.speed=.1;
+  if(q.get('mode')==='terminal'){UI.lobby.term=true;UI.lobby.fromCli=false;UI.startFromLobby(true)}else UI.checkDaily();
+});
+</script>
+</body>
+</html>
