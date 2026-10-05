@@ -1584,17 +1584,18 @@ const UI={
   renderTrade(){const g=game,s=g.s,t=this.trade,me=g.cur,others=s.players.filter(p=>!p.bankrupt&&p.id!==me.id),them=t.to!==null?g.P(t.to):null;
     const pend=this.onlineRoom?s.pending_trade:s.pendingTrade;
     if(pend){
-      const myPid=this.onlineRoom?(this.onlineRoom.token.startsWith('p2_')?1:0):s.cur;
+      const humanP=s.players.find(p=>p.kind==='human');
+      const myPid=this.onlineRoom?(this.onlineRoom.token&&this.onlineRoom.token.startsWith('p2_')?1:0):(humanP?humanP.id:s.cur);
       const isMeTo=(pend.to===myPid),fromP=g.P(pend.from),toP=g.P(pend.to);
       const giveTids=pend.give_tids||pend.give||[],getTids=pend.get_tids||pend.get||[],gCash=pend.give_cash||pend.giveCash||0,rCash=pend.get_cash||pend.getCash||0;
       const listNames=ids=>ids.length?ids.map(i=>`<span class="tag" style="background:${DISTRICTS[TILES[i].d].hex}33;border:1px solid ${DISTRICTS[TILES[i].d].hex}">${TILES[i].icon} ${TILES[i].name}</span>`).join(' '):'<span class="lbl">No tiles</span>';
-      $('#trBody').innerHTML=`<div class="infobox" style="display:flex;justify-content:space-between;align-items:center"><b>${pend.isCounter?'⚡ Counter-Offer Pending':'📋 Trade Proposal'}</b><span class="tag ${pend.isCounter?'gold':'ok'}">${pend.status||'pending'}</span></div>
+      $('#trBody').innerHTML=`<div class="infobox" style="display:flex;justify-content:space-between;align-items:center"><b>${pend.isCounter?'⚡ Counter-Offer from '+esc(fromP.name):'📋 Trade Proposal from '+esc(fromP.name)}</b><span class="tag ${pend.isCounter?'gold':'ok'}">${pend.status||'pending'}</span></div>
       <div class="grid2">
         <div class="card"><b style="color:${fromP?fromP.color:'var(--acc)'}">${fromP?esc(fromP.name):'Sender'} gives:</b><div style="display:flex;flex-wrap:wrap;gap:4px;margin:6px 0">${listNames(giveTids)}</div>${gCash?`<b>+ ${money(gCash)} cash</b>`:''}</div>
         <div class="card"><b style="color:${toP?toP.color:'var(--acc2)'}">${toP?esc(toP.name):'Receiver'} gives:</b><div style="display:flex;flex-wrap:wrap;gap:4px;margin:6px 0">${listNames(getTids)}</div>${rCash?`<b>+ ${money(rCash)} cash</b>`:''}</div>
       </div>`;
       if(isMeTo){
-        $('#trFoot').innerHTML=`<button class="btn bad" data-act="rejecttrade">❌ Decline</button><button class="btn warn" data-act="countertrade">🔄 Counter-Offer</button><button class="btn good pulse" data-act="accepttrade">✅ Accept Deal</button>`;
+        $('#trFoot').innerHTML=`<button class="btn bad" data-act="rejecttrade">❌ Decline Deal</button><button class="btn warn" data-act="countertrade">🔄 Counter-Offer</button><button class="btn good pulse" data-act="accepttrade">✅ Accept Deal</button>`;
       }else{
         $('#trFoot').innerHTML=`<span class="lbl" style="margin-right:auto">⏳ Awaiting response from ${toP?esc(toP.name):'partner'}…</span><button class="btn bad" data-act="rejecttrade">Cancel Proposal</button>`;
       }
