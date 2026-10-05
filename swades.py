@@ -790,6 +790,47 @@ class Swades:
             raise RuntimeError(f"Get replay failed: HTTP {res.status_code} - {res.text}")
         return res.json()
 
+    def propose_game_trade(self, room_id, partner_seat=2, give_tids=None, get_tids=None, give_cash=0, get_cash=0, player_token=None):
+        payload = {
+            "partner": partner_seat,
+            "give": give_tids or [],
+            "get": get_tids or [],
+            "give_cash": give_cash,
+            "get_cash": get_cash,
+            "player_token": player_token
+        }
+        res = self._req("POST", f"/v1/monopoly/rooms/{room_id}/trade", json=payload, timeout=20)
+        if not res.ok:
+            raise RuntimeError(f"Propose trade failed: HTTP {res.status_code} - {res.text}")
+        return res.json()
+
+    def accept_game_trade(self, room_id, player_token=None):
+        payload = {"player_token": player_token}
+        res = self._req("POST", f"/v1/monopoly/rooms/{room_id}/trade_accept", json=payload, timeout=20)
+        if not res.ok:
+            raise RuntimeError(f"Accept trade failed: HTTP {res.status_code} - {res.text}")
+        return res.json()
+
+    def reject_game_trade(self, room_id, reason="Trade declined", player_token=None):
+        payload = {"reason": reason, "player_token": player_token}
+        res = self._req("POST", f"/v1/monopoly/rooms/{room_id}/trade_reject", json=payload, timeout=20)
+        if not res.ok:
+            raise RuntimeError(f"Reject trade failed: HTTP {res.status_code} - {res.text}")
+        return res.json()
+
+    def counter_game_trade(self, room_id, give_tids=None, get_tids=None, give_cash=0, get_cash=0, player_token=None):
+        payload = {
+            "give": give_tids or [],
+            "get": get_tids or [],
+            "give_cash": give_cash,
+            "get_cash": get_cash,
+            "player_token": player_token
+        }
+        res = self._req("POST", f"/v1/monopoly/rooms/{room_id}/trade_counter", json=payload, timeout=20)
+        if not res.ok:
+            raise RuntimeError(f"Counter trade failed: HTTP {res.status_code} - {res.text}")
+        return res.json()
+
     @property
     def monopoly(self):
         class _MonopolyAPI:
@@ -837,4 +878,12 @@ class Swades:
                 return self._c.simulate_game(*a, **kw)
             def stats(self):
                 return self._c.get_game_stats()
+            def propose_trade(self, *a, **kw):
+                return self._c.propose_game_trade(*a, **kw)
+            def accept_trade(self, *a, **kw):
+                return self._c.accept_game_trade(*a, **kw)
+            def reject_trade(self, *a, **kw):
+                return self._c.reject_game_trade(*a, **kw)
+            def counter_trade(self, *a, **kw):
+                return self._c.counter_game_trade(*a, **kw)
         return _MonopolyAPI(self)

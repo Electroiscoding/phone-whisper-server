@@ -961,6 +961,42 @@ class SwadesClient {
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return await res.json();
+      },
+      proposeTrade: async (roomId, options = {}) => {
+        const res = await fetch(`${this.endpoint}/v1/monopoly/rooms/${roomId}/trade`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(options)
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return await res.json();
+      },
+      acceptTrade: async (roomId, options = {}) => {
+        const res = await fetch(`${this.endpoint}/v1/monopoly/rooms/${roomId}/trade_accept`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(options)
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return await res.json();
+      },
+      rejectTrade: async (roomId, options = {}) => {
+        const res = await fetch(`${this.endpoint}/v1/monopoly/rooms/${roomId}/trade_reject`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(options)
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return await res.json();
+      },
+      counterTrade: async (roomId, options = {}) => {
+        const res = await fetch(`${this.endpoint}/v1/monopoly/rooms/${roomId}/trade_counter`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(options)
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return await res.json();
       }
     };
   }

@@ -124,17 +124,7 @@ while true; do
   fi
 
   IS_TUNNEL_DEAD=0
-  CF_ALIVE=0
-  if [ -f "$HOME/cloudflared.pid" ]; then
-    CF_PID=$(cat "$HOME/cloudflared.pid" 2>/dev/null)
-    if [ -n "$CF_PID" ] && kill -0 "$CF_PID" 2>/dev/null; then
-      CF_ALIVE=1
-    fi
-  fi
-  if [ "$CF_ALIVE" -eq 0 ] && pgrep -x "cloudflared" > /dev/null; then
-    CF_ALIVE=1
-  fi
-  if [ "$CF_ALIVE" -eq 0 ]; then
+  if ! pgrep -f "cloudflared" > /dev/null; then
     IS_TUNNEL_DEAD=1
   fi
 

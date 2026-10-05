@@ -9572,6 +9572,78 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             })
             return
 
+        if action in ["trade", "trade_propose", "propose_trade"]:
+            p = game.player_by_token(token) if token else None
+            pid = p["id"] if p else game.cur
+            to_seat = int(payload.get("partner", payload.get("to_seat", 2 if pid == 0 else 1)))
+            give_t = payload.get("give", payload.get("give_tids", []))
+            get_t = payload.get("get", payload.get("get_tids", []))
+            give_c = int(payload.get("give_cash", 0))
+            get_c = int(payload.get("get_cash", 0))
+            res = game.propose_trade(pid, to_seat, give_t, get_t, give_c, get_c)
+            game.auto_step_ai()
+            self._send_json_response({
+                "ok": res.get("ok", False),
+                "msg": res.get("msg", ""),
+                "status": res.get("status", "pending"),
+                "room_id": code,
+                "trade": game.pending_trade,
+                "game_status": game.status_line(),
+                "state": game.to_dict()
+            })
+            return
+
+        if action in ["trade_accept", "accept_trade"]:
+            p = game.player_by_token(token) if token else None
+            pid = p["id"] if p else (game.pending_trade["to"] if game.pending_trade else game.cur)
+            res = game.accept_trade(pid)
+            game.auto_step_ai()
+            self._send_json_response({
+                "ok": res.get("ok", False),
+                "msg": res.get("msg", ""),
+                "status": res.get("status", "accepted"),
+                "room_id": code,
+                "game_status": game.status_line(),
+                "state": game.to_dict()
+            })
+            return
+
+        if action in ["trade_reject", "reject_trade"]:
+            p = game.player_by_token(token) if token else None
+            pid = p["id"] if p else (game.pending_trade["to"] if game.pending_trade else game.cur)
+            reason = payload.get("reason", "Trade declined")
+            res = game.reject_trade(pid, reason)
+            game.auto_step_ai()
+            self._send_json_response({
+                "ok": res.get("ok", False),
+                "msg": res.get("msg", ""),
+                "status": res.get("status", "rejected"),
+                "room_id": code,
+                "game_status": game.status_line(),
+                "state": game.to_dict()
+            })
+            return
+
+        if action in ["trade_counter", "counter_trade"]:
+            p = game.player_by_token(token) if token else None
+            pid = p["id"] if p else (game.pending_trade["to"] if game.pending_trade else game.cur)
+            give_t = payload.get("give", payload.get("give_tids", []))
+            get_t = payload.get("get", payload.get("get_tids", []))
+            give_c = int(payload.get("give_cash", 0))
+            get_c = int(payload.get("get_cash", 0))
+            res = game.counter_trade(pid, give_t, get_t, give_c, get_c)
+            game.auto_step_ai()
+            self._send_json_response({
+                "ok": res.get("ok", False),
+                "msg": res.get("msg", ""),
+                "status": res.get("status", "countered"),
+                "room_id": code,
+                "trade": game.pending_trade,
+                "game_status": game.status_line(),
+                "state": game.to_dict()
+            })
+            return
+
         if action in ["qwen_step", "llm_step"]:
             legal = game.legal_moves()
             if not legal or game.over:
@@ -9690,13 +9762,24 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 res = game.bankrupt_player(pid)
             elif act_name == "end":
                 res = game.end_turn(pid)
-            elif act_name == "trade":
-                to_seat = int(payload.get("partner", 2 if pid == 0 else 1))
-                give_t = payload.get("give", [])
-                get_t = payload.get("get", [])
+            elif act_name in ["trade", "trade_propose", "propose_trade"]:
+                to_seat = int(payload.get("partner", payload.get("to_seat", 2 if pid == 0 else 1)))
+                give_t = payload.get("give", payload.get("give_tids", []))
+                get_t = payload.get("get", payload.get("get_tids", []))
                 give_c = int(payload.get("give_cash", 0))
                 get_c = int(payload.get("get_cash", 0))
-                res = game.trade_properties(pid, to_seat, give_t, get_t, give_c, get_c)
+                res = game.propose_trade(pid, to_seat, give_t, get_t, give_c, get_c)
+            elif act_name in ["trade_accept", "accept_trade"]:
+                res = game.accept_trade(pid)
+            elif act_name in ["trade_reject", "reject_trade"]:
+                reason = payload.get("reason", "Trade declined")
+                res = game.reject_trade(pid, reason)
+            elif act_name in ["trade_counter", "counter_trade"]:
+                give_t = payload.get("give", payload.get("give_tids", []))
+                get_t = payload.get("get", payload.get("get_tids", []))
+                give_c = int(payload.get("give_cash", 0))
+                get_c = int(payload.get("get_cash", 0))
+                res = game.counter_trade(pid, give_t, get_t, give_c, get_c)
 
             game.auto_step_ai()
 

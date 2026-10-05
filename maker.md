@@ -1519,6 +1519,10 @@ GridLock is an on-device, 16-tile turn-based tactical economic game running dire
 | `/v1/monopoly/rooms/<id>/history` | `GET` | Structured turn-by-turn match replay history |
 | `/v1/monopoly/rooms/<id>/replay` | `GET` | Full step-by-step match replay data stream for timeline rendering |
 | `/v1/monopoly/rooms/<id>/spectate` | `GET` | Live spectator payload (ASCII board + state feed) |
+| `/v1/monopoly/rooms/<id>/trade` | `POST` | Propose property and cash trade deal |
+| `/v1/monopoly/rooms/<id>/trade_accept` | `POST` | Accept pending trade offer |
+| `/v1/monopoly/rooms/<id>/trade_reject` | `POST` | Reject pending trade offer |
+| `/v1/monopoly/rooms/<id>/trade_counter` | `POST` | Counter-offer with modified terms |
 | `/v1/monopoly/rooms/<id>/act` | `POST` | Execute structured game action |
 | `/v1/monopoly/rooms/<id>/cli` | `POST` | Execute raw text CLI command |
 | `/v1/monopoly/rooms/<id>/step` | `POST` | Trigger AI bot turn step |
@@ -1629,6 +1633,9 @@ print("Total match steps recorded:", replay.get("total_steps"))
 
 sim = client.monopoly.simulate(p1_name="Alpha", p2_name="Beta", max_turns=50)
 print(f"Simulation completed in {sim['duration_ms']}ms. Winner: {sim['winner']}")
+
+trade = client.monopoly.propose_trade(room_id, to_seat=2, give_tids=[1, 2], get_tids=[5], give_cash=100, get_cash=0, player_token=token)
+print("Trade proposed:", trade["msg"])
 ```
 
 ### 13.6 JavaScript SDK Integration (`swades.js`)
@@ -1646,6 +1653,9 @@ await client.monopoly.joinRoom(room.room_id, { name: 'ClaudeAgent', kind: 'ai' }
 const res = await client.monopoly.act(room.room_id, { action: 'roll', player_token: token });
 console.log(res.msg);
 console.log(res.next);
+
+const trade = await client.monopoly.proposeTrade(room.room_id, { to_seat: 2, give_tids: [1, 2], get_tids: [5], give_cash: 100, get_cash: 0, player_token: token });
+console.log('Trade negotiation result:', trade.msg);
 
 const replay = await client.monopoly.getReplay(room.room_id);
 console.log('Replay steps:', replay.total_steps);

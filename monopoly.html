@@ -48,27 +48,26 @@ input,select{font-family:inherit}
 #board{--bs:min(calc(100vh - 100px),calc(100vw - 440px));width:var(--bs);height:var(--bs);display:grid;grid-template-columns:repeat(5,1fr);grid-template-rows:repeat(5,1fr);gap:6px;position:relative}
 #board.shake{animation:shake .4s}
 @keyframes shake{20%{transform:translate(-5px,2px)}40%{transform:translate(5px,-2px)}60%{transform:translate(-3px,1px)}80%{transform:translate(3px,0)}}
-/* ================= TILES ================= */
-.tile{position:relative;border-radius:14px;background:linear-gradient(160deg,var(--tile2),var(--tile));border:1px solid var(--line);padding:6px 7px 4px;display:flex;flex-direction:column;overflow:hidden;cursor:pointer;transition:transform .15s,box-shadow .2s;min-width:0}
-.tile:hover{transform:translateY(-3px) scale(1.02);z-index:6;box-shadow:0 14px 30px rgba(0,0,0,.45)}
-.tile.owned{box-shadow:inset 0 0 0 2px var(--own),0 0 14px color-mix(in srgb,var(--own) 35%,transparent)}
-.tile.set{background:linear-gradient(160deg,color-mix(in srgb,var(--own) 28%,var(--tile2)),var(--tile))}
+.tile{position:relative;border-radius:12px;background:linear-gradient(160deg,var(--tile2),var(--tile));border:1px solid var(--line);padding:5px 6px 3px;display:flex;flex-direction:column;overflow:hidden;cursor:pointer;transition:transform .12s,box-shadow .15s;min-width:0}
+.tile:hover{transform:translateY(-2px) scale(1.02);z-index:6;box-shadow:0 10px 24px rgba(0,0,0,.5)}
+.tile.owned{border-color:var(--own);box-shadow:inset 0 0 0 1.5px var(--own),0 0 12px color-mix(in srgb,var(--own) 30%,transparent)}
+.tile.set{background:linear-gradient(160deg,color-mix(in srgb,var(--own) 22%,var(--tile2)),var(--tile));box-shadow:inset 0 0 0 2px var(--own),0 0 16px color-mix(in srgb,var(--own) 45%,transparent)}
 .tile.hot{animation:hot .9s}
 @keyframes hot{0%,100%{filter:none}40%{filter:brightness(1.7) saturate(1.4);transform:scale(1.05)}}
-.tile.mort::after{content:'MORTGAGED';position:absolute;inset:0;display:grid;place-items:center;background:repeating-linear-gradient(135deg,rgba(0,0,0,.55) 0 8px,rgba(0,0,0,.35) 8px 16px);font-size:9px;font-weight:900;letter-spacing:.12em;color:#fecaca;transform:none}
-.band{height:7px;border-radius:6px;margin-bottom:3px;flex:none}
-.t-top{display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:9.5px;color:var(--muted);font-weight:700}
-.t-price{color:var(--warn)}
-.t-ico{font-size:clamp(14px,2vw,24px);line-height:1.1;margin-top:1px}
-.t-name{font-weight:900;font-size:clamp(9px,1.05vw,13px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.t-rent{font-family:var(--mono);font-size:9.5px;color:var(--muted)}
-.t-pips{position:absolute;right:6px;top:22px;display:flex;gap:2px}
-.t-pips b{width:7px;height:7px;border-radius:2px;background:linear-gradient(var(--warn),#f97316);box-shadow:0 0 6px rgba(251,191,36,.7)}
-.t-pips .crown{font-size:13px;animation:float 2s ease-in-out infinite}
-.t-lock{position:absolute;left:5px;bottom:4px;font-size:11px}
-.t-own{position:absolute;right:5px;bottom:4px;font-family:var(--mono);font-size:9px;font-weight:800;color:#051022;background:var(--own);padding:0 5px;border-radius:6px}
+.tile.mort::after{content:'MORTGAGED';position:absolute;inset:0;display:grid;place-items:center;background:repeating-linear-gradient(135deg,rgba(0,0,0,.65) 0 8px,rgba(0,0,0,.45) 8px 16px);font-size:9px;font-weight:900;letter-spacing:.14em;color:#fecaca}
+.band{height:5px;border-radius:4px;margin-bottom:2px;flex:none}
+.t-top{display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:9px;color:var(--muted);font-weight:700}
+.t-price{color:var(--warn);font-weight:800}
+.t-ico{font-size:clamp(14px,1.8vw,22px);line-height:1.1;margin-top:1px}
+.t-name{font-weight:800;font-size:clamp(9px,1vw,12px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.t-rent{font-family:var(--mono);font-size:9px;color:var(--muted);font-weight:700}
+.t-pips{position:absolute;right:5px;top:18px;display:flex;gap:1.5px}
+.t-pips b{width:6px;height:6px;border-radius:2px;background:linear-gradient(var(--warn),#f97316);box-shadow:0 0 4px rgba(251,191,36,.6)}
+.t-pips .crown{font-size:12px;animation:float 2s ease-in-out infinite}
+.t-lock{position:absolute;left:4px;bottom:3px;font-size:10px}
+.t-own{position:absolute;right:4px;bottom:3px;font-family:var(--mono);font-size:8.5px;font-weight:900;color:#040c1a;background:var(--own);padding:0 5px;border-radius:5px;box-shadow:0 1px 4px rgba(0,0,0,.4)}
 .tile.corner{align-items:center;justify-content:center;text-align:center;background:linear-gradient(150deg,var(--tile2),color-mix(in srgb,var(--acc) 14%,var(--tile)))}
-.tile.corner .t-ico{font-size:clamp(22px,3.4vw,40px)}
+.tile.corner .t-ico{font-size:clamp(20px,3vw,36px)}
 .tile.corner .t-rent{white-space:normal}
 @keyframes float{50%{transform:translateY(-3px)}}
 /* ================= SPRITES ================= */
@@ -442,7 +441,7 @@ body.calm *{animation-duration:.01ms!important;animation-iteration-count:1!impor
 <div class="modal" id="m-trade"><div class="sheet wide">
   <div class="sh-head"><h3>🤝 Trade Floor</h3><button class="x" data-act="close">✕</button></div>
   <div class="sh-body" id="trBody"></div>
-  <div class="sh-foot"><span id="trFair" class="lbl" style="margin-right:auto"></span><button class="btn" data-act="close">Cancel</button><button class="btn good" data-act="proposetrade">Propose Trade</button></div>
+  <div class="sh-foot" id="trFoot"><span id="trFair" class="lbl" style="margin-right:auto"></span><button class="btn" data-act="close">Cancel</button><button class="btn good" data-act="proposetrade">Propose Trade</button></div>
 </div></div>
 
 <div class="modal" id="m-auction"><div class="sheet">
@@ -922,20 +921,54 @@ class Game{
     if(A.cash-giveCash+getCash<fee(get))return`${A.name} could not pay the 10% mortgage fee`;if(B.cash-getCash+giveCash<fee(give))return`${B.name} could not pay the 10% mortgage fee`;return''}
   aiEvalTrade(q,sp){const isFrom=q.id===sp.from,gets=isFrom?sp.get:sp.give,gives=isFrom?sp.give:sp.get,gc=isFrom?sp.getCash:sp.giveCash,lc=isFrom?sp.giveCash:sp.getCash,other=this.P(isFrom?sp.to:sp.from);
     const sum=dk=>this.dTiles(dk).reduce((a,i)=>a+TILES[i].cost,0);let gain=gc,loss=lc;
-    gets.forEach(t=>{gain+=TILES[t].cost*(this.s.tiles[t].mortgaged?.8:1.05)});this.completes(q.id,gets).forEach(dk=>gain+=sum(dk)*.7);
-    gives.forEach(t=>{loss+=TILES[t].cost*1.1;if(this.hasSet(q.id,TILES[t].d))loss+=sum(TILES[t].d)*.9});this.completes(other.id,gives).forEach(dk=>loss+=sum(dk)*.8);
-    return{ok:gain>=loss*1.08&&(q.cash-lc+gc)>=60,gain,loss}}
-  async trade(sp){
+    gets.forEach(t=>{gain+=TILES[t].cost*(this.s.tiles[t].mortgaged?.8:1.15);if(this.completes(q.id,[t]).length)gain+=sum(TILES[t].d)*.8});
+    gives.forEach(t=>{loss+=TILES[t].cost*1.2;if(this.hasSet(q.id,TILES[t].d))loss+=sum(TILES[t].d)*.9});this.completes(other.id,gives).forEach(dk=>loss+=sum(dk)*.8);
+    const score=gain/Math.max(1,loss);return{ok:score>=1.05&&(q.cash-lc+gc)>=50,score,gain,loss}}
+  async proposeTrade(sp){
     if(this.busy)return this.fail('Busy');const why=this.tradeCheck(sp);if(why)return this.fail(why);
-    const A=this.P(sp.from),B=this.P(sp.to);this.busy=true;let accepted=false;
-    try{
-      const desc=this.tradeText(sp);
-      if(B.kind==='ai'){await sleep(500);const ev=this.aiEvalTrade(B,sp);accepted=ev.ok;this.chat(B.name,B.color,accepted?pick(['Deal! 🤝','That works for me.','Pleasure doing business!']):pick(['Not enough value for me.','Nope — try sweeter terms.','Hmm, no. 😅']))}
-      else if(A.kind==='ai'||this.s.players.filter(x=>x.kind==='human').length>1){accepted=await UI.ask(`${B.name}: accept ${A.name}'s offer?`,desc,'Accept','Decline')}
-      else accepted=true;
-      if(accepted)this.execTrade(sp);else this.log(`❌ ${B.name} declined ${A.name}'s trade`,'warn');
-    }finally{this.busy=false}
-    this.afterAction();return accepted?{ok:true}:this.fail(`${B.name} declined`)}
+    const A=this.P(sp.from),B=this.P(sp.to);
+    this.s.pendingTrade={...sp,from_name:A.name,to_name:B.name,status:'pending'};
+    this.log(`📋 ${A.name} proposed trade to ${B.name}`,'sys');
+    if(B.kind==='ai'){
+      this.busy=true;
+      try{
+        await sleep(500);const ev=this.aiEvalTrade(B,sp);
+        if(ev.ok){
+          this.chat(B.name,B.color,pick(['Deal! 🤝','That works for me.','Pleasure doing business!']));
+          return this.acceptTrade();
+        }else if(ev.score>=.55&&B.cash>=40){
+          const diff=Math.max(50,Math.round((ev.loss-ev.gain)/10)*10);
+          const counterSp={from:B.id,to:A.id,give:sp.get,get:sp.give,giveCash:Math.max(0,sp.getCash-40),getCash:Math.min(A.cash,sp.giveCash+diff),isCounter:true,from_name:B.name,to_name:A.name,status:'pending'};
+          this.s.pendingTrade=counterSp;
+          this.chat(B.name,B.color,`Almost there! I countered: add ${money(diff)} cash and we have a deal. 🤝`);
+          this.log(`🔄 ${B.name} countered trade with sweeter terms`,'warn');
+          UI.open('m-trade');UI.renderTrade();
+          return{ok:true,status:'countered',trade:counterSp};
+        }else{
+          this.chat(B.name,B.color,pick(['Not enough value for me. 😅','Nope — try sweeter terms.','Declined. ❌']));
+          return this.rejectTrade('AI evaluated deal as disadvantageous');
+        }
+      }finally{this.busy=false}
+    }else{
+      UI.open('m-trade');UI.renderTrade();
+      return{ok:true,status:'pending',trade:this.s.pendingTrade};
+    }
+  }
+  async acceptTrade(){
+    const tr=this.s.pendingTrade;if(!tr)return this.fail('No pending trade');
+    const why=this.tradeCheck(tr);if(why){this.s.pendingTrade=null;return this.fail(why)}
+    this.execTrade(tr);this.s.pendingTrade=null;UI.close('m-trade');this.afterAction();return{ok:true,status:'accepted'}
+  }
+  rejectTrade(reason='Declined'){
+    const tr=this.s.pendingTrade;if(!tr)return this.fail('No pending trade');
+    const B=this.P(tr.to),A=this.P(tr.from);this.s.pendingTrade=null;
+    this.log(`❌ Trade declined between ${A.name} and ${B.name}: ${reason}`,'warn');
+    UI.close('m-trade');this.afterAction();return{ok:true,status:'rejected'}
+  }
+  async counterTrade(sp){
+    this.s.pendingTrade=null;return this.proposeTrade(sp);
+  }
+  async trade(sp){return this.proposeTrade(sp)}
   tradeText(sp){const A=this.P(sp.from),B=this.P(sp.to),nm=l=>l.length?l.map(t=>TILES[t].name).join(', '):'nothing';
     return`<div class="grid2"><div class="card"><b style="color:${A.color}">${esc(A.name)} gives</b><br>${esc(nm(sp.give))}<br>${sp.giveCash?money(sp.giveCash):''}</div><div class="card"><b style="color:${B.color}">${esc(B.name)} gives</b><br>${esc(nm(sp.get))}<br>${sp.getCash?money(sp.getCash):''}</div></div>`}
   execTrade(sp){const A=this.P(sp.from),B=this.P(sp.to),s=this.s;
@@ -1256,6 +1289,8 @@ const UI={
         s.tiles[i].mortgaged = stTile.mortgaged;
       });
     }
+    s.pending_trade = st.pending_trade || null;
+    if(s.pending_trade && $('#m-trade').classList.contains('open'))this.renderTrade();
     game.render();
   },
   async pollOnlineRoom(){
@@ -1542,24 +1577,84 @@ const UI={
     const D=DISTRICTS[T.d],o=st.owner===null?null:g.P(st.owner),lk=g.lockReason(tid);
     $('#tlBody').innerHTML=`<div class="infobox"><b>${D.name}</b> • price ${money(T.cost)} • build ${money(D.build)} per level • mortgage ${money(g.mortVal(tid))}<br>Owner: ${o?`<b style="color:${o.color}">${esc(o.name)}</b> (Level ${st.level}${st.mortgaged?', mortgaged':''})`:'Unowned'}</div>
     <div class="card"><div class="lbl">Rent ladder</div>${T.rent.map((r,i)=>`<div style="display:flex;justify-content:space-between;font-family:var(--mono);${st.level===i+1?'color:var(--warn);font-weight:800':''}"><span>${i===4?'👑 Landmark':'Level '+(i+1)}${i===0?' (×2 with full set)':''}</span><span>${money(r)}</span></div>`).join('')}</div>${lk&&o?`<div class="warnbox">${esc(lk)}</div>`:''}`},
-  /* ----- trade ----- */
-  openTrade(){const g=game;if(!g||!g.s)return;if(g.busy||g.cur.kind!=='human'||!['pre','post'].includes(g.s.phase)){this.toast('⏳','Trading unavailable','Trade on your own turn, before or after rolling','bad');return}
-    const others=g.s.players.filter(p=>!p.bankrupt&&p.id!==g.s.cur);this.trade={to:others[0]?others[0].id:null,give:new Set(),get:new Set(),giveCash:0,getCash:0};this.open('m-trade');this.renderTrade()},
+  openTrade(){const g=game;if(!g||!g.s)return;if(!this.onlineRoom&&(g.busy||g.cur.kind!=='human'||!['pre','post'].includes(g.s.phase))){this.toast('⏳','Trading unavailable','Trade on your own turn, before or after rolling','bad');return}
+    const pend=this.onlineRoom?g.s.pending_trade:g.s.pendingTrade;
+    if(!pend){const others=g.s.players.filter(p=>!p.bankrupt&&p.id!==g.s.cur);this.trade={to:others[0]?others[0].id:null,give:new Set(),get:new Set(),giveCash:0,getCash:0}}
+    this.open('m-trade');this.renderTrade()},
   renderTrade(){const g=game,s=g.s,t=this.trade,me=g.cur,others=s.players.filter(p=>!p.bankrupt&&p.id!==me.id),them=t.to!==null?g.P(t.to):null;
+    const pend=this.onlineRoom?s.pending_trade:s.pendingTrade;
+    if(pend){
+      const myPid=this.onlineRoom?(this.onlineRoom.token.startsWith('p2_')?1:0):s.cur;
+      const isMeTo=(pend.to===myPid),fromP=g.P(pend.from),toP=g.P(pend.to);
+      const giveTids=pend.give_tids||pend.give||[],getTids=pend.get_tids||pend.get||[],gCash=pend.give_cash||pend.giveCash||0,rCash=pend.get_cash||pend.getCash||0;
+      const listNames=ids=>ids.length?ids.map(i=>`<span class="tag" style="background:${DISTRICTS[TILES[i].d].hex}33;border:1px solid ${DISTRICTS[TILES[i].d].hex}">${TILES[i].icon} ${TILES[i].name}</span>`).join(' '):'<span class="lbl">No tiles</span>';
+      $('#trBody').innerHTML=`<div class="infobox" style="display:flex;justify-content:space-between;align-items:center"><b>${pend.isCounter?'⚡ Counter-Offer Pending':'📋 Trade Proposal'}</b><span class="tag ${pend.isCounter?'gold':'ok'}">${pend.status||'pending'}</span></div>
+      <div class="grid2">
+        <div class="card"><b style="color:${fromP?fromP.color:'var(--acc)'}">${fromP?esc(fromP.name):'Sender'} gives:</b><div style="display:flex;flex-wrap:wrap;gap:4px;margin:6px 0">${listNames(giveTids)}</div>${gCash?`<b>+ ${money(gCash)} cash</b>`:''}</div>
+        <div class="card"><b style="color:${toP?toP.color:'var(--acc2)'}">${toP?esc(toP.name):'Receiver'} gives:</b><div style="display:flex;flex-wrap:wrap;gap:4px;margin:6px 0">${listNames(getTids)}</div>${rCash?`<b>+ ${money(rCash)} cash</b>`:''}</div>
+      </div>`;
+      if(isMeTo){
+        $('#trFoot').innerHTML=`<button class="btn bad" data-act="rejecttrade">❌ Decline</button><button class="btn warn" data-act="countertrade">🔄 Counter-Offer</button><button class="btn good pulse" data-act="accepttrade">✅ Accept Deal</button>`;
+      }else{
+        $('#trFoot').innerHTML=`<span class="lbl" style="margin-right:auto">⏳ Awaiting response from ${toP?esc(toP.name):'partner'}…</span><button class="btn bad" data-act="rejecttrade">Cancel Proposal</button>`;
+      }
+      return;
+    }
     const list=(p,set,key)=>{const ids=g.tilesOf(p.id);return ids.length?ids.map(i=>{const lk=g.lockReason(i);return`<label class="chk ${lk?'dis':''}" title="${esc(lk)}"><input type="checkbox" data-trk="${key}" value="${i}" ${set.has(i)?'checked':''} ${lk?'disabled':''}> ${TILES[i].icon} ${TILES[i].name} <span class="tag">${money(TILES[i].cost)}</span>${s.tiles[i].mortgaged?'<span class="tag lock">M</span>':''}${lk?'<span class="tag lock">🔒</span>':''}</label>`}).join(''):'<div class="lbl">No properties</div>'};
     const locked=Object.keys(DISTRICTS).filter(dk=>g.dTiles(dk).some(i=>s.tiles[i].level>1)).map(dk=>DISTRICTS[dk].name);
     $('#trBody').innerHTML=`<div class="seg">${others.map(o=>`<button class="${o.id===t.to?'on':''}" data-act="trpartner" data-pid="${o.id}">${esc(o.name)}</button>`).join('')}</div>
     ${locked.length?`<div class="warnbox">🔒 <b>Locked from trading:</b> ${locked.join(', ')} — a district with even one upgraded tile can't be traded. Sell its buildings first.</div>`:''}
     ${them?`<div class="grid2"><div class="card"><b style="color:${me.color}">You give</b> <span class="lbl">(${money(me.cash)})</span>${list(me,t.give,'give')}<div class="lbl" style="margin-top:6px">Cash you add</div><input class="fld" id="trGiveCash" type="number" min="0" value="${t.giveCash}"></div>
     <div class="card"><b style="color:${them.color}">${esc(them.name)} gives</b> <span class="lbl">(${money(them.cash)})</span>${list(them,t.get,'get')}<div class="lbl" style="margin-top:6px">Cash you ask</div><input class="fld" id="trGetCash" type="number" min="0" value="${t.getCash}"></div></div>`:'<div class="card">No partner available.</div>'}`;
+    $('#trFoot').innerHTML=`<span id="trFair" class="lbl" style="margin-right:auto"></span><button class="btn" data-act="close">Cancel</button><button class="btn good pulse" data-act="proposetrade">Propose Trade</button>`;
     this.updateFair()},
-    updateFair(){const g=game,t=this.trade;if(!$('#m-trade').classList.contains('open')||t.to===null)return;const gc=$('#trGiveCash'),tc=$('#trGetCash');if(gc)t.giveCash=Math.max(0,+gc.value||0);if(tc)t.getCash=Math.max(0,+tc.value||0);
+  updateFair(){const g=game,t=this.trade;if(!$('#m-trade').classList.contains('open')||t.to===null)return;const gc=$('#trGiveCash'),tc=$('#trGetCash');if(gc)t.giveCash=Math.max(0,+gc.value||0);if(tc)t.getCash=Math.max(0,+tc.value||0);
     const sp=this.spec(),why=g.tradeCheck(sp),them=g.P(t.to);
-    $('#trFair').textContent=why?`⚠️ ${why}`:them.kind==='ai'?(g.aiEvalTrade(them,sp).ok?`🤖 ${them.name} would likely accept`:`🤖 ${them.name} would likely decline`):`Waiting for ${them.name}'s approval after you propose`},
+    const fairEl=$('#trFair');if(!fairEl)return;
+    fairEl.textContent=why?`⚠️ ${why}`:them.kind==='ai'?(g.aiEvalTrade(them,sp).ok?`🤖 ${them.name} would likely accept`:`🤖 ${them.name} would likely decline / counter`):`Waiting for ${them.name}'s approval after proposal`;
+  },
   spec(){const t=this.trade;return{from:game.s.cur,to:t.to,give:[...t.give],get:[...t.get],giveCash:t.giveCash,getCash:t.getCash}},
-  async proposeTrade(){this.updateFair();const why=game.guardHuman('trade');if(why){this.toast('⏳','Hold on',why,'bad');return}const sp=this.spec(),bad=game.tradeCheck(sp);
-    if(bad){this.toast('⚠️',bad,'','bad');Sfx.play('err');return}this.close('m-trade');const r=await game.trade(sp);
-    if(r.ok)this.toast('🤝','Trade complete!','Both sides signed','quest');else this.toast('❌',r.msg,'','bad')},
+  async proposeTrade(){this.updateFair();const sp=this.spec();
+    if(this.onlineRoom){
+      const res=await this.onlineAct({action:'trade_propose',to_seat:sp.to+1,give_tids:sp.give,get_tids:sp.get,give_cash:sp.giveCash,get_cash:sp.getCash});
+      if(res&&res.ok)this.renderTrade();
+      return;
+    }
+    const why=game.guardHuman('trade');if(why){this.toast('⏳','Hold on',why,'bad');return}
+    const bad=game.tradeCheck(sp);if(bad){this.toast('⚠️',bad,'','bad');Sfx.play('err');return}
+    const r=await game.proposeTrade(sp);
+    if(r.ok&&r.status==='accepted')this.toast('🤝','Trade complete!','Both sides signed deal','quest');
+    else if(r.ok&&r.status==='countered')this.toast('🔄','Counter-offer received!','Partner adjusted terms','warn');
+    else if(r.ok)this.toast('📋','Offer proposed','Awaiting signature…','good');
+    else this.toast('❌',r.msg||'Declined','','bad');
+  },
+  async acceptTrade(){
+    if(this.onlineRoom){
+      const res=await this.onlineAct({action:'trade_accept'});
+      if(res&&res.ok){this.close('m-trade');this.toast('🤝','Trade completed!','Deal executed','good')}
+      return;
+    }
+    const r=await game.acceptTrade();
+    if(r.ok)this.toast('🤝','Trade complete!','Deal executed','good');
+    else this.toast('❌',r.msg||'Failed to accept','','bad');
+  },
+  async rejectTrade(){
+    if(this.onlineRoom){
+      const res=await this.onlineAct({action:'trade_reject'});
+      if(res&&res.ok){this.close('m-trade');this.toast('❌','Trade rejected','Deal cancelled','warn')}
+      return;
+    }
+    game.rejectTrade('Rejected by player');
+  },
+  counterTrade(){
+    const s=game.s,pend=this.onlineRoom?s.pending_trade:s.pendingTrade;
+    if(pend){
+      const gTids=pend.give_tids||pend.give||[],rTids=pend.get_tids||pend.get||[];
+      this.trade={to:pend.from,give:new Set(rTids),get:new Set(gTids),giveCash:pend.get_cash||pend.getCash||0,getCash:pend.give_cash||pend.giveCash||0};
+      if(!this.onlineRoom)game.s.pendingTrade=null;
+      this.renderTrade();
+    }
+  },
   ask(title,html,ok='Accept',no='Decline'){return new Promise(res=>{$('#askTitle').textContent=title;$('#askBody').innerHTML=html;$('#askOk').textContent=ok;$('#askNo').textContent=no;this.open('m-ask');
     const done=v=>{this.close('m-ask');$('#askOk').onclick=$('#askNo').onclick=null;res(v)};$('#askOk').onclick=()=>done(true);$('#askNo').onclick=()=>done(false)})},
   /* ----- terminal / tabs / modes ----- */
@@ -1674,6 +1769,9 @@ const UI={
       case 'fold':this.do('fold');break;
       case 'trpartner':this.trade.to=+d.pid;this.trade.give.clear();this.trade.get.clear();this.renderTrade();break;
       case 'proposetrade':this.proposeTrade();break;
+      case 'accepttrade':this.acceptTrade();break;
+      case 'rejecttrade':this.rejectTrade();break;
+      case 'countertrade':this.counterTrade();break;
       case 'sound':Store.p.muted=!Store.p.muted;Store.save();$('#btnSound').textContent=Store.p.muted?'🔇':'🔊';break;
       case 'voice':g.voice=!g.voice;$('#btnVoice').textContent=g.voice?'🎙️':'🔇';if(g.voice)g.speak('Voice narration on');break;
       case 'contrast':Store.p.contrast=!Store.p.contrast;document.body.classList.toggle('hc',Store.p.contrast);Store.save();break;

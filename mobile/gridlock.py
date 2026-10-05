@@ -100,6 +100,7 @@ class GridLockGame:
         self.debt = None
         self.auction = None
         self.pending = None
+        self.pending_trade = None
         self.over = False
         self.winner = None
         self.logs = []
@@ -359,6 +360,11 @@ class GridLockGame:
                     res.append(f'unmortgage {t}')
             opp = 1 - cur_p['id']
             res.append(f'trade {opp + 1}')
+
+        if self.pending_trade:
+            tr = self.pending_trade
+            if for_pid is None or for_pid == tr['to']:
+                res.extend(['trade_accept', 'trade_reject', 'trade_counter'])
 
         return res
 
@@ -824,7 +830,31 @@ class GridLockGame:
             self.log(f"🔌 {p['name']} paid {fmt_money(self.jail_fee)} to Jackpot pool to exit REBOOT", 'good')
             return {'ok': True, 'msg': 'Left REBOOT'}
 
-    def trade_properties(self, pid, to_seat, give_tids, get_tids, give_cash, get_cash):
+    def evaluate_ai_trade(self, ai_pid, partner_pid, give_tids, get_tids, give_cash, get_cash):
+        ai_p = self.players[ai_pid]
+        p_p = self.players[partner_pid]
+        val_gain = get_cash
+        for tid in get_tids:
+            t = TILES[tid]
+            st = self.tiles[tid]
+            val_gain += t['cost'] * (0.8 if st['mortgaged'] else 1.15)
+            d_tiles = self.district_tiles(t['d'])
+            if all(self.tiles[i]['owner'] == ai_pid or i in get_tids for i in d_tiles):
+                val_gain += DISTRICTS[t['d']]['build'] * 2 + sum(TILES[i]['cost'] for i in d_tiles) * 0.8
+        val_loss = give_cash
+        for tid in give_tids:
+            t = TILES[tid]
+            st = self.tiles[tid]
+            val_loss += t['cost'] * 1.2
+            if self.has_set(ai_pid, t['d']):
+                val_loss += DISTRICTS[t['d']]['build'] * 2.5 + sum(TILES[i]['cost'] for i in self.district_tiles(t['d']))
+            d_tiles = self.district_tiles(t['d'])
+            if all(self.tiles[i]['owner'] == partner_pid or i in give_tids for i in d_tiles):
+                val_loss += sum(TILES[i]['cost'] for i in d_tiles) * 0.9
+        score = val_gain / max(1.0, val_loss)
+        return score, val_gain, val_loss
+
+    def propose_trade(self, pid, to_seat, give_tids, get_tids, give_cash, get_cash):
         with self.lock:
             self.last_activity = time.time()
             if self.phase not in ['pre', 'post']:
@@ -834,6 +864,11 @@ class GridLockGame:
             if target_pid < 0 or target_pid >= len(self.players) or target_pid == pid:
                 return {'ok': False, 'msg': 'Invalid trade partner seat'}
             p2 = self.players[target_pid]
+
+            give_tids = [int(x) for x in (give_tids or [])]
+            get_tids = [int(x) for x in (get_tids or [])]
+            give_cash = max(0, int(give_cash or 0))
+            get_cash = max(0, int(get_cash or 0))
 
             if p1['cash'] < give_cash:
                 return {'ok': False, 'msg': f"You do not have {fmt_money(give_cash)}"}
@@ -852,18 +887,144 @@ class GridLockGame:
                 if self.lock_reason(t):
                     return {'ok': False, 'msg': self.lock_reason(t)}
 
-            p1['cash'] -= give_cash
-            p2['cash'] += give_cash
-            p2['cash'] -= get_cash
-            p1['cash'] += get_cash
+            self.pending_trade = {
+                'id': uuid.uuid4().hex[:8],
+                'from': pid,
+                'from_seat': pid + 1,
+                'from_name': p1['name'],
+                'to': target_pid,
+                'to_seat': to_seat,
+                'to_name': p2['name'],
+                'give_tids': give_tids,
+                'get_tids': get_tids,
+                'give_cash': give_cash,
+                'get_cash': get_cash,
+                'status': 'pending',
+                'created_at': time.time()
+            }
+            give_names = [TILES[t]['name'] for t in give_tids]
+            get_names = [TILES[t]['name'] for t in get_tids]
+            offer_str = f"offer [{', '.join(give_names) if give_names else 'No Props'} + {fmt_money(give_cash)}] for [{', '.join(get_names) if get_names else 'No Props'} + {fmt_money(get_cash)}]"
+            self.log(f"📋 {p1['name']} proposed trade to {p2['name']}: {offer_str}", 'sys')
 
-            for t in give_tids:
+            if p2['kind'] == 'ai':
+                score, v_gain, v_loss = self.evaluate_ai_trade(target_pid, pid, get_tids, give_tids, get_cash, give_cash)
+                if score >= 1.05 and p2['cash'] >= get_cash:
+                    return self.accept_trade(target_pid)
+                elif 0.55 <= score < 1.05 and p2['cash'] >= 50:
+                    diff = int(v_loss - v_gain)
+                    counter_give_cash = max(0, min(p2['cash'] - 50, get_cash))
+                    counter_get_cash = max(0, min(p1['cash'], give_cash + max(50, diff)))
+                    return self.counter_trade(target_pid, get_tids, give_tids, counter_give_cash, counter_get_cash)
+                else:
+                    return self.reject_trade(target_pid, 'AI evaluated deal as disadvantageous')
+
+            return {'ok': True, 'msg': f"Trade proposed to {p2['name']}", 'status': 'pending', 'trade': self.pending_trade}
+
+    def accept_trade(self, pid):
+        with self.lock:
+            self.last_activity = time.time()
+            if not self.pending_trade:
+                return {'ok': False, 'msg': 'No active trade offer to accept'}
+            tr = self.pending_trade
+            if tr['to'] != pid:
+                return {'ok': False, 'msg': 'Only the recipient can accept this trade'}
+            p1 = self.players[tr['from']]
+            p2 = self.players[tr['to']]
+            if p1['cash'] < tr['give_cash']:
+                self.pending_trade = None
+                return {'ok': False, 'msg': f"{p1['name']} lacks cash ({fmt_money(tr['give_cash'])}) to complete deal"}
+            if p2['cash'] < tr['get_cash']:
+                self.pending_trade = None
+                return {'ok': False, 'msg': f"{p2['name']} lacks cash ({fmt_money(tr['get_cash'])}) to complete deal"}
+
+            for t in tr['give_tids']:
+                if self.tiles[t]['owner'] != p1['id'] or self.lock_reason(t):
+                    self.pending_trade = None
+                    return {'ok': False, 'msg': f"Tile {t} is no longer tradable"}
+            for t in tr['get_tids']:
+                if self.tiles[t]['owner'] != p2['id'] or self.lock_reason(t):
+                    self.pending_trade = None
+                    return {'ok': False, 'msg': f"Tile {t} is no longer tradable"}
+
+            p1['cash'] -= tr['give_cash']
+            p2['cash'] += tr['give_cash']
+            p2['cash'] -= tr['get_cash']
+            p1['cash'] += tr['get_cash']
+
+            for t in tr['give_tids']:
                 self.tiles[t]['owner'] = p2['id']
-            for t in get_tids:
+            for t in tr['get_tids']:
                 self.tiles[t]['owner'] = p1['id']
 
+            self.pending_trade = None
             self.log(f"🤝 TRADE COMPLETED between {p1['name']} and {p2['name']}", 'good')
-            return {'ok': True, 'msg': 'Trade executed'}
+            return {'ok': True, 'msg': 'Trade executed successfully', 'status': 'accepted'}
+
+    def reject_trade(self, pid, reason='Trade declined'):
+        with self.lock:
+            self.last_activity = time.time()
+            if not self.pending_trade:
+                return {'ok': False, 'msg': 'No active trade offer to reject'}
+            tr = self.pending_trade
+            if pid not in [tr['from'], tr['to']]:
+                return {'ok': False, 'msg': 'Not authorized to reject this trade'}
+            rejector = self.players[pid]
+            self.pending_trade = None
+            self.log(f"❌ Trade offer rejected by {rejector['name']}: {reason}", 'warn')
+            return {'ok': True, 'msg': f"Trade rejected: {reason}", 'status': 'rejected'}
+
+    def counter_trade(self, pid, give_tids, get_tids, give_cash, get_cash):
+        with self.lock:
+            self.last_activity = time.time()
+            if not self.pending_trade:
+                return {'ok': False, 'msg': 'No trade offer to counter'}
+            tr = self.pending_trade
+            if tr['to'] != pid:
+                return {'ok': False, 'msg': 'Only recipient can counter-offer'}
+            p1 = self.players[pid]
+            target_pid = tr['from']
+            p2 = self.players[target_pid]
+
+            give_tids = [int(x) for x in (give_tids or [])]
+            get_tids = [int(x) for x in (get_tids or [])]
+            give_cash = max(0, int(give_cash or 0))
+            get_cash = max(0, int(get_cash or 0))
+
+            if p1['cash'] < give_cash:
+                return {'ok': False, 'msg': f"You do not have {fmt_money(give_cash)}"}
+            if p2['cash'] < get_cash:
+                return {'ok': False, 'msg': f"{p2['name']} does not have {fmt_money(get_cash)}"}
+
+            for t in give_tids:
+                if self.tiles[t]['owner'] != p1['id'] or self.lock_reason(t):
+                    return {'ok': False, 'msg': f"Tile {t} invalid for counter"}
+            for t in get_tids:
+                if self.tiles[t]['owner'] != p2['id'] or self.lock_reason(t):
+                    return {'ok': False, 'msg': f"Tile {t} invalid for counter"}
+
+            self.pending_trade = {
+                'id': uuid.uuid4().hex[:8],
+                'from': pid,
+                'from_seat': pid + 1,
+                'from_name': p1['name'],
+                'to': target_pid,
+                'to_seat': target_pid + 1,
+                'to_name': p2['name'],
+                'give_tids': give_tids,
+                'get_tids': get_tids,
+                'give_cash': give_cash,
+                'get_cash': get_cash,
+                'status': 'countered',
+                'created_at': time.time()
+            }
+            give_names = [TILES[t]['name'] for t in give_tids]
+            get_names = [TILES[t]['name'] for t in get_tids]
+            self.log(f"🔄 {p1['name']} counter-offered to {p2['name']}: [{', '.join(give_names)} + {fmt_money(give_cash)}] ⇄ [{', '.join(get_names)} + {fmt_money(get_cash)}]", 'sys')
+            return {'ok': True, 'msg': 'Counter-offer proposed', 'status': 'countered', 'trade': self.pending_trade}
+
+    def trade_properties(self, pid, to_seat, give_tids, get_tids, give_cash, get_cash):
+        return self.propose_trade(pid, to_seat, give_tids, get_tids, give_cash, get_cash)
 
     def end_turn(self, pid):
         with self.lock:
@@ -1168,6 +1329,30 @@ class GridLockGame:
                     elif a.startswith('getcash='):
                         get_c = int(a[8:]) if a[8:].isdigit() else 0
                 res = self.trade_properties(pid, to_seat, give_t, get_t, give_c, get_c)
+            elif cmd in ['trade_accept', 'accept_trade', 'accept']:
+                res = self.accept_trade(pid)
+            elif cmd in ['trade_reject', 'reject_trade', 'reject', 'decline_trade']:
+                reason = ' '.join(args) if args else 'Trade declined'
+                res = self.reject_trade(pid, reason)
+            elif cmd in ['trade_counter', 'counter_trade', 'counter']:
+                give_t = []
+                get_t = []
+                give_c = 0
+                get_c = 0
+                for a in args:
+                    if a.startswith('give='):
+                        val = a[5:]
+                        if val != '-':
+                            give_t = [int(x) for x in val.split(',') if x.isdigit()]
+                    elif a.startswith('get='):
+                        val = a[4:]
+                        if val != '-':
+                            get_t = [int(x) for x in val.split(',') if x.isdigit()]
+                    elif a.startswith('givecash='):
+                        give_c = int(a[9:]) if a[9:].isdigit() else 0
+                    elif a.startswith('getcash='):
+                        get_c = int(a[8:]) if a[8:].isdigit() else 0
+                res = self.counter_trade(pid, give_t, get_t, give_c, get_c)
 
             self.auto_step_ai()
 
@@ -1314,6 +1499,7 @@ class GridLockGame:
                     'buildCost': self.build_cost(t['id']) if t['type'] == 'prop' else 0
                 } for t in TILES
             ],
+            'pending_trade': self.pending_trade,
             'legal': self.legal_moves()
         }
 
