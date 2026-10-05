@@ -1,65 +1,108 @@
 #!/data/data/com.termux/files/usr/bin/bash
-# ==============================================================================
-# ☢️ AUTONOMOUS MOBILE AI HARDWARE SUPERVISOR & TUNNEL WATCHDOG (HYPER-STABLE)
-# ==============================================================================
 export PREFIX=/data/data/com.termux/files/usr
 export PATH=$PREFIX/bin:$PATH
 export HOME=/data/data/com.termux/files/home
 export LD_LIBRARY_PATH=$HOME/whisper.cpp/build/bin:$HOME/llama.cpp/build/bin:$PREFIX/lib
+export GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no"
 
-# 1. Acquire Partial WakeLock (Keeps ARM CPU alive even when screen is locked)
 termux-wake-lock 2>/dev/null || true
 
-echo "$(date): [STARTUP] Starting Autonomous AI Supervisor..." >> $HOME/nuclear_supervisor.log
+echo "$(date): [STARTUP] Nuclear AI Supervisor starting..." >> $HOME/nuclear_supervisor.log
 
-# Allow USB charging so the hardware never runs out of battery
 dumpsys battery reset 2>/dev/null || true
 
-# 2. Start Persistent Android Kernel Battery Daemon
-if ! pgrep -f "battery_daemon.sh" > /dev/null && ! pgrep -f "update_hardware.sh" > /dev/null; then
-  /system/bin/sh /data/local/tmp/battery_daemon.sh >/dev/null 2>&1 &
-fi
-
-# 3. Start Multi-Modal Gateway Server (:8080)
-if [ -f "$HOME/phone-whisper-server/mobile/gateway.py" ]; then
-  cp -f "$HOME/phone-whisper-server/mobile/gateway.py" "$HOME/gateway.py" 2>/dev/null || true
-elif [ -f "/sdcard/Download/gateway.py" ]; then
-  cp -f /sdcard/Download/gateway.py $HOME/gateway.py 2>/dev/null || true
-fi
-if ! pgrep -f "gateway.py" > /dev/null; then
-  python3 $HOME/gateway.py >> $HOME/gateway.log 2>&1 &
-fi
-
-# 4. Start Cloudflared Tunnel
-TUNNEL_START_TIME=$(date +%s)
-if ! pgrep -f "cloudflared tunnel" > /dev/null; then
-  cloudflared tunnel --url http://127.0.0.1:8080 --protocol http2 --edge-ip-version 4 --no-autoupdate > $HOME/cf_tunnel.log 2>&1 &
-  TUNNEL_START_TIME=$(date +%s)
-fi
-
+REPO="$HOME/phone-whisper-server"
 SYNCED_URL=""
 LAST_PROBE_TIME=$(date +%s)
 LAST_LOG_TRIM=$(date +%s)
 LAST_PAGES_HEARTBEAT=0
+LAST_GIT_PULL=$(date +%s)
 FAIL_COUNT=0
 GW_FAIL_COUNT=0
+
+pull_latest_code() {
+  if [ -d "$REPO/.git" ]; then
+    cd "$REPO"
+    git fetch origin main 2>/dev/null || true
+    LOCAL=$(git rev-parse HEAD 2>/dev/null)
+    REMOTE=$(git rev-parse origin/main 2>/dev/null)
+    if [ "$LOCAL" != "$REMOTE" ]; then
+      git reset --hard origin/main 2>/dev/null && \
+        echo "$(date): [GIT-PULL] Updated to latest code: $REMOTE" >> $HOME/nuclear_supervisor.log
+    fi
+    cp -f "$REPO/mobile/gateway.py" "$HOME/gateway.py" 2>/dev/null || true
+    cp -f "$REPO/mobile/gridlock.py" "$HOME/gridlock.py" 2>/dev/null || true
+    cp -f "$REPO/mobile/start_ai.sh" "$HOME/start_ai.sh" 2>/dev/null || true
+    cp -f "$REPO/mobile/slm_self_heal.py" "$HOME/slm_self_heal.py" 2>/dev/null || true
+    cp -f "$REPO/monopoly.html" "$HOME/monopoly.html" 2>/dev/null || true
+    cp -f "$REPO/maker.md" "$HOME/maker.md" 2>/dev/null || true
+    cp -f "$REPO/docs.html" "$HOME/docs.html" 2>/dev/null || true
+    cp -f "$REPO/swades.py" "$HOME/swades.py" 2>/dev/null || true
+    cp -f "$REPO/swades.js" "$HOME/swades.js" 2>/dev/null || true
+  fi
+}
+
+start_gateway() {
+  pull_latest_code
+  python3 $HOME/gateway.py >> $HOME/gateway.log 2>&1 &
+  echo "$(date): [START] Launched gateway.py (PID $!)" >> $HOME/nuclear_supervisor.log
+}
+
+start_tunnel() {
+  cloudflared tunnel --url http://127.0.0.1:8080 --protocol http2 --edge-ip-version 4 --no-autoupdate > $HOME/cf_tunnel.log 2>&1 &
+  echo $! > $HOME/cloudflared.pid
+  echo "$(date): [TUNNEL] Launched cloudflared (PID $!)" >> $HOME/nuclear_supervisor.log
+}
+
+if ! pgrep -f "battery_daemon.sh" > /dev/null && ! pgrep -f "update_hardware.sh" > /dev/null; then
+  /system/bin/sh /data/local/tmp/battery_daemon.sh >/dev/null 2>&1 &
+fi
+
+if ! pgrep -f "gateway.py" > /dev/null; then
+  start_gateway
+fi
+
+TUNNEL_START_TIME=$(date +%s)
+if ! pgrep -f "cloudflared tunnel" > /dev/null; then
+  start_tunnel
+fi
 
 while true; do
   NOW=$(date +%s)
 
-  # A. Battery check: Ensure device charges properly
-
-  # B. Verify Battery Daemon
   if ! pgrep -f "battery_daemon.sh" > /dev/null && ! pgrep -f "update_hardware.sh" > /dev/null; then
     /system/bin/sh /data/local/tmp/battery_daemon.sh >/dev/null 2>&1 &
   fi
 
-  # C. Verify Gateway Server (:8080) with Active HTTP Probe
+  if [ $((NOW - LAST_GIT_PULL)) -ge 300 ]; then
+    LAST_GIT_PULL=$NOW
+    if [ -d "$REPO/.git" ]; then
+      cd "$REPO"
+      git fetch origin main 2>/dev/null || true
+      LOCAL=$(git rev-parse HEAD 2>/dev/null)
+      REMOTE=$(git rev-parse origin/main 2>/dev/null)
+      if [ "$LOCAL" != "$REMOTE" ]; then
+        echo "$(date): [GIT-UPDATE] New code detected, hot-reloading gateway..." >> $HOME/nuclear_supervisor.log
+        git reset --hard origin/main 2>/dev/null
+        cp -f "$REPO/mobile/gateway.py" "$HOME/gateway.py" 2>/dev/null || true
+        cp -f "$REPO/mobile/gridlock.py" "$HOME/gridlock.py" 2>/dev/null || true
+        cp -f "$REPO/monopoly.html" "$HOME/monopoly.html" 2>/dev/null || true
+        cp -f "$REPO/docs.html" "$HOME/docs.html" 2>/dev/null || true
+        cp -f "$REPO/swades.py" "$HOME/swades.py" 2>/dev/null || true
+        cp -f "$REPO/swades.js" "$HOME/swades.js" 2>/dev/null || true
+        pkill -9 -f "gateway.py" 2>/dev/null || true
+        sleep 1
+        python3 $HOME/gateway.py >> $HOME/gateway.log 2>&1 &
+        echo "$(date): [GIT-RELOAD] Gateway restarted with new code" >> $HOME/nuclear_supervisor.log
+        GW_FAIL_COUNT=0
+      fi
+    fi
+  fi
+
   GW_ALIVE=1
   if ! pgrep -f "gateway.py" > /dev/null; then
     GW_ALIVE=0
   else
-    # Quick 2-second local probe
     GW_STATUS=$(curl -s -m 2 -o /dev/null -w "%{http_code}" "http://127.0.0.1:8080/health" 2>/dev/null || echo "000")
     if [ "$GW_STATUS" != "200" ]; then
       GW_FAIL_COUNT=$((GW_FAIL_COUNT + 1))
@@ -73,19 +116,13 @@ while true; do
   fi
 
   if [ "$GW_ALIVE" -eq 0 ]; then
-    echo "$(date): [CRITICAL] gateway.py dead/unresponsive! Re-spawning..." >> $HOME/nuclear_supervisor.log
+    echo "$(date): [CRITICAL] gateway.py dead/unresponsive! Re-spawning with latest code..." >> $HOME/nuclear_supervisor.log
     pkill -9 -f "gateway.py" 2>/dev/null || true
     sleep 1
-    if [ -f "$HOME/phone-whisper-server/mobile/gateway.py" ]; then
-      cp -f "$HOME/phone-whisper-server/mobile/gateway.py" "$HOME/gateway.py" 2>/dev/null || true
-    elif [ -f "/sdcard/Download/gateway.py" ]; then
-      cp -f /sdcard/Download/gateway.py $HOME/gateway.py 2>/dev/null || true
-    fi
-    python3 $HOME/gateway.py >> $HOME/gateway.log 2>&1 &
+    start_gateway
     sleep 3
   fi
 
-  # D. Verify Cloudflared Process (PID check + pgrep fallback)
   IS_TUNNEL_DEAD=0
   CF_ALIVE=0
   if [ -f "$HOME/cloudflared.pid" ]; then
@@ -97,26 +134,20 @@ while true; do
   if [ "$CF_ALIVE" -eq 0 ] && pgrep -x "cloudflared" > /dev/null; then
     CF_ALIVE=1
   fi
-
   if [ "$CF_ALIVE" -eq 0 ]; then
     IS_TUNNEL_DEAD=1
   fi
 
-  # E. Active Worldwide Tunnel Health Probe (Every 30s with 90s startup grace period)
   CURRENT_ACTIVE_URL=$(grep -oE "https://[a-zA-Z0-9-]+\.trycloudflare\.com" $HOME/cf_tunnel.log 2>/dev/null | grep -v "api.trycloudflare.com" | tail -n 1)
   if [ -n "$CURRENT_ACTIVE_URL" ] && [ $((NOW - TUNNEL_START_TIME)) -ge 90 ] && [ $((NOW - LAST_PROBE_TIME)) -ge 30 ]; then
     LAST_PROBE_TIME=$NOW
-    PROBE_STATUS=$(curl -s -4 -m 10 -o /dev/null -w "%{http_code}" "$CURRENT_ACTIVE_URL/telemetry" 2>/dev/null)
-    if [ -z "$PROBE_STATUS" ]; then
-      PROBE_STATUS="000"
-    fi
+    PROBE_STATUS=$(curl -s -4 -m 10 -o /dev/null -w "%{http_code}" "$CURRENT_ACTIVE_URL/telemetry" 2>/dev/null || echo "000")
     if [ "$PROBE_STATUS" = "200" ]; then
       FAIL_COUNT=0
     else
       FAIL_COUNT=$((FAIL_COUNT + 1))
-      echo "$(date): [HEALTH PROBE WARN] Status $PROBE_STATUS on $CURRENT_ACTIVE_URL (fail $FAIL_COUNT/8)" >> $HOME/nuclear_supervisor.log
+      echo "$(date): [PROBE WARN] Status $PROBE_STATUS on $CURRENT_ACTIVE_URL (fail $FAIL_COUNT/8)" >> $HOME/nuclear_supervisor.log
       if [ "$FAIL_COUNT" -ge 8 ]; then
-        echo "$(date): [CRITICAL] 8 consecutive tunnel probe failures. Triggering Qwen 0.5B SLM Self-Healing..." >> $HOME/nuclear_supervisor.log
         IS_TUNNEL_DEAD=1
         FAIL_COUNT=0
       fi
@@ -124,24 +155,21 @@ while true; do
   fi
 
   if [ "$IS_TUNNEL_DEAD" -eq 1 ]; then
-    echo "$(date): [RECOVERY] Triggering Qwen 0.5B SLM Self-Healing for Cloudflared tunnel..." >> $HOME/nuclear_supervisor.log
+    echo "$(date): [RECOVERY] Re-spawning cloudflared tunnel..." >> $HOME/nuclear_supervisor.log
     if [ -f "$HOME/slm_self_heal.py" ]; then
       python3 $HOME/slm_self_heal.py >> $HOME/slm_self_heal.log 2>&1 || true
     fi
     pkill -9 -x "cloudflared" 2>/dev/null || true
     sleep 1
-    cloudflared tunnel --url http://127.0.0.1:8080 --protocol http2 --edge-ip-version 4 --no-autoupdate > $HOME/cf_tunnel.log 2>&1 &
-    echo $! > $HOME/cloudflared.pid
+    start_tunnel
     TUNNEL_START_TIME=$(date +%s)
     LAST_PROBE_TIME=$(date +%s)
     FAIL_COUNT=0
     sleep 5
   fi
 
-  # F. Broadcaster: Sync Live Tunnel URL to Cloudflare Pages and GitHub
   URL=$(grep -oE "https://[a-zA-Z0-9-]+\.trycloudflare\.com" $HOME/cf_tunnel.log 2>/dev/null | grep -v "api.trycloudflare.com" | tail -n 1)
 
-  # 1. Periodic Edge Pulse (Every 45s keeps ephemeral Cloudflare Pages memory hot)
   if [ -n "$URL" ] && [ $((NOW - LAST_PAGES_HEARTBEAT)) -ge 45 ]; then
     LAST_PAGES_HEARTBEAT=$NOW
     curl -s -m 4 -X POST https://phone-whisper-server.pages.dev/register_tunnel \
@@ -152,22 +180,20 @@ while true; do
   if [ -n "$URL" ] && [ "$URL" != "$SYNCED_URL" ]; then
     echo "$URL" > $HOME/current_url.txt
 
-    # Immediate Edge Registration with Exponential Retry
     for RETRY in 1 2 3 4 5; do
       REG_RESP=$(curl -s -m 5 -X POST https://phone-whisper-server.pages.dev/register_tunnel \
         -H "Content-Type: application/json" \
         -d '{"endpoint": "'"$URL"'", "secret": "mobile_ai_nuclear_key"}' 2>/dev/null || echo "")
       if echo "$REG_RESP" | grep -q "registered"; then
-        echo "$(date): [EDGE-SYNC] Successfully registered tunnel with Cloudflare Edge (attempt $RETRY)" >> $HOME/nuclear_supervisor.log
+        echo "$(date): [EDGE-SYNC] Registered tunnel with Cloudflare Edge (attempt $RETRY)" >> $HOME/nuclear_supervisor.log
         break
       fi
       sleep 1
     done
 
-    # 2. Push to GitHub Repo with Clean Fast-Forward
     GIT_OK=0
-    if [ -d "$HOME/phone-whisper-server/.git" ]; then
-      cd $HOME/phone-whisper-server
+    if [ -d "$REPO/.git" ]; then
+      cd "$REPO"
       git fetch origin main 2>/dev/null || true
       git reset --hard origin/main 2>/dev/null || true
       cat << JSON_EOF > endpoint.json
@@ -183,22 +209,20 @@ while true; do
 JSON_EOF
       sed -i "s|const DEFAULT_FALLBACK_ORIGIN = \".*\";|const DEFAULT_FALLBACK_ORIGIN = \"$URL\";|" functions/_proxy.js 2>/dev/null || true
       git add endpoint.json functions/_proxy.js 2>/dev/null || true
-      git commit -m "chore(tunnel): Autonomous sync live endpoint [$URL]" 2>/dev/null || true
+      git commit -m "chore(tunnel): Auto-sync live endpoint [$URL]" 2>/dev/null || true
       if git push origin main 2>/dev/null; then
-        echo "$(date): [SUCCESS] Synced fresh tunnel URL to GitHub: $URL" >> $HOME/nuclear_supervisor.log
+        echo "$(date): [SUCCESS] Synced URL to GitHub: $URL" >> $HOME/nuclear_supervisor.log
         GIT_OK=1
       else
-        echo "$(date): [GIT-WARN] Failed git push from phone to origin main" >> $HOME/nuclear_supervisor.log
+        echo "$(date): [GIT-WARN] git push failed from phone, will retry" >> $HOME/nuclear_supervisor.log
       fi
     fi
 
-    # ONLY mark as synced if git push succeeded so it retries until GitHub is updated
     if [ "$GIT_OK" -eq 1 ]; then
       SYNCED_URL="$URL"
     fi
   fi
 
-  # G. Periodic Log Truncation (Keep logs under 1000 lines every 30 mins)
   if [ $((NOW - LAST_LOG_TRIM)) -ge 1800 ]; then
     LAST_LOG_TRIM=$NOW
     for LOG_FILE in "$HOME/nuclear_supervisor.log" "$HOME/gateway.log" "$HOME/cf_tunnel.log"; do

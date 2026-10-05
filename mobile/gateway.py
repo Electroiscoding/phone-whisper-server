@@ -49,9 +49,9 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from socketserver import ThreadingMixIn
 from concurrent.futures import ThreadPoolExecutor
 try:
-    from mobile.gridlock import GLOBAL_ROOM_MANAGER
+    from mobile.gridlock import GLOBAL_ROOM_MANAGER, TILES, DISTRICTS
 except ImportError:
-    from gridlock import GLOBAL_ROOM_MANAGER
+    from gridlock import GLOBAL_ROOM_MANAGER, TILES, DISTRICTS
 
 try:
     from PIL import Image, ImageDraw, ImageFilter, ImageOps
@@ -5546,6 +5546,10 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_internal_status()
         elif path in ["/api/internal/logs", "/v1/internal/logs"]:
             self.handle_internal_logs(parsed)
+        elif path in ["/v1/monopoly/rules", "/monopoly/rules", "/v1/game/rules", "/game/rules"]:
+            self.handle_gridlock_rules()
+        elif path in ["/v1/monopoly/tiles", "/monopoly/tiles", "/v1/game/tiles", "/game/tiles"]:
+            self.handle_gridlock_tiles()
         elif path in ["/v1/monopoly/stats", "/monopoly/stats", "/v1/game/stats", "/game/stats"]:
             self.handle_gridlock_stats()
         elif path in ["/v1/monopoly/leaderboard", "/monopoly/leaderboard", "/v1/game/leaderboard", "/game/leaderboard"]:
@@ -9219,6 +9223,37 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         else:
             self.handle_health()
 
+    def handle_gridlock_rules(self):
+        rules_data = {
+            "ok": True,
+            "version": "2.0",
+            "name": "GridLock Sovereign 16-Tile Tactical Phone Datacenter",
+            "board_size": 16,
+            "districts": [
+                {"name": "Bronze Row", "tiles": [1, 2], "build_cost": 60},
+                {"name": "Cyber Hub", "tiles": [5, 6], "build_cost": 110},
+                {"name": "CleanTech", "tiles": [9, 10], "build_cost": 160},
+                {"name": "DeepTech", "tiles": [13, 14], "build_cost": 220}
+            ],
+            "phases": ["pre", "decide", "auction", "debt", "post"],
+            "commands": ["roll", "buy", "decline", "build <tile_id>", "sell <tile_id>", "mortgage <tile_id>", "unmortgage <tile_id>", "bid <amount>", "fold", "trade <partner_id>", "jail", "autoraise", "bankrupt", "end", "status", "board", "legal"],
+            "starting_cash": 1500,
+            "win_conditions": [
+                "Opponent bankruptcy (assets fall below zero in debt phase)",
+                "Highest net worth (cash + property values) when turn limit reached",
+                "Opponent forfeit / surrender"
+            ]
+        }
+        self._send_json_response(rules_data)
+
+    def handle_gridlock_tiles(self):
+        self._send_json_response({
+            "ok": True,
+            "count": len(TILES),
+            "tiles": TILES,
+            "districts": DISTRICTS
+        })
+
     def handle_gridlock_stats(self):
         self._send_json_response(GLOBAL_ROOM_MANAGER.stats())
 
@@ -9382,6 +9417,26 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 "winner": game.winner,
                 "over": game.over,
                 "logs": game.logs
+            })
+        elif action == "summary":
+            cur_p = game.current_player() if game.players else None
+            p1 = game.players[0] if len(game.players) > 0 else None
+            p2 = game.players[1] if len(game.players) > 1 else None
+            self._send_json_response({
+                "ok": True,
+                "room_id": code,
+                "turn": game.turn,
+                "phase": game.phase,
+                "cur_seat": (game.cur + 1) if game.players else None,
+                "cur_player": cur_p["name"] if cur_p else None,
+                "legal": game.legal_moves(),
+                "prompt": game.status_line(),
+                "next": game.legal_line(),
+                "jackpot": game.jackpot,
+                "over": game.over,
+                "winner": game.players[game.winner]["name"] if (game.winner is not None and game.winner < len(game.players)) else None,
+                "p1": {"name": p1["name"], "cash": p1["cash"], "net": game.net_worth(p1), "pos": p1["pos"], "tile": game.tiles[p1["pos"]]["name"], "props": len(game.tiles_of(0))} if p1 else None,
+                "p2": {"name": p2["name"], "cash": p2["cash"], "net": game.net_worth(p2), "pos": p2["pos"], "tile": game.tiles[p2["pos"]]["name"], "props": len(game.tiles_of(1))} if p2 else None
             })
         elif action == "stream":
             self.send_response(200)

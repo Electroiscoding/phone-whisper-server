@@ -2711,6 +2711,15 @@
               <div class="nav-dropdown-desc">Real-time battery, thermals &amp; RAM</div>
             </div>
           </a>
+          <a href="#gridlock-demo" class="nav-dropdown-item">
+            <div class="nav-dropdown-icon" style="background: rgba(251, 113, 133, 0.15); color: #fb7185;">
+              <i class="fa-solid fa-dice"></i>
+            </div>
+            <div>
+              <div class="nav-dropdown-title">GridLock 1v1 Monopoly</div>
+              <div class="nav-dropdown-desc">Tactical 16-tile edge game &bull; AI vs AI</div>
+            </div>
+          </a>
         </div>
       </div>
 
@@ -2813,6 +2822,9 @@
       </a>
       <a href="#telemetry" class="mobile-nav-item" onclick="closeMobileDrawer()">
         <i class="fa-solid fa-chart-line mr-2 text-emerald-400"></i> <span>Live Telemetry</span>
+      </a>
+      <a href="#gridlock-demo" class="mobile-nav-item" onclick="closeMobileDrawer()" style="color: #fb7185; border-color: rgba(251,113,133,0.3);">
+        <i class="fa-solid fa-dice mr-2 text-rose-400"></i> <span>GridLock Monopoly 🎲</span>
       </a>
 
       <div class="mobile-nav-section-title">Developers</div>
@@ -5257,7 +5269,80 @@ if (res.hands && res.hands[0]) {
           </div>
         </div>
       </div>
-    </section><!-- LIVE TELEMETRY & HARDWARE OPERATIONS DASHBOARD (100% REAL & DYNAMIC) -->
+    </section>
+
+    <section id="gridlock-demo">
+      <div class="section-head">
+        <span class="section-tag">
+          <span class="status-dot" style="width:6px;height:6px;background:#fb7185;box-shadow:0 0 6px #fb7185;"></span>
+          <span>Edge Game Engine &bull; Running Live on Xiaomi Redmi 9i</span>
+        </span>
+        <h2 class="section-title">🎲 GridLock Sovereign — 1v1 Tactical Monopoly</h2>
+        <p class="section-desc">Multiplayer 16-tile Monopoly engine executing on the phone datacenter at &gt;140 games/sec. Play via browser, terminal, Python SDK, or drop in any AI agent blind — the API handles everything.</p>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.25rem;margin-bottom:1.5rem;">
+        <div style="background:rgba(251,113,133,0.08);border:1px solid rgba(251,113,133,0.25);border-radius:14px;padding:1.25rem;">
+          <div style="font-size:0.72rem;color:#fb7185;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.5rem;">⚡ Instant AI vs AI Simulation</div>
+          <div style="font-size:0.85rem;color:var(--text-muted);margin-bottom:1rem;">Run a complete headless 1v1 match directly on the phone edge in under 20ms. No room needed — pure compute.</div>
+          <button id="glSimBtn" onclick="glRunSim()" style="width:100%;padding:0.6rem 1rem;background:linear-gradient(135deg,#fb7185,#f43f5e);color:#fff;font-weight:700;border:none;border-radius:9px;cursor:pointer;font-size:0.88rem;display:flex;align-items:center;justify-content:center;gap:0.5rem;">
+            <i class="fa-solid fa-bolt-lightning"></i> Run Edge Simulation
+          </button>
+          <div id="glSimResult" style="display:none;margin-top:0.75rem;padding:0.75rem;background:rgba(0,0,0,0.3);border-radius:8px;font-size:0.8rem;font-family:monospace;color:#f1f5f9;line-height:1.6;"></div>
+        </div>
+
+        <div style="background:rgba(56,189,248,0.07);border:1px solid rgba(56,189,248,0.2);border-radius:14px;padding:1.25rem;">
+          <div style="font-size:0.72rem;color:#38bdf8;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.5rem;">🎮 Play in Browser</div>
+          <div style="font-size:0.85rem;color:var(--text-muted);margin-bottom:1rem;">Full GUI — 1v1 with friends or vs AI bots. Room codes, chat reactions, match replay, Elo leaderboard.</div>
+          <a href="/monopoly.html" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:0.5rem;width:100%;padding:0.6rem 1rem;background:linear-gradient(135deg,#0ea5e9,#6366f1);color:#fff;font-weight:700;border-radius:9px;text-decoration:none;font-size:0.88rem;">
+            <i class="fa-solid fa-gamepad"></i> Open Monopoly GUI
+          </a>
+        </div>
+
+        <div style="background:rgba(163,230,53,0.07);border:1px solid rgba(163,230,53,0.2);border-radius:14px;padding:1.25rem;">
+          <div style="font-size:0.72rem;color:#a3e635;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.5rem;">🤖 AI Agent API</div>
+          <div style="font-size:0.85rem;color:var(--text-muted);margin-bottom:1rem;">Blind LLM agents get pre-computed <code style="color:#a3e635;">legal</code> moves + plain-text prompt on every turn. Terminal-native protocol.</div>
+          <div style="background:rgba(0,0,0,0.35);border-radius:8px;padding:0.7rem;font-family:monospace;font-size:0.73rem;color:#a3e635;overflow-x:auto;line-height:1.7;">
+            curl -X POST /v1/monopoly/rooms<br>
+            &nbsp;&nbsp;-d '{"name":"GPT-5","kind":"ai"}'<br>
+            <span style="color:#64748b;">returns: room_id + player_token + legal[]</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0.75rem;margin-bottom:1.5rem;">
+        <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:1rem;text-align:center;">
+          <div style="font-size:1.6rem;font-weight:800;color:#fb7185;">&gt;140</div>
+          <div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.25rem;">games/sec engine throughput</div>
+        </div>
+        <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:1rem;text-align:center;">
+          <div style="font-size:1.6rem;font-weight:800;color:#38bdf8;">&lt;20ms</div>
+          <div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.25rem;">headless simulation latency</div>
+        </div>
+        <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:1rem;text-align:center;">
+          <div style="font-size:1.6rem;font-weight:800;color:#a3e635;">25+</div>
+          <div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.25rem;">API endpoints exposed</div>
+        </div>
+        <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:1rem;text-align:center;">
+          <div style="font-size:1.6rem;font-weight:800;color:#fbbf24;">Elo</div>
+          <div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.25rem;">global ranked leaderboard</div>
+        </div>
+      </div>
+
+      <div id="glLeaderboardBox" style="display:none;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:1rem;margin-bottom:1rem;">
+        <div style="font-size:0.75rem;color:var(--text-muted);font-weight:700;margin-bottom:0.5rem;">🏆 Live Elo Leaderboard</div>
+        <div id="glLeaderboardContent" style="font-family:monospace;font-size:0.78rem;color:#f1f5f9;"></div>
+      </div>
+
+      <div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
+        <button onclick="glLoadLeaderboard()" style="padding:0.5rem 1rem;background:rgba(251,191,36,0.15);color:#fbbf24;border:1px solid rgba(251,191,36,0.3);border-radius:8px;cursor:pointer;font-size:0.82rem;font-weight:600;">🏆 Live Leaderboard</button>
+        <a href="/monopoly.html" target="_blank" style="padding:0.5rem 1rem;background:rgba(99,102,241,0.15);color:#818cf8;border:1px solid rgba(99,102,241,0.3);border-radius:8px;text-decoration:none;font-size:0.82rem;font-weight:600;">🎮 Full GUI</a>
+        <a href="/docs#api-monopoly" target="_blank" style="padding:0.5rem 1rem;background:rgba(56,189,248,0.1);color:#38bdf8;border:1px solid rgba(56,189,248,0.25);border-radius:8px;text-decoration:none;font-size:0.82rem;font-weight:600;">📖 API Docs</a>
+        <button onclick="glRunBenchmark()" style="padding:0.5rem 1rem;background:rgba(163,230,53,0.1);color:#a3e635;border:1px solid rgba(163,230,53,0.25);border-radius:8px;cursor:pointer;font-size:0.82rem;font-weight:600;">⚡ Benchmark 10 Games</button>
+      </div>
+      <div id="glBenchResult" style="display:none;margin-top:0.75rem;padding:0.75rem;background:rgba(0,0,0,0.3);border-radius:8px;font-size:0.78rem;font-family:monospace;color:#a3e635;line-height:1.7;"></div>
+    </section>
+
     <section id="telemetry">
       <div class="section-head">
         <span class="section-tag">
@@ -6903,6 +6988,82 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       }
     }
     window.executeFeedRankingDemo = executeFeedRankingDemo;
+
+    async function glRunSim() {
+      const btn = document.getElementById('glSimBtn');
+      const box = document.getElementById('glSimResult');
+      if (!btn || !box) return;
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Simulating on phone edge...';
+      box.style.display = 'block';
+      box.style.color = '#94a3b8';
+      box.textContent = 'Connecting to phone datacenter...';
+      try {
+        const t0 = Date.now();
+        const res = await nuclearFetch(`${BASE_ENDPOINT}/v1/monopoly/simulate`, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({p1_name: 'NovaBot', p2_name: 'EchoBot', max_turns: 50, start_cash: 1500})
+        });
+        const d = await res.json();
+        const rtt = Date.now() - t0;
+        box.style.color = '#f1f5f9';
+        box.innerHTML = `🏆 <b style="color:#fb7185">${d.winner}</b> wins in ${d.turns} turns (${d.steps} moves)<br>⚡ Engine: ${d.duration_ms}ms | RTT: ${rtt}ms<br>NovaBot: $${(d.p1||{}).cash||'?'} (${(d.p1||{}).props||0} props) | EchoBot: $${(d.p2||{}).cash||'?'} (${(d.p2||{}).props||0} props)<br><span style="color:#64748b">Jackpot pool: $${d.jackpot} | Logs: ${d.logs_count}</span>`;
+      } catch(e) {
+        box.style.color = '#f87171';
+        box.textContent = `Error: ${e.message}`;
+      }
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-bolt-lightning"></i> Run Edge Simulation';
+    }
+    window.glRunSim = glRunSim;
+
+    async function glLoadLeaderboard() {
+      const box = document.getElementById('glLeaderboardBox');
+      const cnt = document.getElementById('glLeaderboardContent');
+      if (!box || !cnt) return;
+      box.style.display = 'block';
+      cnt.textContent = 'Loading...';
+      try {
+        const res = await nuclearFetch(`${BASE_ENDPOINT}/v1/monopoly/leaderboard`);
+        const d = await res.json();
+        const lb = d.leaderboard || [];
+        if (!lb.length) { cnt.textContent = 'No ranked games yet — play a match to appear!'; return; }
+        cnt.innerHTML = lb.map((e, i) => `<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.05)"><span>#${i+1} <b style="color:#fbbf24">${e.name}</b></span><span style="color:#94a3b8">${e.elo || 1200} Elo &bull; ${e.wins || 0}W/${e.losses || 0}L</span></div>`).join('');
+      } catch(e) {
+        cnt.style.color = '#f87171';
+        cnt.textContent = `Error: ${e.message}`;
+      }
+    }
+    window.glLoadLeaderboard = glLoadLeaderboard;
+
+    async function glRunBenchmark() {
+      const box = document.getElementById('glBenchResult');
+      if (!box) return;
+      box.style.display = 'block';
+      box.textContent = 'Running 10 edge simulations...';
+      const results = [];
+      let p1w = 0, p2w = 0, total_dur = 0;
+      for (let i = 1; i <= 10; i++) {
+        try {
+          const t0 = Date.now();
+          const res = await nuclearFetch(`${BASE_ENDPOINT}/v1/monopoly/simulate`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({p1_name: 'AlphaBot', p2_name: 'BetaBot', max_turns: 40})
+          });
+          const d = await res.json();
+          const rtt = Date.now() - t0;
+          total_dur += d.duration_ms || 0;
+          if (d.winner === 'AlphaBot') p1w++; else p2w++;
+          results.push(`Match #${String(i).padStart(2,'0')}: 🏆 ${d.winner} in ${d.turns} turns (${d.duration_ms}ms engine / ${rtt}ms RTT)`);
+          box.textContent = results.join('\n');
+        } catch(e) { results.push(`Match #${i}: Error — ${e.message}`); }
+      }
+      results.push(`\n📊 AlphaBot: ${p1w}/10 | BetaBot: ${p2w}/10 | Avg Engine: ${(total_dur/10).toFixed(1)}ms`);
+      box.textContent = results.join('\n');
+    }
+    window.glRunBenchmark = glRunBenchmark;
 
     const API_ENDPOINT = `${BASE_ENDPOINT}/inference`;
     const TELEMETRY_ENDPOINT = `${BASE_ENDPOINT}/telemetry`;
