@@ -222,6 +222,14 @@ input,select{font-family:inherit}
 .ft.up{color:#4ade80}.ft.down{color:#fb7185}
 @keyframes ft{0%{opacity:0;transform:translate(-50%,0) scale(.6)}15%{opacity:1;transform:translate(-50%,-10px) scale(1.2)}100%{opacity:0;transform:translate(-50%,-70px) scale(1)}}
 .kbd{font-family:var(--mono);font-size:10px;padding:1px 6px;border-radius:6px;background:rgba(255,255,255,.12);border:1px solid var(--line)}
+.chart-box{width:100%;background:rgba(0,0,0,.35);border-radius:14px;border:1px solid var(--line);position:relative;padding:10px 10px 6px}
+.chart-svg{width:100%;height:130px;display:block;overflow:visible}
+.stat-pill{display:flex;flex-direction:column;gap:3px;padding:8px 10px;background:rgba(255,255,255,.05);border-radius:10px;border:1px solid var(--line);font-size:11px}
+.stat-pill b{font-size:14px;font-family:var(--mono)}
+.mvp-card{display:flex;align-items:center;gap:10px;padding:9px 12px;background:linear-gradient(135deg,rgba(251,191,36,.12),rgba(56,189,248,.08));border-radius:12px;border:1px solid rgba(251,191,36,.3)}
+.mvp-card .ic{font-size:22px}
+.share-banner{padding:12px 14px;background:linear-gradient(135deg,rgba(56,189,248,.15),rgba(147,51,234,.15));border:1px solid var(--acc);border-radius:14px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.share-code-box{font-family:var(--mono);font-size:20px;font-weight:900;letter-spacing:4px;color:var(--acc);padding:4px 12px;background:rgba(0,0,0,.4);border-radius:8px;border:1px solid var(--acc)}
 /* ================= TEXT MODE ================= */
 body.term .stage,body.term .players,body.term .tabs{display:none}
 body.term .layout{grid-template-columns:1fr}
@@ -420,14 +428,14 @@ body.calm *{animation-duration:.01ms!important;animation-iteration-count:1!impor
 <div class="modal" id="m-lobby"><div class="sheet wide">
   <div class="sh-head"><h3>🎮 New Match</h3></div>
   <div class="sh-body" id="lobbyBody"></div>
-  <div class="sh-foot"><button class="btn good" data-act="quick">⚡ Quick match vs Nova</button><button class="btn primary pulse" data-act="startgame">▶ Start Game</button></div>
+  <div class="sh-foot"><button class="btn" data-act="createroombtn" style="background:linear-gradient(135deg,rgba(56,189,248,.18),rgba(147,51,234,.18));border-color:var(--acc);color:var(--acc);font-weight:900">🌐 Create 1v1 Room &amp; Share</button><button class="btn good" data-act="quick">⚡ Quick match vs Nova</button><button class="btn primary pulse" data-act="startgame">▶ Start Game</button></div>
 </div></div>
 
 <div class="modal" id="m-daily"><div class="sheet"><div class="sh-head"><h3>🎁 Daily Drop</h3><button class="x" data-act="close">✕</button></div><div class="sh-body" id="dailyBody" style="text-align:center"></div></div></div>
 
 <div class="modal" id="m-profile"><div class="sheet wide">
   <div class="sh-head"><h3 id="profTitle">Profile</h3><button class="x" data-act="close">✕</button></div>
-  <div class="sh-body"><div class="seg" id="profTabs"><button class="on" data-act="ptab" data-t="shop">🛍️ Wardrobe & Shop</button><button data-act="ptab" data-t="ach">🏅 Achievements</button><button data-act="ptab" data-t="stats">📊 Stats</button></div><div id="profBody"></div></div>
+  <div class="sh-body"><div class="seg" id="profTabs"><button class="on" data-act="ptab" data-t="shop">🛍️ Wardrobe &amp; Shop</button><button data-act="ptab" data-t="ach">🏅 Achievements</button><button data-act="ptab" data-t="stats">📊 Stats</button></div><div id="profBody"></div></div>
 </div></div>
 
 <div class="modal" id="m-portfolio"><div class="sheet wide">
@@ -455,7 +463,7 @@ body.calm *{animation-duration:.01ms!important;animation-iteration-count:1!impor
   <div class="sh-foot"><button class="btn" id="askNo">Decline</button><button class="btn good" id="askOk">Accept</button></div>
 </div></div>
 
-<div class="modal" id="m-victory"><div class="sheet"><div class="sh-body" id="vicBody" style="text-align:center"></div></div></div>
+<div class="modal" id="m-victory"><div class="sheet wide"><div class="sh-body" id="vicBody" style="padding:16px"></div></div></div>
 
 <div class="modal" id="m-help"><div class="sheet wide">
   <div class="sh-head"><h3>📖 Rules, Keys & CLI</h3><button class="x" data-act="close">✕</button></div>
@@ -693,16 +701,38 @@ class Game{
       ai:st.kind==='ai'?{...AI_STYLES[i%AI_STYLES.length],cool:0}:null,st:{rent:0,paid:0,rolls:0,builds:0,trades:0}}));
     const h=players.find(p=>p.kind==='human');if(h)h.profile=true;
     this.s={players,tiles:TILES.map(()=>({owner:null,level:0,mortgaged:false})),jackpot:CFG.seed,turn:1,cur:0,phase:'pre',extra:false,lastRoll:1,
-      debt:null,auction:null,pending:null,over:false,winner:null,settings:{maxTurns:cfg.maxTurns,startCash:cfg.startCash},ev:{title:'Game on!',sub:'Roll to begin'},t0:Date.now()};
+      debt:null,auction:null,pending:null,over:false,winner:null,settings:{maxTurns:cfg.maxTurns,startCash:cfg.startCash},ev:{title:'Game on!',sub:'Roll to begin'},t0:Date.now(),snapshots:[]};
     this.logs=[];$('#logList').innerHTML='';$('#chatList').innerHTML='';
     this.quests=[...QUEST_POOL].sort(()=>Math.random()-.5).slice(0,3).map(q=>({...q,prog:0,done:false}));
     this.busy=false;this.ticking=false;
+    this.recordSnapshot('Start');
     UI.mount();
     this.log(`Match started: ${players.map(p=>p.name).join(' vs ')}`,'sys');
     this.chat('System','#94a3b8',`Welcome! ${players.map(p=>p.name).join(', ')} — good luck!`);
     this.announce(`New game. ${this.cur.name} goes first.`);
     UI.banner(`${this.cur.name}'s turn`,this.cur.color);
     this.afterAction();
+  }
+
+  recordSnapshot(lbl=''){
+    const s=this.s;if(!s||!s.players)return;
+    if(!s.snapshots)s.snapshots=[];
+    s.snapshots.push({
+      turn:s.turn||1,
+      label:lbl,
+      players:s.players.map(p=>({
+        id:p.id,
+        name:p.name,
+        color:p.color,
+        cash:p.cash,
+        net:this.net(p),
+        props:this.tilesOf(p.id).length,
+        rent:p.st.rent||0,
+        paid:p.st.paid||0,
+        builds:p.st.builds||0,
+        bankrupt:!!p.bankrupt
+      }))
+    });
   }
 
   /* ---------- helpers ---------- */
@@ -790,6 +820,7 @@ class Game{
     const p=this.cur;this.xp(p,3);p.sixes=0;s.extra=false;s.pending=null;
     let idx=s.cur;do{idx=(idx+1)%s.players.length}while(s.players[idx].bankrupt);
     if(idx<=s.cur)s.turn++;s.cur=idx;s.phase='pre';
+    this.recordSnapshot('Turn '+s.turn);
     if(s.settings.maxTurns>0&&s.turn>s.settings.maxTurns){await this.gameOver(this.richest(),'turn-limit');return{ok:true}}
     const n=this.cur;this.log(`— Turn ${s.turn}: ${n.name} —`,'sys');UI.banner(`${n.name}'s turn`,n.color);this.announce(`${n.name}'s turn. Cash ${n.cash} dollars.`);
     this.ev(n.inJail?'In REBOOT':'Your move',n.inJail?'Roll a 6 or pay $50':'Roll the dice');
@@ -1001,6 +1032,7 @@ class Game{
   /* ---------- game over ---------- */
   async gameOver(w,reason){
     const s=this.s;if(s.over)return;s.over=true;s.phase='over';s.winner=w.id;this.busy=false;
+    this.recordSnapshot('Game Over');
     this.log(`🏆 ${w.name} WINS${reason==='turn-limit'?' (richest at turn limit)':''}!`,'good');this.announce(`Game over. ${w.name} wins.`);Sfx.play('win');
     const me=s.players.find(p=>p.profile);let rw={xp:0,gems:0,bonus:0,won:false};
     if(me){const won=me.id===w.id;rw.won=won;rw.xp=won?150:45;rw.gems=won?40:10;rw.bonus=wpick([{w:55,v:0},{w:25,v:15},{w:12,v:40},{w:6,v:80},{w:2,v:200}]).v;
@@ -1130,10 +1162,10 @@ const UI={
       this.toast('⚠️', 'Matchmaking failed', String(e), 'bad');
     }
   },
-  async createOnlineRoom(){
-    const name = ($('#rmHostName').value || 'Host').trim();
-    const avatar = $('#rmHostAvatar').value || 'cat';
-    const kind = $('#rmHostKind').value || 'human';
+  async createOnlineRoom(autoShare=true){
+    const name = ($('#rmHostName')&&$('#rmHostName').value?$('#rmHostName').value:(Store.p&&Store.p.name)||'Player 1').trim();
+    const avatar = ($('#rmHostAvatar')&&$('#rmHostAvatar').value)||(Store.p&&Store.p.sel&&Store.p.sel.avatar)||'cat';
+    const kind = ($('#rmHostKind')&&$('#rmHostKind').value)||'human';
     try{
       const res = await fetch('/v1/monopoly/rooms', {
         method: 'POST',
@@ -1147,6 +1179,7 @@ const UI={
       }
       this.onlineRoom = {id: data.room_id, token: data.player_token, seat: 1, isHost: true};
       this.onRoomJoined(data);
+      if(autoShare)this.copyRoomLink(true);
     }catch(e){
       this.toast('⚠️', 'Connection failed', String(e), 'bad');
     }
@@ -1395,14 +1428,32 @@ const UI={
       this.toast('⚠️', 'Surrender failed', String(e), 'bad');
     }
   },
-  copyRoomLink(){
+  copyRoomLink(isNew=false){
     if(!this.onlineRoom)return;
     const url = `${location.origin}${location.pathname}?room=${this.onlineRoom.id}`;
-    navigator.clipboard.writeText(url).then(()=>{
-      this.toast('📋', 'Room Link Copied!', url, 'good');
-    }).catch(()=>{
-      prompt('Copy room URL:', url);
-    });
+    const shareData = {title:'GridLock 1v1 Match',text:`Join my 1v1 GridLock match (Room: ${this.onlineRoom.id})!`,url};
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(url).then(()=>{
+        this.toast('📋',isNew?'Room Created & Link Copied!':'Room Link Copied!',`Code: ${this.onlineRoom.id} · Send link to friend!`,'good');
+      }).catch(()=>{prompt('Share room URL:',url)});
+    }else{
+      prompt('Share room URL:',url);
+    }
+    if(navigator.share&&isNew){navigator.share(shareData).catch(()=>{})}
+  },
+  shareMatch(){
+    if(!this.victoryData||!game||!game.s)return;
+    const {w}=this.victoryData;
+    const url=`${location.origin}${location.pathname}`;
+    const text=`🏆 GridLock Match Finished! ${w.name} won with ${money(game.net(w))} net worth across ${game.s.turn} turns. Play at ${url}`;
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(()=>{
+        this.toast('📋','Match Result Copied!','Paste to share stats with friends','good');
+      }).catch(()=>{prompt('Share match result:',text)});
+    }else{
+      prompt('Share match result:',text);
+    }
+    if(navigator.share){navigator.share({title:'GridLock Match Result',text,url}).catch(()=>{})}
   },
   async sendOnlineChat(overrideText){
     if(!this.onlineRoom)return;
@@ -1728,17 +1779,129 @@ const UI={
     if(seats[0].kind==='human'){Store.p.name=seats[0].name;Store.save()}
     $$('.modal').forEach(m=>m.classList.remove('open'));game.speed=Store.p.fast?.4:1;
     game.newGame({seats,maxTurns:L.maxTurns,startCash:1500});if(L.term||document.body.classList.contains('term'))this.setTerm(true);this.renderChip()},
-  /* ----- victory ----- */
-  showVictory(w,rw,reason){const g=game,s=g.s,P=Store.p;
+  vicTab:'analytics',
+  victoryData:null,
+  showVictory(w,rw,reason){
+    this.victoryData={w,rw,reason};
+    this.vicTab='analytics';
+    this.renderVictory();
+    setTimeout(()=>{this.open('m-victory');FX.burst(innerWidth/2,innerHeight/3,{n:150})},Math.max(150,700*game.speed));
+  },
+  renderVictory(){
+    if(!this.victoryData)return;
+    const {w,rw,reason}=this.victoryData,g=game,s=g.s,P=Store.p;
+    const tab=this.vicTab||'analytics';
     const locked=[...Object.values(AVATARS).filter((_,i)=>!P.unlocked.avatar.includes(Object.keys(AVATARS)[i])),...Object.entries(ACCS).filter(([k])=>!P.unlocked.acc.includes(k)).map(([,v])=>v),...Object.entries(THEMES).filter(([k])=>!P.unlocked.theme.includes(k)).map(([,v])=>v)].sort((a,b)=>a.price-b.price)[0];
-    const rows=s.players.map(p=>`<tr><td style="color:${p.color};font-weight:900;text-align:left">${esc(p.name)}${p.id===w.id?' 👑':''}</td><td>${p.bankrupt?'💀 out':money(g.net(p))}</td><td>${p.st.rent?money(p.st.rent):'—'}</td><td>${p.st.builds}</td></tr>`).join('');
-    $('#vicBody').innerHTML=`<div style="width:110px;margin:0 auto;animation:bob 1.2s ease-in-out infinite">${avatarSVG(w.avatar,w.color,w.acc)}</div>
-      <h2 style="font-size:26px;margin-top:6px">${esc(w.name)} wins!</h2><p class="lbl">${reason==='turn-limit'?'Richest at the turn limit':'Last one standing'}</p>
-      <table style="width:100%;font-family:var(--mono);font-size:12px;margin:10px 0;text-align:right"><tr class="lbl"><th style="text-align:left">Player</th><th>Net</th><th>Rent</th><th>Builds</th></tr>${rows}</table>
-      ${rw.xp?`<div class="infobox">${rw.won?'🏆 Victory!':'Good game!'} +${rw.xp} XP • +${rw.gems} 💎${rw.bonus?` • 🎁 lucky bonus +${rw.bonus} 💎`:''}</div>`:''}
-      ${locked?`<p class="lbl" style="margin:8px 0">Next unlock: <b>${locked.name}</b> — ${P.gems}/${locked.price} 💎</p>`:''}
-      <div style="display:flex;gap:8px;justify-content:center;margin-top:10px"><button class="btn primary pulse" data-act="again">▶ Play again</button><button class="btn" data-act="openreplay">🎬 Match Replay</button><button class="btn" data-act="newgame">⚙️ Change setup</button></div>`;
-    setTimeout(()=>{this.open('m-victory');FX.burst(innerWidth/2,innerHeight/3,{n:150})},Math.max(150,700*g.speed))},
+    const me=s.players.find(p=>p.profile)||s.players.find(p=>p.kind==='human')||s.players[0];
+    const isWinner=(w.id===me.id);
+
+    let content='';
+    if(tab==='analytics'){
+      const snaps=(s.snapshots&&s.snapshots.length>1)?s.snapshots:[
+        {turn:1,players:s.players.map(p=>({id:p.id,name:p.name,color:p.color,net:1500,cash:1500,rent:0,paid:0,builds:0}))},
+        {turn:s.turn||2,players:s.players.map(p=>({id:p.id,name:p.name,color:p.color,net:g.net(p),cash:p.cash,rent:p.st.rent||0,paid:p.st.paid||0,builds:p.st.builds||0}))}
+      ];
+      const maxTurn=Math.max(...snaps.map(x=>x.turn),1);
+      const allNets=snaps.flatMap(x=>x.players.map(p=>p.net));
+      const minNet=Math.min(...allNets,0);
+      const maxNet=Math.max(...allNets,1600)*1.12;
+      const W=420,H=110,padL=45,padR=15,padT=12,padB=20;
+      const plotW=W-padL-padR,plotH=H-padT-padB;
+      const xOf=t=>padL+(maxTurn>1?((t-1)/(maxTurn-1))*plotW:plotW/2);
+      const yOf=v=>padT+plotH-((v-minNet)/(maxNet-minNet||1))*plotH;
+      
+      const gridYs=[0,Math.round(maxNet*.5),Math.round(maxNet)];
+      const gridSvg=gridYs.map(gy=>`<line x1="${padL}" y1="${yOf(gy)}" x2="${W-padR}" y2="${yOf(gy)}" stroke="rgba(255,255,255,.08)" stroke-dasharray="3,3"/><text x="${padL-6}" y="${yOf(gy)+3}" fill="var(--muted)" font-size="9" font-family="var(--mono)" text-anchor="end">${money(gy)}</text>`).join('');
+      
+      const linesSvg=s.players.map(p=>{
+        const pts=snaps.map(sn=>{
+          const sp=sn.players.find(x=>x.id===p.id)||{net:0};
+          return [xOf(sn.turn),yOf(sp.net)];
+        });
+        const pathD='M '+pts.map(pt=>pt.map(n=>n.toFixed(1)).join(' ')).join(' L ');
+        const polyD=`M ${xOf(1).toFixed(1)} ${yOf(minNet).toFixed(1)} L `+pts.map(pt=>pt.map(n=>n.toFixed(1)).join(' ')).join(' L ')+` L ${xOf(maxTurn).toFixed(1)} ${yOf(minNet).toFixed(1)} Z`;
+        const lastPt=pts[pts.length-1];
+        return `<polygon points="${polyD.replace(/M | L | Z/g,' ')}" fill="${p.color}" fill-opacity="0.08"/><path d="${pathD}" fill="none" stroke="${p.color}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="${lastPt[0].toFixed(1)}" cy="${lastPt[1].toFixed(1)}" r="3.5" fill="${p.color}" stroke="#fff" stroke-width="1.2"/>`;
+      }).join('');
+
+      const xLabels=[1,Math.ceil(maxTurn/2),maxTurn].filter((v,i,a)=>a.indexOf(v)===i).map(t=>`<text x="${xOf(t)}" y="${H-4}" fill="var(--muted)" font-size="9" font-family="var(--mono)" text-anchor="middle">T${t}</text>`).join('');
+
+      const rows=s.players.map(p=>`<tr><td style="color:${p.color};font-weight:900;text-align:left"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${p.color};margin-right:5px"></span>${esc(p.name)}${p.id===w.id?' 👑':''}</td><td>${p.bankrupt?'💀 out':money(g.net(p))}</td><td>${money(p.cash)}</td><td>${p.st.rent?money(p.st.rent):'—'}</td><td>${p.st.builds||0}</td></tr>`).join('');
+
+      content=`<div class="chart-box">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+          <span class="lbl">📈 Net Worth Progression</span>
+          <span class="lbl">${snaps.length} points · ${maxTurn} turns</span>
+        </div>
+        <svg viewBox="0 0 ${W} ${H}" class="chart-svg">${gridSvg}${linesSvg}${xLabels}</svg>
+        <div style="display:flex;gap:10px;justify-content:center;margin-top:6px;flex-wrap:wrap">
+          ${s.players.map(p=>`<span style="font-size:11px;color:${p.color};font-weight:800"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${p.color};margin-right:4px"></span>${esc(p.name)}: ${money(g.net(p))}</span>`).join('')}
+        </div>
+      </div>
+      <table style="width:100%;font-family:var(--mono);font-size:11px;margin-top:6px;text-align:right"><tr class="lbl"><th style="text-align:left">Player</th><th>Net</th><th>Cash</th><th>Rent Won</th><th>Builds</th></tr>${rows}</table>`;
+    }else if(tab==='rewards'){
+      const lInfo=levelInfo(P.xp);
+      content=`<div style="padding:14px;border-radius:14px;background:linear-gradient(135deg,rgba(56,189,248,.12),rgba(251,191,36,.12));border:1px solid var(--acc)">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div><h4 style="margin:0;font-size:16px">${isWinner?'🏆 VICTORY BONUS!':'🎖️ MATCH COMPLETED'}</h4><p class="lbl" style="margin:2px 0 0">${isWinner?'Dominated the GridLock board':'Valuable tactical experience gained'}</p></div>
+          <div style="font-size:24px">${isWinner?'💎💎':'⭐'}</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0">
+          <div class="stat-pill"><span>Experience Gained</span><b style="color:var(--acc)">+${rw.xp||45} XP</b></div>
+          <div class="stat-pill"><span>Gems Earned</span><b style="color:var(--warn)">+${(rw.gems||10)+(rw.bonus||0)} 💎</b></div>
+        </div>
+        ${rw.bonus?`<div class="infobox" style="margin-bottom:10px">🎁 Lucky Drop Bonus unlocked! +${rw.bonus} Extra Gems</div>`:''}
+        <div style="margin-top:6px">
+          <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px"><span class="lbl">Level ${lInfo.lvl} Progression</span><b>${lInfo.cur}/${lInfo.need} XP</b></div>
+          <div class="qbar" style="height:10px;border-radius:8px"><i style="width:${Math.round(lInfo.cur/lInfo.need*100)}%"></i></div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,.08)">
+          <div style="display:flex;gap:6px;align-items:center"><span>🔥</span><span style="font-size:12px;font-weight:800">Streak: ${P.streak||1} Day${(P.streak||1)>1?'s':''}</span></div>
+          <button class="btn sm primary" data-act="open" data-m="m-profile">🛍️ Open Wardrobe (${P.gems} 💎)</button>
+        </div>
+      </div>
+      ${locked?`<div class="card" style="margin-top:8px;display:flex;justify-content:space-between;align-items:center"><div><span class="lbl">Next Wardrobe Target</span><div style="font-weight:800">${locked.name}</div></div><div style="font-family:var(--mono);font-size:12px;color:var(--acc)">${P.gems}/${locked.price} 💎</div></div>`:''}`;
+    }else if(tab==='mvp'){
+      const richestP=[...s.players].sort((a,b)=>g.net(b)-g.net(a))[0];
+      const topBuilder=[...s.players].sort((a,b)=>(b.st.builds||0)-(a.st.builds||0))[0];
+      const rentKing=[...s.players].sort((a,b)=>(b.st.rent||0)-(a.st.rent||0))[0];
+      const topTrader=[...s.players].sort((a,b)=>(b.st.trades||0)-(a.st.trades||0))[0];
+      content=`<div style="display:flex;flex-direction:column;gap:8px">
+        <div class="mvp-card"><span class="ic">👑</span><div><b>Supreme Tycoon: ${esc(richestP.name)}</b><div class="lbl">Finished with ${money(g.net(richestP))} total net worth</div></div></div>
+        <div class="mvp-card"><span class="ic">🏰</span><div><b>Master Builder: ${esc(topBuilder.name)}</b><div class="lbl">Constructed ${topBuilder.st.builds||0} building upgrades</div></div></div>
+        <div class="mvp-card"><span class="ic">💸</span><div><b>Rent Baron: ${esc(rentKing.name)}</b><div class="lbl">Extracted ${money(rentKing.st.rent||0)} in toll invoices</div></div></div>
+        ${(topTrader.st.trades||0)>0?`<div class="mvp-card"><span class="ic">🤝</span><div><b>Deal Maker: ${esc(topTrader.name)}</b><div class="lbl">Negotiated ${topTrader.st.trades} strategic property swaps</div></div></div>`:''}
+      </div>`;
+    }else if(tab==='replay'){
+      const hist=s.history||[];
+      content=hist.length?`<div style="max-height:220px;overflow-y:auto;display:flex;flex-direction:column;gap:6px">
+        ${hist.map((h,i)=>`<div style="padding:6px 10px;border-radius:8px;background:rgba(255,255,255,.05);border:1px solid var(--line);font-size:11px;display:flex;justify-content:space-between"><span><b style="color:var(--acc)">#${i+1} [T${h.turn||'?'}]</b> ${esc(h.player||'')}: <span style="font-family:var(--mono)">${esc(h.action||'')}</span></span><span style="color:var(--muted)">${esc(h.summary||'')}</span></div>`).join('')}
+      </div>`:`<div style="padding:16px;text-align:center;color:var(--muted)">Replay log recorded across ${s.turn} turns.</div>`;
+    }
+
+    $('#vicBody').innerHTML=`
+      <div style="display:flex;align-items:center;gap:12px;padding-bottom:10px;border-bottom:1px solid var(--line)">
+        <div style="width:64px;height:64px;animation:bob 1.2s ease-in-out infinite;flex:none">${avatarSVG(w.avatar,w.color,w.acc)}</div>
+        <div style="text-align:left;flex:1">
+          <div style="font-size:11px;color:var(--acc);font-weight:900;text-transform:uppercase;letter-spacing:1px">${reason==='turn-limit'?'⏱️ Turn Limit Reached':'👑 Victory Climax'}</div>
+          <h2 style="font-size:20px;margin:2px 0">${esc(w.name)} Wins!</h2>
+          <div style="font-size:12px;color:var(--muted)">${reason==='turn-limit'?'Richest landlord at turn limit':'Eliminated all competing rivals'} · ${s.turn} Turns</div>
+        </div>
+      </div>
+      <div class="seg" style="margin:10px 0 6px">
+        <button class="${tab==='analytics'?'on':''}" data-act="victab" data-t="analytics">📊 Analytics</button>
+        <button class="${tab==='rewards'?'on':''}" data-act="victab" data-t="rewards">🎁 Rewards</button>
+        <button class="${tab==='mvp'?'on':''}" data-act="victab" data-t="mvp">🏅 MVP</button>
+        <button class="${tab==='replay'?'on':''}" data-act="victab" data-t="replay">🎬 Log</button>
+      </div>
+      <div>${content}</div>
+      <div style="display:flex;gap:8px;justify-content:center;margin-top:12px;flex-wrap:wrap">
+        <button class="btn primary pulse" data-act="again">▶ Play Again</button>
+        <button class="btn good" data-act="sharematchbtn">🌐 Share Result</button>
+        <button class="btn" data-act="open" data-m="m-profile">🛍️ Wardrobe</button>
+        <button class="btn" data-act="newgame">⚙️ Setup</button>
+      </div>`;
+  },
   renderHelp(){$('#helpBody').innerHTML=`<div class="card"><b>How to win</b><br>Roll one die, buy tiles (or auction them), collect rent, build, trade. Last player standing wins — or the richest at the turn limit.</div>
     <div class="card"><b>Rules</b><ul style="padding-left:18px;line-height:1.7;margin-top:4px">
       <li>A <b>6</b> gives a bonus roll; three 6s in a row sends you to <b>REBOOT</b> (jail: roll a 6 or pay $50, forced on the 3rd try).</li>
@@ -1756,6 +1919,8 @@ const UI={
     switch(a){
       case 'open':this.open(d.m);if(d.m==='m-profile')this.renderProfile();break;
       case 'close':{const m=el.closest('.modal');if(m)m.classList.remove('open');break}
+      case 'victab':this.vicTab=d.t;this.renderVictory();break;
+      case 'sharematchbtn':this.shareMatch();break;
       case 'roll':this.do('roll');break;case 'buy':this.do('buy');break;case 'decline':this.do('decline');break;
       case 'endturn':this.do('endTurn');break;case 'jailpay':this.do('payJail');break;
       case 'autoraise':if(g.s)this.do('autoRaise',g.cur);break;
