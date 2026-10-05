@@ -5585,6 +5585,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_dashboard_html()
         elif path in ["/chat", "/chat.html", "/studio"]:
             self.handle_chat_html()
+        elif path in ["/monopoly", "/monopoly.html", "/gridlock", "/gridlock.html"]:
+            self.handle_monopoly_html()
         elif path in ["/docs", "/docs.html"]:
             self.handle_docs_html()
         elif path in ["/maker", "/maker.md"]:
@@ -7801,6 +7803,25 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 self.wfile.write(content)
                 return
         self.send_error(404, "docs.html not found on server")
+
+    def handle_monopoly_html(self):
+        for p in [
+            os.path.join(os.getcwd(), "monopoly.html"),
+            "/data/data/com.termux/files/home/monopoly.html",
+            "/data/data/com.termux/files/home/phone-whisper-server/monopoly.html",
+            os.path.expanduser("~/monopoly.html")
+        ]:
+            if os.path.exists(p):
+                with open(p, "rb") as f:
+                    content = f.read()
+                self.send_response(200)
+                self._send_cors_headers()
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Content-Length", str(len(content)))
+                self.end_headers()
+                self.wfile.write(content)
+                return
+        self.send_error(404, "monopoly.html not found on server")
 
     def handle_maker_md(self):
         """Serves the AI-native agent connection directive maker.md"""
