@@ -103,7 +103,7 @@ while true; do
   if ! pgrep -f "gateway.py" > /dev/null; then
     GW_ALIVE=0
   else
-    GW_STATUS=$(curl -s -m 2 -o /dev/null -w "%{http_code}" "http://127.0.0.1:8080/health" 2>/dev/null || echo "000")
+    GW_STATUS=$(curl -s -m 4 -o /dev/null -w "%{http_code}" "http://127.0.0.1:8080/v1/health" 2>/dev/null || echo "000")
     if [ "$GW_STATUS" != "200" ]; then
       GW_FAIL_COUNT=$((GW_FAIL_COUNT + 1))
       if [ "$GW_FAIL_COUNT" -ge 12 ]; then
