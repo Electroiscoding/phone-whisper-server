@@ -71,6 +71,31 @@ try:
 except Exception:
     HAVE_YTDLP = False
 
+_MEDIA_CACHE = {}
+_MEDIA_CACHE_LOCK = threading.Lock()
+
+def fetch_media_info_fast(url):
+    now = time.time()
+    with _MEDIA_CACHE_LOCK:
+        if url in _MEDIA_CACHE:
+            ts, cached_info = _MEDIA_CACHE[url]
+            if now - ts < 300:
+                return cached_info
+    ydl_opts = {
+        "quiet": True,
+        "no_warnings": True,
+        "noplaylist": True,
+        "socket_timeout": 10,
+        "extractor_args": {"youtube": {"player_client": ["android"]}}
+    }
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(url, download=False)
+    with _MEDIA_CACHE_LOCK:
+        if len(_MEDIA_CACHE) > 100:
+            _MEDIA_CACHE.clear()
+        _MEDIA_CACHE[url] = (now, info)
+    return info
+
 try:
     import tflite_runtime.interpreter as tflite
     HAVE_TFLITE = True
@@ -11191,71 +11216,63 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self._send_json_response({"ok": False, "error": "yt-dlp engine is not installed on server"}, status=503)
             return
         try:
-            ydl_opts = {
-                "quiet": True,
-                "no_warnings": True,
-                "noplaylist": True,
-                "extract_flat": False,
-                "extractor_args": {"youtube": {"player_client": ["android", "web", "ios", "tv"]}}
+            info = fetch_media_info_fast(url)
+            formats = info.get("formats", [])
+            best_audio = None
+            best_video = None
+            best_combined = None
+            for f in reversed(formats):
+                stream_url = f.get("url")
+                if not stream_url:
+                    continue
+                if not best_combined and f.get("vcodec") != "none" and f.get("acodec") != "none":
+                    best_combined = {
+                        "format_id": f.get("format_id"),
+                        "ext": f.get("ext"),
+                        "resolution": f.get("resolution"),
+                        "vcodec": f.get("vcodec"),
+                        "acodec": f.get("acodec"),
+                        "fps": f.get("fps"),
+                        "filesize": f.get("filesize") or f.get("filesize_approx"),
+                        "url": stream_url
+                    }
+                if not best_audio and f.get("vcodec") == "none" and f.get("acodec") != "none":
+                    best_audio = {
+                        "format_id": f.get("format_id"),
+                        "ext": f.get("ext"),
+                        "acodec": f.get("acodec"),
+                        "abr": f.get("abr"),
+                        "filesize": f.get("filesize") or f.get("filesize_approx"),
+                        "url": stream_url
+                    }
+                if not best_video and f.get("vcodec") != "none":
+                    best_video = {
+                        "format_id": f.get("format_id"),
+                        "ext": f.get("ext"),
+                        "resolution": f.get("resolution"),
+                        "vcodec": f.get("vcodec"),
+                        "fps": f.get("fps"),
+                        "url": stream_url
+                    }
+            res = {
+                "ok": True,
+                "id": info.get("id"),
+                "title": info.get("title"),
+                "description": (info.get("description") or "")[:500],
+                "uploader": info.get("uploader"),
+                "channel": info.get("channel"),
+                "duration": info.get("duration"),
+                "view_count": info.get("view_count"),
+                "thumbnail": info.get("thumbnail"),
+                "webpage_url": info.get("webpage_url") or url,
+                "storage_policy": "zero-disk-transient-memory",
+                "best_audio": best_audio,
+                "best_video": best_video,
+                "best_combined": best_combined or best_video,
+                "download_url": f"/v1/media/stream?url={urllib.parse.quote(url)}&format=video&download=1",
+                "audio_url": f"/v1/media/stream?url={urllib.parse.quote(url)}&format=audio&download=1"
             }
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                info = ydl.extract_info(url, download=False)
-                formats = info.get("formats", [])
-                best_audio = None
-                best_video = None
-                best_combined = None
-                for f in reversed(formats):
-                    stream_url = f.get("url")
-                    if not stream_url:
-                        continue
-                    if not best_combined and f.get("vcodec") != "none" and f.get("acodec") != "none":
-                        best_combined = {
-                            "format_id": f.get("format_id"),
-                            "ext": f.get("ext"),
-                            "resolution": f.get("resolution"),
-                            "vcodec": f.get("vcodec"),
-                            "acodec": f.get("acodec"),
-                            "fps": f.get("fps"),
-                            "filesize": f.get("filesize") or f.get("filesize_approx"),
-                            "url": stream_url
-                        }
-                    if not best_audio and f.get("vcodec") == "none" and f.get("acodec") != "none":
-                        best_audio = {
-                            "format_id": f.get("format_id"),
-                            "ext": f.get("ext"),
-                            "acodec": f.get("acodec"),
-                            "abr": f.get("abr"),
-                            "filesize": f.get("filesize") or f.get("filesize_approx"),
-                            "url": stream_url
-                        }
-                    if not best_video and f.get("vcodec") != "none":
-                        best_video = {
-                            "format_id": f.get("format_id"),
-                            "ext": f.get("ext"),
-                            "resolution": f.get("resolution"),
-                            "vcodec": f.get("vcodec"),
-                            "fps": f.get("fps"),
-                            "url": stream_url
-                        }
-                res = {
-                    "ok": True,
-                    "id": info.get("id"),
-                    "title": info.get("title"),
-                    "description": (info.get("description") or "")[:500],
-                    "uploader": info.get("uploader"),
-                    "channel": info.get("channel"),
-                    "duration": info.get("duration"),
-                    "view_count": info.get("view_count"),
-                    "thumbnail": info.get("thumbnail"),
-                    "webpage_url": info.get("webpage_url") or url,
-                    "storage_policy": "zero-disk-transient-memory",
-                    "best_audio": best_audio,
-                    "best_video": best_video,
-                    "best_combined": best_combined or best_video,
-                    "download_url": f"/v1/media/stream?url={urllib.parse.quote(url)}&format=video&download=1",
-                    "audio_url": f"/v1/media/stream?url={urllib.parse.quote(url)}&format=audio&download=1"
-                }
-                self._send_json_response(res)
+            self._send_json_response(res)
         except Exception as e:
             self._send_json_response({"ok": False, "error": f"Metadata extraction failed: {str(e)}"}, status=500)
 
@@ -11280,65 +11297,58 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self._send_json_response({"ok": False, "error": "yt-dlp engine is not installed on server"}, status=503)
             return
         try:
-            ydl_opts = {
-                "quiet": True,
-                "no_warnings": True,
-                "noplaylist": True,
-                "extractor_args": {"youtube": {"player_client": ["android", "web", "ios", "tv"]}}
+            info = fetch_media_info_fast(url)
+            formats = info.get("formats", [])
+            audio_streams = []
+            video_streams = []
+            progressive_streams = []
+            for f in formats:
+                stream_url = f.get("url")
+                if not stream_url:
+                    continue
+                if f.get("vcodec") != "none" and f.get("acodec") != "none":
+                    progressive_streams.append({
+                        "format_id": f.get("format_id"),
+                        "ext": f.get("ext"),
+                        "resolution": f.get("resolution"),
+                        "vcodec": f.get("vcodec"),
+                        "acodec": f.get("acodec"),
+                        "fps": f.get("fps"),
+                        "filesize": f.get("filesize") or f.get("filesize_approx"),
+                        "url": stream_url
+                    })
+                elif f.get("vcodec") == "none" and f.get("acodec") != "none":
+                    audio_streams.append({
+                        "format_id": f.get("format_id"),
+                        "ext": f.get("ext"),
+                        "acodec": f.get("acodec"),
+                        "abr": f.get("abr"),
+                        "filesize": f.get("filesize") or f.get("filesize_approx"),
+                        "url": stream_url
+                    })
+                elif f.get("vcodec") != "none":
+                    video_streams.append({
+                        "format_id": f.get("format_id"),
+                        "ext": f.get("ext"),
+                        "resolution": f.get("resolution"),
+                        "vcodec": f.get("vcodec"),
+                        "fps": f.get("fps"),
+                        "filesize": f.get("filesize") or f.get("filesize_approx"),
+                        "url": stream_url
+                    })
+            res = {
+                "ok": True,
+                "id": info.get("id"),
+                "title": info.get("title"),
+                "uploader": info.get("uploader"),
+                "duration": info.get("duration"),
+                "thumbnail": info.get("thumbnail"),
+                "storage_policy": "zero-disk-transient-memory",
+                "progressive_streams": progressive_streams[-4:],
+                "audio_streams": audio_streams[-6:],
+                "video_streams": video_streams[-6:]
             }
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                info = ydl.extract_info(url, download=False)
-                formats = info.get("formats", [])
-                audio_streams = []
-                video_streams = []
-                progressive_streams = []
-                for f in formats:
-                    stream_url = f.get("url")
-                    if not stream_url:
-                        continue
-                    if f.get("vcodec") != "none" and f.get("acodec") != "none":
-                        progressive_streams.append({
-                            "format_id": f.get("format_id"),
-                            "ext": f.get("ext"),
-                            "resolution": f.get("resolution"),
-                            "vcodec": f.get("vcodec"),
-                            "acodec": f.get("acodec"),
-                            "fps": f.get("fps"),
-                            "filesize": f.get("filesize") or f.get("filesize_approx"),
-                            "url": stream_url
-                        })
-                    elif f.get("vcodec") == "none" and f.get("acodec") != "none":
-                        audio_streams.append({
-                            "format_id": f.get("format_id"),
-                            "ext": f.get("ext"),
-                            "acodec": f.get("acodec"),
-                            "abr": f.get("abr"),
-                            "filesize": f.get("filesize") or f.get("filesize_approx"),
-                            "url": stream_url
-                        })
-                    elif f.get("vcodec") != "none":
-                        video_streams.append({
-                            "format_id": f.get("format_id"),
-                            "ext": f.get("ext"),
-                            "resolution": f.get("resolution"),
-                            "vcodec": f.get("vcodec"),
-                            "fps": f.get("fps"),
-                            "filesize": f.get("filesize") or f.get("filesize_approx"),
-                            "url": stream_url
-                        })
-                res = {
-                    "ok": True,
-                    "id": info.get("id"),
-                    "title": info.get("title"),
-                    "uploader": info.get("uploader"),
-                    "duration": info.get("duration"),
-                    "thumbnail": info.get("thumbnail"),
-                    "storage_policy": "zero-disk-transient-memory",
-                    "progressive_streams": progressive_streams[-4:],
-                    "audio_streams": audio_streams[-6:],
-                    "video_streams": video_streams[-6:]
-                }
-                self._send_json_response(res)
+            self._send_json_response(res)
         except Exception as e:
             self._send_json_response({"ok": False, "error": f"Stream extraction failed: {str(e)}"}, status=500)
 
@@ -11362,98 +11372,91 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         max_duration = int(params.get("duration") or params.get("t") or 0)
         is_download = str(params.get("download") or "0").lower() in ["1", "true", "yes"]
         try:
-            ydl_opts = {
-                "quiet": True,
-                "no_warnings": True,
-                "noplaylist": True,
-                "extractor_args": {"youtube": {"player_client": ["android", "web", "ios", "tv"]}}
-            }
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                info = ydl.extract_info(url, download=False)
-                formats = info.get("formats", [])
-                video_title = re.sub(r'[^a-zA-Z0-9_\- ]', '', info.get("title") or "media").strip().replace(" ", "_")[:60]
-                audio_formats = [f for f in formats if f.get("vcodec") == "none" and f.get("acodec") != "none" and f.get("url")]
-                progressive_formats = [f for f in formats if f.get("vcodec") != "none" and f.get("acodec") != "none" and f.get("url")]
-                video_only_formats = [f for f in formats if f.get("vcodec") != "none" and f.get("url")]
-                source_url = None
+            info = fetch_media_info_fast(url)
+            formats = info.get("formats", [])
+            video_title = re.sub(r'[^a-zA-Z0-9_\- ]', '', info.get("title") or "media").strip().replace(" ", "_")[:60]
+            audio_formats = [f for f in formats if f.get("vcodec") == "none" and f.get("acodec") != "none" and f.get("url")]
+            progressive_formats = [f for f in formats if f.get("vcodec") != "none" and f.get("acodec") != "none" and f.get("url")]
+            video_only_formats = [f for f in formats if f.get("vcodec") != "none" and f.get("url")]
+            source_url = None
+            output_ext = "mp4"
+            if target_format in ["audio", "wav", "mp3", "aac"]:
+                output_ext = "wav" if target_format == "wav" else ("mp3" if target_format == "mp3" else "m4a")
+                if audio_formats:
+                    source_url = audio_formats[-1]["url"]
+                elif progressive_formats:
+                    source_url = progressive_formats[-1]["url"]
+                elif formats:
+                    source_url = formats[-1].get("url")
+            else:
                 output_ext = "mp4"
-                if target_format in ["audio", "wav", "mp3", "aac"]:
-                    output_ext = "wav" if target_format == "wav" else ("mp3" if target_format == "mp3" else "m4a")
-                    if audio_formats:
-                        source_url = audio_formats[-1]["url"]
-                    elif progressive_formats:
-                        source_url = progressive_formats[-1]["url"]
-                    elif formats:
-                        source_url = formats[-1].get("url")
-                else:
-                    output_ext = "mp4"
-                    if progressive_formats:
-                        source_url = progressive_formats[-1]["url"]
-                    elif video_only_formats:
-                        source_url = video_only_formats[-1]["url"]
-                    elif formats:
-                        source_url = formats[-1].get("url")
-                if not source_url:
-                    self._send_json_response({"ok": False, "error": "No direct media stream found for resource"}, status=404)
-                    return
-                ffmpeg_bin = shutil.which("ffmpeg")
-                if target_format == "wav" and ffmpeg_bin:
-                    cmd = [ffmpeg_bin, "-y", "-loglevel", "error", "-i", source_url]
-                    if max_duration > 0:
-                        cmd.extend(["-t", str(max_duration)])
-                    cmd.extend(["-f", "wav", "-ar", "16000", "-ac", "1", "pipe:1"])
-                    self.send_response(200)
-                    self._send_cors_headers()
-                    self.send_header("Content-Type", "audio/wav")
-                    self.send_header("X-Media-Processor", "FFmpeg-Streaming-Pipe")
-                    self.send_header("X-Storage-Persistence", "none-zero-disk")
-                    if is_download:
-                        self.send_header("Content-Disposition", f'attachment; filename="{video_title}.wav"')
-                    self.end_headers()
-                    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, bufsize=64 * 1024)
-                    try:
-                        while True:
-                            chunk = proc.stdout.read(32 * 1024)
-                            if not chunk:
-                                break
-                            self.wfile.write(chunk)
-                            self.wfile.flush()
-                    finally:
-                        proc.kill()
-                    return
-                upstream_headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
-                range_header = self.headers.get("Range")
-                if range_header:
-                    upstream_headers["Range"] = range_header
-                req = urllib.request.Request(source_url, headers=upstream_headers)
-                with urllib.request.urlopen(req, timeout=15) as upstream:
-                    content_type = upstream.headers.get("Content-Type") or ("audio/mpeg" if target_format in ["audio", "mp3"] else "video/mp4")
-                    status_code = getattr(upstream, "status", 200)
-                    self.send_response(status_code)
-                    self._send_cors_headers()
-                    self.send_header("Content-Type", content_type)
-                    content_len = upstream.headers.get("Content-Length")
-                    if content_len:
-                        self.send_header("Content-Length", content_len)
-                    content_range = upstream.headers.get("Content-Range")
-                    if content_range:
-                        self.send_header("Content-Range", content_range)
-                    self.send_header("Accept-Ranges", "bytes")
-                    self.send_header("X-Media-Processor", "Direct-Upstream-Stream-Pipe")
-                    self.send_header("X-Storage-Persistence", "none-zero-disk")
-                    if is_download:
-                        self.send_header("Content-Disposition", f'attachment; filename="{video_title}.{output_ext}"')
-                    self.end_headers()
-                    bytes_streamed = 0
+                if progressive_formats:
+                    source_url = progressive_formats[-1]["url"]
+                elif video_only_formats:
+                    source_url = video_only_formats[-1]["url"]
+                elif formats:
+                    source_url = formats[-1].get("url")
+            if not source_url:
+                self._send_json_response({"ok": False, "error": "No direct media stream found for resource"}, status=404)
+                return
+            ffmpeg_bin = shutil.which("ffmpeg")
+            if target_format == "wav" and ffmpeg_bin:
+                cmd = [ffmpeg_bin, "-y", "-loglevel", "error", "-i", source_url]
+                if max_duration > 0:
+                    cmd.extend(["-t", str(max_duration)])
+                cmd.extend(["-f", "wav", "-ar", "16000", "-ac", "1", "pipe:1"])
+                self.send_response(200)
+                self._send_cors_headers()
+                self.send_header("Content-Type", "audio/wav")
+                self.send_header("X-Media-Processor", "FFmpeg-Streaming-Pipe")
+                self.send_header("X-Storage-Persistence", "none-zero-disk")
+                if is_download:
+                    self.send_header("Content-Disposition", f'attachment; filename="{video_title}.wav"')
+                self.end_headers()
+                proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, bufsize=64 * 1024)
+                try:
                     while True:
-                        chunk = upstream.read(64 * 1024)
+                        chunk = proc.stdout.read(32 * 1024)
                         if not chunk:
                             break
-                        bytes_streamed += len(chunk)
                         self.wfile.write(chunk)
                         self.wfile.flush()
-                        if max_duration > 0 and bytes_streamed > max_duration * 128 * 1024:
-                            break
+                finally:
+                    proc.kill()
+                return
+            upstream_headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+            range_header = self.headers.get("Range")
+            if range_header:
+                upstream_headers["Range"] = range_header
+            req = urllib.request.Request(source_url, headers=upstream_headers)
+            with urllib.request.urlopen(req, timeout=15) as upstream:
+                content_type = upstream.headers.get("Content-Type") or ("audio/mpeg" if target_format in ["audio", "mp3"] else "video/mp4")
+                status_code = getattr(upstream, "status", 200)
+                self.send_response(status_code)
+                self._send_cors_headers()
+                self.send_header("Content-Type", content_type)
+                content_len = upstream.headers.get("Content-Length")
+                if content_len:
+                    self.send_header("Content-Length", content_len)
+                content_range = upstream.headers.get("Content-Range")
+                if content_range:
+                    self.send_header("Content-Range", content_range)
+                self.send_header("Accept-Ranges", "bytes")
+                self.send_header("X-Media-Processor", "Direct-Upstream-Stream-Pipe")
+                self.send_header("X-Storage-Persistence", "none-zero-disk")
+                if is_download:
+                    self.send_header("Content-Disposition", f'attachment; filename="{video_title}.{output_ext}"')
+                self.end_headers()
+                bytes_streamed = 0
+                while True:
+                    chunk = upstream.read(64 * 1024)
+                    if not chunk:
+                        break
+                    bytes_streamed += len(chunk)
+                    self.wfile.write(chunk)
+                    self.wfile.flush()
+                    if max_duration > 0 and bytes_streamed > max_duration * 128 * 1024:
+                        break
         except Exception as e:
             try:
                 self._send_json_response({"ok": False, "error": f"Streaming proxy failed: {str(e)}"}, status=500)
