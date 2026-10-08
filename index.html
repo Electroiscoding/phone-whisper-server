@@ -7105,6 +7105,9 @@ python3 mobile/nuclear_watchdog.py</code></pre>
         return;
       }
       box.textContent = "Extracting video metadata via yt-dlp on phone silicon (zero-disk streaming mode)...";
+      if (titleEl) titleEl.textContent = "Resolving stream...";
+      if (uploaderEl) uploaderEl.textContent = "...";
+      if (durationEl) durationEl.textContent = "...";
       try {
         const res = await nuclearFetch(`${BASE_ENDPOINT}/v1/media/info?url=${encodeURIComponent(url)}`);
         const data = await res.json();
@@ -7114,9 +7117,14 @@ python3 mobile/nuclear_watchdog.py</code></pre>
           if (uploaderEl) uploaderEl.textContent = data.uploader || data.channel || "Unknown";
           if (durationEl) durationEl.textContent = data.duration ? `${data.duration}s` : "Stream";
           if (thumbEl && data.thumbnail) thumbEl.src = data.thumbnail;
+        } else {
+          if (titleEl) titleEl.textContent = "Extraction Failed";
+          if (uploaderEl) uploaderEl.textContent = data.error || "Error";
         }
       } catch (err) {
         box.textContent = `Error extracting media info: ${err.message}`;
+        if (titleEl) titleEl.textContent = "Network Error";
+        if (uploaderEl) uploaderEl.textContent = err.message;
       }
     }
     window.fetchMediaInfo = fetchMediaInfo;
