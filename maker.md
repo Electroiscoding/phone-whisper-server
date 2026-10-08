@@ -975,6 +975,37 @@ curl -X POST "https://phone-whisper-server.pages.dev/v1/rank" \
 
 ---
 
+### 4.10 Zero-Disk Media Processor & Audio Stream Pipeline (`/v1/media/*`)
+
+The sovereign datacenter includes an on-the-fly, zero-disk media processor powered by native `yt-dlp` and `FFmpeg` streaming pipelines.
+
+#### 4.10.1 Key Architectural Principles
+- **Zero Local Disk Storage**: The video and audio bytes are never saved to phone flash or server disk storage. The phone acts strictly as an in-memory streaming transcode processor.
+- **Direct Upstream Stream Discovery**: Inspects media URLs (YouTube, Vimeo, audio/video links) to extract stream formats, video resolutions, audio codecs, and direct streaming URLs.
+- **Pipe-to-Player & Pipe-to-Whisper**: Audio streams can be piped directly into browser `<audio>` players or fed into `/v1/audio/transcriptions` for speech-to-text processing without downloading any video files.
+
+#### 4.10.2 Available Endpoints
+
+| Endpoint | Method | Params / Payload | Description |
+| :--- | :--- | :--- | :--- |
+| `/v1/media/info` | `GET` / `POST` | `url` | Extracts comprehensive video metadata (title, uploader, duration, thumbnail, best audio/video stream URLs). |
+| `/v1/media/extract` | `GET` / `POST` | `url` | Lists all audio-only and video-only direct streaming formats. |
+| `/v1/media/stream` | `GET` / `POST` | `url`, `format=audio\|wav\|video`, `duration` | Streams media chunks directly via HTTP chunked transfer without saving to disk. |
+
+#### 4.10.3 cURL Integration Examples
+
+```bash
+curl -s "https://phone-whisper-server.pages.dev/v1/media/info?url=https://www.youtube.com/watch?v=jNQXAC9IVRw"
+
+curl -s -X POST "https://phone-whisper-server.pages.dev/v1/media/extract" \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://www.youtube.com/watch?v=jNQXAC9IVRw"}'
+
+curl -s "https://phone-whisper-server.pages.dev/v1/media/stream?url=https://www.youtube.com/watch?v=jNQXAC9IVRw&format=audio" | ffplay -nodisp -autoexit -i -
+```
+
+---
+
 ## 5. Autonomous Coding Agent Engine (`Swades-Agent`)
 
 The node hosts a full PRoot Alpine Linux environment capable of running autonomous coding workflows (cloning Git repositories, creating branches, modifying code, performing self-verification syntax checks, and opening GitHub Pull Requests).

@@ -66,6 +66,12 @@ except Exception:
     HAVE_NUMPY = False
 
 try:
+    import yt_dlp
+    HAVE_YTDLP = True
+except Exception:
+    HAVE_YTDLP = False
+
+try:
     import tflite_runtime.interpreter as tflite
     HAVE_TFLITE = True
 except Exception:
@@ -5494,6 +5500,12 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_telemetry()
         elif path in ["/benchmark", "/v1/benchmark"]:
             self.handle_benchmark()
+        elif path in ["/v1/media/info", "/v1/media", "/media/info", "/media"]:
+            self.handle_media_info_get(parsed)
+        elif path in ["/v1/media/extract", "/media/extract"]:
+            self.handle_media_extract_get(parsed)
+        elif path in ["/v1/media/stream", "/media/stream"]:
+            self.handle_media_stream_get(parsed)
         elif path in ["/health", "/v1/health", "/v1/models"]:
             self.handle_health()
         elif path in ["/v1/rank/stats", "/v1/stats", "/stats"]:
@@ -5800,6 +5812,12 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_zstd_decompress()
         elif path in ["/v1/images/compress", "/v1/image/compress", "/images/compress", "/image/compress", "/v1/compress/image", "/compress/image"]:
             self.handle_image_compress()
+        elif path in ["/v1/media/info", "/v1/media", "/media/info", "/media"]:
+            self.handle_media_info_post()
+        elif path in ["/v1/media/extract", "/media/extract"]:
+            self.handle_media_extract_post()
+        elif path in ["/v1/media/stream", "/media/stream"]:
+            self.handle_media_stream_post()
         elif path in ["/inference", "/v1/audio/transcriptions"]:
             self.proxy_whisper()
         elif path == "/v1/chat/completions":
@@ -9855,6 +9873,14 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                     "auth": "Open / No API Key Required",
                     "status": "ACTIVE"
                 },
+                "media_processor": {
+                    "endpoint": "/v1/media/info",
+                    "aliases": ["/v1/media/extract", "/v1/media/stream"],
+                    "engine": "yt-dlp + FFmpeg Streaming Pipe (Zero-Disk Memory Processor)",
+                    "auth": "Open / No API Key Required",
+                    "storage_policy": "ephemeral-stream-only",
+                    "status": "ACTIVE" if HAVE_YTDLP else "UNAVAILABLE"
+                },
                 "telemetry": {"endpoint": "/telemetry", "source": "Live Android Kernel & Elastic Governor", "status": "ACTIVE"}
             },
             "timestamp": int(time.time())
@@ -11106,6 +11132,281 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.send_header("Content-Type", "application/json")
             self.end_headers()
             self.wfile.write(json.dumps({"error": f"Zstd image compression failed: {str(e)}"}).encode("utf-8"))
+
+    def _parse_media_request_params(self, parsed=None):
+        params = {}
+        if parsed and parsed.query:
+            qs = urllib.parse.parse_qs(parsed.query)
+            for k, v in qs.items():
+                if v:
+                    params[k] = v[0]
+        if self.command == "POST":
+            cl = int(self.headers.get("Content-Length", 0))
+            if cl > 0 and cl < 10 * 1024 * 1024:
+                try:
+                    body = self.rfile.read(cl)
+                    ct = (self.headers.get("Content-Type") or "").lower()
+                    if "application/json" in ct:
+                        data = json.loads(body.decode("utf-8", errors="ignore"))
+                        if isinstance(data, dict):
+                            params.update(data)
+                    elif "application/x-www-form-urlencoded" in ct:
+                        qs = urllib.parse.parse_qs(body.decode("utf-8", errors="ignore"))
+                        for k, v in qs.items():
+                            if v:
+                                params[k] = v[0]
+                except Exception:
+                    pass
+        return params
+
+    def handle_media_info_get(self, parsed):
+        params = self._parse_media_request_params(parsed)
+        url = params.get("url")
+        if not url:
+            info = {
+                "name": "Zero-Disk Media Processor & Stream Gateway",
+                "engine": "yt-dlp + FFmpeg Streaming Pipe",
+                "storage_policy": "ephemeral-stream-only (zero local disk persistence)",
+                "endpoints": {
+                    "info": "/v1/media/info?url=<media_url>",
+                    "extract": "/v1/media/extract?url=<media_url>",
+                    "stream": "/v1/media/stream?url=<media_url>&format=audio|wav|mp3|video"
+                },
+                "status": "ONLINE" if HAVE_YTDLP else "UNAVAILABLE"
+            }
+            self._send_json_response(info)
+            return
+        self._process_media_info(url)
+
+    def handle_media_info_post(self):
+        params = self._parse_media_request_params()
+        url = params.get("url")
+        if not url:
+            self._send_json_response({"ok": False, "error": "Missing required 'url' parameter in JSON payload"}, status=400)
+            return
+        self._process_media_info(url)
+
+    def _process_media_info(self, url):
+        if not HAVE_YTDLP:
+            self._send_json_response({"ok": False, "error": "yt-dlp engine is not installed on server"}, status=503)
+            return
+        try:
+            ydl_opts = {
+                "quiet": True,
+                "no_warnings": True,
+                "noplaylist": True,
+                "extract_flat": False
+            }
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(url, download=False)
+                formats = info.get("formats", [])
+                best_audio = None
+                best_video = None
+                for f in reversed(formats):
+                    if not best_audio and f.get("vcodec") == "none" and f.get("acodec") != "none" and f.get("url"):
+                        best_audio = {
+                            "format_id": f.get("format_id"),
+                            "ext": f.get("ext"),
+                            "acodec": f.get("acodec"),
+                            "abr": f.get("abr"),
+                            "filesize": f.get("filesize") or f.get("filesize_approx"),
+                            "url": f.get("url")
+                        }
+                    if not best_video and f.get("vcodec") != "none" and f.get("url"):
+                        best_video = {
+                            "format_id": f.get("format_id"),
+                            "ext": f.get("ext"),
+                            "resolution": f.get("resolution"),
+                            "vcodec": f.get("vcodec"),
+                            "fps": f.get("fps"),
+                            "url": f.get("url")
+                        }
+                res = {
+                    "ok": True,
+                    "id": info.get("id"),
+                    "title": info.get("title"),
+                    "description": (info.get("description") or "")[:500],
+                    "uploader": info.get("uploader"),
+                    "channel": info.get("channel"),
+                    "duration": info.get("duration"),
+                    "view_count": info.get("view_count"),
+                    "thumbnail": info.get("thumbnail"),
+                    "webpage_url": info.get("webpage_url") or url,
+                    "storage_policy": "zero-disk-transient-memory",
+                    "best_audio": best_audio,
+                    "best_video": best_video
+                }
+                self._send_json_response(res)
+        except Exception as e:
+            self._send_json_response({"ok": False, "error": f"Metadata extraction failed: {str(e)}"}, status=500)
+
+    def handle_media_extract_get(self, parsed):
+        params = self._parse_media_request_params(parsed)
+        url = params.get("url")
+        if not url:
+            self._send_json_response({"ok": False, "error": "Missing required 'url' parameter"}, status=400)
+            return
+        self._process_media_extract(url)
+
+    def handle_media_extract_post(self):
+        params = self._parse_media_request_params()
+        url = params.get("url")
+        if not url:
+            self._send_json_response({"ok": False, "error": "Missing required 'url' parameter"}, status=400)
+            return
+        self._process_media_extract(url)
+
+    def _process_media_extract(self, url):
+        if not HAVE_YTDLP:
+            self._send_json_response({"ok": False, "error": "yt-dlp engine is not installed on server"}, status=503)
+            return
+        try:
+            ydl_opts = {
+                "quiet": True,
+                "no_warnings": True,
+                "noplaylist": True
+            }
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(url, download=False)
+                formats = info.get("formats", [])
+                audio_streams = []
+                video_streams = []
+                for f in formats:
+                    stream_url = f.get("url")
+                    if not stream_url:
+                        continue
+                    if f.get("vcodec") == "none" and f.get("acodec") != "none":
+                        audio_streams.append({
+                            "format_id": f.get("format_id"),
+                            "ext": f.get("ext"),
+                            "acodec": f.get("acodec"),
+                            "abr": f.get("abr"),
+                            "filesize": f.get("filesize") or f.get("filesize_approx"),
+                            "url": stream_url
+                        })
+                    elif f.get("vcodec") != "none":
+                        video_streams.append({
+                            "format_id": f.get("format_id"),
+                            "ext": f.get("ext"),
+                            "resolution": f.get("resolution"),
+                            "vcodec": f.get("vcodec"),
+                            "fps": f.get("fps"),
+                            "filesize": f.get("filesize") or f.get("filesize_approx"),
+                            "url": stream_url
+                        })
+                res = {
+                    "ok": True,
+                    "id": info.get("id"),
+                    "title": info.get("title"),
+                    "uploader": info.get("uploader"),
+                    "duration": info.get("duration"),
+                    "thumbnail": info.get("thumbnail"),
+                    "storage_policy": "zero-disk-transient-memory",
+                    "audio_streams": audio_streams[-6:],
+                    "video_streams": video_streams[-6:]
+                }
+                self._send_json_response(res)
+        except Exception as e:
+            self._send_json_response({"ok": False, "error": f"Stream extraction failed: {str(e)}"}, status=500)
+
+    def handle_media_stream_get(self, parsed):
+        params = self._parse_media_request_params(parsed)
+        self._process_media_stream(params)
+
+    def handle_media_stream_post(self):
+        params = self._parse_media_request_params()
+        self._process_media_stream(params)
+
+    def _process_media_stream(self, params):
+        if not HAVE_YTDLP:
+            self._send_json_response({"ok": False, "error": "yt-dlp engine is not installed on server"}, status=503)
+            return
+        url = params.get("url")
+        if not url:
+            self._send_json_response({"ok": False, "error": "Missing required 'url' parameter"}, status=400)
+            return
+        target_format = (params.get("format") or params.get("type") or "audio").lower()
+        max_duration = int(params.get("duration") or params.get("t") or 0)
+        try:
+            ydl_opts = {
+                "quiet": True,
+                "no_warnings": True,
+                "noplaylist": True
+            }
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(url, download=False)
+                formats = info.get("formats", [])
+                audio_formats = [f for f in formats if f.get("vcodec") == "none" and f.get("acodec") != "none" and f.get("url")]
+                video_formats = [f for f in formats if f.get("vcodec") != "none" and f.get("url")]
+                source_url = None
+                if target_format in ["audio", "wav", "mp3", "aac"]:
+                    if audio_formats:
+                        source_url = audio_formats[-1]["url"]
+                    elif formats:
+                        source_url = formats[-1].get("url")
+                else:
+                    if video_formats:
+                        source_url = video_formats[-1]["url"]
+                    elif formats:
+                        source_url = formats[-1].get("url")
+                if not source_url:
+                    self._send_json_response({"ok": False, "error": "No direct media stream found for resource"}, status=404)
+                    return
+                ffmpeg_bin = shutil.which("ffmpeg")
+                if target_format == "wav" and ffmpeg_bin:
+                    cmd = [ffmpeg_bin, "-y", "-loglevel", "error", "-i", source_url]
+                    if max_duration > 0:
+                        cmd.extend(["-t", str(max_duration)])
+                    cmd.extend(["-f", "wav", "-ar", "16000", "-ac", "1", "pipe:1"])
+                    self.send_response(200)
+                    self._send_cors_headers()
+                    self.send_header("Content-Type", "audio/wav")
+                    self.send_header("Transfer-Encoding", "chunked")
+                    self.send_header("X-Media-Processor", "FFmpeg-Streaming-Pipe")
+                    self.send_header("X-Storage-Persistence", "none-zero-disk")
+                    self.end_headers()
+                    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, bufsize=64 * 1024)
+                    try:
+                        while True:
+                            chunk = proc.stdout.read(32 * 1024)
+                            if not chunk:
+                                break
+                            chunk_len = f"{len(chunk):X}\r\n".encode("ascii")
+                            self.wfile.write(chunk_len + chunk + b"\r\n")
+                            self.wfile.flush()
+                        self.wfile.write(b"0\r\n\r\n")
+                        self.wfile.flush()
+                    finally:
+                        proc.kill()
+                    return
+                req = urllib.request.Request(source_url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"})
+                with urllib.request.urlopen(req, timeout=15) as upstream:
+                    content_type = upstream.headers.get("Content-Type") or ("audio/mpeg" if target_format in ["audio", "mp3"] else "video/mp4")
+                    self.send_response(200)
+                    self._send_cors_headers()
+                    self.send_header("Content-Type", content_type)
+                    self.send_header("Transfer-Encoding", "chunked")
+                    self.send_header("X-Media-Processor", "Direct-Upstream-Stream-Pipe")
+                    self.send_header("X-Storage-Persistence", "none-zero-disk")
+                    self.end_headers()
+                    bytes_streamed = 0
+                    while True:
+                        chunk = upstream.read(64 * 1024)
+                        if not chunk:
+                            break
+                        bytes_streamed += len(chunk)
+                        chunk_len = f"{len(chunk):X}\r\n".encode("ascii")
+                        self.wfile.write(chunk_len + chunk + b"\r\n")
+                        self.wfile.flush()
+                        if max_duration > 0 and bytes_streamed > max_duration * 128 * 1024:
+                            break
+                    self.wfile.write(b"0\r\n\r\n")
+                    self.wfile.flush()
+        except Exception as e:
+            try:
+                self._send_json_response({"ok": False, "error": f"Streaming proxy failed: {str(e)}"}, status=500)
+            except Exception:
+                pass
 
 
 def get_tunnel_status_info():

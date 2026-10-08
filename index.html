@@ -2648,6 +2648,7 @@
     <div class="nav-links-desktop">
       <a href="#studio" class="nav-link">Studio</a>
       <a href="#feed-ranking-studio" class="nav-link" style="color: #38bdf8; font-weight: 600;"><i class="fa-solid fa-ranking-star mr-1"></i> Feed Ranking</a>
+      <a href="#media-processor-studio" class="nav-link" style="color: #a855f7; font-weight: 600;"><i class="fa-solid fa-film mr-1"></i> Media Processor</a>
       <a href="#phone-remote-studio" class="nav-link" style="color: #f87171; font-weight: 600;"><i class="fa-solid fa-mobile-screen-button mr-1"></i> Phone Remote</a>
 
       <!-- Platform Dropdown -->
@@ -2709,6 +2710,15 @@
             <div>
               <div class="nav-dropdown-title">Live Telemetry</div>
               <div class="nav-dropdown-desc">Real-time battery, thermals &amp; RAM</div>
+            </div>
+          </a>
+          <a href="#media-processor-studio" class="nav-dropdown-item">
+            <div class="nav-dropdown-icon" style="background: rgba(168, 85, 247, 0.15); color: #c084fc;">
+              <i class="fa-solid fa-film"></i>
+            </div>
+            <div>
+              <div class="nav-dropdown-title">Zero-Disk Media Processor</div>
+              <div class="nav-dropdown-desc">yt-dlp metadata, formats &amp; audio pipes</div>
             </div>
           </a>
           <a href="#gridlock-demo" class="nav-dropdown-item">
@@ -2825,6 +2835,9 @@
       </a>
       <a href="#gridlock-demo" class="mobile-nav-item" onclick="closeMobileDrawer()" style="color: #fb7185; border-color: rgba(251,113,133,0.3);">
         <i class="fa-solid fa-dice mr-2 text-rose-400"></i> <span>GridLock Monopoly 🎲</span>
+      </a>
+      <a href="#media-processor-studio" class="mobile-nav-item" onclick="closeMobileDrawer()" style="color: #c084fc; border-color: rgba(168,85,247,0.3);">
+        <i class="fa-solid fa-film mr-2 text-purple-400"></i> <span>Media Processor (yt-dlp) 🎬</span>
       </a>
 
       <div class="mobile-nav-section-title">Developers</div>
@@ -3489,6 +3502,72 @@ Spam advertisement: Click here to buy cheap luxury watches online now!!</textare
           </div>
 
         </div>
+      </div>
+    </section>
+
+    <section id="media-processor-studio" style="margin-top: 2rem;">
+      <div class="section-head">
+        <span class="section-tag" style="background: rgba(168, 85, 247, 0.15); border-color: rgba(168, 85, 247, 0.3); color: #c084fc;">
+          <i class="fa-solid fa-film text-purple-400"></i>
+          <span>Mode 5.8: Zero-Disk Ephemeral Media Processor &amp; Stream Pipe</span>
+        </span>
+        <h2 class="section-title">Zero-Disk Media Processor &amp; Audio Stream Pipeline (yt-dlp + FFmpeg)</h2>
+        <p class="section-desc">On-the-go stream transcoding and direct audio extraction without saving video bytes to disk storage. Streams are processed in RAM memory and piped straight to client audio players or downstream Whisper STT.</p>
+      </div>
+
+      <div class="chat-container-card" style="border: 1px solid rgba(168, 85, 247, 0.35); background: rgba(15, 12, 29, 0.9);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+          <div style="font-size: 0.85rem; color: #cbd5e1; font-weight: 700;">
+            <i class="fa-solid fa-bolt text-purple-400 mr-1"></i> Interactive URL Processor
+          </div>
+          <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
+            <button class="btn-action" style="font-size: 0.75rem; padding: 0.25rem 0.6rem;" onclick="setMediaProcessorUrl('https://www.youtube.com/watch?v=jNQXAC9IVRw')">Demo: First YT Video</button>
+            <button class="btn-action" style="font-size: 0.75rem; padding: 0.25rem 0.6rem;" onclick="setMediaProcessorUrl('https://www.youtube.com/watch?v=dQw4w9WgXcQ')">Demo: Music Clip</button>
+            <button class="btn-action" style="font-size: 0.75rem; padding: 0.25rem 0.6rem;" onclick="setMediaProcessorUrl('https://www.youtube.com/watch?v=k1BneeJTDcU')">Demo: 4K Nature</button>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap;">
+          <input type="text" id="mediaUrlInput" class="chat-input" style="flex: 1; min-width: 260px; font-size: 0.85rem;" placeholder="Paste YouTube, Vimeo or audio/video URL..." value="https://www.youtube.com/watch?v=jNQXAC9IVRw" />
+          <button class="btn-action" style="background: linear-gradient(135deg, #a855f7, #6366f1); color: #fff; font-weight: 700; border: none; padding: 0.5rem 1.1rem; border-radius: 8px; cursor: pointer;" onclick="fetchMediaInfo()">
+            <i class="fa-solid fa-magnifying-glass mr-1"></i> Inspect Metadata
+          </button>
+          <button class="btn-action" style="background: rgba(56, 189, 248, 0.2); border-color: rgba(56, 189, 248, 0.4); color: #38bdf8; font-weight: 700; padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer;" onclick="fetchMediaStreams()">
+            <i class="fa-solid fa-list mr-1"></i> Formats
+          </button>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+          <div style="background: rgba(0,0,0,0.4); padding: 1rem; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08);">
+            <div style="display: flex; gap: 1rem; align-items: flex-start;">
+              <img id="mediaThumbImg" src="https://i.ytimg.com/vi/jNQXAC9IVRw/hqdefault.jpg" style="width: 110px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15);" alt="Media Thumbnail" />
+              <div style="flex: 1; min-width: 0;">
+                <div id="mediaTitleText" style="color: #f1f5f9; font-weight: 700; font-size: 0.9rem; margin-bottom: 0.3rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Me at the zoo</div>
+                <div style="font-size: 0.75rem; color: #94a3b8; display: flex; flex-direction: column; gap: 0.15rem;">
+                  <div>Channel: <span id="mediaUploaderText" style="color: #cbd5e1; font-weight: 600;">jawed</span></div>
+                  <div>Duration: <span id="mediaDurationText" style="color: #38bdf8; font-weight: 600;">19s</span></div>
+                  <div>Policy: <span style="color: #34d399; font-weight: 600;">Zero-Disk Transient RAM</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style="background: rgba(0,0,0,0.4); padding: 1rem; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <div style="font-size: 0.8rem; color: #c084fc; font-weight: 700; margin-bottom: 0.5rem;">
+                <i class="fa-solid fa-headphones mr-1"></i> Live Stream Pipe (Zero Disk Persistence)
+              </div>
+              <div style="display: flex; gap: 0.5rem; margin-bottom: 0.6rem; flex-wrap: wrap;">
+                <button class="btn-action" style="font-size: 0.72rem; padding: 0.3rem 0.6rem;" onclick="playMediaStream('audio')">Stream Audio (Native)</button>
+                <button class="btn-action" style="font-size: 0.72rem; padding: 0.3rem 0.6rem;" onclick="playMediaStream('wav')">Stream WAV (16kHz Pipe)</button>
+                <button class="btn-action" style="font-size: 0.72rem; padding: 0.3rem 0.6rem;" onclick="copyMediaStreamUrl()">Copy Stream Link</button>
+              </div>
+            </div>
+            <audio id="mediaPlayerAudio" controls style="width: 100%; height: 36px; margin-top: 0.3rem; outline: none;"></audio>
+          </div>
+        </div>
+
+        <div id="mediaOutputBox" style="background: #000; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 0.75rem; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: #a855f7; max-height: 140px; overflow-y: auto; white-space: pre-wrap;">Ready to process media stream. Enter URL and tap Inspect Metadata.</div>
       </div>
     </section>
 
@@ -6988,6 +7067,97 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       }
     }
     window.executeFeedRankingDemo = executeFeedRankingDemo;
+
+    function setMediaProcessorUrl(url) {
+      const input = document.getElementById("mediaUrlInput");
+      if (input) {
+        input.value = url;
+        fetchMediaInfo();
+      }
+    }
+    window.setMediaProcessorUrl = setMediaProcessorUrl;
+
+    async function fetchMediaInfo() {
+      const input = document.getElementById("mediaUrlInput");
+      const box = document.getElementById("mediaOutputBox");
+      const titleEl = document.getElementById("mediaTitleText");
+      const uploaderEl = document.getElementById("mediaUploaderText");
+      const durationEl = document.getElementById("mediaDurationText");
+      const thumbEl = document.getElementById("mediaThumbImg");
+      if (!input || !box) return;
+      const url = input.value.trim();
+      if (!url) {
+        box.textContent = "Please enter a valid media URL.";
+        return;
+      }
+      box.textContent = "Extracting video metadata via yt-dlp on phone silicon (zero-disk streaming mode)...";
+      try {
+        const res = await nuclearFetch(`${BASE_ENDPOINT}/v1/media/info?url=${encodeURIComponent(url)}`);
+        const data = await res.json();
+        box.textContent = JSON.stringify(data, null, 2);
+        if (data.ok) {
+          if (titleEl) titleEl.textContent = data.title || "Untitled";
+          if (uploaderEl) uploaderEl.textContent = data.uploader || data.channel || "Unknown";
+          if (durationEl) durationEl.textContent = data.duration ? `${data.duration}s` : "Stream";
+          if (thumbEl && data.thumbnail) thumbEl.src = data.thumbnail;
+        }
+      } catch (err) {
+        box.textContent = `Error extracting media info: ${err.message}`;
+      }
+    }
+    window.fetchMediaInfo = fetchMediaInfo;
+
+    async function fetchMediaStreams() {
+      const input = document.getElementById("mediaUrlInput");
+      const box = document.getElementById("mediaOutputBox");
+      if (!input || !box) return;
+      const url = input.value.trim();
+      if (!url) {
+        box.textContent = "Please enter a valid media URL.";
+        return;
+      }
+      box.textContent = "Querying live audio & video stream formats...";
+      try {
+        const res = await nuclearFetch(`${BASE_ENDPOINT}/v1/media/extract?url=${encodeURIComponent(url)}`);
+        const data = await res.json();
+        box.textContent = JSON.stringify(data, null, 2);
+      } catch (err) {
+        box.textContent = `Error extracting streams: ${err.message}`;
+      }
+    }
+    window.fetchMediaStreams = fetchMediaStreams;
+
+    function playMediaStream(fmt) {
+      const input = document.getElementById("mediaUrlInput");
+      const player = document.getElementById("mediaPlayerAudio");
+      const box = document.getElementById("mediaOutputBox");
+      if (!input || !player) return;
+      const url = input.value.trim();
+      if (!url) return;
+      const streamUrl = `${BASE_ENDPOINT}/v1/media/stream?url=${encodeURIComponent(url)}&format=${fmt}`;
+      player.src = streamUrl;
+      player.play().catch(() => {});
+      if (box) {
+        box.textContent = `Streaming piped from: ${streamUrl}\nStorage mode: Ephemeral RAM pipe (no bytes saved to disk)`;
+      }
+    }
+    window.playMediaStream = playMediaStream;
+
+    function copyMediaStreamUrl() {
+      const input = document.getElementById("mediaUrlInput");
+      const box = document.getElementById("mediaOutputBox");
+      if (!input) return;
+      const url = input.value.trim();
+      if (!url) return;
+      const streamUrl = `${BASE_ENDPOINT}/v1/media/stream?url=${encodeURIComponent(url)}&format=audio`;
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(streamUrl);
+        if (box) box.textContent = `Copied stream URL to clipboard:\n${streamUrl}`;
+      } else {
+        prompt("Copy direct stream URL:", streamUrl);
+      }
+    }
+    window.copyMediaStreamUrl = copyMediaStreamUrl;
 
     async function glRunSim() {
       const btn = document.getElementById('glSimBtn');

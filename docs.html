@@ -316,6 +316,7 @@
             <li><a href="#api-cron" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">POST /v1/cron/*</a></li>
             <li><a href="#api-rank" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all"><i class="fa-solid fa-ranking-star mr-1 text-neoncyan"></i> POST /v1/rank (Frostbite v0.1)</a></li>
             <li><a href="#api-monopoly" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all"><i class="fa-solid fa-dice mr-1 text-amber-400"></i> /v1/monopoly/rooms (GridLock 1v1)</a></li>
+            <li><a href="#api-media" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all"><i class="fa-solid fa-play mr-1 text-rose-400"></i> /v1/media/* (Zero-Disk Media Processor)</a></li>
           </ul>
         </div>
 
@@ -3164,7 +3165,46 @@ curl -X POST "https://phone-whisper-server.pages.dev/v1/monopoly/rooms/ROMA/trad
           </div>
         </div>
 
-        <!-- ENDPOINT 11: GET /telemetry & /health -->
+        <div id="api-media" class="bg-cardbg border border-cardborder rounded-xl p-6 mb-8 font-mono text-xs">
+          <div class="flex items-center justify-between border-b border-cardborder pb-3 mb-4">
+            <div class="flex items-center gap-3">
+              <span class="px-2.5 py-1 rounded bg-rose-900/60 border border-rose-700 text-rose-300 font-bold">STREAM</span>
+              <span class="text-white font-bold text-sm">/v1/media/* (Zero-Disk yt-dlp Transcoder Pipe)</span>
+            </div>
+            <span class="text-[10px] px-2 py-0.5 rounded bg-zinc-800 text-rose-400 border border-zinc-700">EPHEMERAL RAM ONLY</span>
+          </div>
+
+          <div class="text-zinc-300 mb-4 leading-relaxed font-sans text-sm">
+            High-throughput, zero-disk ephemeral media gateway powered by in-memory <code>yt-dlp</code> and direct Unix pipes. Extracts metadata, resolves signed CDN stream URLs, and performs on-the-fly chunked streaming or real-time 16kHz mono WAV transcoding for Whisper ASR without touching flash storage.
+          </div>
+
+          <div class="space-y-4">
+            <div class="p-3 rounded bg-zinc-950/70 border border-cardborder">
+              <div class="font-bold text-rose-300 mb-1">1. Metadata & Best Stream Resolver</div>
+              <div class="text-zinc-400 text-[10px] mb-2 font-mono">GET or POST /v1/media/info</div>
+              <pre class="text-zinc-300 overflow-x-auto"><code>curl "https://phone-whisper-server.pages.dev/v1/media/info?url=https://www.youtube.com/watch?v=dQw4w9WgXcQ" \
+  -H "Authorization: Bearer test_api_key_123"</code></pre>
+            </div>
+
+            <div class="p-3 rounded bg-zinc-950/70 border border-cardborder">
+              <div class="font-bold text-rose-300 mb-1">2. Complete Format Extraction</div>
+              <div class="text-zinc-400 text-[10px] mb-2 font-mono">GET or POST /v1/media/extract</div>
+              <pre class="text-zinc-300 overflow-x-auto"><code>curl -X POST "https://phone-whisper-server.pages.dev/v1/media/extract" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer test_api_key_123" \
+  -d '{"url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"}'</code></pre>
+            </div>
+
+            <div class="p-3 rounded bg-zinc-950/70 border border-cardborder">
+              <div class="font-bold text-rose-300 mb-1">3. Zero-Disk Chunked Stream & Transcode Pipe</div>
+              <div class="text-zinc-400 text-[10px] mb-2 font-mono">GET or POST /v1/media/stream (transcode=raw | wav)</div>
+              <pre class="text-zinc-300 overflow-x-auto"><code>curl -N "https://phone-whisper-server.pages.dev/v1/media/stream?url=https://www.youtube.com/watch?v=dQw4w9WgXcQ&transcode=wav" \
+  -H "Authorization: Bearer test_api_key_123" \
+  --output - | aplay -r 16000 -f S16_LE -c 1</code></pre>
+            </div>
+          </div>
+        </div>
+
         <div id="api-telemetry" class="bg-cardbg border border-cardborder rounded-xl p-6 mb-8 font-mono text-xs">
           <div class="flex items-center justify-between border-b border-cardborder pb-3 mb-4">
             <div class="flex items-center gap-3">
@@ -5353,6 +5393,9 @@ WAL file size: 1.4 MB • Checkpoint status: PASS (0 uncommitted frames)
       { title: 'POST /v1/rerank (BGE Cross-Encoder)', hash: '#api-rerank', tag: 'API' },
       { title: 'POST /v1/agent/submit (Swades)', hash: '#api-agent', tag: 'API' },
       { title: 'GET /v1/agent/stream/:id (SSE)', hash: '#api-stream', tag: 'API' },
+      { title: 'POST /v1/monopoly/rooms (GridLock 1v1)', hash: '#api-monopoly', tag: 'GAME' },
+      { title: 'Zero-Disk Media Processor (/v1/media/*)', hash: '#api-media', tag: 'STREAM' },
+      { title: 'POST /v1/media/stream (FFmpeg WAV Pipe)', hash: '#api-media', tag: 'STREAM' },
       { title: 'CRUD /v1/storage/objects/*', hash: '#api-storage-crud', tag: 'API' },
       { title: 'GET /telemetry & /health', hash: '#api-telemetry', tag: 'API' },
       { title: 'Standardized Error Codes Matrix', hash: '#error-matrix', tag: 'ERRORS' },
