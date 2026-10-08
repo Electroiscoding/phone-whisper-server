@@ -103,7 +103,7 @@ while true; do
   if ! pgrep -f "gateway.py" > /dev/null; then
     GW_ALIVE=0
   else
-    GW_STATUS=$(curl -s -m 4 -o /dev/null -w "%{http_code}" "http://127.0.0.1:8080/v1/health" 2>/dev/null || echo "000")
+    GW_STATUS=$(python3 -c 'import urllib.request; sys_exit = lambda c: exit(0 if c == 200 else 1); print(urllib.request.urlopen("http://127.0.0.1:8080/v1/health", timeout=3).getcode())' 2>/dev/null || echo "000")
     if [ "$GW_STATUS" != "200" ]; then
       GW_FAIL_COUNT=$((GW_FAIL_COUNT + 1))
       if [ "$GW_FAIL_COUNT" -ge 12 ]; then
@@ -131,7 +131,7 @@ while true; do
   CURRENT_ACTIVE_URL=$(grep -oE "https://[a-zA-Z0-9-]+\.trycloudflare\.com" $HOME/cf_tunnel.log 2>/dev/null | grep -v "api.trycloudflare.com" | tail -n 1)
   if [ -n "$CURRENT_ACTIVE_URL" ] && [ $((NOW - TUNNEL_START_TIME)) -ge 90 ] && [ $((NOW - LAST_PROBE_TIME)) -ge 30 ]; then
     LAST_PROBE_TIME=$NOW
-    PROBE_STATUS=$(curl -s -4 -m 10 -o /dev/null -w "%{http_code}" "$CURRENT_ACTIVE_URL/telemetry" 2>/dev/null || echo "000")
+    PROBE_STATUS=$(python3 -c 'import urllib.request, sys; sys.exit(0 if urllib.request.urlopen("'"$CURRENT_ACTIVE_URL"'/telemetry", timeout=6).getcode() == 200 else 1)' 2>/dev/null && echo "200" || echo "000")
     if [ "$PROBE_STATUS" = "200" ]; then
       FAIL_COUNT=0
     else
@@ -162,18 +162,14 @@ while true; do
 
   if [ -n "$URL" ] && [ $((NOW - LAST_PAGES_HEARTBEAT)) -ge 15 ]; then
     LAST_PAGES_HEARTBEAT=$NOW
-    curl -s -m 4 -X POST https://phone-whisper-server.pages.dev/register_tunnel \
-      -H "Content-Type: application/json" \
-      -d '{"endpoint": "'"$URL"'", "secret": "mobile_ai_nuclear_key"}' >/dev/null 2>&1 &
+    python3 -c 'import urllib.request, json; data = json.dumps({"endpoint": "'"$URL"'", "secret": "mobile_ai_nuclear_key"}).encode(); req = urllib.request.Request("https://phone-whisper-server.pages.dev/register_tunnel", data=data, headers={"Content-Type": "application/json"}); urllib.request.urlopen(req, timeout=4)' >/dev/null 2>&1 &
   fi
 
   if [ -n "$URL" ] && [ "$URL" != "$SYNCED_URL" ]; then
     echo "$URL" > $HOME/current_url.txt
 
     for RETRY in 1 2 3 4 5; do
-      REG_RESP=$(curl -s -m 5 -X POST https://phone-whisper-server.pages.dev/register_tunnel \
-        -H "Content-Type: application/json" \
-        -d '{"endpoint": "'"$URL"'", "secret": "mobile_ai_nuclear_key"}' 2>/dev/null || echo "")
+      REG_RESP=$(python3 -c 'import urllib.request, json; data = json.dumps({"endpoint": "'"$URL"'", "secret": "mobile_ai_nuclear_key"}).encode(); req = urllib.request.Request("https://phone-whisper-server.pages.dev/register_tunnel", data=data, headers={"Content-Type": "application/json"}); print(urllib.request.urlopen(req, timeout=5).read().decode())' 2>/dev/null || echo "")
       if echo "$REG_RESP" | grep -q "registered"; then
         echo "$(date): [EDGE-SYNC] Registered tunnel with Cloudflare Edge (attempt $RETRY)" >> $HOME/nuclear_supervisor.log
         break
