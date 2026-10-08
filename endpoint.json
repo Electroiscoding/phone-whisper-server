@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://2939180ad5fa0c.lhr.life",
-  "inference": "https://2939180ad5fa0c.lhr.life/inference",
-  "telemetry": "https://2939180ad5fa0c.lhr.life/telemetry",
+  "endpoint": "https://dynamic-adware-apart-falls.trycloudflare.com",
+  "inference": "https://dynamic-adware-apart-falls.trycloudflare.com/inference",
+  "telemetry": "https://dynamic-adware-apart-falls.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-05T07:42:00Z"
+  "updated_at": "2026-10-08T19:51:00Z"
 }
