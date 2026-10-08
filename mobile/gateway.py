@@ -11195,31 +11195,47 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 "quiet": True,
                 "no_warnings": True,
                 "noplaylist": True,
-                "extract_flat": False
+                "extract_flat": False,
+                "extractor_args": {"youtube": {"player_client": ["android", "web", "ios", "tv"]}}
             }
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(url, download=False)
                 formats = info.get("formats", [])
                 best_audio = None
                 best_video = None
+                best_combined = None
                 for f in reversed(formats):
-                    if not best_audio and f.get("vcodec") == "none" and f.get("acodec") != "none" and f.get("url"):
+                    stream_url = f.get("url")
+                    if not stream_url:
+                        continue
+                    if not best_combined and f.get("vcodec") != "none" and f.get("acodec") != "none":
+                        best_combined = {
+                            "format_id": f.get("format_id"),
+                            "ext": f.get("ext"),
+                            "resolution": f.get("resolution"),
+                            "vcodec": f.get("vcodec"),
+                            "acodec": f.get("acodec"),
+                            "fps": f.get("fps"),
+                            "filesize": f.get("filesize") or f.get("filesize_approx"),
+                            "url": stream_url
+                        }
+                    if not best_audio and f.get("vcodec") == "none" and f.get("acodec") != "none":
                         best_audio = {
                             "format_id": f.get("format_id"),
                             "ext": f.get("ext"),
                             "acodec": f.get("acodec"),
                             "abr": f.get("abr"),
                             "filesize": f.get("filesize") or f.get("filesize_approx"),
-                            "url": f.get("url")
+                            "url": stream_url
                         }
-                    if not best_video and f.get("vcodec") != "none" and f.get("url"):
+                    if not best_video and f.get("vcodec") != "none":
                         best_video = {
                             "format_id": f.get("format_id"),
                             "ext": f.get("ext"),
                             "resolution": f.get("resolution"),
                             "vcodec": f.get("vcodec"),
                             "fps": f.get("fps"),
-                            "url": f.get("url")
+                            "url": stream_url
                         }
                 res = {
                     "ok": True,
@@ -11234,7 +11250,10 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                     "webpage_url": info.get("webpage_url") or url,
                     "storage_policy": "zero-disk-transient-memory",
                     "best_audio": best_audio,
-                    "best_video": best_video
+                    "best_video": best_video,
+                    "best_combined": best_combined or best_video,
+                    "download_url": f"/v1/media/stream?url={urllib.parse.quote(url)}&format=video&download=1",
+                    "audio_url": f"/v1/media/stream?url={urllib.parse.quote(url)}&format=audio&download=1"
                 }
                 self._send_json_response(res)
         except Exception as e:
@@ -11264,18 +11283,31 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             ydl_opts = {
                 "quiet": True,
                 "no_warnings": True,
-                "noplaylist": True
+                "noplaylist": True,
+                "extractor_args": {"youtube": {"player_client": ["android", "web", "ios", "tv"]}}
             }
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(url, download=False)
                 formats = info.get("formats", [])
                 audio_streams = []
                 video_streams = []
+                progressive_streams = []
                 for f in formats:
                     stream_url = f.get("url")
                     if not stream_url:
                         continue
-                    if f.get("vcodec") == "none" and f.get("acodec") != "none":
+                    if f.get("vcodec") != "none" and f.get("acodec") != "none":
+                        progressive_streams.append({
+                            "format_id": f.get("format_id"),
+                            "ext": f.get("ext"),
+                            "resolution": f.get("resolution"),
+                            "vcodec": f.get("vcodec"),
+                            "acodec": f.get("acodec"),
+                            "fps": f.get("fps"),
+                            "filesize": f.get("filesize") or f.get("filesize_approx"),
+                            "url": stream_url
+                        })
+                    elif f.get("vcodec") == "none" and f.get("acodec") != "none":
                         audio_streams.append({
                             "format_id": f.get("format_id"),
                             "ext": f.get("ext"),
@@ -11302,6 +11334,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                     "duration": info.get("duration"),
                     "thumbnail": info.get("thumbnail"),
                     "storage_policy": "zero-disk-transient-memory",
+                    "progressive_streams": progressive_streams[-4:],
                     "audio_streams": audio_streams[-6:],
                     "video_streams": video_streams[-6:]
                 }
@@ -11327,26 +11360,37 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             return
         target_format = (params.get("format") or params.get("type") or "audio").lower()
         max_duration = int(params.get("duration") or params.get("t") or 0)
+        is_download = str(params.get("download") or "0").lower() in ["1", "true", "yes"]
         try:
             ydl_opts = {
                 "quiet": True,
                 "no_warnings": True,
-                "noplaylist": True
+                "noplaylist": True,
+                "extractor_args": {"youtube": {"player_client": ["android", "web", "ios", "tv"]}}
             }
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(url, download=False)
                 formats = info.get("formats", [])
+                video_title = re.sub(r'[^a-zA-Z0-9_\- ]', '', info.get("title") or "media").strip().replace(" ", "_")[:60]
                 audio_formats = [f for f in formats if f.get("vcodec") == "none" and f.get("acodec") != "none" and f.get("url")]
-                video_formats = [f for f in formats if f.get("vcodec") != "none" and f.get("url")]
+                progressive_formats = [f for f in formats if f.get("vcodec") != "none" and f.get("acodec") != "none" and f.get("url")]
+                video_only_formats = [f for f in formats if f.get("vcodec") != "none" and f.get("url")]
                 source_url = None
+                output_ext = "mp4"
                 if target_format in ["audio", "wav", "mp3", "aac"]:
+                    output_ext = "wav" if target_format == "wav" else ("mp3" if target_format == "mp3" else "m4a")
                     if audio_formats:
                         source_url = audio_formats[-1]["url"]
+                    elif progressive_formats:
+                        source_url = progressive_formats[-1]["url"]
                     elif formats:
                         source_url = formats[-1].get("url")
                 else:
-                    if video_formats:
-                        source_url = video_formats[-1]["url"]
+                    output_ext = "mp4"
+                    if progressive_formats:
+                        source_url = progressive_formats[-1]["url"]
+                    elif video_only_formats:
+                        source_url = video_only_formats[-1]["url"]
                     elif formats:
                         source_url = formats[-1].get("url")
                 if not source_url:
@@ -11364,6 +11408,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                     self.send_header("Transfer-Encoding", "chunked")
                     self.send_header("X-Media-Processor", "FFmpeg-Streaming-Pipe")
                     self.send_header("X-Storage-Persistence", "none-zero-disk")
+                    if is_download:
+                        self.send_header("Content-Disposition", f'attachment; filename="{video_title}.wav"')
                     self.end_headers()
                     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, bufsize=64 * 1024)
                     try:
@@ -11388,6 +11434,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                     self.send_header("Transfer-Encoding", "chunked")
                     self.send_header("X-Media-Processor", "Direct-Upstream-Stream-Pipe")
                     self.send_header("X-Storage-Persistence", "none-zero-disk")
+                    if is_download:
+                        self.send_header("Content-Disposition", f'attachment; filename="{video_title}.{output_ext}"')
                     self.end_headers()
                     bytes_streamed = 0
                     while True:

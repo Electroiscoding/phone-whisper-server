@@ -988,9 +988,9 @@ The sovereign datacenter includes an on-the-fly, zero-disk media processor power
 
 | Endpoint | Method | Params / Payload | Description |
 | :--- | :--- | :--- | :--- |
-| `/v1/media/info` | `GET` / `POST` | `url` | Extracts comprehensive video metadata (title, uploader, duration, thumbnail, best audio/video stream URLs). |
-| `/v1/media/extract` | `GET` / `POST` | `url` | Lists all audio-only and video-only direct streaming formats. |
-| `/v1/media/stream` | `GET` / `POST` | `url`, `format=audio\|wav\|video`, `duration` | Streams media chunks directly via HTTP chunked transfer without saving to disk. |
+| `/v1/media/info` | `GET` / `POST` | `url` | Extracts comprehensive video metadata (title, uploader, duration, thumbnail, direct progressive audio+video combined streams, and one-click download URLs). |
+| `/v1/media/extract` | `GET` / `POST` | `url` | Lists all progressive (audio+video), audio-only, and video-only direct streaming formats. |
+| `/v1/media/stream` | `GET` / `POST` | `url`, `format=video\|audio\|wav`, `download=1`, `duration` | Streams media chunks directly via HTTP chunked transfer without saving to disk. If `download=1`, triggers browser/cURL download with video title filename. |
 
 #### 4.10.3 cURL Integration Examples
 
@@ -1001,7 +1001,9 @@ curl -s -X POST "https://phone-whisper-server.pages.dev/v1/media/extract" \
   -H "Content-Type: application/json" \
   -d '{"url": "https://www.youtube.com/watch?v=jNQXAC9IVRw"}'
 
-curl -s "https://phone-whisper-server.pages.dev/v1/media/stream?url=https://www.youtube.com/watch?v=jNQXAC9IVRw&format=audio" | ffplay -nodisp -autoexit -i -
+curl -s "https://phone-whisper-server.pages.dev/v1/media/stream?url=https://www.youtube.com/watch?v=jNQXAC9IVRw&format=video&download=1" -o video.mp4
+
+curl -s "https://phone-whisper-server.pages.dev/v1/media/stream?url=https://www.youtube.com/watch?v=jNQXAC9IVRw&format=audio&download=1" -o audio.mp3
 ```
 
 ---

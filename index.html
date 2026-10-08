@@ -3560,6 +3560,8 @@ Spam advertisement: Click here to buy cheap luxury watches online now!!</textare
               <div style="display: flex; gap: 0.5rem; margin-bottom: 0.6rem; flex-wrap: wrap;">
                 <button class="btn-action" style="font-size: 0.72rem; padding: 0.3rem 0.6rem;" onclick="playMediaStream('audio')">Stream Audio (Native)</button>
                 <button class="btn-action" style="font-size: 0.72rem; padding: 0.3rem 0.6rem;" onclick="playMediaStream('wav')">Stream WAV (16kHz Pipe)</button>
+                <button class="btn-action" style="font-size: 0.72rem; padding: 0.3rem 0.6rem; background: rgba(16, 185, 129, 0.2); border-color: rgba(16, 185, 129, 0.4); color: #34d399;" onclick="downloadMedia('video')"><i class="fa-solid fa-download mr-1"></i> Download MP4 (Audio+Vid)</button>
+                <button class="btn-action" style="font-size: 0.72rem; padding: 0.3rem 0.6rem; background: rgba(59, 130, 246, 0.2); border-color: rgba(59, 130, 246, 0.4); color: #60a5fa;" onclick="downloadMedia('audio')"><i class="fa-solid fa-download mr-1"></i> Download Audio</button>
                 <button class="btn-action" style="font-size: 0.72rem; padding: 0.3rem 0.6rem;" onclick="copyMediaStreamUrl()">Copy Stream Link</button>
               </div>
             </div>
@@ -7164,6 +7166,28 @@ python3 mobile/nuclear_watchdog.py</code></pre>
       }
     }
     window.playMediaStream = playMediaStream;
+
+    function downloadMedia(fmt) {
+      const input = document.getElementById("mediaUrlInput");
+      const box = document.getElementById("mediaOutputBox");
+      if (!input) return;
+      const url = input.value.trim();
+      if (!url) {
+        if (box) box.textContent = "Please enter a valid media URL.";
+        return;
+      }
+      const dlUrl = `${BASE_ENDPOINT}/v1/media/stream?url=${encodeURIComponent(url)}&format=${fmt}&download=1`;
+      if (box) {
+        box.textContent = `Triggering direct download: ${dlUrl}\nMode: Zero-Disk streaming pipe directly into browser download engine`;
+      }
+      const a = document.createElement("a");
+      a.href = dlUrl;
+      a.download = "";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+    window.downloadMedia = downloadMedia;
 
     function copyMediaStreamUrl() {
       const input = document.getElementById("mediaUrlInput");

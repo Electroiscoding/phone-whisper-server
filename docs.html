@@ -3169,38 +3169,32 @@ curl -X POST "https://phone-whisper-server.pages.dev/v1/monopoly/rooms/ROMA/trad
           <div class="flex items-center justify-between border-b border-cardborder pb-3 mb-4">
             <div class="flex items-center gap-3">
               <span class="px-2.5 py-1 rounded bg-rose-900/60 border border-rose-700 text-rose-300 font-bold">STREAM</span>
-              <span class="text-white font-bold text-sm">/v1/media/* (Zero-Disk yt-dlp Transcoder Pipe)</span>
+              <span class="text-white font-bold text-sm">/v1/media/* (Zero-Disk yt-dlp Video & Audio Processor)</span>
             </div>
             <span class="text-[10px] px-2 py-0.5 rounded bg-zinc-800 text-rose-400 border border-zinc-700">EPHEMERAL RAM ONLY</span>
           </div>
 
           <div class="text-zinc-300 mb-4 leading-relaxed font-sans text-sm">
-            High-throughput, zero-disk ephemeral media gateway powered by in-memory <code>yt-dlp</code> and direct Unix pipes. Extracts metadata, resolves signed CDN stream URLs, and performs on-the-fly chunked streaming or real-time 16kHz mono WAV transcoding for Whisper ASR without touching flash storage.
+            High-throughput, zero-disk ephemeral media gateway powered by in-memory <code>yt-dlp</code> and direct Unix pipes. Extracts metadata, resolves signed progressive streams (audio+video together), and streams chunks on the fly into client browsers or cURL download pipes without touching disk storage.
           </div>
 
           <div class="space-y-4">
             <div class="p-3 rounded bg-zinc-950/70 border border-cardborder">
-              <div class="font-bold text-rose-300 mb-1">1. Metadata & Best Stream Resolver</div>
-              <div class="text-zinc-400 text-[10px] mb-2 font-mono">GET or POST /v1/media/info</div>
-              <pre class="text-zinc-300 overflow-x-auto"><code>curl "https://phone-whisper-server.pages.dev/v1/media/info?url=https://www.youtube.com/watch?v=dQw4w9WgXcQ" \
-  -H "Authorization: Bearer test_api_key_123"</code></pre>
+              <div class="font-bold text-rose-300 mb-1">1. Single Unified Metadata & Best Stream Resolver</div>
+              <div class="text-zinc-400 text-[10px] mb-2 font-mono">GET or POST /v1/media/info (returns best_combined audio+video, best_audio, download_url)</div>
+              <pre class="text-zinc-300 overflow-x-auto"><code>curl "https://phone-whisper-server.pages.dev/v1/media/info?url=https://www.youtube.com/watch?v=dQw4w9WgXcQ"</code></pre>
             </div>
 
             <div class="p-3 rounded bg-zinc-950/70 border border-cardborder">
-              <div class="font-bold text-rose-300 mb-1">2. Complete Format Extraction</div>
-              <div class="text-zinc-400 text-[10px] mb-2 font-mono">GET or POST /v1/media/extract</div>
-              <pre class="text-zinc-300 overflow-x-auto"><code>curl -X POST "https://phone-whisper-server.pages.dev/v1/media/extract" \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer test_api_key_123" \
-  -d '{"url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"}'</code></pre>
+              <div class="font-bold text-rose-300 mb-1">2. Single Dead-Easy Download API (Audio + Video Combined)</div>
+              <div class="text-zinc-400 text-[10px] mb-2 font-mono">GET or POST /v1/media/stream?format=video&download=1</div>
+              <pre class="text-zinc-300 overflow-x-auto"><code>curl -L "https://phone-whisper-server.pages.dev/v1/media/stream?url=https://www.youtube.com/watch?v=dQw4w9WgXcQ&format=video&download=1" -o video.mp4</code></pre>
             </div>
 
             <div class="p-3 rounded bg-zinc-950/70 border border-cardborder">
-              <div class="font-bold text-rose-300 mb-1">3. Zero-Disk Chunked Stream & Transcode Pipe</div>
-              <div class="text-zinc-400 text-[10px] mb-2 font-mono">GET or POST /v1/media/stream (transcode=raw | wav)</div>
-              <pre class="text-zinc-300 overflow-x-auto"><code>curl -N "https://phone-whisper-server.pages.dev/v1/media/stream?url=https://www.youtube.com/watch?v=dQw4w9WgXcQ&transcode=wav" \
-  -H "Authorization: Bearer test_api_key_123" \
-  --output - | aplay -r 16000 -f S16_LE -c 1</code></pre>
+              <div class="font-bold text-rose-300 mb-1">3. Direct Audio Download or Whisper Pipe</div>
+              <div class="text-zinc-400 text-[10px] mb-2 font-mono">GET or POST /v1/media/stream?format=audio&download=1</div>
+              <pre class="text-zinc-300 overflow-x-auto"><code>curl -L "https://phone-whisper-server.pages.dev/v1/media/stream?url=https://www.youtube.com/watch?v=dQw4w9WgXcQ&format=audio&download=1" -o audio.mp3</code></pre>
             </div>
           </div>
         </div>
