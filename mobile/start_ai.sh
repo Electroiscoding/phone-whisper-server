@@ -160,7 +160,7 @@ while true; do
 
   URL=$(grep -oE "https://[a-zA-Z0-9-]+\.trycloudflare\.com" $HOME/cf_tunnel.log 2>/dev/null | grep -v "api.trycloudflare.com" | tail -n 1)
 
-  if [ -n "$URL" ] && [ $((NOW - LAST_PAGES_HEARTBEAT)) -ge 45 ]; then
+  if [ -n "$URL" ] && [ $((NOW - LAST_PAGES_HEARTBEAT)) -ge 15 ]; then
     LAST_PAGES_HEARTBEAT=$NOW
     curl -s -m 4 -X POST https://phone-whisper-server.pages.dev/register_tunnel \
       -H "Content-Type: application/json" \
@@ -222,5 +222,5 @@ JSON_EOF
     done
   fi
 
-  sleep 3
+  sleep 2
 done
