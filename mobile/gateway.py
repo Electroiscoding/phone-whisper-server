@@ -11405,7 +11405,6 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                     self.send_response(200)
                     self._send_cors_headers()
                     self.send_header("Content-Type", "audio/wav")
-                    self.send_header("Transfer-Encoding", "chunked")
                     self.send_header("X-Media-Processor", "FFmpeg-Streaming-Pipe")
                     self.send_header("X-Storage-Persistence", "none-zero-disk")
                     if is_download:
@@ -11417,21 +11416,29 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                             chunk = proc.stdout.read(32 * 1024)
                             if not chunk:
                                 break
-                            chunk_len = f"{len(chunk):X}\r\n".encode("ascii")
-                            self.wfile.write(chunk_len + chunk + b"\r\n")
+                            self.wfile.write(chunk)
                             self.wfile.flush()
-                        self.wfile.write(b"0\r\n\r\n")
-                        self.wfile.flush()
                     finally:
                         proc.kill()
                     return
-                req = urllib.request.Request(source_url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"})
+                upstream_headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+                range_header = self.headers.get("Range")
+                if range_header:
+                    upstream_headers["Range"] = range_header
+                req = urllib.request.Request(source_url, headers=upstream_headers)
                 with urllib.request.urlopen(req, timeout=15) as upstream:
                     content_type = upstream.headers.get("Content-Type") or ("audio/mpeg" if target_format in ["audio", "mp3"] else "video/mp4")
-                    self.send_response(200)
+                    status_code = getattr(upstream, "status", 200)
+                    self.send_response(status_code)
                     self._send_cors_headers()
                     self.send_header("Content-Type", content_type)
-                    self.send_header("Transfer-Encoding", "chunked")
+                    content_len = upstream.headers.get("Content-Length")
+                    if content_len:
+                        self.send_header("Content-Length", content_len)
+                    content_range = upstream.headers.get("Content-Range")
+                    if content_range:
+                        self.send_header("Content-Range", content_range)
+                    self.send_header("Accept-Ranges", "bytes")
                     self.send_header("X-Media-Processor", "Direct-Upstream-Stream-Pipe")
                     self.send_header("X-Storage-Persistence", "none-zero-disk")
                     if is_download:
@@ -11443,13 +11450,10 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                         if not chunk:
                             break
                         bytes_streamed += len(chunk)
-                        chunk_len = f"{len(chunk):X}\r\n".encode("ascii")
-                        self.wfile.write(chunk_len + chunk + b"\r\n")
+                        self.wfile.write(chunk)
                         self.wfile.flush()
                         if max_duration > 0 and bytes_streamed > max_duration * 128 * 1024:
                             break
-                    self.wfile.write(b"0\r\n\r\n")
-                    self.wfile.flush()
         except Exception as e:
             try:
                 self._send_json_response({"ok": False, "error": f"Streaming proxy failed: {str(e)}"}, status=500)
