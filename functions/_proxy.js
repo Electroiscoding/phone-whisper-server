@@ -332,7 +332,11 @@ export async function handleRequest(context) {
   }
 
   let origin = await getLiveOrigin(false);
-  let targetUrl = `${origin}${url.pathname}${url.search}`;
+  const proxyUrl = new URL(url.toString());
+  if (proxyUrl.pathname.startsWith("/v1/storage/objects/") && !proxyUrl.searchParams.has("project_id") && !request.headers.has("x-api-key") && !request.headers.has("authorization")) {
+    proxyUrl.searchParams.set("project_id", "netuark_media");
+  }
+  let targetUrl = `${origin}${proxyUrl.pathname}${proxyUrl.search}`;
 
   let reqBody = undefined;
   if (!["GET", "HEAD"].includes(request.method)) {
@@ -345,14 +349,14 @@ export async function handleRequest(context) {
 
   let response = null;
   let attempt = 0;
-  const maxAttempts = isStorageReq ? 1 : 2;
+  const maxAttempts = isStorageReq ? 2 : 2;
   const isLongRunning = !isStorageReq && (
     url.pathname.includes("/speech") || 
     url.pathname.includes("/transcriptions") || 
     url.pathname.includes("/chat") || 
     url.pathname.includes("/inference")
   );
-  const timeoutMs = isStorageReq ? 2500 : (isLongRunning ? 60000 : 15000);
+  const timeoutMs = isStorageReq ? 15000 : (isLongRunning ? 60000 : 15000);
 
   while (attempt < maxAttempts) {
     attempt++;
@@ -386,7 +390,7 @@ export async function handleRequest(context) {
         cachedOrigin = null;
         await new Promise(r => setTimeout(r, attempt * 150));
         origin = await getLiveOrigin(true, new Set([origin]));
-        targetUrl = `${origin}${url.pathname}${url.search}`;
+        targetUrl = `${origin}${proxyUrl.pathname}${proxyUrl.search}`;
         continue;
       }
 
@@ -396,10 +400,33 @@ export async function handleRequest(context) {
         cachedOrigin = null;
         await new Promise(r => setTimeout(r, attempt * 150));
         origin = await getLiveOrigin(true, new Set([origin]));
-        targetUrl = `${origin}${url.pathname}${url.search}`;
+        targetUrl = `${origin}${proxyUrl.pathname}${proxyUrl.search}`;
         continue;
       }
     }
+  }
+
+  // If phone returned 404 on /v1/storage/objects/, try phone's /s/netuark_media/ direct public route
+  if (isStorageReq && (!response || response.status === 404) && proxyUrl.pathname.startsWith("/v1/storage/objects/")) {
+    try {
+      const altSubPath = proxyUrl.pathname.replace(/^\/v1\/storage\/objects\//, "");
+      const altPhoneUrl = `${origin}/s/netuark_media/${altSubPath}`;
+      const altController = new AbortController();
+      const altTimer = setTimeout(() => altController.abort(), 8000);
+      const altHeaders = new Headers(request.headers);
+      try { altHeaders.set("Host", new URL(origin).host); } catch (_) {}
+      const altReq = new Request(altPhoneUrl, {
+        method: request.method,
+        headers: altHeaders,
+        redirect: "follow",
+        signal: altController.signal
+      });
+      const altRes = await fetch(altReq);
+      clearTimeout(altTimer);
+      if (altRes && [200, 206].includes(altRes.status)) {
+        response = altRes;
+      }
+    } catch (_) {}
   }
 
   // ⚡ 2. Storage handling: seamless B2 fallback + edge caching
