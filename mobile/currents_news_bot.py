@@ -17,22 +17,30 @@ CURRENTS_PASS = os.environ.get("CURRENTS_PASS", "6663629")
 DB_DIR = os.environ.get("HOME", os.path.dirname(os.path.abspath(__file__)))
 DB_PATH = os.path.join(DB_DIR, "currents_news.db")
 
-TECH_QUERIES = [
-    "artificial intelligence breakthrough OR LLM OR OpenAI OR Claude Anthropic",
-    "Nvidia GPU chips semiconductor quantum computing",
-    "software engineering cybersecurity open source Linux",
-    "robotics autonomous tech humanoid robotics",
-    "Silicon Valley tech startup developer tools",
-    "space tech aerospace satellite internet SpaceX",
-    "next gen smartphones hardware wearable computing"
+TOPIC_CATEGORIES = [
+    {"name": "elon", "q": "Elon Musk SpaceX OR Tesla OR xAI OR Starlink", "gl": "us"},
+    {"name": "chips", "q": "Nvidia chip price OR GPU supply OR TSMC semiconductor", "gl": "us"},
+    {"name": "india", "q": "India news OR India tech economy OR startup Bengaluru", "gl": "in"},
+    {"name": "international", "q": "international world news OR global summit diplomacy", "gl": "us"},
+    {"name": "ai", "q": "artificial intelligence OR frontier AI model OR LLM release", "gl": "us"},
+    {"name": "bigtech", "q": "Apple OR Google OR Microsoft OR Meta Big Tech", "gl": "us"},
+    {"name": "startups", "q": "startup funding round OR venture capital acquisition", "gl": "us"},
+    {"name": "cyber", "q": "cybersecurity infrastructure OR open source Linux security", "gl": "us"}
 ]
 
-HOOK_TEMPLATES = [
-    ("⚡ Hold up, this is massive for tech:", "What's wild here is how fast this moved from lab theory to production.", "If this trajectory holds, the whole stack changes by next year. Thoughts?"),
-    ("🧠 We need to talk about what just happened in tech:", "Here's the part the headlines are totally skipping over:", "Are we actually ready for this, or are we just pretending we are?"),
-    ("🔥 This just dropped and the timeline is sleeping on it:", "The raw implications here are wild for builders:", "Watch how fast competitors copy this in the next 60 days."),
-    ("👀 Major signal cutting through the noise today:", "The real unlock isn't just the announcement—it's what comes next:", "Is this a genuine game-changer or just peak tech hype?"),
-    ("🚀 Tech moves stupidly fast. Case in point:", "Break down the mechanics and it becomes obvious why this matters:", "Curious what the builders on NeTuArk think about this play.")
+HEADER_PREFIXES = [
+    "JUST IN :",
+    "Breaking:",
+    "Just announced:",
+    "Report:",
+    "Update:"
+]
+
+ANALYSIS_HEADERS = [
+    "Why this matters:",
+    "Key win:",
+    "What this means:",
+    "Context:"
 ]
 
 class CurrentsNewsBot:
@@ -91,58 +99,109 @@ class CurrentsNewsBot:
             return self.login()
         return self.id_token
 
-    def fetch_trending_news(self):
-        query = random.choice(TECH_QUERIES)
+    def fetch_news_for_category(self, cat):
         params = {
             "engine": "google_news",
-            "q": query,
-            "gl": "us",
+            "q": cat["q"],
+            "gl": cat.get("gl", "us"),
             "hl": "en",
             "api_key": SERPAPI_KEY
         }
         url = "https://serpapi.com/search.json?" + urllib.parse.urlencode(params)
-        req = urllib.request.Request(url, headers={"User-Agent": "Currents-Scraper/1.0"})
+        req = urllib.request.Request(url, headers={"User-Agent": "Currents-Wire/2.0"})
         with urllib.request.urlopen(req, timeout=15) as resp:
             data = json.loads(resp.read().decode("utf-8"))
             return data.get("news_results", [])
 
     def fetch_high_res_image(self, title, source):
         try:
-            clean_title = title.split(" - ")[0].split(" | ")[0]
-            query = f"{clean_title} {source}"
+            clean_words = [w for w in title.replace(":", " ").replace("-", " ").split() if len(w) > 3][:6]
+            query = " ".join(clean_words)
             params = {
                 "engine": "google_images",
                 "q": query,
-                "api_key": SERPAPI_KEY,
-                "ijn": "0"
+                "api_key": SERPAPI_KEY
             }
             url = "https://serpapi.com/search.json?" + urllib.parse.urlencode(params)
-            req = urllib.request.Request(url, headers={"User-Agent": "Currents-Image-Scraper/1.0"})
+            req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
             with urllib.request.urlopen(req, timeout=10) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
                 results = data.get("images_results", [])
                 if results and len(results) > 0:
-                    first = results[0]
-                    return first.get("original") or first.get("thumbnail") or ""
+                    for img in results[:3]:
+                        candidate = img.get("original") or img.get("thumbnail")
+                        if candidate and candidate.startswith("http") and "favicon" not in candidate:
+                            return candidate
         except Exception:
             pass
         return ""
 
-    def generate_hooked_post(self, title, source, link):
+    def generate_news_body(self, title, source, category_name):
+        prefix = random.choice(HEADER_PREFIXES)
+        analysis_hdr = random.choice(ANALYSIS_HEADERS)
         clean_title = title.split(" - ")[0].split(" | ")[0].strip()
-        intro, bridge, outro = random.choice(HOOK_TEMPLATES)
-        post_lines = [
-            f"{intro}",
-            f"",
-            f"📰 {clean_title}",
-            f"",
-            f"{bridge} ({source})",
-            f"",
-            f"{outro}",
-            f"",
-            f"🔗 Read full: {link}"
+
+        if category_name == "chips":
+            bullets = [
+                "- Semiconductor supply chain adjustments affecting enterprise wafer orders",
+                "- High-performance compute pricing reflecting shifting fabrication capacity",
+                "- Next-generation hardware allocations prioritized for AI infrastructure"
+            ]
+            analysis = "Global hardware economics continue to hinge on silicon packaging yields and enterprise demand."
+        elif category_name == "elon":
+            bullets = [
+                "- Cross-industry operations spanning satellite bandwidth, autonomous transport, and compute",
+                "- Direct challenge to legacy market players as commercial deployment scales",
+                "- Regulatory filing updates indicate accelerating operational rollout"
+            ]
+            analysis = "Rapid cross-sector moves continue shifting market valuations across telecommunications and robotics."
+        elif category_name == "india":
+            bullets = [
+                "- Key domestic market developments accelerating enterprise and consumer adoption",
+                "- Foreign direct investment and engineering talent driving local technological expansion",
+                "- Strategic regulatory alignment supporting scalable digital infrastructure"
+            ]
+            analysis = "India's technological ecosystem is solidifying its position as a primary global driver of hardware and software expansion."
+        elif category_name == "international":
+            bullets = [
+                "- Multilateral policy shifts impacting international technology trade and governance",
+                "- Cross-border agreements redefining global infrastructure standards",
+                "- Geopolitical developments influencing supply chains and commercial sovereignty"
+            ]
+            analysis = "Global tech diplomacy is increasingly dictating operational security and software market reach."
+        elif category_name == "ai":
+            bullets = [
+                "- Model architecture updates improving efficiency and benchmark performance",
+                "- Accelerated adoption across production workflows and developer ecosystems",
+                "- Frontier capabilities challenging existing software paradigms"
+            ]
+            analysis = "The transition from theoretical benchmarks to reliable developer tooling is compressing product cycles worldwide."
+        elif category_name == "bigtech":
+            bullets = [
+                "- Major platform shifts impacting developer integrations and ecosystem revenues",
+                "- Strategic reallocation of capital toward next-generation hardware and software",
+                "- Compliance and competitive responses reshaping industry dominance"
+            ]
+            analysis = "Platform incumbents are adjusting core strategies to protect distribution moats against agile contenders."
+        else:
+            bullets = [
+                "- Key structural update impacting commercial ecosystem dynamics",
+                "- Engineering execution moving from roadmap planning to live deployment",
+                "- Industry participants responding to shifts in capital and technology distribution"
+            ]
+            analysis = "Execution speed remains the primary differentiator as market participants react to the new development."
+
+        lines = [
+            f"{prefix} {clean_title}.",
+            "",
+            "\n".join(bullets),
+            "",
+            f"{analysis_hdr}",
+            f"{analysis}",
+            "",
+            f"Source: {source}"
         ]
-        return "\n".join(post_lines)
+        return "\n".join(lines)
 
     def publish_post(self, text, media_url="", source_url="", publisher=""):
         token = self.get_valid_token()
@@ -153,8 +212,8 @@ class CurrentsNewsBot:
                 "author": {"stringValue": CURRENTS_EMAIL},
                 "authorName": {"stringValue": "Currents"},
                 "text": {"stringValue": text},
-                "mediaUrl": {"stringValue": media_url or ""},
-                "mediaType": {"stringValue": "image" if media_url else ""},
+                "mediaUrl": {"stringValue": media_url},
+                "mediaType": {"stringValue": "image"},
                 "type": {"stringValue": "post"},
                 "likes": {"arrayValue": {"values": []}},
                 "reposts": {"arrayValue": {"values": []}},
@@ -180,32 +239,45 @@ class CurrentsNewsBot:
             return doc_name.split("/")[-1]
 
     def run_cycle(self):
-        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Checking latest tech news...")
+        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Currents scraper cycle initiated...")
         self.login()
-        articles = self.fetch_trending_news()
-        print(f"Found {len(articles)} news items from SerpApi.")
+
+        shuffled_categories = list(TOPIC_CATEGORIES)
+        random.shuffle(shuffled_categories)
+
         posted_count = 0
-        for item in articles:
-            link = item.get("link")
-            title = item.get("title")
-            source = item.get("source", {}).get("name", "Tech Wire")
-            if not link or not title:
-                continue
-            if self.is_posted(link):
+        for cat in shuffled_categories:
+            print(f"Scanning topic category: {cat['name']}...")
+            try:
+                articles = self.fetch_news_for_category(cat)
+            except Exception as e:
+                print(f"Category fetch warning ({cat['name']}): {e}", file=sys.stderr)
                 continue
 
-            thumbnail = item.get("thumbnail") or ""
-            if not thumbnail or "gstatic.com" in thumbnail:
-                high_res = self.fetch_high_res_image(title, source)
-                if high_res:
-                    thumbnail = high_res
+            for item in articles:
+                link = item.get("link")
+                title = item.get("title")
+                source = item.get("source", {}).get("name", "News Wire")
+                if not link or not title:
+                    continue
+                if self.is_posted(link):
+                    continue
 
-            post_text = self.generate_hooked_post(title, source, link)
-            post_id = self.publish_post(post_text, thumbnail, link, source)
-            self.mark_posted(link, title, source, post_id)
-            print(f"Successfully published post [{post_id}]: {title[:60]}...")
-            posted_count += 1
-            break
+                image_url = item.get("thumbnail") or ""
+                if not image_url or "gstatic.com" in image_url:
+                    image_url = self.fetch_high_res_image(title, source) or image_url
+
+                if not image_url or not image_url.startswith("http"):
+                    continue
+
+                post_text = self.generate_news_body(title, source, cat["name"])
+                post_id = self.publish_post(post_text, image_url, link, source)
+                self.mark_posted(link, title, source, post_id)
+                print(f"Published [{post_id}] in [{cat['name']}] with image: {image_url[:60]}...")
+                print(f"Title: {title[:70]}")
+                posted_count += 1
+                return posted_count
+
         return posted_count
 
     def loop(self, interval_seconds=1800):
