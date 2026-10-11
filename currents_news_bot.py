@@ -51,6 +51,39 @@ def is_valid_jpg_or_png(url):
     path = url.split("?")[0].lower()
     return path.endswith(".jpg") or path.endswith(".jpeg") or path.endswith(".png")
 
+def mirror_image_to_nta(image_url):
+    try:
+        req = urllib.request.Request(
+            image_url,
+            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+        )
+        with urllib.request.urlopen(req, timeout=12) as resp:
+            data = resp.read()
+            if not data or len(data) < 200:
+                return image_url
+
+            ext = "png" if image_url.split("?")[0].lower().endswith(".png") else "jpg"
+            mime = "image/png" if ext == "png" else "image/jpeg"
+            unique_name = f"{int(time.time())}_{random.randint(1000, 9999)}_currents.{ext}"
+            put_url = f"https://ntamediaserver.pages.dev/v1/storage/objects/media/{unique_name}?project_id=netuark_media"
+
+            put_req = urllib.request.Request(
+                put_url,
+                data=data,
+                headers={
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                    "Content-Type": mime,
+                    "X-Project-Id": "netuark_media"
+                },
+                method="PUT"
+            )
+            with urllib.request.urlopen(put_req, timeout=15) as put_resp:
+                if put_resp.status in [200, 201]:
+                    return f"https://ntamediaserver.pages.dev/v1/storage/objects/media/{unique_name}"
+    except Exception:
+        pass
+    return image_url
+
 class CurrentsNewsBot:
     def __init__(self):
         self._init_db()
@@ -162,7 +195,7 @@ class CurrentsNewsBot:
 
         return ""
 
-    def generate_news_body(self, title, source, category_name):
+    def generate_news_body(self, title, source, link, category_name):
         prefix = random.choice(HEADER_PREFIXES)
         analysis_hdr = random.choice(ANALYSIS_HEADERS)
         clean_title = title.split(" - ")[0].split(" | ")[0].strip()
@@ -232,7 +265,8 @@ class CurrentsNewsBot:
             f"{analysis_hdr}",
             f"{analysis}",
             "",
-            f"Source: {source}"
+            f"Source: {source}",
+            f"Link: {link}"
         ]
         return "\n".join(lines)
 
@@ -297,16 +331,19 @@ class CurrentsNewsBot:
                     continue
 
                 item_thumb = item.get("thumbnail") or ""
-                image_url = self.get_guaranteed_image(title, source, item_thumb)
+                raw_image_url = self.get_guaranteed_image(title, source, item_thumb)
 
-                if not is_valid_jpg_or_png(image_url):
+                if not is_valid_jpg_or_png(raw_image_url):
                     continue
 
-                post_text = self.generate_news_body(title, source, cat["name"])
-                post_id = self.publish_post(post_text, image_url, link, source)
+                final_image_url = mirror_image_to_nta(raw_image_url)
+
+                post_text = self.generate_news_body(title, source, link, cat["name"])
+                post_id = self.publish_post(post_text, final_image_url, link, source)
                 self.mark_posted(link, title, source, post_id)
-                print(f"Published [{post_id}] in [{cat['name']}] with verified .jpg/.png image:")
-                print(f"Image: {image_url}")
+                print(f"Published [{post_id}] in [{cat['name']}]:")
+                print(f"Image: {final_image_url}")
+                print(f"Link: {link}")
                 print(f"Title: {title[:70]}")
                 posted_count += 1
                 return posted_count
