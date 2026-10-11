@@ -18,14 +18,16 @@ DB_DIR = os.environ.get("HOME", os.path.dirname(os.path.abspath(__file__)))
 DB_PATH = os.path.join(DB_DIR, "currents_news.db")
 
 TOPIC_CATEGORIES = [
-    {"name": "elon", "q": "Elon Musk SpaceX OR Tesla OR xAI OR Starlink", "gl": "us"},
-    {"name": "chips", "q": "Nvidia chip price OR GPU supply OR TSMC semiconductor", "gl": "us"},
-    {"name": "india", "q": "India news OR India tech economy OR startup Bengaluru", "gl": "in"},
-    {"name": "international", "q": "international world news OR global summit diplomacy", "gl": "us"},
-    {"name": "ai", "q": "artificial intelligence OR frontier AI model OR LLM release", "gl": "us"},
-    {"name": "bigtech", "q": "Apple OR Google OR Microsoft OR Meta Big Tech", "gl": "us"},
-    {"name": "startups", "q": "startup funding round OR venture capital acquisition", "gl": "us"},
-    {"name": "cyber", "q": "cybersecurity infrastructure OR open source Linux security", "gl": "us"}
+    {"name": "politics", "q": "politics elections government policy geopolitical summit", "gl": "us"},
+    {"name": "india_politics", "q": "India politics elections parliament policy governance", "gl": "in"},
+    {"name": "india_news", "q": "India national news tech economy development infrastructure", "gl": "in"},
+    {"name": "international", "q": "world international news diplomacy global affairs", "gl": "us"},
+    {"name": "elon", "q": "Elon Musk SpaceX Tesla xAI Starlink Neuralink", "gl": "us"},
+    {"name": "chips", "q": "Nvidia chip price GPU supply semiconductor TSMC foundry", "gl": "us"},
+    {"name": "ai", "q": "artificial intelligence frontier AI model LLM open source", "gl": "us"},
+    {"name": "bigtech", "q": "Apple Google Microsoft Meta Amazon enterprise tech", "gl": "us"},
+    {"name": "startups", "q": "startup funding venture capital IPO commercial growth", "gl": "us"},
+    {"name": "cyber", "q": "cybersecurity infrastructure digital defense zero day", "gl": "us"}
 ]
 
 HEADER_PREFIXES = [
@@ -42,6 +44,12 @@ ANALYSIS_HEADERS = [
     "What this means:",
     "Context:"
 ]
+
+def is_valid_jpg_or_png(url):
+    if not url or not isinstance(url, str) or not url.startswith("http"):
+        return False
+    path = url.split("?")[0].lower()
+    return path.endswith(".jpg") or path.endswith(".jpeg") or path.endswith(".png")
 
 class CurrentsNewsBot:
     def __init__(self):
@@ -113,13 +121,11 @@ class CurrentsNewsBot:
             data = json.loads(resp.read().decode("utf-8"))
             return data.get("news_results", [])
 
-    def fetch_high_res_image(self, title, source):
+    def fetch_serp_image(self, query_text):
         try:
-            clean_words = [w for w in title.replace(":", " ").replace("-", " ").split() if len(w) > 3][:6]
-            query = " ".join(clean_words)
             params = {
                 "engine": "google_images",
-                "q": query,
+                "q": query_text,
                 "api_key": SERPAPI_KEY
             }
             url = "https://serpapi.com/search.json?" + urllib.parse.urlencode(params)
@@ -127,13 +133,33 @@ class CurrentsNewsBot:
             with urllib.request.urlopen(req, timeout=10) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
                 results = data.get("images_results", [])
-                if results and len(results) > 0:
-                    for img in results[:3]:
-                        candidate = img.get("original") or img.get("thumbnail")
-                        if candidate and candidate.startswith("http") and "favicon" not in candidate:
-                            return candidate
+                for img in results:
+                    orig = img.get("original") or ""
+                    if is_valid_jpg_or_png(orig):
+                        return orig
+                for img in results:
+                    thumb = img.get("thumbnail") or ""
+                    if is_valid_jpg_or_png(thumb):
+                        return thumb
         except Exception:
             pass
+        return ""
+
+    def get_guaranteed_image(self, title, source, item_thumb):
+        if is_valid_jpg_or_png(item_thumb):
+            return item_thumb
+
+        clean_words = [w for w in title.replace(":", " ").replace("-", " ").replace("'", "").split() if len(w) > 3][:6]
+        q1 = " ".join(clean_words)
+        img1 = self.fetch_serp_image(q1)
+        if img1:
+            return img1
+
+        q2 = f"{clean_words[0]} {clean_words[1]} {source}" if len(clean_words) >= 2 else f"{title[:25]} news"
+        img2 = self.fetch_serp_image(q2)
+        if img2:
+            return img2
+
         return ""
 
     def generate_news_body(self, title, source, category_name):
@@ -141,48 +167,55 @@ class CurrentsNewsBot:
         analysis_hdr = random.choice(ANALYSIS_HEADERS)
         clean_title = title.split(" - ")[0].split(" | ")[0].strip()
 
-        if category_name == "chips":
+        if category_name in ["politics", "india_politics"]:
             bullets = [
-                "- Semiconductor supply chain adjustments affecting enterprise wafer orders",
+                "- Key policy alignments and legislative agendas moving into active execution",
+                "- Political leadership and administrative bodies responding to strategic public priorities",
+                "- Governance frameworks shaping upcoming regulatory and economic shifts"
+            ]
+            analysis = "Policy decisions and institutional alignments continue to directly influence market stability and administrative priorities."
+        elif category_name in ["india_news", "india"]:
+            bullets = [
+                "- Rapid domestic development accelerating across regional and national sectors",
+                "- Infrastructure initiatives and economic momentum bolstering long-term growth",
+                "- Enterprise execution and institutional support aligning on key milestones"
+            ]
+            analysis = "India's domestic growth trajectory reflects accelerating investments across digital infrastructure, governance, and enterprise development."
+        elif category_name == "chips":
+            bullets = [
+                "- Semiconductor supply chain adjustments affecting enterprise wafer allocations",
                 "- High-performance compute pricing reflecting shifting fabrication capacity",
-                "- Next-generation hardware allocations prioritized for AI infrastructure"
+                "- Next-generation hardware allocations prioritized for large-scale infrastructure"
             ]
             analysis = "Global hardware economics continue to hinge on silicon packaging yields and enterprise demand."
         elif category_name == "elon":
             bullets = [
-                "- Cross-industry operations spanning satellite bandwidth, autonomous transport, and compute",
-                "- Direct challenge to legacy market players as commercial deployment scales",
-                "- Regulatory filing updates indicate accelerating operational rollout"
+                "- Multi-front operations spanning satellite networks, autonomous systems, and compute",
+                "- Direct disruption to traditional legacy market players as commercial scaling accelerates",
+                "- Operational milestones indicate accelerating deployment across flagship ventures"
             ]
-            analysis = "Rapid cross-sector moves continue shifting market valuations across telecommunications and robotics."
-        elif category_name == "india":
-            bullets = [
-                "- Key domestic market developments accelerating enterprise and consumer adoption",
-                "- Foreign direct investment and engineering talent driving local technological expansion",
-                "- Strategic regulatory alignment supporting scalable digital infrastructure"
-            ]
-            analysis = "India's technological ecosystem is solidifying its position as a primary global driver of hardware and software expansion."
+            analysis = "Aggressive execution across orbital infrastructure and autonomous compute continues to challenge incumbent legacy industries."
         elif category_name == "international":
             bullets = [
-                "- Multilateral policy shifts impacting international technology trade and governance",
-                "- Cross-border agreements redefining global infrastructure standards",
-                "- Geopolitical developments influencing supply chains and commercial sovereignty"
+                "- Multilateral diplomatic shifts impacting cross-border trade and governance",
+                "- International agreements redefining global standards and diplomatic security",
+                "- Geopolitical developments influencing supply lines and economic cooperation"
             ]
-            analysis = "Global tech diplomacy is increasingly dictating operational security and software market reach."
+            analysis = "Global diplomacy and cross-border accords are increasingly determining geopolitical stability and international market access."
         elif category_name == "ai":
             bullets = [
                 "- Model architecture updates improving efficiency and benchmark performance",
                 "- Accelerated adoption across production workflows and developer ecosystems",
                 "- Frontier capabilities challenging existing software paradigms"
             ]
-            analysis = "The transition from theoretical benchmarks to reliable developer tooling is compressing product cycles worldwide."
+            analysis = "The transition from theoretical benchmarks to reliable tooling is compressing technological cycles worldwide."
         elif category_name == "bigtech":
             bullets = [
                 "- Major platform shifts impacting developer integrations and ecosystem revenues",
                 "- Strategic reallocation of capital toward next-generation hardware and software",
-                "- Compliance and competitive responses reshaping industry dominance"
+                "- Competitive responses reshaping industry dominance across consumer ecosystems"
             ]
-            analysis = "Platform incumbents are adjusting core strategies to protect distribution moats against agile contenders."
+            analysis = "Platform incumbents are adjusting core strategies to defend distribution moats against rapid innovations."
         else:
             bullets = [
                 "- Key structural update impacting commercial ecosystem dynamics",
@@ -263,17 +296,17 @@ class CurrentsNewsBot:
                 if self.is_posted(link):
                     continue
 
-                image_url = item.get("thumbnail") or ""
-                if not image_url or "gstatic.com" in image_url:
-                    image_url = self.fetch_high_res_image(title, source) or image_url
+                item_thumb = item.get("thumbnail") or ""
+                image_url = self.get_guaranteed_image(title, source, item_thumb)
 
-                if not image_url or not image_url.startswith("http"):
+                if not is_valid_jpg_or_png(image_url):
                     continue
 
                 post_text = self.generate_news_body(title, source, cat["name"])
                 post_id = self.publish_post(post_text, image_url, link, source)
                 self.mark_posted(link, title, source, post_id)
-                print(f"Published [{post_id}] in [{cat['name']}] with image: {image_url[:60]}...")
+                print(f"Published [{post_id}] in [{cat['name']}] with verified .jpg/.png image:")
+                print(f"Image: {image_url}")
                 print(f"Title: {title[:70]}")
                 posted_count += 1
                 return posted_count
