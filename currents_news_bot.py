@@ -22,7 +22,9 @@ TOPIC_CATEGORIES = [
     {"name": "india_politics", "q": "India politics elections parliament policy governance", "gl": "in"},
     {"name": "india_news", "q": "India national news tech economy development infrastructure", "gl": "in"},
     {"name": "international", "q": "world international news diplomacy global affairs", "gl": "us"},
+    {"name": "elon_starlink_india", "q": "Musk Starlink India Ambani telecom spectrum", "gl": "in"},
     {"name": "elon", "q": "Elon Musk SpaceX Tesla xAI Starlink Neuralink", "gl": "us"},
+    {"name": "geopolitics_tech", "q": "tech sovereignty tariffs semiconductor export curbs", "gl": "us"},
     {"name": "chips", "q": "Nvidia chip price GPU supply semiconductor TSMC foundry", "gl": "us"},
     {"name": "ai", "q": "artificial intelligence frontier AI model LLM open source", "gl": "us"},
     {"name": "bigtech", "q": "Apple Google Microsoft Meta Amazon enterprise tech", "gl": "us"},
@@ -221,14 +223,14 @@ class CurrentsNewsBot:
                 "- Next-generation hardware allocations prioritized for large-scale infrastructure"
             ]
             analysis = "Global hardware economics continue to hinge on silicon packaging yields and enterprise demand."
-        elif category_name == "elon":
+        elif category_name in ["elon", "elon_starlink_india"]:
             bullets = [
                 "- Multi-front operations spanning satellite networks, autonomous systems, and compute",
                 "- Direct disruption to traditional legacy market players as commercial scaling accelerates",
                 "- Operational milestones indicate accelerating deployment across flagship ventures"
             ]
             analysis = "Aggressive execution across orbital infrastructure and autonomous compute continues to challenge incumbent legacy industries."
-        elif category_name == "international":
+        elif category_name in ["international", "geopolitics_tech"]:
             bullets = [
                 "- Multilateral diplomatic shifts impacting cross-border trade and governance",
                 "- International agreements redefining global standards and diplomatic security",
