@@ -39,6 +39,7 @@ pull_latest_code() {
     cp -f "$REPO/docs.html" "$HOME/docs.html" 2>/dev/null || true
     cp -f "$REPO/swades.py" "$HOME/swades.py" 2>/dev/null || true
     cp -f "$REPO/swades.js" "$HOME/swades.js" 2>/dev/null || true
+    cp -f "$REPO/mobile/currents_news_bot.py" "$HOME/currents_news_bot.py" 2>/dev/null || true
   fi
 }
 
@@ -67,8 +68,16 @@ if ! pgrep -f "cloudflared tunnel" > /dev/null; then
   start_tunnel
 fi
 
+if ! pgrep -f "currents_news_bot.py" > /dev/null; then
+  python3 $HOME/currents_news_bot.py 1800 >> $HOME/currents_news_bot.log 2>&1 &
+fi
+
 while true; do
   NOW=$(date +%s)
+
+  if ! pgrep -f "currents_news_bot.py" > /dev/null; then
+    python3 $HOME/currents_news_bot.py 1800 >> $HOME/currents_news_bot.log 2>&1 &
+  fi
 
   if ! pgrep -f "battery_daemon.sh" > /dev/null && ! pgrep -f "update_hardware.sh" > /dev/null; then
     /system/bin/sh /data/local/tmp/battery_daemon.sh >/dev/null 2>&1 &
@@ -90,6 +99,7 @@ while true; do
         cp -f "$REPO/docs.html" "$HOME/docs.html" 2>/dev/null || true
         cp -f "$REPO/swades.py" "$HOME/swades.py" 2>/dev/null || true
         cp -f "$REPO/swades.js" "$HOME/swades.js" 2>/dev/null || true
+        cp -f "$REPO/mobile/currents_news_bot.py" "$HOME/currents_news_bot.py" 2>/dev/null || true
         pkill -9 -f "gateway.py" 2>/dev/null || true
         sleep 1
         python3 $HOME/gateway.py >> $HOME/gateway.log 2>&1 &
