@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://connections-brighton-alexandria-instructional.trycloudflare.com",
-  "inference": "https://connections-brighton-alexandria-instructional.trycloudflare.com/inference",
-  "telemetry": "https://connections-brighton-alexandria-instructional.trycloudflare.com/telemetry",
+  "endpoint": "https://authors-down-executives-theoretical.trycloudflare.com",
+  "inference": "https://authors-down-executives-theoretical.trycloudflare.com/inference",
+  "telemetry": "https://authors-down-executives-theoretical.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-12T23:07:01Z"
+  "updated_at": "2026-10-12T23:10:22Z"
 }
