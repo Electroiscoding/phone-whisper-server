@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://logic-axis-bishop-developments.trycloudflare.com",
-  "inference": "https://logic-axis-bishop-developments.trycloudflare.com/inference",
-  "telemetry": "https://logic-axis-bishop-developments.trycloudflare.com/telemetry",
+  "endpoint": "https://emerging-springfield-breakfast-regional.trycloudflare.com",
+  "inference": "https://emerging-springfield-breakfast-regional.trycloudflare.com/inference",
+  "telemetry": "https://emerging-springfield-breakfast-regional.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-12T22:50:04Z"
+  "updated_at": "2026-10-12T22:54:14Z"
 }
