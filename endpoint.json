@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://providing-routine-jet-pushed.trycloudflare.com",
-  "inference": "https://providing-routine-jet-pushed.trycloudflare.com/inference",
-  "telemetry": "https://providing-routine-jet-pushed.trycloudflare.com/telemetry",
+  "endpoint": "https://businesses-risks-briefly-furnishings.trycloudflare.com",
+  "inference": "https://businesses-risks-briefly-furnishings.trycloudflare.com/inference",
+  "telemetry": "https://businesses-risks-briefly-furnishings.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-12T17:14:56Z"
+  "updated_at": "2026-10-12T17:17:58Z"
 }
