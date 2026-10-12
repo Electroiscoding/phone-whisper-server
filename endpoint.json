@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://determine-repairs-opening-improve.trycloudflare.com",
-  "inference": "https://determine-repairs-opening-improve.trycloudflare.com/inference",
-  "telemetry": "https://determine-repairs-opening-improve.trycloudflare.com/telemetry",
+  "endpoint": "https://exams-controllers-wrapping-myspace.trycloudflare.com",
+  "inference": "https://exams-controllers-wrapping-myspace.trycloudflare.com/inference",
+  "telemetry": "https://exams-controllers-wrapping-myspace.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-12T15:08:49Z"
+  "updated_at": "2026-10-12T15:15:56Z"
 }
