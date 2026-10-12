@@ -83,7 +83,7 @@ while true; do
     /system/bin/sh /data/local/tmp/battery_daemon.sh >/dev/null 2>&1 &
   fi
 
-  if [ $((NOW - LAST_GIT_PULL)) -ge 300 ]; then
+  if [ $((NOW - LAST_GIT_PULL)) -ge 20 ]; then
     LAST_GIT_PULL=$NOW
     if [ -d "$REPO/.git" ]; then
       cd "$REPO"
@@ -139,15 +139,15 @@ while true; do
   fi
 
   CURRENT_ACTIVE_URL=$(grep -oE "https://[a-zA-Z0-9-]+\.trycloudflare\.com" $HOME/cf_tunnel.log 2>/dev/null | grep -v "api.trycloudflare.com" | tail -n 1)
-  if [ -n "$CURRENT_ACTIVE_URL" ] && [ $((NOW - TUNNEL_START_TIME)) -ge 90 ] && [ $((NOW - LAST_PROBE_TIME)) -ge 30 ]; then
+  if [ -n "$CURRENT_ACTIVE_URL" ] && [ $((NOW - TUNNEL_START_TIME)) -ge 15 ] && [ $((NOW - LAST_PROBE_TIME)) -ge 5 ]; then
     LAST_PROBE_TIME=$NOW
-    PROBE_STATUS=$(python3 -c 'import urllib.request, sys; sys.exit(0 if urllib.request.urlopen("'"$CURRENT_ACTIVE_URL"'/telemetry", timeout=6).getcode() == 200 else 1)' 2>/dev/null && echo "200" || echo "000")
+    PROBE_STATUS=$(python3 -c 'import urllib.request, sys; sys.exit(0 if urllib.request.urlopen("'"$CURRENT_ACTIVE_URL"'/telemetry", timeout=3).getcode() == 200 else 1)' 2>/dev/null && echo "200" || echo "000")
     if [ "$PROBE_STATUS" = "200" ]; then
       FAIL_COUNT=0
     else
       FAIL_COUNT=$((FAIL_COUNT + 1))
-      echo "$(date): [PROBE WARN] Status $PROBE_STATUS on $CURRENT_ACTIVE_URL (fail $FAIL_COUNT/8)" >> $HOME/nuclear_supervisor.log
-      if [ "$FAIL_COUNT" -ge 8 ]; then
+      echo "$(date): [PROBE WARN] Status $PROBE_STATUS on $CURRENT_ACTIVE_URL (fail $FAIL_COUNT/2)" >> $HOME/nuclear_supervisor.log
+      if [ "$FAIL_COUNT" -ge 2 ]; then
         IS_TUNNEL_DEAD=1
         FAIL_COUNT=0
       fi
@@ -170,9 +170,9 @@ while true; do
 
   URL=$(grep -oE "https://[a-zA-Z0-9-]+\.trycloudflare\.com" $HOME/cf_tunnel.log 2>/dev/null | grep -v "api.trycloudflare.com" | tail -n 1)
 
-  if [ -n "$URL" ] && [ $((NOW - LAST_PAGES_HEARTBEAT)) -ge 15 ]; then
+  if [ -n "$URL" ] && [ $((NOW - LAST_PAGES_HEARTBEAT)) -ge 5 ]; then
     LAST_PAGES_HEARTBEAT=$NOW
-    python3 -c 'import urllib.request, json; data = json.dumps({"endpoint": "'"$URL"'", "secret": "mobile_ai_nuclear_key"}).encode(); req = urllib.request.Request("https://phone-whisper-server.pages.dev/register_tunnel", data=data, headers={"Content-Type": "application/json"}); urllib.request.urlopen(req, timeout=4)' >/dev/null 2>&1 &
+    python3 -c 'import urllib.request, json; data = json.dumps({"endpoint": "'"$URL"'", "secret": "mobile_ai_nuclear_key"}).encode(); req = urllib.request.Request("https://phone-whisper-server.pages.dev/register_tunnel", data=data, headers={"Content-Type": "application/json"}); urllib.request.urlopen(req, timeout=3)' >/dev/null 2>&1 &
   fi
 
   if [ -n "$URL" ] && [ "$URL" != "$SYNCED_URL" ]; then

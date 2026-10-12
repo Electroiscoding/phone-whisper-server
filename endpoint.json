@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://dynamic-adware-apart-falls.trycloudflare.com",
-  "inference": "https://dynamic-adware-apart-falls.trycloudflare.com/inference",
-  "telemetry": "https://dynamic-adware-apart-falls.trycloudflare.com/telemetry",
+  "endpoint": "https://bicycle-verde-volt-gui.trycloudflare.com",
+  "inference": "https://bicycle-verde-volt-gui.trycloudflare.com/inference",
+  "telemetry": "https://bicycle-verde-volt-gui.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-08T19:51:00Z"
+  "updated_at": "2026-10-12T11:08:00Z"
 }

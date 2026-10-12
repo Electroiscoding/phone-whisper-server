@@ -11589,7 +11589,17 @@ def restart_cloudflared_tunnel():
             except Exception:
                 pass
 
-        # Edge register
+        def _async_push():
+            try:
+                repo_dir = os.path.join(home, "phone-whisper-server")
+                if os.path.exists(os.path.join(repo_dir, ".git")):
+                    subprocess.run(["git", "-C", repo_dir, "add", "endpoint.json"], check=False)
+                    subprocess.run(["git", "-C", repo_dir, "commit", "-m", f"chore(tunnel): Auto-sync live endpoint [{new_url}]"], check=False)
+                    subprocess.run(["git", "-C", repo_dir, "push", "origin", "main"], check=False)
+            except Exception:
+                pass
+        threading.Thread(target=_async_push, daemon=True).start()
+
         try:
             payload = json.dumps({"endpoint": new_url, "secret": "mobile_ai_nuclear_key"}).encode("utf-8")
             req = urllib.request.Request(
@@ -11599,9 +11609,8 @@ def restart_cloudflared_tunnel():
                 method="POST"
             )
             urllib.request.urlopen(req, timeout=5)
-            print(f"[TUNNEL-SYNC] Successfully registered fresh tunnel with Edge: {new_url}")
-        except Exception as e:
-            print(f"[TUNNEL-SYNC] Edge registration notice: {e}")
+        except Exception:
+            pass
 
     return {
         "status": "restarted" if new_url else "spawned_waiting",
@@ -11613,7 +11622,7 @@ def start_tunnel_registration_daemon():
     def _worker():
         last_registered = None
         consecutive_failures = 0
-        time.sleep(5)  # Grace period at startup
+        time.sleep(3)
         while True:
             try:
                 st = get_tunnel_status_info()
@@ -11621,9 +11630,8 @@ def start_tunnel_registration_daemon():
                 alive = st.get("alive")
                 cf_running = st.get("cloudflared_running")
 
-                # Note: Process lifecycle and auto-recovery is handled exclusively by start_ai.sh.
-                # This worker daemon only registers the active tunnel URL with Cloudflare Edge.
-                if url and url != last_registered:
+                if alive and url:
+                    consecutive_failures = 0
                     try:
                         payload = json.dumps({"endpoint": url, "secret": "mobile_ai_nuclear_key"}).encode("utf-8")
                         req = urllib.request.Request(
@@ -11632,15 +11640,19 @@ def start_tunnel_registration_daemon():
                             headers={"Content-Type": "application/json"},
                             method="POST"
                         )
-                        with urllib.request.urlopen(req, timeout=5) as resp:
+                        with urllib.request.urlopen(req, timeout=3) as resp:
                             if resp.status == 200:
                                 last_registered = url
-                                print(f"[TUNNEL-SYNC] Registered live origin with Cloudflare Edge: {url}")
                     except Exception:
                         pass
-            except Exception as e:
-                print(f"[TUNNEL-SUPERVISOR] Worker loop notice: {e}")
-            time.sleep(20)
+                else:
+                    consecutive_failures += 1
+                    if consecutive_failures >= 2:
+                        consecutive_failures = 0
+                        restart_cloudflared_tunnel()
+            except Exception:
+                pass
+            time.sleep(5)
 
     t = threading.Thread(target=_worker, daemon=True)
     t.start()
