@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://thirty-band-burton-yorkshire.trycloudflare.com",
-  "inference": "https://thirty-band-burton-yorkshire.trycloudflare.com/inference",
-  "telemetry": "https://thirty-band-burton-yorkshire.trycloudflare.com/telemetry",
+  "endpoint": "https://checked-bringing-turbo-cbs.trycloudflare.com",
+  "inference": "https://checked-bringing-turbo-cbs.trycloudflare.com/inference",
+  "telemetry": "https://checked-bringing-turbo-cbs.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-12T16:56:57Z"
+  "updated_at": "2026-10-12T17:03:39Z"
 }
