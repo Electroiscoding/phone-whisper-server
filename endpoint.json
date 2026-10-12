@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://catalog-syndrome-hood-val.trycloudflare.com",
-  "inference": "https://catalog-syndrome-hood-val.trycloudflare.com/inference",
-  "telemetry": "https://catalog-syndrome-hood-val.trycloudflare.com/telemetry",
+  "endpoint": "https://documentary-physician-ferry-thu.trycloudflare.com",
+  "inference": "https://documentary-physician-ferry-thu.trycloudflare.com/inference",
+  "telemetry": "https://documentary-physician-ferry-thu.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-12T17:25:12Z"
+  "updated_at": "2026-10-12T17:27:22Z"
 }
