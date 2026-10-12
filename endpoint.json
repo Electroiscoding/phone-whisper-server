@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://property-ranking-establishing-recently.trycloudflare.com",
-  "inference": "https://property-ranking-establishing-recently.trycloudflare.com/inference",
-  "telemetry": "https://property-ranking-establishing-recently.trycloudflare.com/telemetry",
+  "endpoint": "https://differently-folder-humanities-fare.trycloudflare.com",
+  "inference": "https://differently-folder-humanities-fare.trycloudflare.com/inference",
+  "telemetry": "https://differently-folder-humanities-fare.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-12T16:17:53Z"
+  "updated_at": "2026-10-12T16:18:41Z"
 }
