@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://experiencing-angel-father-backing.trycloudflare.com",
-  "inference": "https://experiencing-angel-father-backing.trycloudflare.com/inference",
-  "telemetry": "https://experiencing-angel-father-backing.trycloudflare.com/telemetry",
+  "endpoint": "https://str-closest-fever-associates.trycloudflare.com",
+  "inference": "https://str-closest-fever-associates.trycloudflare.com/inference",
+  "telemetry": "https://str-closest-fever-associates.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-12T16:44:58Z"
+  "updated_at": "2026-10-12T16:53:47Z"
 }
