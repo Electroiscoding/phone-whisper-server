@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://vector-develops-resulted-passion.trycloudflare.com",
-  "inference": "https://vector-develops-resulted-passion.trycloudflare.com/inference",
-  "telemetry": "https://vector-develops-resulted-passion.trycloudflare.com/telemetry",
+  "endpoint": "https://cams-committed-compatibility-nature.trycloudflare.com",
+  "inference": "https://cams-committed-compatibility-nature.trycloudflare.com/inference",
+  "telemetry": "https://cams-committed-compatibility-nature.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-12T14:59:58Z"
+  "updated_at": "2026-10-12T15:02:27Z"
 }
