@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://stable-healthy-configured-walking.trycloudflare.com",
-  "inference": "https://stable-healthy-configured-walking.trycloudflare.com/inference",
-  "telemetry": "https://stable-healthy-configured-walking.trycloudflare.com/telemetry",
+  "endpoint": "https://gain-regardless-seller-processor.trycloudflare.com",
+  "inference": "https://gain-regardless-seller-processor.trycloudflare.com/inference",
+  "telemetry": "https://gain-regardless-seller-processor.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-12T21:46:12Z"
+  "updated_at": "2026-10-12T21:48:22Z"
 }
