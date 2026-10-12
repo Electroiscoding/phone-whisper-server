@@ -4206,6 +4206,98 @@ class SovereignCronEngine:
 
 _cron_engine = SovereignCronEngine(_storage_vault, _gmail_notifier)
 
+try:
+    from currents_news_bot import CurrentsNewsBot
+except ImportError:
+    try:
+        from mobile.currents_news_bot import CurrentsNewsBot
+    except ImportError:
+        CurrentsNewsBot = None
+
+class CurrentsDaemonManager:
+    def __init__(self, interval_sec=1800):
+        self.interval_sec = interval_sec
+        self.last_run_ts = 0
+        self.last_run_iso = ""
+        self.next_run_ts = 0
+        self.next_run_iso = ""
+        self.total_posts = 0
+        self.last_status = "idle"
+        self.last_error = ""
+        self.is_running_cycle = False
+        self._lock = threading.Lock()
+        self._thread = None
+
+    def start(self):
+        if self._thread and self._thread.is_alive():
+            return
+        self._thread = threading.Thread(target=self._loop, daemon=True)
+        self._thread.start()
+
+    def _loop(self):
+        time.sleep(10)
+        while True:
+            self.execute_cycle()
+            with self._lock:
+                self.next_run_ts = time.time() + self.interval_sec
+                self.next_run_iso = datetime.fromtimestamp(self.next_run_ts, timezone.utc).isoformat()
+            time.sleep(self.interval_sec)
+
+    def execute_cycle(self):
+        with self._lock:
+            if self.is_running_cycle:
+                return {"status": "in_progress", "total_posts": self.total_posts}
+            self.is_running_cycle = True
+            self.last_status = "running"
+        try:
+            bot_cls = CurrentsNewsBot
+            if not bot_cls:
+                try:
+                    from currents_news_bot import CurrentsNewsBot as c_bot
+                    bot_cls = c_bot
+                except ImportError:
+                    from mobile.currents_news_bot import CurrentsNewsBot as c_bot
+                    bot_cls = c_bot
+            bot = bot_cls()
+            count = bot.run_cycle()
+            with self._lock:
+                self.last_run_ts = time.time()
+                self.last_run_iso = datetime.fromtimestamp(self.last_run_ts, timezone.utc).isoformat()
+                self.total_posts += (count or 0)
+                self.last_status = f"success ({count} posted)"
+                self.last_error = ""
+                return {"status": "completed", "articles_posted": count, "total_posts": self.total_posts}
+        except Exception as e:
+            with self._lock:
+                self.last_status = "error"
+                self.last_error = str(e)
+                return {"status": "error", "error": str(e), "total_posts": self.total_posts}
+        finally:
+            with self._lock:
+                self.is_running_cycle = False
+
+    def trigger_now(self):
+        t = threading.Thread(target=self.execute_cycle, daemon=True)
+        t.start()
+        return {"status": "triggered", "message": "Scraping cycle initiated in background"}
+
+    def get_status(self):
+        with self._lock:
+            return {
+                "service": "Currents 24/7 Autonomous Wire",
+                "interval_seconds": self.interval_sec,
+                "is_running_cycle": self.is_running_cycle,
+                "last_run_ts": self.last_run_ts,
+                "last_run_iso": self.last_run_iso,
+                "next_run_ts": self.next_run_ts,
+                "next_run_iso": self.next_run_iso,
+                "total_posts": self.total_posts,
+                "last_status": self.last_status,
+                "last_error": self.last_error
+            }
+
+_currents_manager = CurrentsDaemonManager(1800)
+
 
 def _spawn_swades_worker(job_id):
     """Spawns the Node.js autonomous worker immediately upon submission"""
@@ -5309,6 +5401,19 @@ def _telemetry_background_loop():
                 "is_active": True
             })
 
+            if '_currents_manager' in globals():
+                c_stat = _currents_manager.get_status()
+                process_table.append({
+                    "name": "currents_news_bot",
+                    "label": "Currents 24/7 Autonomous Wire",
+                    "pid": g_pid,
+                    "cpu": 0.0,
+                    "memory": "Thread",
+                    "threads": "1 (Daemon)",
+                    "status": f"{c_stat['last_status']} (every 30m)",
+                    "is_active": c_stat["is_running_cycle"]
+                })
+
             data = {
                 "battery": bat,
                 "acc": _acc_controller.get_live_status(),
@@ -5347,6 +5452,7 @@ def _telemetry_background_loop():
                     "ram": f"{round(total_mb / 1024, 1)}GB LPDDR4X"
                 },
                 "process_matrix": process_table,
+                "currents": _currents_manager.get_status() if '_currents_manager' in globals() else {},
                 "total_requests": req_cnt,
                 "uptime_seconds": int(time.time() - _start_time),
                 "timestamp": int(time.time()),
@@ -5541,6 +5647,10 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_tunnel_status()
         elif path in ["/v1/tunnel/restart", "/tunnel/restart"]:
             self.handle_tunnel_restart()
+        elif path in ["/v1/currents/status", "/currents/status"]:
+            self.handle_currents_status()
+        elif path in ["/v1/currents/trigger", "/currents/trigger"]:
+            self.handle_currents_trigger()
         elif parsed.path == "/s" or parsed.path == "/s/":
             self.send_response(200)
             self._send_cors_headers()
@@ -5819,6 +5929,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_gateway_reload()
         elif path in ["/v1/tunnel/restart", "/tunnel/restart"]:
             self.handle_tunnel_restart()
+        elif path in ["/v1/currents/trigger", "/currents/trigger"]:
+            self.handle_currents_trigger()
         elif path in ["/v1/smtp/config", "/v1/admin/smtp/config"]:
             self.handle_smtp_config()
         elif path in ["/v1/smtp/test", "/v1/admin/smtp/test"]:
@@ -10004,6 +10116,25 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(json.dumps(info, indent=2).encode())
 
+    def handle_currents_status(self):
+        resp = json.dumps(_currents_manager.get_status()).encode("utf-8")
+        self.send_response(200)
+        self._send_cors_headers()
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(resp)))
+        self.end_headers()
+        self.wfile.write(resp)
+
+    def handle_currents_trigger(self):
+        result = _currents_manager.trigger_now()
+        resp = json.dumps(result).encode("utf-8")
+        self.send_response(200)
+        self._send_cors_headers()
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(resp)))
+        self.end_headers()
+        self.wfile.write(resp)
+
     def handle_telemetry(self):
         global _latest_telemetry_cache
         with _latest_telemetry_lock:
@@ -11683,6 +11814,7 @@ def setup_scifi_hud():
 def main():
     setup_scifi_hud()
     start_tunnel_registration_daemon()
+    _currents_manager.start()
     port = 8080
     server_address = ('0.0.0.0', port)
     httpd = ThreadedHTTPServer(server_address, MultiModalGatewayHandler)

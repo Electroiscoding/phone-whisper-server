@@ -125,7 +125,7 @@ class CurrentsNewsBot:
         conn.close()
 
     def login(self):
-        for _ in range(3):
+        for attempt in range(6):
             try:
                 url = f"https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={FIREBASE_API_KEY}"
                 payload = json.dumps({
@@ -134,15 +134,15 @@ class CurrentsNewsBot:
                     "returnSecureToken": True
                 }).encode("utf-8")
                 req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
-                with urllib.request.urlopen(req, timeout=10) as resp:
+                with urllib.request.urlopen(req, timeout=12) as resp:
                     data = json.loads(resp.read().decode("utf-8"))
                     self.id_token = data.get("idToken")
                     self.refresh_token = data.get("refreshToken")
                     self.token_expiry = time.time() + int(data.get("expiresIn", 3600)) - 120
                     return self.id_token
             except Exception:
-                time.sleep(2)
-        raise RuntimeError("Failed to login after 3 attempts")
+                time.sleep(min(30, 2 ** attempt))
+        return None
 
     def get_valid_token(self):
         if not self.id_token or time.time() >= self.token_expiry:
@@ -316,7 +316,10 @@ class CurrentsNewsBot:
 
     def run_cycle(self):
         print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Currents scraper cycle initiated...")
-        self.login()
+        token = self.login()
+        if not token:
+            print("Currents login deferred: Network or authentication temporarily unreachable", file=sys.stderr)
+            return 0
 
         shuffled_categories = list(TOPIC_CATEGORIES)
         random.shuffle(shuffled_categories)
@@ -351,6 +354,8 @@ class CurrentsNewsBot:
 
                 post_text = self.generate_news_body(title, source, link, cat["name"])
                 post_id = self.publish_post(post_text, final_image_url, link, source)
+                if not post_id:
+                    continue
                 self.mark_posted(link, title, source, post_id)
                 print(f"Published [{post_id}] in [{cat['name']}]:")
                 print(f"Image: {final_image_url}")
