@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://exams-controllers-wrapping-myspace.trycloudflare.com",
-  "inference": "https://exams-controllers-wrapping-myspace.trycloudflare.com/inference",
-  "telemetry": "https://exams-controllers-wrapping-myspace.trycloudflare.com/telemetry",
+  "endpoint": "https://spencer-nut-mai-fiber.trycloudflare.com",
+  "inference": "https://spencer-nut-mai-fiber.trycloudflare.com/inference",
+  "telemetry": "https://spencer-nut-mai-fiber.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-12T15:16:00Z"
+  "updated_at": "2026-10-12T15:18:01Z"
 }
