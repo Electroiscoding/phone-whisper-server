@@ -18,12 +18,12 @@ DB_DIR = os.environ.get("HOME", os.path.dirname(os.path.abspath(__file__)))
 DB_PATH = os.path.join(DB_DIR, "currents_news.db")
 
 TOPIC_CATEGORIES = [
-    {"name": "politics", "q": "politics elections government policy geopolitical summit", "gl": "us"},
-    {"name": "india_politics", "q": "India politics elections parliament policy governance", "gl": "in"},
-    {"name": "india_news", "q": "India national news tech economy development infrastructure", "gl": "in"},
-    {"name": "international", "q": "world international news diplomacy global affairs", "gl": "us"},
     {"name": "elon_starlink_india", "q": "Musk Starlink India Ambani telecom spectrum", "gl": "in"},
     {"name": "elon", "q": "Elon Musk SpaceX Tesla xAI Starlink Neuralink", "gl": "us"},
+    {"name": "india_politics", "q": "India politics elections parliament policy governance", "gl": "in"},
+    {"name": "politics", "q": "politics elections government policy geopolitical summit", "gl": "us"},
+    {"name": "india_news", "q": "India national news tech economy development infrastructure", "gl": "in"},
+    {"name": "international", "q": "world international news diplomacy global affairs", "gl": "us"},
     {"name": "geopolitics_tech", "q": "tech sovereignty tariffs semiconductor export curbs", "gl": "us"},
     {"name": "chips", "q": "Nvidia chip price GPU supply semiconductor TSMC foundry", "gl": "us"},
     {"name": "ai", "q": "artificial intelligence frontier AI model LLM open source", "gl": "us"},
@@ -54,37 +54,39 @@ def is_valid_jpg_or_png(url):
     return path.endswith(".jpg") or path.endswith(".jpeg") or path.endswith(".png")
 
 def mirror_image_to_nta(image_url):
-    try:
-        req = urllib.request.Request(
-            image_url,
-            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
-        )
-        with urllib.request.urlopen(req, timeout=12) as resp:
-            data = resp.read()
-            if not data or len(data) < 200:
-                return image_url
-
-            ext = "png" if image_url.split("?")[0].lower().endswith(".png") else "jpg"
-            mime = "image/png" if ext == "png" else "image/jpeg"
-            unique_name = f"{int(time.time())}_{random.randint(1000, 9999)}_currents.{ext}"
-            put_url = f"https://ntamediaserver.pages.dev/v1/storage/objects/media/{unique_name}?project_id=netuark_media"
-
-            put_req = urllib.request.Request(
-                put_url,
-                data=data,
-                headers={
-                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-                    "Content-Type": mime,
-                    "X-Project-Id": "netuark_media"
-                },
-                method="PUT"
+    for _ in range(2):
+        try:
+            req = urllib.request.Request(
+                image_url,
+                headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
             )
-            with urllib.request.urlopen(put_req, timeout=15) as put_resp:
-                if put_resp.status in [200, 201]:
-                    return f"https://ntamediaserver.pages.dev/v1/storage/objects/media/{unique_name}"
-    except Exception:
-        pass
-    return image_url
+            with urllib.request.urlopen(req, timeout=12) as resp:
+                data = resp.read()
+                if not data or len(data) < 200:
+                    continue
+
+                clean_p = image_url.split("?")[0].lower()
+                ext = "png" if clean_p.endswith(".png") else "jpg"
+                mime = "image/png" if ext == "png" else "image/jpeg"
+                unique_name = f"{int(time.time())}_{random.randint(1000, 9999)}_currents.{ext}"
+                put_url = f"https://ntamediaserver.pages.dev/v1/storage/objects/media/{unique_name}?project_id=netuark_media"
+
+                put_req = urllib.request.Request(
+                    put_url,
+                    data=data,
+                    headers={
+                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                        "Content-Type": mime,
+                        "X-Project-Id": "netuark_media"
+                    },
+                    method="PUT"
+                )
+                with urllib.request.urlopen(put_req, timeout=15) as put_resp:
+                    if put_resp.status in [200, 201]:
+                        return f"https://ntamediaserver.pages.dev/v1/storage/objects/media/{unique_name}"
+        except Exception:
+            time.sleep(1)
+    return ""
 
 class CurrentsNewsBot:
     def __init__(self):
@@ -123,19 +125,24 @@ class CurrentsNewsBot:
         conn.close()
 
     def login(self):
-        url = f"https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={FIREBASE_API_KEY}"
-        payload = json.dumps({
-            "email": CURRENTS_EMAIL,
-            "password": CURRENTS_PASS,
-            "returnSecureToken": True
-        }).encode("utf-8")
-        req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-            self.id_token = data.get("idToken")
-            self.refresh_token = data.get("refreshToken")
-            self.token_expiry = time.time() + int(data.get("expiresIn", 3600)) - 120
-            return self.id_token
+        for _ in range(3):
+            try:
+                url = f"https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={FIREBASE_API_KEY}"
+                payload = json.dumps({
+                    "email": CURRENTS_EMAIL,
+                    "password": CURRENTS_PASS,
+                    "returnSecureToken": True
+                }).encode("utf-8")
+                req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
+                with urllib.request.urlopen(req, timeout=10) as resp:
+                    data = json.loads(resp.read().decode("utf-8"))
+                    self.id_token = data.get("idToken")
+                    self.refresh_token = data.get("refreshToken")
+                    self.token_expiry = time.time() + int(data.get("expiresIn", 3600)) - 120
+                    return self.id_token
+            except Exception:
+                time.sleep(2)
+        raise RuntimeError("Failed to login after 3 attempts")
 
     def get_valid_token(self):
         if not self.id_token or time.time() >= self.token_expiry:
@@ -339,6 +346,8 @@ class CurrentsNewsBot:
                     continue
 
                 final_image_url = mirror_image_to_nta(raw_image_url)
+                if not final_image_url or not final_image_url.startswith("https://ntamediaserver.pages.dev/"):
+                    continue
 
                 post_text = self.generate_news_body(title, source, link, cat["name"])
                 post_id = self.publish_post(post_text, final_image_url, link, source)
