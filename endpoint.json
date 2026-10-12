@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://scripts-rooms-someone-emma.trycloudflare.com",
-  "inference": "https://scripts-rooms-someone-emma.trycloudflare.com/inference",
-  "telemetry": "https://scripts-rooms-someone-emma.trycloudflare.com/telemetry",
+  "endpoint": "https://determine-repairs-opening-improve.trycloudflare.com",
+  "inference": "https://determine-repairs-opening-improve.trycloudflare.com/inference",
+  "telemetry": "https://determine-repairs-opening-improve.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-12T15:07:28Z"
+  "updated_at": "2026-10-12T15:08:42Z"
 }
