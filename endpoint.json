@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://titans-herald-automotive-boxing.trycloudflare.com",
-  "inference": "https://titans-herald-automotive-boxing.trycloudflare.com/inference",
-  "telemetry": "https://titans-herald-automotive-boxing.trycloudflare.com/telemetry",
+  "endpoint": "https://bags-abs-fabric-wright.trycloudflare.com",
+  "inference": "https://bags-abs-fabric-wright.trycloudflare.com/inference",
+  "telemetry": "https://bags-abs-fabric-wright.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-12T23:00:48Z"
+  "updated_at": "2026-10-12T23:02:06Z"
 }
