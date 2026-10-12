@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://aka-economies-thereby-text.trycloudflare.com",
-  "inference": "https://aka-economies-thereby-text.trycloudflare.com/inference",
-  "telemetry": "https://aka-economies-thereby-text.trycloudflare.com/telemetry",
+  "endpoint": "https://genre-arrange-parameter-rank.trycloudflare.com",
+  "inference": "https://genre-arrange-parameter-rank.trycloudflare.com/inference",
+  "telemetry": "https://genre-arrange-parameter-rank.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-12T21:18:52Z"
+  "updated_at": "2026-10-12T21:22:39Z"
 }
