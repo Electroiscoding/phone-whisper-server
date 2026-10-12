@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://guards-des-absent-port.trycloudflare.com",
-  "inference": "https://guards-des-absent-port.trycloudflare.com/inference",
-  "telemetry": "https://guards-des-absent-port.trycloudflare.com/telemetry",
+  "endpoint": "https://feel-electrical-banners-earlier.trycloudflare.com",
+  "inference": "https://feel-electrical-banners-earlier.trycloudflare.com/inference",
+  "telemetry": "https://feel-electrical-banners-earlier.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-12T16:25:36Z"
+  "updated_at": "2026-10-12T16:27:56Z"
 }
