@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://cams-committed-compatibility-nature.trycloudflare.com",
-  "inference": "https://cams-committed-compatibility-nature.trycloudflare.com/inference",
-  "telemetry": "https://cams-committed-compatibility-nature.trycloudflare.com/telemetry",
+  "endpoint": "https://scripts-rooms-someone-emma.trycloudflare.com",
+  "inference": "https://scripts-rooms-someone-emma.trycloudflare.com/inference",
+  "telemetry": "https://scripts-rooms-someone-emma.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-12T15:02:36Z"
+  "updated_at": "2026-10-12T15:07:20Z"
 }
