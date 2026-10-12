@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://alberta-luxury-cargo-strips.trycloudflare.com",
-  "inference": "https://alberta-luxury-cargo-strips.trycloudflare.com/inference",
-  "telemetry": "https://alberta-luxury-cargo-strips.trycloudflare.com/telemetry",
+  "endpoint": "https://transcripts-temporary-grace-speakers.trycloudflare.com",
+  "inference": "https://transcripts-temporary-grace-speakers.trycloudflare.com/inference",
+  "telemetry": "https://transcripts-temporary-grace-speakers.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-12T14:57:19Z"
+  "updated_at": "2026-10-12T14:58:34Z"
 }
