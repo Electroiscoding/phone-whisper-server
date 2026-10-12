@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://subjects-dana-ada-rides.trycloudflare.com",
-  "inference": "https://subjects-dana-ada-rides.trycloudflare.com/inference",
-  "telemetry": "https://subjects-dana-ada-rides.trycloudflare.com/telemetry",
+  "endpoint": "https://conflict-cartoon-expires-cookies.trycloudflare.com",
+  "inference": "https://conflict-cartoon-expires-cookies.trycloudflare.com/inference",
+  "telemetry": "https://conflict-cartoon-expires-cookies.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-12T14:16:23Z"
+  "updated_at": "2026-10-12T14:18:36Z"
 }
