@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://val-mailing-agree-cab.trycloudflare.com",
-  "inference": "https://val-mailing-agree-cab.trycloudflare.com/inference",
-  "telemetry": "https://val-mailing-agree-cab.trycloudflare.com/telemetry",
+  "endpoint": "https://coleman-frequencies-malpractice-holdings.trycloudflare.com",
+  "inference": "https://coleman-frequencies-malpractice-holdings.trycloudflare.com/inference",
+  "telemetry": "https://coleman-frequencies-malpractice-holdings.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-12T14:29:46Z"
+  "updated_at": "2026-10-12T14:33:28Z"
 }
