@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://english-accessible-scholarship-scripts.trycloudflare.com",
-  "inference": "https://english-accessible-scholarship-scripts.trycloudflare.com/inference",
-  "telemetry": "https://english-accessible-scholarship-scripts.trycloudflare.com/telemetry",
+  "endpoint": "https://departments-gorgeous-plot-nathan.trycloudflare.com",
+  "inference": "https://departments-gorgeous-plot-nathan.trycloudflare.com/inference",
+  "telemetry": "https://departments-gorgeous-plot-nathan.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-12T14:26:56Z"
+  "updated_at": "2026-10-12T14:29:16Z"
 }
