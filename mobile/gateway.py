@@ -4206,13 +4206,29 @@ class SovereignCronEngine:
 
 _cron_engine = SovereignCronEngine(_storage_vault, _gmail_notifier)
 
-try:
-    from currents_news_bot import CurrentsNewsBot
-except ImportError:
+def get_currents_bot_class():
+    for candidate in [
+        os.path.expanduser("~/currents_news_bot.py"),
+        os.path.expanduser("~/phone-whisper-server/mobile/currents_news_bot.py"),
+        os.path.expanduser("~/phone-whisper-server/currents_news_bot.py"),
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "currents_news_bot.py"),
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "mobile", "currents_news_bot.py")
+    ]:
+        if os.path.exists(candidate):
+            try:
+                import importlib.util
+                spec = importlib.util.spec_from_file_location("currents_news_bot", candidate)
+                mod = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(mod)
+                if hasattr(mod, "CurrentsNewsBot"):
+                    return mod.CurrentsNewsBot
+            except Exception:
+                pass
     try:
-        from mobile.currents_news_bot import CurrentsNewsBot
-    except ImportError:
-        CurrentsNewsBot = None
+        from currents_news_bot import CurrentsNewsBot
+        return CurrentsNewsBot
+    except Exception:
+        return None
 
 class CurrentsDaemonManager:
     def __init__(self, interval_sec=1800):
@@ -4250,14 +4266,9 @@ class CurrentsDaemonManager:
             self.is_running_cycle = True
             self.last_status = "running"
         try:
-            bot_cls = CurrentsNewsBot
+            bot_cls = get_currents_bot_class()
             if not bot_cls:
-                try:
-                    from currents_news_bot import CurrentsNewsBot as c_bot
-                    bot_cls = c_bot
-                except ImportError:
-                    from mobile.currents_news_bot import CurrentsNewsBot as c_bot
-                    bot_cls = c_bot
+                raise RuntimeError("Could not locate currents_news_bot module on host filesystem")
             bot = bot_cls()
             count = bot.run_cycle()
             with self._lock:
