@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://consumers-associates-documentary-phoenix.trycloudflare.com",
-  "inference": "https://consumers-associates-documentary-phoenix.trycloudflare.com/inference",
-  "telemetry": "https://consumers-associates-documentary-phoenix.trycloudflare.com/telemetry",
+  "endpoint": "https://realistic-reveal-destination-michigan.trycloudflare.com",
+  "inference": "https://realistic-reveal-destination-michigan.trycloudflare.com/inference",
+  "telemetry": "https://realistic-reveal-destination-michigan.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-13T05:36:50Z"
+  "updated_at": "2026-10-13T05:37:02Z"
 }
