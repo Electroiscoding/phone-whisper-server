@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://something-stating-absent-wedding.trycloudflare.com",
-  "inference": "https://something-stating-absent-wedding.trycloudflare.com/inference",
-  "telemetry": "https://something-stating-absent-wedding.trycloudflare.com/telemetry",
+  "endpoint": "https://cakes-tribune-fighters-craps.trycloudflare.com",
+  "inference": "https://cakes-tribune-fighters-craps.trycloudflare.com/inference",
+  "telemetry": "https://cakes-tribune-fighters-craps.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-13T05:02:16Z"
+  "updated_at": "2026-10-13T05:05:45Z"
 }
