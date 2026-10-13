@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://fun-criteria-analysis-voip.trycloudflare.com",
-  "inference": "https://fun-criteria-analysis-voip.trycloudflare.com/inference",
-  "telemetry": "https://fun-criteria-analysis-voip.trycloudflare.com/telemetry",
+  "endpoint": "https://deputy-lecture-alerts-bizarre.trycloudflare.com",
+  "inference": "https://deputy-lecture-alerts-bizarre.trycloudflare.com/inference",
+  "telemetry": "https://deputy-lecture-alerts-bizarre.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-13T17:31:15Z"
+  "updated_at": "2026-10-13T17:31:21Z"
 }
