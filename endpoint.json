@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://pricing-johnston-jackets-presentation.trycloudflare.com",
-  "inference": "https://pricing-johnston-jackets-presentation.trycloudflare.com/inference",
-  "telemetry": "https://pricing-johnston-jackets-presentation.trycloudflare.com/telemetry",
+  "endpoint": "https://convert-visual-equations-keys.trycloudflare.com",
+  "inference": "https://convert-visual-equations-keys.trycloudflare.com/inference",
+  "telemetry": "https://convert-visual-equations-keys.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-13T14:28:45Z"
+  "updated_at": "2026-10-13T14:34:49Z"
 }
