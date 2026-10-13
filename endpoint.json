@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://lat-sentences-replication-scripts.trycloudflare.com",
-  "inference": "https://lat-sentences-replication-scripts.trycloudflare.com/inference",
-  "telemetry": "https://lat-sentences-replication-scripts.trycloudflare.com/telemetry",
+  "endpoint": "https://dir-love-routes-wilderness.trycloudflare.com",
+  "inference": "https://dir-love-routes-wilderness.trycloudflare.com/inference",
+  "telemetry": "https://dir-love-routes-wilderness.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-13T17:17:18Z"
+  "updated_at": "2026-10-13T17:18:33Z"
 }
