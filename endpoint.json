@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://communication-proposal-represent-libs.trycloudflare.com",
-  "inference": "https://communication-proposal-represent-libs.trycloudflare.com/inference",
-  "telemetry": "https://communication-proposal-represent-libs.trycloudflare.com/telemetry",
+  "endpoint": "https://exclusively-yet-covering-intelligence.trycloudflare.com",
+  "inference": "https://exclusively-yet-covering-intelligence.trycloudflare.com/inference",
+  "telemetry": "https://exclusively-yet-covering-intelligence.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-13T06:28:57Z"
+  "updated_at": "2026-10-13T06:30:38Z"
 }
