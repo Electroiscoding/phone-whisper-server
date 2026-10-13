@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://settle-discrimination-pulled-backing.trycloudflare.com",
-  "inference": "https://settle-discrimination-pulled-backing.trycloudflare.com/inference",
-  "telemetry": "https://settle-discrimination-pulled-backing.trycloudflare.com/telemetry",
+  "endpoint": "https://cartridge-rocks-residents-raising.trycloudflare.com",
+  "inference": "https://cartridge-rocks-residents-raising.trycloudflare.com/inference",
+  "telemetry": "https://cartridge-rocks-residents-raising.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-13T12:59:35Z"
+  "updated_at": "2026-10-13T13:08:21Z"
 }
