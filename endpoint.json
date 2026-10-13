@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://expert-viewed-accidents-stylish.trycloudflare.com",
-  "inference": "https://expert-viewed-accidents-stylish.trycloudflare.com/inference",
-  "telemetry": "https://expert-viewed-accidents-stylish.trycloudflare.com/telemetry",
+  "endpoint": "https://select-elvis-gmt-national.trycloudflare.com",
+  "inference": "https://select-elvis-gmt-national.trycloudflare.com/inference",
+  "telemetry": "https://select-elvis-gmt-national.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-13T07:56:18Z"
+  "updated_at": "2026-10-13T07:57:39Z"
 }
