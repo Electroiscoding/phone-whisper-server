@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://successful-dave-examinations-andrea.trycloudflare.com",
-  "inference": "https://successful-dave-examinations-andrea.trycloudflare.com/inference",
-  "telemetry": "https://successful-dave-examinations-andrea.trycloudflare.com/telemetry",
+  "endpoint": "https://detected-wise-activities-disciplinary.trycloudflare.com",
+  "inference": "https://detected-wise-activities-disciplinary.trycloudflare.com/inference",
+  "telemetry": "https://detected-wise-activities-disciplinary.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-13T14:38:26Z"
+  "updated_at": "2026-10-13T14:41:37Z"
 }
