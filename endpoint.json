@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://winning-kept-recording-stress.trycloudflare.com",
-  "inference": "https://winning-kept-recording-stress.trycloudflare.com/inference",
-  "telemetry": "https://winning-kept-recording-stress.trycloudflare.com/telemetry",
+  "endpoint": "https://learn-directions-searching-heather.trycloudflare.com",
+  "inference": "https://learn-directions-searching-heather.trycloudflare.com/inference",
+  "telemetry": "https://learn-directions-searching-heather.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-13T11:38:56Z"
+  "updated_at": "2026-10-13T11:41:56Z"
 }
