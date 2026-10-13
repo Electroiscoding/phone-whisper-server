@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://sized-cannon-tracks-drain.trycloudflare.com",
-  "inference": "https://sized-cannon-tracks-drain.trycloudflare.com/inference",
-  "telemetry": "https://sized-cannon-tracks-drain.trycloudflare.com/telemetry",
+  "endpoint": "https://nhs-other-newfoundland-len.trycloudflare.com",
+  "inference": "https://nhs-other-newfoundland-len.trycloudflare.com/inference",
+  "telemetry": "https://nhs-other-newfoundland-len.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-13T20:03:23Z"
+  "updated_at": "2026-10-13T20:23:28Z"
 }
