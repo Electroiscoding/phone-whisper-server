@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://charges-consideration-export-colleagues.trycloudflare.com",
-  "inference": "https://charges-consideration-export-colleagues.trycloudflare.com/inference",
-  "telemetry": "https://charges-consideration-export-colleagues.trycloudflare.com/telemetry",
+  "endpoint": "https://locator-reproduction-hearings-checking.trycloudflare.com",
+  "inference": "https://locator-reproduction-hearings-checking.trycloudflare.com/inference",
+  "telemetry": "https://locator-reproduction-hearings-checking.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-13T15:01:12Z"
+  "updated_at": "2026-10-13T15:10:55Z"
 }
