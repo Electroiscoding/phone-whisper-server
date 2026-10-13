@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://carey-enforcement-clark-packet.trycloudflare.com",
-  "inference": "https://carey-enforcement-clark-packet.trycloudflare.com/inference",
-  "telemetry": "https://carey-enforcement-clark-packet.trycloudflare.com/telemetry",
+  "endpoint": "https://blocking-toddler-ethical-objects.trycloudflare.com",
+  "inference": "https://blocking-toddler-ethical-objects.trycloudflare.com/inference",
+  "telemetry": "https://blocking-toddler-ethical-objects.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-13T05:58:14Z"
+  "updated_at": "2026-10-13T06:04:11Z"
 }
