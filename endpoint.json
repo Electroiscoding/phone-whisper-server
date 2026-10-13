@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://reminder-employee-playing-flows.trycloudflare.com",
-  "inference": "https://reminder-employee-playing-flows.trycloudflare.com/inference",
-  "telemetry": "https://reminder-employee-playing-flows.trycloudflare.com/telemetry",
+  "endpoint": "https://interstate-avi-simulation-kenny.trycloudflare.com",
+  "inference": "https://interstate-avi-simulation-kenny.trycloudflare.com/inference",
+  "telemetry": "https://interstate-avi-simulation-kenny.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-13T15:29:16Z"
+  "updated_at": "2026-10-13T15:31:45Z"
 }
