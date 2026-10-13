@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://desktops-christine-knew-developed.trycloudflare.com",
-  "inference": "https://desktops-christine-knew-developed.trycloudflare.com/inference",
-  "telemetry": "https://desktops-christine-knew-developed.trycloudflare.com/telemetry",
+  "endpoint": "https://scott-invitations-cups-porcelain.trycloudflare.com",
+  "inference": "https://scott-invitations-cups-porcelain.trycloudflare.com/inference",
+  "telemetry": "https://scott-invitations-cups-porcelain.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-13T05:29:32Z"
+  "updated_at": "2026-10-13T05:36:35Z"
 }
