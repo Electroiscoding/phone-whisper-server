@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://calvin-profession-operating-dublin.trycloudflare.com",
-  "inference": "https://calvin-profession-operating-dublin.trycloudflare.com/inference",
-  "telemetry": "https://calvin-profession-operating-dublin.trycloudflare.com/telemetry",
+  "endpoint": "https://edt-satisfaction-patricia-miscellaneous.trycloudflare.com",
+  "inference": "https://edt-satisfaction-patricia-miscellaneous.trycloudflare.com/inference",
+  "telemetry": "https://edt-satisfaction-patricia-miscellaneous.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-13T12:28:52Z"
+  "updated_at": "2026-10-13T12:29:30Z"
 }
