@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://con-ceramic-peter-headphones.trycloudflare.com",
-  "inference": "https://con-ceramic-peter-headphones.trycloudflare.com/inference",
-  "telemetry": "https://con-ceramic-peter-headphones.trycloudflare.com/telemetry",
+  "endpoint": "https://convertible-recruitment-architecture-marriage.trycloudflare.com",
+  "inference": "https://convertible-recruitment-architecture-marriage.trycloudflare.com/inference",
+  "telemetry": "https://convertible-recruitment-architecture-marriage.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-13T12:48:19Z"
+  "updated_at": "2026-10-13T12:57:54Z"
 }
