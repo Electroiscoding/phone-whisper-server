@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://mutual-smallest-features-wednesday.trycloudflare.com",
-  "inference": "https://mutual-smallest-features-wednesday.trycloudflare.com/inference",
-  "telemetry": "https://mutual-smallest-features-wednesday.trycloudflare.com/telemetry",
+  "endpoint": "https://johnson-bucks-leeds-instruction.trycloudflare.com",
+  "inference": "https://johnson-bucks-leeds-instruction.trycloudflare.com/inference",
+  "telemetry": "https://johnson-bucks-leeds-instruction.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-13T14:49:23Z"
+  "updated_at": "2026-10-13T14:56:14Z"
 }
