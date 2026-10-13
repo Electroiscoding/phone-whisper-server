@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://tank-court-reforms-gmc.trycloudflare.com",
-  "inference": "https://tank-court-reforms-gmc.trycloudflare.com/inference",
-  "telemetry": "https://tank-court-reforms-gmc.trycloudflare.com/telemetry",
+  "endpoint": "https://lamp-henderson-eventually-quest.trycloudflare.com",
+  "inference": "https://lamp-henderson-eventually-quest.trycloudflare.com/inference",
+  "telemetry": "https://lamp-henderson-eventually-quest.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-13T00:20:06Z"
+  "updated_at": "2026-10-13T00:50:43Z"
 }
