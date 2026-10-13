@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://frequencies-families-boston-chef.trycloudflare.com",
-  "inference": "https://frequencies-families-boston-chef.trycloudflare.com/inference",
-  "telemetry": "https://frequencies-families-boston-chef.trycloudflare.com/telemetry",
+  "endpoint": "https://cottage-array-compiled-darwin.trycloudflare.com",
+  "inference": "https://cottage-array-compiled-darwin.trycloudflare.com/inference",
+  "telemetry": "https://cottage-array-compiled-darwin.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-13T17:44:13Z"
+  "updated_at": "2026-10-13T17:45:56Z"
 }
