@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://forgot-hourly-monthly-alabama.trycloudflare.com",
-  "inference": "https://forgot-hourly-monthly-alabama.trycloudflare.com/inference",
-  "telemetry": "https://forgot-hourly-monthly-alabama.trycloudflare.com/telemetry",
+  "endpoint": "https://easily-undefined-interactive-frequencies.trycloudflare.com",
+  "inference": "https://easily-undefined-interactive-frequencies.trycloudflare.com/inference",
+  "telemetry": "https://easily-undefined-interactive-frequencies.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-13T13:55:39Z"
+  "updated_at": "2026-10-13T13:57:35Z"
 }
