@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://submission-prophet-kitty-alternatives.trycloudflare.com",
-  "inference": "https://submission-prophet-kitty-alternatives.trycloudflare.com/inference",
-  "telemetry": "https://submission-prophet-kitty-alternatives.trycloudflare.com/telemetry",
+  "endpoint": "https://console-partly-robertson-rear.trycloudflare.com",
+  "inference": "https://console-partly-robertson-rear.trycloudflare.com/inference",
+  "telemetry": "https://console-partly-robertson-rear.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-13T13:34:57Z"
+  "updated_at": "2026-10-13T13:41:20Z"
 }
