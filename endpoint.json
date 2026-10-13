@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://polyphonic-justice-boxed-obtaining.trycloudflare.com",
-  "inference": "https://polyphonic-justice-boxed-obtaining.trycloudflare.com/inference",
-  "telemetry": "https://polyphonic-justice-boxed-obtaining.trycloudflare.com/telemetry",
+  "endpoint": "https://spot-cleaners-envelope-reports.trycloudflare.com",
+  "inference": "https://spot-cleaners-envelope-reports.trycloudflare.com/inference",
+  "telemetry": "https://spot-cleaners-envelope-reports.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-13T15:11:21Z"
+  "updated_at": "2026-10-13T15:13:00Z"
 }
