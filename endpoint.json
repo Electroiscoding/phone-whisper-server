@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://people-comm-observed-pts.trycloudflare.com",
-  "inference": "https://people-comm-observed-pts.trycloudflare.com/inference",
-  "telemetry": "https://people-comm-observed-pts.trycloudflare.com/telemetry",
+  "endpoint": "https://nursery-occasionally-sheffield-speaking.trycloudflare.com",
+  "inference": "https://nursery-occasionally-sheffield-speaking.trycloudflare.com/inference",
+  "telemetry": "https://nursery-occasionally-sheffield-speaking.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-13T11:09:58Z"
+  "updated_at": "2026-10-13T11:11:55Z"
 }
