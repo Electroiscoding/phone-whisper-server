@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://bool-concluded-grants-specify.trycloudflare.com",
-  "inference": "https://bool-concluded-grants-specify.trycloudflare.com/inference",
-  "telemetry": "https://bool-concluded-grants-specify.trycloudflare.com/telemetry",
+  "endpoint": "https://took-cosmetic-excessive-keeping.trycloudflare.com",
+  "inference": "https://took-cosmetic-excessive-keeping.trycloudflare.com/inference",
+  "telemetry": "https://took-cosmetic-excessive-keeping.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-13T11:20:46Z"
+  "updated_at": "2026-10-13T11:21:10Z"
 }
