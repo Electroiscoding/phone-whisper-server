@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://conservative-gmc-lined-explained.trycloudflare.com",
-  "inference": "https://conservative-gmc-lined-explained.trycloudflare.com/inference",
-  "telemetry": "https://conservative-gmc-lined-explained.trycloudflare.com/telemetry",
+  "endpoint": "https://tab-mhz-sheffield-convert.trycloudflare.com",
+  "inference": "https://tab-mhz-sheffield-convert.trycloudflare.com/inference",
+  "telemetry": "https://tab-mhz-sheffield-convert.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-13T14:17:43Z"
+  "updated_at": "2026-10-13T14:28:23Z"
 }
