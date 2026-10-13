@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://memo-brain-enclosed-intranet.trycloudflare.com",
-  "inference": "https://memo-brain-enclosed-intranet.trycloudflare.com/inference",
-  "telemetry": "https://memo-brain-enclosed-intranet.trycloudflare.com/telemetry",
+  "endpoint": "https://acne-seeing-folks-apart.trycloudflare.com",
+  "inference": "https://acne-seeing-folks-apart.trycloudflare.com/inference",
+  "telemetry": "https://acne-seeing-folks-apart.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-13T05:52:28Z"
+  "updated_at": "2026-10-13T05:53:32Z"
 }
