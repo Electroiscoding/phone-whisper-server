@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://realize-feels-wagon-tract.trycloudflare.com",
-  "inference": "https://realize-feels-wagon-tract.trycloudflare.com/inference",
-  "telemetry": "https://realize-feels-wagon-tract.trycloudflare.com/telemetry",
+  "endpoint": "https://mines-weapon-flows-clan.trycloudflare.com",
+  "inference": "https://mines-weapon-flows-clan.trycloudflare.com/inference",
+  "telemetry": "https://mines-weapon-flows-clan.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-13T08:40:52Z"
+  "updated_at": "2026-10-13T08:41:07Z"
 }
