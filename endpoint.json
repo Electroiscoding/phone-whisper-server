@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://reveal-throwing-previously-childhood.trycloudflare.com",
-  "inference": "https://reveal-throwing-previously-childhood.trycloudflare.com/inference",
-  "telemetry": "https://reveal-throwing-previously-childhood.trycloudflare.com/telemetry",
+  "endpoint": "https://passengers-examination-reduced-provided.trycloudflare.com",
+  "inference": "https://passengers-examination-reduced-provided.trycloudflare.com/inference",
+  "telemetry": "https://passengers-examination-reduced-provided.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-13T21:29:56Z"
+  "updated_at": "2026-10-13T21:38:36Z"
 }
