@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://valley-diy-luther-hansen.trycloudflare.com",
-  "inference": "https://valley-diy-luther-hansen.trycloudflare.com/inference",
-  "telemetry": "https://valley-diy-luther-hansen.trycloudflare.com/telemetry",
+  "endpoint": "https://savings-choosing-broadway-spreading.trycloudflare.com",
+  "inference": "https://savings-choosing-broadway-spreading.trycloudflare.com/inference",
+  "telemetry": "https://savings-choosing-broadway-spreading.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-13T08:58:45Z"
+  "updated_at": "2026-10-13T09:02:39Z"
 }
