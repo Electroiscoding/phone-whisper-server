@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://diameter-employer-think-adequate.trycloudflare.com",
-  "inference": "https://diameter-employer-think-adequate.trycloudflare.com/inference",
-  "telemetry": "https://diameter-employer-think-adequate.trycloudflare.com/telemetry",
+  "endpoint": "https://reminder-employee-playing-flows.trycloudflare.com",
+  "inference": "https://reminder-employee-playing-flows.trycloudflare.com/inference",
+  "telemetry": "https://reminder-employee-playing-flows.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-13T15:27:44Z"
+  "updated_at": "2026-10-13T15:29:16Z"
 }
