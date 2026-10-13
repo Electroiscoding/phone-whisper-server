@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://prague-nsw-respondent-institute.trycloudflare.com",
-  "inference": "https://prague-nsw-respondent-institute.trycloudflare.com/inference",
-  "telemetry": "https://prague-nsw-respondent-institute.trycloudflare.com/telemetry",
+  "endpoint": "https://carry-flag-moore-nose.trycloudflare.com",
+  "inference": "https://carry-flag-moore-nose.trycloudflare.com/inference",
+  "telemetry": "https://carry-flag-moore-nose.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-13T10:54:09Z"
+  "updated_at": "2026-10-13T10:54:14Z"
 }
