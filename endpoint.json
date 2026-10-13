@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://renewable-seas-talk-objectives.trycloudflare.com",
-  "inference": "https://renewable-seas-talk-objectives.trycloudflare.com/inference",
-  "telemetry": "https://renewable-seas-talk-objectives.trycloudflare.com/telemetry",
+  "endpoint": "https://noble-enabled-linear-illustrated.trycloudflare.com",
+  "inference": "https://noble-enabled-linear-illustrated.trycloudflare.com/inference",
+  "telemetry": "https://noble-enabled-linear-illustrated.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-13T00:51:36Z"
+  "updated_at": "2026-10-13T01:04:31Z"
 }
