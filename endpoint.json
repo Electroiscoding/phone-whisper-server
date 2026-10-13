@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://bulk-vienna-enemies-sing.trycloudflare.com",
-  "inference": "https://bulk-vienna-enemies-sing.trycloudflare.com/inference",
-  "telemetry": "https://bulk-vienna-enemies-sing.trycloudflare.com/telemetry",
+  "endpoint": "https://owner-product-smile-civil.trycloudflare.com",
+  "inference": "https://owner-product-smile-civil.trycloudflare.com/inference",
+  "telemetry": "https://owner-product-smile-civil.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-13T16:04:57Z"
+  "updated_at": "2026-10-13T16:06:44Z"
 }
