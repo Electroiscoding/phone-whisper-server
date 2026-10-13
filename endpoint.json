@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://enb-suggests-planned-source.trycloudflare.com",
-  "inference": "https://enb-suggests-planned-source.trycloudflare.com/inference",
-  "telemetry": "https://enb-suggests-planned-source.trycloudflare.com/telemetry",
+  "endpoint": "https://maryland-chief-editing-wan.trycloudflare.com",
+  "inference": "https://maryland-chief-editing-wan.trycloudflare.com/inference",
+  "telemetry": "https://maryland-chief-editing-wan.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-13T06:10:49Z"
+  "updated_at": "2026-10-13T06:12:04Z"
 }
