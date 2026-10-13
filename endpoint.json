@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://age-blue-suits-mechanics.trycloudflare.com",
-  "inference": "https://age-blue-suits-mechanics.trycloudflare.com/inference",
-  "telemetry": "https://age-blue-suits-mechanics.trycloudflare.com/telemetry",
+  "endpoint": "https://people-comm-observed-pts.trycloudflare.com",
+  "inference": "https://people-comm-observed-pts.trycloudflare.com/inference",
+  "telemetry": "https://people-comm-observed-pts.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-13T11:08:04Z"
+  "updated_at": "2026-10-13T11:09:53Z"
 }
