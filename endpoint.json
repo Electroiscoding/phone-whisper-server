@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://comprehensive-replacing-juvenile-mia.trycloudflare.com",
-  "inference": "https://comprehensive-replacing-juvenile-mia.trycloudflare.com/inference",
-  "telemetry": "https://comprehensive-replacing-juvenile-mia.trycloudflare.com/telemetry",
+  "endpoint": "https://exec-reporting-fleece-finish.trycloudflare.com",
+  "inference": "https://exec-reporting-fleece-finish.trycloudflare.com/inference",
+  "telemetry": "https://exec-reporting-fleece-finish.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-13T08:12:32Z"
+  "updated_at": "2026-10-13T08:13:21Z"
 }
