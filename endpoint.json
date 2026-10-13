@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://charge-hundred-operators-filter.trycloudflare.com",
-  "inference": "https://charge-hundred-operators-filter.trycloudflare.com/inference",
-  "telemetry": "https://charge-hundred-operators-filter.trycloudflare.com/telemetry",
+  "endpoint": "https://sales-thanks-equity-soon.trycloudflare.com",
+  "inference": "https://sales-thanks-equity-soon.trycloudflare.com/inference",
+  "telemetry": "https://sales-thanks-equity-soon.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-13T03:13:34Z"
+  "updated_at": "2026-10-13T03:14:40Z"
 }
