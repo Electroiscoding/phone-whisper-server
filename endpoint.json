@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://maintains-dust-mail-javascript.trycloudflare.com",
-  "inference": "https://maintains-dust-mail-javascript.trycloudflare.com/inference",
-  "telemetry": "https://maintains-dust-mail-javascript.trycloudflare.com/telemetry",
+  "endpoint": "https://valley-diy-luther-hansen.trycloudflare.com",
+  "inference": "https://valley-diy-luther-hansen.trycloudflare.com/inference",
+  "telemetry": "https://valley-diy-luther-hansen.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-13T08:58:21Z"
+  "updated_at": "2026-10-13T08:58:45Z"
 }
