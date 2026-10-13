@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://detector-clara-satisfactory-apartment.trycloudflare.com",
-  "inference": "https://detector-clara-satisfactory-apartment.trycloudflare.com/inference",
-  "telemetry": "https://detector-clara-satisfactory-apartment.trycloudflare.com/telemetry",
+  "endpoint": "https://dave-thunder-hamilton-able.trycloudflare.com",
+  "inference": "https://dave-thunder-hamilton-able.trycloudflare.com/inference",
+  "telemetry": "https://dave-thunder-hamilton-able.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-13T12:02:20Z"
+  "updated_at": "2026-10-13T12:05:06Z"
 }
