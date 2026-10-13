@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://convert-visual-equations-keys.trycloudflare.com",
-  "inference": "https://convert-visual-equations-keys.trycloudflare.com/inference",
-  "telemetry": "https://convert-visual-equations-keys.trycloudflare.com/telemetry",
+  "endpoint": "https://obligations-unto-apparently-dam.trycloudflare.com",
+  "inference": "https://obligations-unto-apparently-dam.trycloudflare.com/inference",
+  "telemetry": "https://obligations-unto-apparently-dam.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-13T14:34:56Z"
+  "updated_at": "2026-10-13T14:35:25Z"
 }
