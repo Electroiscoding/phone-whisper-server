@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://locator-reproduction-hearings-checking.trycloudflare.com",
-  "inference": "https://locator-reproduction-hearings-checking.trycloudflare.com/inference",
-  "telemetry": "https://locator-reproduction-hearings-checking.trycloudflare.com/telemetry",
+  "endpoint": "https://polyphonic-justice-boxed-obtaining.trycloudflare.com",
+  "inference": "https://polyphonic-justice-boxed-obtaining.trycloudflare.com/inference",
+  "telemetry": "https://polyphonic-justice-boxed-obtaining.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-13T15:10:55Z"
+  "updated_at": "2026-10-13T15:11:21Z"
 }
