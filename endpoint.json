@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://protecting-transmitted-latest-tongue.trycloudflare.com",
-  "inference": "https://protecting-transmitted-latest-tongue.trycloudflare.com/inference",
-  "telemetry": "https://protecting-transmitted-latest-tongue.trycloudflare.com/telemetry",
+  "endpoint": "https://menus-broadway-features-museum.trycloudflare.com",
+  "inference": "https://menus-broadway-features-museum.trycloudflare.com/inference",
+  "telemetry": "https://menus-broadway-features-museum.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-13T11:21:52Z"
+  "updated_at": "2026-10-13T11:29:13Z"
 }
