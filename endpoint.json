@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://utilize-wherever-mineral-waves.trycloudflare.com",
-  "inference": "https://utilize-wherever-mineral-waves.trycloudflare.com/inference",
-  "telemetry": "https://utilize-wherever-mineral-waves.trycloudflare.com/telemetry",
+  "endpoint": "https://decided-byte-columnists-seat.trycloudflare.com",
+  "inference": "https://decided-byte-columnists-seat.trycloudflare.com/inference",
+  "telemetry": "https://decided-byte-columnists-seat.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-13T05:43:25Z"
+  "updated_at": "2026-10-13T05:51:13Z"
 }
