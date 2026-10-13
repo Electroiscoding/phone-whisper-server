@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://measurements-labour-colleagues-reactions.trycloudflare.com",
-  "inference": "https://measurements-labour-colleagues-reactions.trycloudflare.com/inference",
-  "telemetry": "https://measurements-labour-colleagues-reactions.trycloudflare.com/telemetry",
+  "endpoint": "https://lover-analysts-leg-opening.trycloudflare.com",
+  "inference": "https://lover-analysts-leg-opening.trycloudflare.com/inference",
+  "telemetry": "https://lover-analysts-leg-opening.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-13T09:41:18Z"
+  "updated_at": "2026-10-13T09:44:31Z"
 }
