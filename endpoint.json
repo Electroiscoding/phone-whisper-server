@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://translator-dragon-produce-malpractice.trycloudflare.com",
-  "inference": "https://translator-dragon-produce-malpractice.trycloudflare.com/inference",
-  "telemetry": "https://translator-dragon-produce-malpractice.trycloudflare.com/telemetry",
+  "endpoint": "https://cheese-library-canberra-maybe.trycloudflare.com",
+  "inference": "https://cheese-library-canberra-maybe.trycloudflare.com/inference",
+  "telemetry": "https://cheese-library-canberra-maybe.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-13T15:38:27Z"
+  "updated_at": "2026-10-13T15:48:19Z"
 }
