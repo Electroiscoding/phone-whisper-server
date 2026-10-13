@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://overhead-supporting-advancement-attract.trycloudflare.com",
-  "inference": "https://overhead-supporting-advancement-attract.trycloudflare.com/inference",
-  "telemetry": "https://overhead-supporting-advancement-attract.trycloudflare.com/telemetry",
+  "endpoint": "https://philosophy-driving-burst-belle.trycloudflare.com",
+  "inference": "https://philosophy-driving-burst-belle.trycloudflare.com/inference",
+  "telemetry": "https://philosophy-driving-burst-belle.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-13T06:33:38Z"
+  "updated_at": "2026-10-13T06:38:08Z"
 }
