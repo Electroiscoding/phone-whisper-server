@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://arab-courses-drilling-messaging.trycloudflare.com",
-  "inference": "https://arab-courses-drilling-messaging.trycloudflare.com/inference",
-  "telemetry": "https://arab-courses-drilling-messaging.trycloudflare.com/telemetry",
+  "endpoint": "https://absent-distributors-walk-protest.trycloudflare.com",
+  "inference": "https://absent-distributors-walk-protest.trycloudflare.com/inference",
+  "telemetry": "https://absent-distributors-walk-protest.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-13T02:11:11Z"
+  "updated_at": "2026-10-13T02:11:25Z"
 }
