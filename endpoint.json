@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://burning-overview-drop-plan.trycloudflare.com",
-  "inference": "https://burning-overview-drop-plan.trycloudflare.com/inference",
-  "telemetry": "https://burning-overview-drop-plan.trycloudflare.com/telemetry",
+  "endpoint": "https://ins-americans-last-midwest.trycloudflare.com",
+  "inference": "https://ins-americans-last-midwest.trycloudflare.com/inference",
+  "telemetry": "https://ins-americans-last-midwest.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-13T13:25:26Z"
+  "updated_at": "2026-10-13T13:27:27Z"
 }
