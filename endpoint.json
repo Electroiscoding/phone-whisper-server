@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://through-tension-rational-earliest.trycloudflare.com",
-  "inference": "https://through-tension-rational-earliest.trycloudflare.com/inference",
-  "telemetry": "https://through-tension-rational-earliest.trycloudflare.com/telemetry",
+  "endpoint": "https://acres-img-cds-established.trycloudflare.com",
+  "inference": "https://acres-img-cds-established.trycloudflare.com/inference",
+  "telemetry": "https://acres-img-cds-established.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-13T09:12:49Z"
+  "updated_at": "2026-10-13T09:15:12Z"
 }
