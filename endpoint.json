@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://menus-broadway-features-museum.trycloudflare.com",
-  "inference": "https://menus-broadway-features-museum.trycloudflare.com/inference",
-  "telemetry": "https://menus-broadway-features-museum.trycloudflare.com/telemetry",
+  "endpoint": "https://gras-blacks-russia-lesser.trycloudflare.com",
+  "inference": "https://gras-blacks-russia-lesser.trycloudflare.com/inference",
+  "telemetry": "https://gras-blacks-russia-lesser.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-13T11:29:13Z"
+  "updated_at": "2026-10-13T11:29:45Z"
 }
