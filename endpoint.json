@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://link-department-monitor-pointed.trycloudflare.com",
-  "inference": "https://link-department-monitor-pointed.trycloudflare.com/inference",
-  "telemetry": "https://link-department-monitor-pointed.trycloudflare.com/telemetry",
+  "endpoint": "https://stephanie-twelve-decimal-plus.trycloudflare.com",
+  "inference": "https://stephanie-twelve-decimal-plus.trycloudflare.com/inference",
+  "telemetry": "https://stephanie-twelve-decimal-plus.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-13T08:43:23Z"
+  "updated_at": "2026-10-13T08:46:50Z"
 }
