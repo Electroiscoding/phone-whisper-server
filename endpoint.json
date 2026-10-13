@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://sales-thanks-equity-soon.trycloudflare.com",
-  "inference": "https://sales-thanks-equity-soon.trycloudflare.com/inference",
-  "telemetry": "https://sales-thanks-equity-soon.trycloudflare.com/telemetry",
+  "endpoint": "https://holland-bias-begun-concluded.trycloudflare.com",
+  "inference": "https://holland-bias-begun-concluded.trycloudflare.com/inference",
+  "telemetry": "https://holland-bias-begun-concluded.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-13T03:14:50Z"
+  "updated_at": "2026-10-13T03:18:35Z"
 }
