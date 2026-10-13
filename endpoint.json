@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://trips-christine-safely-participating.trycloudflare.com",
-  "inference": "https://trips-christine-safely-participating.trycloudflare.com/inference",
-  "telemetry": "https://trips-christine-safely-participating.trycloudflare.com/telemetry",
+  "endpoint": "https://managed-signals-compile-systems.trycloudflare.com",
+  "inference": "https://managed-signals-compile-systems.trycloudflare.com/inference",
+  "telemetry": "https://managed-signals-compile-systems.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-13T09:04:43Z"
+  "updated_at": "2026-10-13T09:05:15Z"
 }
