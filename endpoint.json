@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://lake-celebration-static-result.trycloudflare.com",
-  "inference": "https://lake-celebration-static-result.trycloudflare.com/inference",
-  "telemetry": "https://lake-celebration-static-result.trycloudflare.com/telemetry",
+  "endpoint": "https://competing-did-preceding-minutes.trycloudflare.com",
+  "inference": "https://competing-did-preceding-minutes.trycloudflare.com/inference",
+  "telemetry": "https://competing-did-preceding-minutes.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-13T11:43:43Z"
+  "updated_at": "2026-10-13T11:48:03Z"
 }
