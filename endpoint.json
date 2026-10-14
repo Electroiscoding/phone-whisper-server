@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://festival-marvel-begun-viruses.trycloudflare.com",
-  "inference": "https://festival-marvel-begun-viruses.trycloudflare.com/inference",
-  "telemetry": "https://festival-marvel-begun-viruses.trycloudflare.com/telemetry",
+  "endpoint": "https://dated-plastics-national-corner.trycloudflare.com",
+  "inference": "https://dated-plastics-national-corner.trycloudflare.com/inference",
+  "telemetry": "https://dated-plastics-national-corner.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-14T03:22:09Z"
+  "updated_at": "2026-10-14T03:31:26Z"
 }
