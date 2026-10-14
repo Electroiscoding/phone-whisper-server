@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://stat-convenience-patricia-amended.trycloudflare.com",
-  "inference": "https://stat-convenience-patricia-amended.trycloudflare.com/inference",
-  "telemetry": "https://stat-convenience-patricia-amended.trycloudflare.com/telemetry",
+  "endpoint": "https://policies-survivor-holdem-bishop.trycloudflare.com",
+  "inference": "https://policies-survivor-holdem-bishop.trycloudflare.com/inference",
+  "telemetry": "https://policies-survivor-holdem-bishop.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-14T05:58:16Z"
+  "updated_at": "2026-10-14T06:00:17Z"
 }
