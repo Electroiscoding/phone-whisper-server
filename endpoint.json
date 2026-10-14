@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://outlets-expertise-theories-lisa.trycloudflare.com",
-  "inference": "https://outlets-expertise-theories-lisa.trycloudflare.com/inference",
-  "telemetry": "https://outlets-expertise-theories-lisa.trycloudflare.com/telemetry",
+  "endpoint": "https://minimal-frame-marking-packages.trycloudflare.com",
+  "inference": "https://minimal-frame-marking-packages.trycloudflare.com/inference",
+  "telemetry": "https://minimal-frame-marking-packages.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-13T21:40:12Z"
+  "updated_at": "2026-10-14T00:13:40Z"
 }
