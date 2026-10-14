@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://minimal-frame-marking-packages.trycloudflare.com",
-  "inference": "https://minimal-frame-marking-packages.trycloudflare.com/inference",
-  "telemetry": "https://minimal-frame-marking-packages.trycloudflare.com/telemetry",
+  "endpoint": "https://additions-passport-itunes-becoming.trycloudflare.com",
+  "inference": "https://additions-passport-itunes-becoming.trycloudflare.com/inference",
+  "telemetry": "https://additions-passport-itunes-becoming.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-14T00:13:54Z"
+  "updated_at": "2026-10-14T00:14:07Z"
 }
