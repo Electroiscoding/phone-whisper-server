@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://responses-called-budgets-science.trycloudflare.com",
-  "inference": "https://responses-called-budgets-science.trycloudflare.com/inference",
-  "telemetry": "https://responses-called-budgets-science.trycloudflare.com/telemetry",
+  "endpoint": "https://houses-expenditures-equations-likelihood.trycloudflare.com",
+  "inference": "https://houses-expenditures-equations-likelihood.trycloudflare.com/inference",
+  "telemetry": "https://houses-expenditures-equations-likelihood.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-14T11:05:37Z"
+  "updated_at": "2026-10-14T11:06:00Z"
 }
