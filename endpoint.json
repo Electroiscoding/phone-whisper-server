@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://saying-dsl-theaters-roads.trycloudflare.com",
-  "inference": "https://saying-dsl-theaters-roads.trycloudflare.com/inference",
-  "telemetry": "https://saying-dsl-theaters-roads.trycloudflare.com/telemetry",
+  "endpoint": "https://vids-copy-bit-powerseller.trycloudflare.com",
+  "inference": "https://vids-copy-bit-powerseller.trycloudflare.com/inference",
+  "telemetry": "https://vids-copy-bit-powerseller.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-14T05:42:31Z"
+  "updated_at": "2026-10-14T05:53:36Z"
 }
