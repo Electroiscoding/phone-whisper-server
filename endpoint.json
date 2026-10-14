@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://vernon-sure-mesa-brown.trycloudflare.com",
-  "inference": "https://vernon-sure-mesa-brown.trycloudflare.com/inference",
-  "telemetry": "https://vernon-sure-mesa-brown.trycloudflare.com/telemetry",
+  "endpoint": "https://saved-dates-asin-geo.trycloudflare.com",
+  "inference": "https://saved-dates-asin-geo.trycloudflare.com/inference",
+  "telemetry": "https://saved-dates-asin-geo.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-14T04:16:22Z"
+  "updated_at": "2026-10-14T04:22:44Z"
 }
