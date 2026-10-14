@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://favorites-amplifier-odds-backing.trycloudflare.com",
-  "inference": "https://favorites-amplifier-odds-backing.trycloudflare.com/inference",
-  "telemetry": "https://favorites-amplifier-odds-backing.trycloudflare.com/telemetry",
+  "endpoint": "https://servers-lands-connect-internship.trycloudflare.com",
+  "inference": "https://servers-lands-connect-internship.trycloudflare.com/inference",
+  "telemetry": "https://servers-lands-connect-internship.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-14T16:27:42Z"
+  "updated_at": "2026-10-14T16:28:19Z"
 }
