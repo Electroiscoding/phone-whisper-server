@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://instructor-learned-desperate-martin.trycloudflare.com",
-  "inference": "https://instructor-learned-desperate-martin.trycloudflare.com/inference",
-  "telemetry": "https://instructor-learned-desperate-martin.trycloudflare.com/telemetry",
+  "endpoint": "https://extraordinary-myers-proxy-bridge.trycloudflare.com",
+  "inference": "https://extraordinary-myers-proxy-bridge.trycloudflare.com/inference",
+  "telemetry": "https://extraordinary-myers-proxy-bridge.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-14T09:24:27Z"
+  "updated_at": "2026-10-14T09:24:38Z"
 }
