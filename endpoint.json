@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://wing-meanwhile-qui-books.trycloudflare.com",
-  "inference": "https://wing-meanwhile-qui-books.trycloudflare.com/inference",
-  "telemetry": "https://wing-meanwhile-qui-books.trycloudflare.com/telemetry",
+  "endpoint": "https://entire-individual-intervals-ecommerce.trycloudflare.com",
+  "inference": "https://entire-individual-intervals-ecommerce.trycloudflare.com/inference",
+  "telemetry": "https://entire-individual-intervals-ecommerce.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-14T13:32:02Z"
+  "updated_at": "2026-10-14T13:33:26Z"
 }
