@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://status-bear-stage-spring.trycloudflare.com",
-  "inference": "https://status-bear-stage-spring.trycloudflare.com/inference",
-  "telemetry": "https://status-bear-stage-spring.trycloudflare.com/telemetry",
+  "endpoint": "https://wheel-morris-storm-spears.trycloudflare.com",
+  "inference": "https://wheel-morris-storm-spears.trycloudflare.com/inference",
+  "telemetry": "https://wheel-morris-storm-spears.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-14T11:55:03Z"
+  "updated_at": "2026-10-14T13:31:49Z"
 }
