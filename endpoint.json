@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://hunting-scored-expiration-insertion.trycloudflare.com",
-  "inference": "https://hunting-scored-expiration-insertion.trycloudflare.com/inference",
-  "telemetry": "https://hunting-scored-expiration-insertion.trycloudflare.com/telemetry",
+  "endpoint": "https://designed-final-administrators-attractive.trycloudflare.com",
+  "inference": "https://designed-final-administrators-attractive.trycloudflare.com/inference",
+  "telemetry": "https://designed-final-administrators-attractive.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-14T02:53:38Z"
+  "updated_at": "2026-10-14T02:54:31Z"
 }
