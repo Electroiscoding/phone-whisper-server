@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://wisconsin-chapter-keyword-asn.trycloudflare.com",
-  "inference": "https://wisconsin-chapter-keyword-asn.trycloudflare.com/inference",
-  "telemetry": "https://wisconsin-chapter-keyword-asn.trycloudflare.com/telemetry",
+  "endpoint": "https://instructor-learned-desperate-martin.trycloudflare.com",
+  "inference": "https://instructor-learned-desperate-martin.trycloudflare.com/inference",
+  "telemetry": "https://instructor-learned-desperate-martin.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-14T09:04:46Z"
+  "updated_at": "2026-10-14T09:24:20Z"
 }
