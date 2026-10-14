@@ -18,18 +18,84 @@ DB_DIR = os.environ.get("HOME", os.path.dirname(os.path.abspath(__file__)))
 DB_PATH = os.path.join(DB_DIR, "currents_news.db")
 
 TOPIC_CATEGORIES = [
-    {"name": "elon_starlink_india", "q": "Musk Starlink India Ambani telecom spectrum", "gl": "in"},
-    {"name": "elon", "q": "Elon Musk SpaceX Tesla xAI Starlink Neuralink", "gl": "us"},
-    {"name": "india_politics", "q": "India politics elections parliament policy governance", "gl": "in"},
-    {"name": "politics", "q": "politics elections government policy geopolitical summit", "gl": "us"},
-    {"name": "india_news", "q": "India national news tech economy development infrastructure", "gl": "in"},
-    {"name": "international", "q": "world international news diplomacy global affairs", "gl": "us"},
-    {"name": "geopolitics_tech", "q": "tech sovereignty tariffs semiconductor export curbs", "gl": "us"},
-    {"name": "chips", "q": "Nvidia chip price GPU supply semiconductor TSMC foundry", "gl": "us"},
-    {"name": "ai", "q": "artificial intelligence frontier AI model LLM open source", "gl": "us"},
-    {"name": "bigtech", "q": "Apple Google Microsoft Meta Amazon enterprise tech", "gl": "us"},
-    {"name": "startups", "q": "startup funding venture capital IPO commercial growth", "gl": "us"},
-    {"name": "cyber", "q": "cybersecurity infrastructure digital defense zero day", "gl": "us"}
+    {
+        "name": "wire_services",
+        "q": "breaking OR policy OR economy (Reuters OR \"Associated Press\" OR AFP OR Bloomberg)",
+        "gl": "us",
+        "category_label": "Wire Service"
+    },
+    {
+        "name": "newspapers",
+        "q": "investigation OR interview OR politics (NYT OR \"Washington Post\" OR \"Wall Street Journal\" OR Guardian OR \"Financial Times\")",
+        "gl": "us",
+        "category_label": "Newspaper"
+    },
+    {
+        "name": "broadcast_media",
+        "q": "breaking news OR interview (BBC OR CNN OR CNBC OR \"Sky News\")",
+        "gl": "us",
+        "category_label": "Broadcast Media"
+    },
+    {
+        "name": "technology_publications",
+        "q": "artificial intelligence OR chip OR software (TechCrunch OR \"The Verge\" OR ArsTechnica OR Wired OR \"MIT Technology Review\")",
+        "gl": "us",
+        "category_label": "Technology Publication"
+    },
+    {
+        "name": "business_financial_media",
+        "q": "markets OR earnings OR merger OR acquisition (Bloomberg OR Forbes OR Fortune OR Barron's OR MarketWatch)",
+        "gl": "us",
+        "category_label": "Business & Financial Media"
+    },
+    {
+        "name": "official_company_sources",
+        "q": "announces OR \"press release\" OR launch (OpenAI OR Microsoft OR Google OR Apple OR Nvidia OR Tesla OR SpaceX)",
+        "gl": "us",
+        "category_label": "Official Company Source"
+    },
+    {
+        "name": "government_sources",
+        "q": "regulation OR policy OR statement (gov OR \"White House\" OR NASA OR EPA OR SEC OR FTC OR \"Ministry of External Affairs\")",
+        "gl": "us",
+        "category_label": "Government Source"
+    },
+    {
+        "name": "regulatory_court_filings",
+        "q": "lawsuit OR antitrust OR ruling OR \"court filing\" OR SEC (antitrust OR supreme court OR federal court)",
+        "gl": "us",
+        "category_label": "Regulatory & Legal Filing"
+    },
+    {
+        "name": "academic_scientific_sources",
+        "q": "research OR discovery OR study (Nature OR Science OR \"arXiv\" OR PLOS OR Cell)",
+        "gl": "us",
+        "category_label": "Academic & Scientific Source"
+    },
+    {
+        "name": "industry_specialist_publications",
+        "q": "semiconductor OR aerospace OR energy (EE Times OR AnandTech OR AviationWeek OR SpaceNews OR Electrek)",
+        "gl": "us",
+        "category_label": "Specialist Publication"
+    },
+    {
+        "name": "local_regional_publications",
+        "q": "India development OR parliament OR elections (\"The Hindu\" OR \"Hindustan Times\" OR \"Indian Express\" OR \"Times of India\" OR NDTV)",
+        "gl": "in",
+        "category_label": "Regional Publication"
+    },
+    {
+        "name": "public_databases_statistical_sources",
+        "q": "statistics OR economic forecast OR census (World Bank OR IMF OR OECD OR \"Federal Reserve\" OR RBI)",
+        "gl": "us",
+        "category_label": "Statistical Database"
+    },
+    {
+        "name": "elon_starlink_india",
+        "q": "Elon Musk Starlink India Ambani spectrum telecom (Reuters OR Bloomberg OR \"The Hindu\" OR \"Economic Times\")",
+        "gl": "in",
+        "category_label": "Wire Service & Regional Report"
+    }
 ]
 
 HEADER_PREFIXES = [
@@ -209,55 +275,97 @@ class CurrentsNewsBot:
         analysis_hdr = random.choice(ANALYSIS_HEADERS)
         clean_title = title.split(" - ")[0].split(" | ")[0].strip()
 
-        if category_name in ["politics", "india_politics"]:
+        if category_name == "wire_services":
             bullets = [
-                "- Key policy alignments and legislative agendas moving into active execution",
-                "- Political leadership and administrative bodies responding to strategic public priorities",
-                "- Governance frameworks shaping upcoming regulatory and economic shifts"
+                "- Rapid fast-breaking factual developments verified across news wires",
+                "- High-frequency global coverage tracking executive and regulatory actions",
+                "- Structured independent verification establishing primary event timeline"
             ]
-            analysis = "Policy decisions and institutional alignments continue to directly influence market stability and administrative priorities."
-        elif category_name in ["india_news", "india"]:
+            analysis = "Real-time wire reporting establishes the factual foundation for cross-market event tracking and government decision cycles."
+        elif category_name == "newspapers":
             bullets = [
-                "- Rapid domestic development accelerating across regional and national sectors",
-                "- Infrastructure initiatives and economic momentum bolstering long-term growth",
-                "- Enterprise execution and institutional support aligning on key milestones"
+                "- Deep investigative reporting uncovering long-term public interest context",
+                "- Key stakeholder interviews examining administrative and civic ramifications",
+                "- Rigorous editorial verification evaluating complex institutional narratives"
             ]
-            analysis = "India's domestic growth trajectory reflects accelerating investments across digital infrastructure, governance, and enterprise development."
-        elif category_name == "chips":
+            analysis = "Independent investigative journalism provides vital accountability and deep civic context beyond rapid headline cycles."
+        elif category_name == "broadcast_media":
             bullets = [
-                "- Semiconductor supply chain adjustments affecting enterprise wafer allocations",
-                "- High-performance compute pricing reflecting shifting fabrication capacity",
-                "- Next-generation hardware allocations prioritized for large-scale infrastructure"
+                "- Live breaking event updates tracking fast-moving physical and economic developments",
+                "- Direct broadcast statements and on-the-record executive interviews",
+                "- Visual and audio field reporting confirming ground-truth realities"
             ]
-            analysis = "Global hardware economics continue to hinge on silicon packaging yields and enterprise demand."
-        elif category_name in ["elon", "elon_starlink_india"]:
+            analysis = "Broadcast reporting delivers immediate eyewitness verification and high-speed updates during rapidly unfolding scenarios."
+        elif category_name == "technology_publications":
             bullets = [
-                "- Multi-front operations spanning satellite networks, autonomous systems, and compute",
-                "- Direct disruption to traditional legacy market players as commercial scaling accelerates",
-                "- Operational milestones indicate accelerating deployment across flagship ventures"
+                "- Architecture updates and technical teardowns across compute, AI, and developer tools",
+                "- Deep technical scrutiny separating marketing claims from engineering reality",
+                "- Developer ecosystem adoption metrics tracking real-world implementation"
             ]
-            analysis = "Aggressive execution across orbital infrastructure and autonomous compute continues to challenge incumbent legacy industries."
-        elif category_name in ["international", "geopolitics_tech"]:
+            analysis = "Specialist technology journalism surfaces architectural trade-offs and developer adoption dynamics that general outlets miss."
+        elif category_name == "business_financial_media":
             bullets = [
-                "- Multilateral diplomatic shifts impacting cross-border trade and governance",
-                "- International agreements redefining global standards and diplomatic security",
-                "- Geopolitical developments influencing supply lines and economic cooperation"
+                "- Capital allocation shifts, earnings performance, and valuation benchmarks",
+                "- Market liquidity reactions and enterprise capital expenditure forecasts",
+                "- M&A consolidation and strategic restructuring reshaping competitive moats"
             ]
-            analysis = "Global diplomacy and cross-border accords are increasingly determining geopolitical stability and international market access."
-        elif category_name == "ai":
+            analysis = "Financial media analysis connects capital formation, market pricing, and balance sheet resilience to long-term industry structure."
+        elif category_name == "official_company_sources":
             bullets = [
-                "- Model architecture updates improving efficiency and benchmark performance",
-                "- Accelerated adoption across production workflows and developer ecosystems",
-                "- Frontier capabilities challenging existing software paradigms"
+                "- Direct primary disclosures from engineering blogs, product releases, and IR filings",
+                "- Official statements establishing formal corporate positions and commitments",
+                "- Technical documentation and roadmap releases defining product capabilities"
             ]
-            analysis = "The transition from theoretical benchmarks to reliable tooling is compressing technological cycles worldwide."
-        elif category_name == "bigtech":
+            analysis = "Primary corporate statements document official capability milestones and product roadmaps directly from source engineering teams."
+        elif category_name == "government_sources":
             bullets = [
-                "- Major platform shifts impacting developer integrations and ecosystem revenues",
-                "- Strategic reallocation of capital toward next-generation hardware and software",
-                "- Competitive responses reshaping industry dominance across consumer ecosystems"
+                "- Formal administrative rulings, statutory updates, and public policy declarations",
+                "- Official regulatory directives impacting economic and technological sovereignty",
+                "- Public interest mandates and institutional governance standards enacted"
             ]
-            analysis = "Platform incumbents are adjusting core strategies to defend distribution moats against rapid innovations."
+            analysis = "Government regulatory announcements define the legal boundaries, compliance regimes, and economic frameworks for domestic and cross-border operations."
+        elif category_name == "regulatory_court_filings":
+            bullets = [
+                "- Primary legal petitions, antitrust briefs, and binding judicial opinions",
+                "- Securities and exchange regulatory disclosures detailing risk factors",
+                "- Enforceable precedent and contractual obligations established in court records"
+            ]
+            analysis = "Court filings and regulatory dockets provide unvarnished legal facts, establishing precise evidentiary records beyond secondary media summaries."
+        elif category_name == "academic_scientific_sources":
+            bullets = [
+                "- Peer-reviewed methodologies and reproducible empirical laboratory results",
+                "- Preprint benchmark releases pushing algorithmic and material frontiers",
+                "- Formal scientific consensus examining validity, error margins, and rigor"
+            ]
+            analysis = "Peer-reviewed scientific research grounds technological and medical advances in rigorous empirical verification and reproducible evidence."
+        elif category_name == "industry_specialist_publications":
+            bullets = [
+                "- Highly focused technical coverage of supply chains, yields, and fabrication nodes",
+                "- Specialized domain analysis of aerospace, energy, and semiconductor telemetry",
+                "- Deep industry-specific nomenclature clarifying operational constraints"
+            ]
+            analysis = "Specialist domain coverage captures intricate packaging yields, supply-chain bottlenecks, and industrial tradecraft that define execution reality."
+        elif category_name == "local_regional_publications":
+            bullets = [
+                "- State-level policy execution, infrastructure progress, and regional economics",
+                "- Ground-level community developments and domestic parliamentary dynamics",
+                "- Sub-national governance impacts often omitted by international media"
+            ]
+            analysis = "Regional reporting delivers crucial granularity on infrastructure deployment, local policy adoption, and community impact."
+        elif category_name == "public_databases_statistical_sources":
+            bullets = [
+                "- Macroeconomic benchmarks, census metrics, and central bank statistical releases",
+                "- Quantitative dataset tracking validating numerical claims across industries",
+                "- Longitudinal economic indicators measuring inflation, trade, and productivity"
+            ]
+            analysis = "Statistical databases and public repositories anchor news narratives to verifiable empirical data rather than speculative reporting."
+        elif category_name == "elon_starlink_india":
+            bullets = [
+                "- Satellite spectrum allocation and regulatory licensing moving toward resolution",
+                "- Cross-industry competition between orbital constellation providers and domestic telecom giants",
+                "- Sovereignty, data security, and regional satellite broadband connectivity milestones"
+            ]
+            analysis = "The collision between orbital satellite networks and established telecom infrastructure represents a pivotal test for national spectrum policy and digital connectivity."
         else:
             bullets = [
                 "- Key structural update impacting commercial ecosystem dynamics",
