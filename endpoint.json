@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://tahoe-accordingly-scenario-type.trycloudflare.com",
-  "inference": "https://tahoe-accordingly-scenario-type.trycloudflare.com/inference",
-  "telemetry": "https://tahoe-accordingly-scenario-type.trycloudflare.com/telemetry",
+  "endpoint": "https://mature-stanford-magnitude-fda.trycloudflare.com",
+  "inference": "https://mature-stanford-magnitude-fda.trycloudflare.com/inference",
+  "telemetry": "https://mature-stanford-magnitude-fda.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-14T00:18:19Z"
+  "updated_at": "2026-10-14T00:24:37Z"
 }
