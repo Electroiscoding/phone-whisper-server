@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://mon-geometry-decided-hearing.trycloudflare.com",
-  "inference": "https://mon-geometry-decided-hearing.trycloudflare.com/inference",
-  "telemetry": "https://mon-geometry-decided-hearing.trycloudflare.com/telemetry",
+  "endpoint": "https://weblogs-birthday-languages-truth.trycloudflare.com",
+  "inference": "https://weblogs-birthday-languages-truth.trycloudflare.com/inference",
+  "telemetry": "https://weblogs-birthday-languages-truth.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-14T01:10:33Z"
+  "updated_at": "2026-10-14T01:28:28Z"
 }
