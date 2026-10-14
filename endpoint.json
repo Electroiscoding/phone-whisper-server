@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://weblogs-birthday-languages-truth.trycloudflare.com",
-  "inference": "https://weblogs-birthday-languages-truth.trycloudflare.com/inference",
-  "telemetry": "https://weblogs-birthday-languages-truth.trycloudflare.com/telemetry",
+  "endpoint": "https://suspension-dual-operation-influenced.trycloudflare.com",
+  "inference": "https://suspension-dual-operation-influenced.trycloudflare.com/inference",
+  "telemetry": "https://suspension-dual-operation-influenced.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-14T01:28:28Z"
+  "updated_at": "2026-10-14T01:30:21Z"
 }
