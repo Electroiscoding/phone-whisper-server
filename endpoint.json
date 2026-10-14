@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://debut-harvey-corps-jones.trycloudflare.com",
-  "inference": "https://debut-harvey-corps-jones.trycloudflare.com/inference",
-  "telemetry": "https://debut-harvey-corps-jones.trycloudflare.com/telemetry",
+  "endpoint": "https://competitive-aluminum-deposits-farms.trycloudflare.com",
+  "inference": "https://competitive-aluminum-deposits-farms.trycloudflare.com/inference",
+  "telemetry": "https://competitive-aluminum-deposits-farms.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-14T11:45:11Z"
+  "updated_at": "2026-10-14T11:45:31Z"
 }
