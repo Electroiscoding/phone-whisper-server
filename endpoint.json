@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://edgar-refugees-changelog-stewart.trycloudflare.com",
-  "inference": "https://edgar-refugees-changelog-stewart.trycloudflare.com/inference",
-  "telemetry": "https://edgar-refugees-changelog-stewart.trycloudflare.com/telemetry",
+  "endpoint": "https://vote-feedback-yacht-wind.trycloudflare.com",
+  "inference": "https://vote-feedback-yacht-wind.trycloudflare.com/inference",
+  "telemetry": "https://vote-feedback-yacht-wind.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-14T08:37:39Z"
+  "updated_at": "2026-10-14T08:54:01Z"
 }
