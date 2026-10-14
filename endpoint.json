@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://cpu-which-neither-checklist.trycloudflare.com",
-  "inference": "https://cpu-which-neither-checklist.trycloudflare.com/inference",
-  "telemetry": "https://cpu-which-neither-checklist.trycloudflare.com/telemetry",
+  "endpoint": "https://belt-groups-replacing-victory.trycloudflare.com",
+  "inference": "https://belt-groups-replacing-victory.trycloudflare.com/inference",
+  "telemetry": "https://belt-groups-replacing-victory.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-14T02:54:43Z"
+  "updated_at": "2026-10-14T03:11:42Z"
 }
