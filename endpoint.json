@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://speed-portal-gps-glen.trycloudflare.com",
-  "inference": "https://speed-portal-gps-glen.trycloudflare.com/inference",
-  "telemetry": "https://speed-portal-gps-glen.trycloudflare.com/telemetry",
+  "endpoint": "https://message-thank-evidence-relevance.trycloudflare.com",
+  "inference": "https://message-thank-evidence-relevance.trycloudflare.com/inference",
+  "telemetry": "https://message-thank-evidence-relevance.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-14T04:37:35Z"
+  "updated_at": "2026-10-14T04:39:16Z"
 }
