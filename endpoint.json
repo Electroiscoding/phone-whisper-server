@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://burns-trade-pub-disciplinary.trycloudflare.com",
-  "inference": "https://burns-trade-pub-disciplinary.trycloudflare.com/inference",
-  "telemetry": "https://burns-trade-pub-disciplinary.trycloudflare.com/telemetry",
+  "endpoint": "https://newspapers-nirvana-engines-storage.trycloudflare.com",
+  "inference": "https://newspapers-nirvana-engines-storage.trycloudflare.com/inference",
+  "telemetry": "https://newspapers-nirvana-engines-storage.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-14T05:10:50Z"
+  "updated_at": "2026-10-14T05:16:21Z"
 }
