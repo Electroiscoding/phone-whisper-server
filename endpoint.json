@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://yen-belfast-encoding-unsubscribe.trycloudflare.com",
-  "inference": "https://yen-belfast-encoding-unsubscribe.trycloudflare.com/inference",
-  "telemetry": "https://yen-belfast-encoding-unsubscribe.trycloudflare.com/telemetry",
+  "endpoint": "https://hunting-scored-expiration-insertion.trycloudflare.com",
+  "inference": "https://hunting-scored-expiration-insertion.trycloudflare.com/inference",
+  "telemetry": "https://hunting-scored-expiration-insertion.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-14T02:51:41Z"
+  "updated_at": "2026-10-14T02:53:38Z"
 }
