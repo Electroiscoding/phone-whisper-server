@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://gender-flights-programmers-conceptual.trycloudflare.com",
-  "inference": "https://gender-flights-programmers-conceptual.trycloudflare.com/inference",
-  "telemetry": "https://gender-flights-programmers-conceptual.trycloudflare.com/telemetry",
+  "endpoint": "https://strict-campaigns-difficulties-concentrate.trycloudflare.com",
+  "inference": "https://strict-campaigns-difficulties-concentrate.trycloudflare.com/inference",
+  "telemetry": "https://strict-campaigns-difficulties-concentrate.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-14T10:51:33Z"
+  "updated_at": "2026-10-14T10:57:40Z"
 }
