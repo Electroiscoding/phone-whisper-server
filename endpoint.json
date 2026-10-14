@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://restrictions-moments-verse-shaped.trycloudflare.com",
-  "inference": "https://restrictions-moments-verse-shaped.trycloudflare.com/inference",
-  "telemetry": "https://restrictions-moments-verse-shaped.trycloudflare.com/telemetry",
+  "endpoint": "https://blocked-society-commission-rehab.trycloudflare.com",
+  "inference": "https://blocked-society-commission-rehab.trycloudflare.com/inference",
+  "telemetry": "https://blocked-society-commission-rehab.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-14T05:36:11Z"
+  "updated_at": "2026-10-14T05:39:36Z"
 }
