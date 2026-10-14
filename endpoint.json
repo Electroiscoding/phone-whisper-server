@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://medline-methodology-childrens-congratulations.trycloudflare.com",
-  "inference": "https://medline-methodology-childrens-congratulations.trycloudflare.com/inference",
-  "telemetry": "https://medline-methodology-childrens-congratulations.trycloudflare.com/telemetry",
+  "endpoint": "https://shaw-columnists-resistance-automatic.trycloudflare.com",
+  "inference": "https://shaw-columnists-resistance-automatic.trycloudflare.com/inference",
+  "telemetry": "https://shaw-columnists-resistance-automatic.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-14T11:21:42Z"
+  "updated_at": "2026-10-14T11:38:17Z"
 }
