@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://terrorists-regulated-advanced-warrior.trycloudflare.com",
-  "inference": "https://terrorists-regulated-advanced-warrior.trycloudflare.com/inference",
-  "telemetry": "https://terrorists-regulated-advanced-warrior.trycloudflare.com/telemetry",
+  "endpoint": "https://macro-plays-citizenship-refused.trycloudflare.com",
+  "inference": "https://macro-plays-citizenship-refused.trycloudflare.com/inference",
+  "telemetry": "https://macro-plays-citizenship-refused.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-14T11:42:47Z"
+  "updated_at": "2026-10-14T11:43:03Z"
 }
