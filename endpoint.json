@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://contemporary-auburn-fantastic-active.trycloudflare.com",
-  "inference": "https://contemporary-auburn-fantastic-active.trycloudflare.com/inference",
-  "telemetry": "https://contemporary-auburn-fantastic-active.trycloudflare.com/telemetry",
+  "endpoint": "https://conferences-obtained-cms-has.trycloudflare.com",
+  "inference": "https://conferences-obtained-cms-has.trycloudflare.com/inference",
+  "telemetry": "https://conferences-obtained-cms-has.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-14T04:40:20Z"
+  "updated_at": "2026-10-14T04:40:28Z"
 }
