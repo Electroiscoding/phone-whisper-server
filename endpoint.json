@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://procedures-competition-inspector-inquiries.trycloudflare.com",
-  "inference": "https://procedures-competition-inspector-inquiries.trycloudflare.com/inference",
-  "telemetry": "https://procedures-competition-inspector-inquiries.trycloudflare.com/telemetry",
+  "endpoint": "https://witch-caution-chorus-disclose.trycloudflare.com",
+  "inference": "https://witch-caution-chorus-disclose.trycloudflare.com/inference",
+  "telemetry": "https://witch-caution-chorus-disclose.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-14T04:07:21Z"
+  "updated_at": "2026-10-14T04:11:59Z"
 }
