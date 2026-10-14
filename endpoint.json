@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://toolbox-networks-also-timeline.trycloudflare.com",
-  "inference": "https://toolbox-networks-also-timeline.trycloudflare.com/inference",
-  "telemetry": "https://toolbox-networks-also-timeline.trycloudflare.com/telemetry",
+  "endpoint": "https://labeled-screenshot-pontiac-rca.trycloudflare.com",
+  "inference": "https://labeled-screenshot-pontiac-rca.trycloudflare.com/inference",
+  "telemetry": "https://labeled-screenshot-pontiac-rca.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-14T11:20:13Z"
+  "updated_at": "2026-10-14T11:20:26Z"
 }
