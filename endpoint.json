@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://receive-tags-lime-supplemental.trycloudflare.com",
-  "inference": "https://receive-tags-lime-supplemental.trycloudflare.com/inference",
-  "telemetry": "https://receive-tags-lime-supplemental.trycloudflare.com/telemetry",
+  "endpoint": "https://euro-strictly-larger-explicit.trycloudflare.com",
+  "inference": "https://euro-strictly-larger-explicit.trycloudflare.com/inference",
+  "telemetry": "https://euro-strictly-larger-explicit.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-14T11:09:58Z"
+  "updated_at": "2026-10-14T11:12:10Z"
 }
