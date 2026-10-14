@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://deemed-colleague-hart-substantial.trycloudflare.com",
-  "inference": "https://deemed-colleague-hart-substantial.trycloudflare.com/inference",
-  "telemetry": "https://deemed-colleague-hart-substantial.trycloudflare.com/telemetry",
+  "endpoint": "https://plaza-minutes-treatments-bridge.trycloudflare.com",
+  "inference": "https://plaza-minutes-treatments-bridge.trycloudflare.com/inference",
+  "telemetry": "https://plaza-minutes-treatments-bridge.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-14T16:26:40Z"
+  "updated_at": "2026-10-14T16:26:58Z"
 }
