@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://mature-stanford-magnitude-fda.trycloudflare.com",
-  "inference": "https://mature-stanford-magnitude-fda.trycloudflare.com/inference",
-  "telemetry": "https://mature-stanford-magnitude-fda.trycloudflare.com/telemetry",
+  "endpoint": "https://commodity-class-shirts-discover.trycloudflare.com",
+  "inference": "https://commodity-class-shirts-discover.trycloudflare.com/inference",
+  "telemetry": "https://commodity-class-shirts-discover.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-14T00:24:37Z"
+  "updated_at": "2026-10-14T00:25:32Z"
 }
