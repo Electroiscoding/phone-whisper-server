@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://upgrading-attribute-discrete-api.trycloudflare.com",
-  "inference": "https://upgrading-attribute-discrete-api.trycloudflare.com/inference",
-  "telemetry": "https://upgrading-attribute-discrete-api.trycloudflare.com/telemetry",
+  "endpoint": "https://hour-johns-herbs-involves.trycloudflare.com",
+  "inference": "https://hour-johns-herbs-involves.trycloudflare.com/inference",
+  "telemetry": "https://hour-johns-herbs-involves.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-14T08:11:59Z"
+  "updated_at": "2026-10-14T08:32:05Z"
 }
