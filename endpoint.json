@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://pub-configuring-equivalent-posts.trycloudflare.com",
-  "inference": "https://pub-configuring-equivalent-posts.trycloudflare.com/inference",
-  "telemetry": "https://pub-configuring-equivalent-posts.trycloudflare.com/telemetry",
+  "endpoint": "https://tcp-anatomy-long-authorized.trycloudflare.com",
+  "inference": "https://tcp-anatomy-long-authorized.trycloudflare.com/inference",
+  "telemetry": "https://tcp-anatomy-long-authorized.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-14T04:56:50Z"
+  "updated_at": "2026-10-14T05:09:51Z"
 }
