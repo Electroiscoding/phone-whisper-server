@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://psi-boxed-smithsonian-coding.trycloudflare.com",
-  "inference": "https://psi-boxed-smithsonian-coding.trycloudflare.com/inference",
-  "telemetry": "https://psi-boxed-smithsonian-coding.trycloudflare.com/telemetry",
+  "endpoint": "https://psp-bay-committed-brook.trycloudflare.com",
+  "inference": "https://psp-bay-committed-brook.trycloudflare.com/inference",
+  "telemetry": "https://psp-bay-committed-brook.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-15T17:07:15Z"
+  "updated_at": "2026-10-15T17:07:48Z"
 }
