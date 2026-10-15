@@ -6,7 +6,7 @@
 const GITHUB_ENDPOINT_URL = "https://raw.githubusercontent.com/Electroiscoding/phone-whisper-server/main/endpoint.json";
 const GITHUB_API_ENDPOINT_URL = "https://api.github.com/repos/Electroiscoding/phone-whisper-server/contents/endpoint.json";
 const JSDELIVR_ENDPOINT_URL = "https://cdn.jsdelivr.net/gh/Electroiscoding/phone-whisper-server@main/endpoint.json";
-const DEFAULT_FALLBACK_ORIGIN = "https://aus-reservation-caught-threaded.trycloudflare.com";
+const DEFAULT_FALLBACK_ORIGIN = "https://sierra-enhancements-nomination-radios.trycloudflare.com";
 
 let liveRegisteredOrigin = null;
 let lastRegisteredTime = 0;
