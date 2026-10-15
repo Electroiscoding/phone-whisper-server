@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://cons-collections-housewives-cleaners.trycloudflare.com",
-  "inference": "https://cons-collections-housewives-cleaners.trycloudflare.com/inference",
-  "telemetry": "https://cons-collections-housewives-cleaners.trycloudflare.com/telemetry",
+  "endpoint": "https://convention-theme-cups-commit.trycloudflare.com",
+  "inference": "https://convention-theme-cups-commit.trycloudflare.com/inference",
+  "telemetry": "https://convention-theme-cups-commit.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-15T18:59:01Z"
+  "updated_at": "2026-10-15T20:04:31Z"
 }
