@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://administered-tattoo-metadata-animation.trycloudflare.com",
-  "inference": "https://administered-tattoo-metadata-animation.trycloudflare.com/inference",
-  "telemetry": "https://administered-tattoo-metadata-animation.trycloudflare.com/telemetry",
+  "endpoint": "https://measured-continuous-pepper-pet.trycloudflare.com",
+  "inference": "https://measured-continuous-pepper-pet.trycloudflare.com/inference",
+  "telemetry": "https://measured-continuous-pepper-pet.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-15T15:13:34Z"
+  "updated_at": "2026-10-15T15:14:04Z"
 }
