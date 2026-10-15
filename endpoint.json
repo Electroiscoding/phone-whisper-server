@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://utility-idol-has-ringtones.trycloudflare.com",
-  "inference": "https://utility-idol-has-ringtones.trycloudflare.com/inference",
-  "telemetry": "https://utility-idol-has-ringtones.trycloudflare.com/telemetry",
+  "endpoint": "https://psi-boxed-smithsonian-coding.trycloudflare.com",
+  "inference": "https://psi-boxed-smithsonian-coding.trycloudflare.com/inference",
+  "telemetry": "https://psi-boxed-smithsonian-coding.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-15T17:04:11Z"
+  "updated_at": "2026-10-15T17:07:15Z"
 }
