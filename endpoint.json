@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://antonio-ent-secret-compression.trycloudflare.com",
-  "inference": "https://antonio-ent-secret-compression.trycloudflare.com/inference",
-  "telemetry": "https://antonio-ent-secret-compression.trycloudflare.com/telemetry",
+  "endpoint": "https://cons-collections-housewives-cleaners.trycloudflare.com",
+  "inference": "https://cons-collections-housewives-cleaners.trycloudflare.com/inference",
+  "telemetry": "https://cons-collections-housewives-cleaners.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-15T18:01:18Z"
+  "updated_at": "2026-10-15T18:59:01Z"
 }
