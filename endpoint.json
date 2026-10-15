@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://sierra-enhancements-nomination-radios.trycloudflare.com",
-  "inference": "https://sierra-enhancements-nomination-radios.trycloudflare.com/inference",
-  "telemetry": "https://sierra-enhancements-nomination-radios.trycloudflare.com/telemetry",
+  "endpoint": "https://chronic-pad-shadow-outcome.trycloudflare.com",
+  "inference": "https://chronic-pad-shadow-outcome.trycloudflare.com/inference",
+  "telemetry": "https://chronic-pad-shadow-outcome.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-15T15:32:49Z"
+  "updated_at": "2026-10-15T16:09:48Z"
 }
