@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://hills-alternatively-psi-zip.trycloudflare.com",
-  "inference": "https://hills-alternatively-psi-zip.trycloudflare.com/inference",
-  "telemetry": "https://hills-alternatively-psi-zip.trycloudflare.com/telemetry",
+  "endpoint": "https://chicago-battle-cups-order.trycloudflare.com",
+  "inference": "https://chicago-battle-cups-order.trycloudflare.com/inference",
+  "telemetry": "https://chicago-battle-cups-order.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-16T00:58:43Z"
+  "updated_at": "2026-10-16T01:36:57Z"
 }
