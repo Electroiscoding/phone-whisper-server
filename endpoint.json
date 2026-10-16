@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://confident-addresses-organic-winds.trycloudflare.com",
-  "inference": "https://confident-addresses-organic-winds.trycloudflare.com/inference",
-  "telemetry": "https://confident-addresses-organic-winds.trycloudflare.com/telemetry",
+  "endpoint": "https://throws-sauce-burke-draws.trycloudflare.com",
+  "inference": "https://throws-sauce-burke-draws.trycloudflare.com/inference",
+  "telemetry": "https://throws-sauce-burke-draws.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-16T05:38:48Z"
+  "updated_at": "2026-10-16T05:52:07Z"
 }
