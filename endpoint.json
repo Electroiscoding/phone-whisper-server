@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://constitutes-notices-utah-eating.trycloudflare.com",
-  "inference": "https://constitutes-notices-utah-eating.trycloudflare.com/inference",
-  "telemetry": "https://constitutes-notices-utah-eating.trycloudflare.com/telemetry",
+  "endpoint": "https://rome-ferry-rate-provide.trycloudflare.com",
+  "inference": "https://rome-ferry-rate-provide.trycloudflare.com/inference",
+  "telemetry": "https://rome-ferry-rate-provide.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-17T15:30:47Z"
+  "updated_at": "2026-10-17T15:31:20Z"
 }
