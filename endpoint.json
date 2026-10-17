@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://erik-streets-prior-far.trycloudflare.com",
-  "inference": "https://erik-streets-prior-far.trycloudflare.com/inference",
-  "telemetry": "https://erik-streets-prior-far.trycloudflare.com/telemetry",
+  "endpoint": "https://subsidiaries-developing-judges-sapphire.trycloudflare.com",
+  "inference": "https://subsidiaries-developing-judges-sapphire.trycloudflare.com/inference",
+  "telemetry": "https://subsidiaries-developing-judges-sapphire.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-17T15:11:19Z"
+  "updated_at": "2026-10-17T15:15:15Z"
 }
