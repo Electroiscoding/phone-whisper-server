@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://sharing-corporate-linda-bottom.trycloudflare.com",
-  "inference": "https://sharing-corporate-linda-bottom.trycloudflare.com/inference",
-  "telemetry": "https://sharing-corporate-linda-bottom.trycloudflare.com/telemetry",
+  "endpoint": "https://spending-queens-compatible-impression.trycloudflare.com",
+  "inference": "https://spending-queens-compatible-impression.trycloudflare.com/inference",
+  "telemetry": "https://spending-queens-compatible-impression.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-17T20:36:42Z"
+  "updated_at": "2026-10-17T20:38:05Z"
 }
