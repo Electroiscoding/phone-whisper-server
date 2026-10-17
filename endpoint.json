@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://one-retain-mercury-basics.trycloudflare.com",
-  "inference": "https://one-retain-mercury-basics.trycloudflare.com/inference",
-  "telemetry": "https://one-retain-mercury-basics.trycloudflare.com/telemetry",
+  "endpoint": "https://testament-math-adventure-tub.trycloudflare.com",
+  "inference": "https://testament-math-adventure-tub.trycloudflare.com/inference",
+  "telemetry": "https://testament-math-adventure-tub.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-17T15:37:23Z"
+  "updated_at": "2026-10-17T15:37:58Z"
 }
