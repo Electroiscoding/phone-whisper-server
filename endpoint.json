@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://horn-provision-roof-incomplete.trycloudflare.com",
-  "inference": "https://horn-provision-roof-incomplete.trycloudflare.com/inference",
-  "telemetry": "https://horn-provision-roof-incomplete.trycloudflare.com/telemetry",
+  "endpoint": "https://evident-knew-few-noted.trycloudflare.com",
+  "inference": "https://evident-knew-few-noted.trycloudflare.com/inference",
+  "telemetry": "https://evident-knew-few-noted.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-17T16:05:11Z"
+  "updated_at": "2026-10-17T16:52:20Z"
 }
