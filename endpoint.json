@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://shape-plains-kentucky-mba.trycloudflare.com",
-  "inference": "https://shape-plains-kentucky-mba.trycloudflare.com/inference",
-  "telemetry": "https://shape-plains-kentucky-mba.trycloudflare.com/telemetry",
+  "endpoint": "https://heading-matter-houses-ltd.trycloudflare.com",
+  "inference": "https://heading-matter-houses-ltd.trycloudflare.com/inference",
+  "telemetry": "https://heading-matter-houses-ltd.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-17T13:44:19Z"
+  "updated_at": "2026-10-17T13:45:54Z"
 }
