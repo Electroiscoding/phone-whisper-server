@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://evident-knew-few-noted.trycloudflare.com",
-  "inference": "https://evident-knew-few-noted.trycloudflare.com/inference",
-  "telemetry": "https://evident-knew-few-noted.trycloudflare.com/telemetry",
+  "endpoint": "https://doors-such-efforts-served.trycloudflare.com",
+  "inference": "https://doors-such-efforts-served.trycloudflare.com/inference",
+  "telemetry": "https://doors-such-efforts-served.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-17T16:52:20Z"
+  "updated_at": "2026-10-17T17:03:55Z"
 }
