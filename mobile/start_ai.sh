@@ -49,6 +49,13 @@ start_gateway() {
   echo "$(date): [START] Launched gateway.py (PID $!)" >> $HOME/nuclear_supervisor.log
 }
 
+start_redis() {
+  if [ -x "$PREFIX/bin/redis-server" ]; then
+    $PREFIX/bin/redis-server --port 6379 --daemonize yes --maxmemory 128mb --maxmemory-policy allkeys-lru --save "" --appendonly no 2>/dev/null || true
+    echo "$(date): [REDIS] Launched native in-memory redis-server" >> $HOME/nuclear_supervisor.log
+  fi
+}
+
 start_tunnel() {
   cloudflared tunnel --url http://127.0.0.1:8080 --protocol http2 --edge-ip-version 4 --no-autoupdate > $HOME/cf_tunnel.log 2>&1 &
   echo $! > $HOME/cloudflared.pid
@@ -57,6 +64,10 @@ start_tunnel() {
 
 if ! pgrep -f "battery_daemon.sh" > /dev/null && ! pgrep -f "update_hardware.sh" > /dev/null; then
   /system/bin/sh /data/local/tmp/battery_daemon.sh >/dev/null 2>&1 &
+fi
+
+if ! pgrep -f "redis-server" > /dev/null; then
+  start_redis
 fi
 
 if ! pgrep -f "gateway.py" > /dev/null; then
@@ -74,6 +85,10 @@ fi
 
 while true; do
   NOW=$(date +%s)
+
+  if ! pgrep -f "redis-server" > /dev/null; then
+    start_redis
+  fi
 
   if ! pgrep -f "currents_news_bot.py" > /dev/null; then
     python3 $HOME/currents_news_bot.py 1800 >> $HOME/currents_news_bot.log 2>&1 &

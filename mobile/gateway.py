@@ -71,16 +71,185 @@ try:
 except Exception:
     HAVE_YTDLP = False
 
-_MEDIA_CACHE = {}
-_MEDIA_CACHE_LOCK = threading.Lock()
+class NativeRedisClient:
+    def __init__(self, host="127.0.0.1", port=6379, timeout=0.5):
+        self.host = host
+        self.port = port
+        self.timeout = timeout
+        self.lock = threading.Lock()
+        self._fallback_store = {}
+        self._fallback_hashes = collections.defaultdict(dict)
+        self._fallback_ttls = {}
+
+    def _execute(self, *args):
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.settimeout(self.timeout)
+            s.connect((self.host, self.port))
+            buf = ["*" + str(len(args)) + "\r\n"]
+            for a in args:
+                s_str = a if isinstance(a, str) else str(a)
+                b_str = s_str.encode("utf-8")
+                buf.append("$" + str(len(b_str)) + "\r\n" + s_str + "\r\n")
+            s.sendall("".join(buf).encode("utf-8"))
+            fp = s.makefile("rb")
+            res = self._parse_resp(fp)
+            try:
+                fp.close()
+                s.close()
+            except Exception:
+                pass
+            return res
+        except Exception:
+            return None
+
+    def _parse_resp(self, fp):
+        line = fp.readline()
+        if not line:
+            return None
+        prefix = line[:1]
+        payload = line[1:-2]
+        if prefix == b"+":
+            return payload.decode("utf-8", errors="ignore")
+        elif prefix == b":":
+            try:
+                return int(payload)
+            except Exception:
+                return 0
+        elif prefix == b"$":
+            try:
+                l = int(payload)
+            except Exception:
+                return None
+            if l == -1:
+                return None
+            data = fp.read(l)
+            fp.read(2)
+            return data.decode("utf-8", errors="ignore")
+        elif prefix == b"*":
+            try:
+                count = int(payload)
+            except Exception:
+                return []
+            if count == -1:
+                return None
+            return [self._parse_resp(fp) for _ in range(count)]
+        return None
+
+    def ping(self):
+        res = self._execute("PING")
+        return res == "PONG"
+
+    def get(self, key):
+        res = self._execute("GET", key)
+        if res is not None:
+            return res
+        with self.lock:
+            now = time.time()
+            if key in self._fallback_ttls and now > self._fallback_ttls[key]:
+                self._fallback_store.pop(key, None)
+                self._fallback_ttls.pop(key, None)
+                return None
+            return self._fallback_store.get(key)
+
+    def set(self, key, value, ex=None):
+        val_str = json.dumps(value) if isinstance(value, (dict, list)) else str(value)
+        cmd = ["SET", key, val_str]
+        if ex:
+            cmd.extend(["EX", str(int(ex))])
+        res = self._execute(*cmd)
+        with self.lock:
+            self._fallback_store[key] = val_str
+            if ex:
+                self._fallback_ttls[key] = time.time() + ex
+            elif key in self._fallback_ttls:
+                self._fallback_ttls.pop(key, None)
+        return True
+
+    def delete(self, *keys):
+        if not keys:
+            return 0
+        self._execute("DEL", *keys)
+        with self.lock:
+            for k in keys:
+                self._fallback_store.pop(k, None)
+                self._fallback_ttls.pop(k, None)
+                self._fallback_hashes.pop(k, None)
+        return len(keys)
+
+    def exists(self, key):
+        res = self._execute("EXISTS", key)
+        if res is not None:
+            return bool(res)
+        with self.lock:
+            return key in self._fallback_store
+
+    def incr(self, key):
+        res = self._execute("INCR", key)
+        if res is not None:
+            try:
+                return int(res)
+            except Exception:
+                return 1
+        with self.lock:
+            cur = int(self._fallback_store.get(key, 0) or 0) + 1
+            self._fallback_store[key] = str(cur)
+            return cur
+
+    def hget(self, name, key):
+        res = self._execute("HGET", name, key)
+        if res is not None:
+            return res
+        with self.lock:
+            return self._fallback_hashes.get(name, {}).get(key)
+
+    def hset(self, name, key, value):
+        val_str = json.dumps(value) if isinstance(value, (dict, list)) else str(value)
+        self._execute("HSET", name, key, val_str)
+        with self.lock:
+            self._fallback_hashes[name][key] = val_str
+        return 1
+
+    def hgetall(self, name):
+        res = self._execute("HGETALL", name)
+        if isinstance(res, list):
+            out = {}
+            for i in range(0, len(res), 2):
+                if i + 1 < len(res):
+                    out[res[i]] = res[i + 1]
+            return out
+        with self.lock:
+            return dict(self._fallback_hashes.get(name, {}))
+
+    def hdel(self, name, *keys):
+        if not keys:
+            return 0
+        self._execute("HDEL", name, *keys)
+        with self.lock:
+            h = self._fallback_hashes.get(name, {})
+            for k in keys:
+                h.pop(k, None)
+        return len(keys)
+
+    def get_json(self, key, default=None):
+        val = self.get(key)
+        if val is None:
+            return default
+        try:
+            return json.loads(val)
+        except Exception:
+            return val
+
+    def set_json(self, key, value, ex=None):
+        return self.set(key, json.dumps(value), ex=ex)
+
+GLOBAL_REDIS = NativeRedisClient()
 
 def fetch_media_info_fast(url):
-    now = time.time()
-    with _MEDIA_CACHE_LOCK:
-        if url in _MEDIA_CACHE:
-            ts, cached_info = _MEDIA_CACHE[url]
-            if now - ts < 300:
-                return cached_info
+    cache_key = "media:info:" + hashlib.md5(url.encode()).hexdigest()
+    cached = GLOBAL_REDIS.get_json(cache_key)
+    if cached:
+        return cached
     ydl_opts = {
         "quiet": True,
         "no_warnings": True,
@@ -90,10 +259,7 @@ def fetch_media_info_fast(url):
     }
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=False)
-    with _MEDIA_CACHE_LOCK:
-        if len(_MEDIA_CACHE) > 100:
-            _MEDIA_CACHE.clear()
-        _MEDIA_CACHE[url] = (now, info)
+    GLOBAL_REDIS.set_json(cache_key, info, ex=3600)
     return info
 
 try:
@@ -3104,6 +3270,12 @@ class SwadeObjectStore:
             cdn_link = f"https://phone-whisper-server.pages.dev/s/{tenant_id}/{clean_key}"
             _gmail_notifier.send_upload_notification(target_email, clean_key, size, cdn_link, is_anonymous=is_anon)
 
+        safe_meta = dict(meta)
+        safe_meta.pop("_disk_path", None)
+        GLOBAL_REDIS.set_json(f"storage:meta:{tenant_id}:{clean_key}", safe_meta, ex=3600)
+        GLOBAL_REDIS.incr(f"storage:ver:{tenant_id}")
+        GLOBAL_REDIS.delete(f"storage:usage:{tenant_id}")
+
         return meta
 
     def head_object(self, tenant_id: str, raw_key: str):
@@ -3313,10 +3485,17 @@ class SwadeObjectStore:
         disk_path = meta.get("_disk_path")
         if disk_path:
             self._disk_queue.put(("unlink", disk_path, None))
+        GLOBAL_REDIS.delete(f"storage:meta:{tenant_id}:{clean_key}", f"storage:meta:{tenant_id}:{actual_key}")
+        GLOBAL_REDIS.incr(f"storage:ver:{tenant_id}")
+        GLOBAL_REDIS.delete(f"storage:usage:{tenant_id}")
         return True
 
     def list_objects(self, tenant_id: str, prefix=None, limit=100):
-        """In-Memory Directory Slice in <0.005ms with Real-Time 3-Day Inactivity TTL Metrics and Cross-Tenant Fallback"""
+        t_ver = GLOBAL_REDIS.get(f"storage:ver:{tenant_id}") or "0"
+        cache_key = f"storage:list:{tenant_id}:{t_ver}:{prefix or 'all'}:{limit}"
+        cached = GLOBAL_REDIS.get_json(cache_key)
+        if cached and "list" in cached and "total" in cached:
+            return cached["list"], cached["total"]
         if tenant_id:
             self._scan_tenant_disk(tenant_id)
         t_dict = self._meta_index.get(tenant_id, {})
@@ -3329,8 +3508,6 @@ class SwadeObjectStore:
                 seen_keys.add(k)
                 unique_objs.append(o)
 
-        # Cross-Tenant Universal Fallback: If tenant has 0 objects (e.g. newly auto-provisioned guest/sandbox key),
-        # aggregate all registered objects across all storage pools so the vault is never empty!
         if not unique_objs or tenant_id in ["public_guest", "anon_public"] or tenant_id.startswith("usr_sandbox_") or tenant_id.startswith("proj_sandbox_"):
             with self.lock:
                 for cand_k, (t_id, full_path, meta) in self._universal_objects.items():
@@ -3354,7 +3531,6 @@ class SwadeObjectStore:
             c["flagged_reason"] = m.get("flagged_reason", "") if m else ""
             c["moderated_by"] = m.get("moderated_by", "") if m else ""
 
-            # Sovereign Permanent Storage: TTL and Auto-deletion permanently disabled
             c["is_anonymous"] = False
             c["external_human_visits"] = o.get("external_human_visits", 0)
             c["ttl_days_total"] = None
@@ -3367,13 +3543,20 @@ class SwadeObjectStore:
             c["url"] = f"/s/{tenant_id}/{clean_k}"
             c["cdn_url"] = f"https://phone-whisper-server.pages.dev/s/{tenant_id}/{clean_k}"
             safe_list.append(c)
+        GLOBAL_REDIS.set_json(cache_key, {"list": safe_list, "total": len(unique_objs)}, ex=20)
         return safe_list, len(unique_objs)
 
     def get_usage(self, tenant_id: str):
+        cache_key = f"storage:usage:{tenant_id}"
+        cached = GLOBAL_REDIS.get_json(cache_key)
+        if cached:
+            return cached
         self._scan_tenant_disk(tenant_id)
         used = self._tenant_used_bytes[tenant_id]
         count = self._tenant_object_count[tenant_id]
-        return {"used_bytes": used, "used_mb": round(used / (1024*1024), 3), "object_count": count}
+        res = {"used_bytes": used, "used_mb": round(used / (1024*1024), 3), "object_count": count}
+        GLOBAL_REDIS.set_json(cache_key, res, ex=10)
+        return res
 
 _storage_vault = SwadeStorageVault()
 _notifier = SwadesNotifier(_storage_vault)
@@ -5472,6 +5655,7 @@ def _telemetry_background_loop():
 
             with _latest_telemetry_lock:
                 _latest_telemetry_cache = data
+            GLOBAL_REDIS.set_json("telemetry:live", data, ex=3)
         except Exception:
             pass
         time.sleep(1.0)
@@ -8180,9 +8364,22 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 if isinstance(auth_res, dict) and auth_res.get("tenant_id"):
                     tenant_id = auth_res["tenant_id"]
             
+            cache_key = f"cron:jobs:{tenant_id or 'all'}:{status or 'any'}:{tag or 'any'}:{limit}"
+            cached = GLOBAL_REDIS.get(cache_key)
+            if cached:
+                resp = cached.encode("utf-8") if isinstance(cached, str) else cached
+                self.send_response(200)
+                self._send_cors_headers()
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(resp)))
+                self.end_headers()
+                self.wfile.write(resp)
+                return
+
             jobs = _cron_engine.list_jobs(tenant_id=tenant_id, status=status, tag=tag, limit=limit)
             stats = _cron_engine.get_stats()
             resp = json.dumps({"success": True, "jobs": jobs, "count": len(jobs), "stats": stats}).encode("utf-8")
+            GLOBAL_REDIS.set(cache_key, resp.decode("utf-8"), ex=5)
             self.send_response(200)
             self._send_cors_headers()
             self.send_header("Content-Type", "application/json")
@@ -9984,10 +10181,16 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         self._send_json_response({"ok": False, "error": f"Unknown POST action '{action}'"}, status=400)
 
     def handle_health(self):
-        self.send_response(200)
-        self._send_cors_headers()
-        self.send_header("Content-Type", "application/json")
-        self.end_headers()
+        cached = GLOBAL_REDIS.get("health:status:payload")
+        if cached:
+            payload = cached.encode("utf-8") if isinstance(cached, str) else cached
+            self.send_response(200)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(payload)))
+            self.end_headers()
+            self.wfile.write(payload)
+            return
         info = {
             "status": "ONLINE",
             "service": "Autonomous Mobile AI Datacenter & Memory Governor",
@@ -10033,7 +10236,14 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             },
             "timestamp": int(time.time())
         }
-        self.wfile.write(json.dumps(info, indent=2).encode())
+        payload = json.dumps(info, indent=2).encode()
+        GLOBAL_REDIS.set("health:status:payload", payload.decode("utf-8"), ex=2)
+        self.send_response(200)
+        self._send_cors_headers()
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(payload)))
+        self.end_headers()
+        self.wfile.write(payload)
 
     def handle_feed_rank_get(self):
         info = {
@@ -10088,6 +10298,16 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
 
     def handle_feed_rank_stats(self):
         try:
+            cached = GLOBAL_REDIS.get("rank:stats:data")
+            if cached:
+                resp_bytes = cached.encode("utf-8") if isinstance(cached, str) else cached
+                self.send_response(200)
+                self._send_cors_headers()
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(resp_bytes)))
+                self.end_headers()
+                self.wfile.write(resp_bytes)
+                return
             if "/data/data/com.termux/files/home/ntaglo" not in sys.path:
                 sys.path.insert(0, "/data/data/com.termux/files/home/ntaglo")
             import bootstrap
@@ -10096,6 +10316,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 self.server.ranking_service = api.RankingService()
             stats_data = self.server.ranking_service.stats()
             resp_bytes = json.dumps(stats_data).encode("utf-8")
+            GLOBAL_REDIS.set("rank:stats:data", resp_bytes.decode("utf-8"), ex=15)
             self.send_response(200)
             self._send_cors_headers()
             self.send_header("Content-Type", "application/json")
@@ -10147,6 +10368,10 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         self.wfile.write(resp)
 
     def handle_telemetry(self):
+        cached = GLOBAL_REDIS.get_json("telemetry:live")
+        if cached:
+            self._send_json_response(cached)
+            return
         global _latest_telemetry_cache
         with _latest_telemetry_lock:
             data = _latest_telemetry_cache
@@ -10177,6 +10402,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 "inference_metrics": _metrics_tracker.get_stats()
             }
 
+        if data:
+            GLOBAL_REDIS.set_json("telemetry:live", data, ex=2)
         self._send_json_response(data)
 
     def handle_benchmark(self):
