@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://programmers-chuck-defeat-testament.trycloudflare.com",
-  "inference": "https://programmers-chuck-defeat-testament.trycloudflare.com/inference",
-  "telemetry": "https://programmers-chuck-defeat-testament.trycloudflare.com/telemetry",
+  "endpoint": "https://bearing-rica-asked-ids.trycloudflare.com",
+  "inference": "https://bearing-rica-asked-ids.trycloudflare.com/inference",
+  "telemetry": "https://bearing-rica-asked-ids.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-17T14:51:08Z"
+  "updated_at": "2026-10-17T14:52:32Z"
 }
