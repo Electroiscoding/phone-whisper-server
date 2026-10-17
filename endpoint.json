@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://caution-full-took-always.trycloudflare.com",
-  "inference": "https://caution-full-took-always.trycloudflare.com/inference",
-  "telemetry": "https://caution-full-took-always.trycloudflare.com/telemetry",
+  "endpoint": "https://prev-blackberry-smtp-phil.trycloudflare.com",
+  "inference": "https://prev-blackberry-smtp-phil.trycloudflare.com/inference",
+  "telemetry": "https://prev-blackberry-smtp-phil.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-17T14:39:04Z"
+  "updated_at": "2026-10-17T14:44:12Z"
 }
