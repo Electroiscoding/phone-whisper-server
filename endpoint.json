@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://scholars-actor-leu-prayer.trycloudflare.com",
-  "inference": "https://scholars-actor-leu-prayer.trycloudflare.com/inference",
-  "telemetry": "https://scholars-actor-leu-prayer.trycloudflare.com/telemetry",
+  "endpoint": "https://jobs-poems-meat-consider.trycloudflare.com",
+  "inference": "https://jobs-poems-meat-consider.trycloudflare.com/inference",
+  "telemetry": "https://jobs-poems-meat-consider.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-17T19:19:45Z"
+  "updated_at": "2026-10-17T20:07:34Z"
 }
