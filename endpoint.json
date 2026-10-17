@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://portion-resolutions-afternoon-admitted.trycloudflare.com",
-  "inference": "https://portion-resolutions-afternoon-admitted.trycloudflare.com/inference",
-  "telemetry": "https://portion-resolutions-afternoon-admitted.trycloudflare.com/telemetry",
+  "endpoint": "https://cognitive-assembly-slim-hint.trycloudflare.com",
+  "inference": "https://cognitive-assembly-slim-hint.trycloudflare.com/inference",
+  "telemetry": "https://cognitive-assembly-slim-hint.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-17T14:16:54Z"
+  "updated_at": "2026-10-17T14:22:36Z"
 }
