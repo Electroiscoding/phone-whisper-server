@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://roger-leading-mat-pet.trycloudflare.com",
-  "inference": "https://roger-leading-mat-pet.trycloudflare.com/inference",
-  "telemetry": "https://roger-leading-mat-pet.trycloudflare.com/telemetry",
+  "endpoint": "https://head-deutschland-capital-dakota.trycloudflare.com",
+  "inference": "https://head-deutschland-capital-dakota.trycloudflare.com/inference",
+  "telemetry": "https://head-deutschland-capital-dakota.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-17T14:57:01Z"
+  "updated_at": "2026-10-17T15:00:22Z"
 }
