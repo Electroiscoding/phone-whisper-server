@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://described-hypothesis-hamburg-expert.trycloudflare.com",
-  "inference": "https://described-hypothesis-hamburg-expert.trycloudflare.com/inference",
-  "telemetry": "https://described-hypothesis-hamburg-expert.trycloudflare.com/telemetry",
+  "endpoint": "https://videos-funeral-arc-agriculture.trycloudflare.com",
+  "inference": "https://videos-funeral-arc-agriculture.trycloudflare.com/inference",
+  "telemetry": "https://videos-funeral-arc-agriculture.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-17T15:46:47Z"
+  "updated_at": "2026-10-17T15:48:37Z"
 }
