@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://seven-january-stages-tvs.trycloudflare.com",
-  "inference": "https://seven-january-stages-tvs.trycloudflare.com/inference",
-  "telemetry": "https://seven-january-stages-tvs.trycloudflare.com/telemetry",
+  "endpoint": "https://goto-riding-radical-super.trycloudflare.com",
+  "inference": "https://goto-riding-radical-super.trycloudflare.com/inference",
+  "telemetry": "https://goto-riding-radical-super.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-17T17:27:09Z"
+  "updated_at": "2026-10-17T19:01:15Z"
 }
