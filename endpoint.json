@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://commands-walk-ventures-fair.trycloudflare.com",
-  "inference": "https://commands-walk-ventures-fair.trycloudflare.com/inference",
-  "telemetry": "https://commands-walk-ventures-fair.trycloudflare.com/telemetry",
+  "endpoint": "https://employer-above-simpsons-shake.trycloudflare.com",
+  "inference": "https://employer-above-simpsons-shake.trycloudflare.com/inference",
+  "telemetry": "https://employer-above-simpsons-shake.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-17T15:34:48Z"
+  "updated_at": "2026-10-17T15:35:38Z"
 }
