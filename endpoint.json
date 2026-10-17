@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://animated-gen-increased-delegation.trycloudflare.com",
-  "inference": "https://animated-gen-increased-delegation.trycloudflare.com/inference",
-  "telemetry": "https://animated-gen-increased-delegation.trycloudflare.com/telemetry",
+  "endpoint": "https://competitive-experienced-dimensions-heating.trycloudflare.com",
+  "inference": "https://competitive-experienced-dimensions-heating.trycloudflare.com/inference",
+  "telemetry": "https://competitive-experienced-dimensions-heating.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-16T08:20:24Z"
+  "updated_at": "2026-10-17T13:37:52Z"
 }
