@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://workforce-elevation-result-eligibility.trycloudflare.com",
-  "inference": "https://workforce-elevation-result-eligibility.trycloudflare.com/inference",
-  "telemetry": "https://workforce-elevation-result-eligibility.trycloudflare.com/telemetry",
+  "endpoint": "https://geo-harder-consistently-entrepreneurs.trycloudflare.com",
+  "inference": "https://geo-harder-consistently-entrepreneurs.trycloudflare.com/inference",
+  "telemetry": "https://geo-harder-consistently-entrepreneurs.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-17T14:09:10Z"
+  "updated_at": "2026-10-17T14:12:02Z"
 }
