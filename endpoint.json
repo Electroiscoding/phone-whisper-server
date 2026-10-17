@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://heading-matter-houses-ltd.trycloudflare.com",
-  "inference": "https://heading-matter-houses-ltd.trycloudflare.com/inference",
-  "telemetry": "https://heading-matter-houses-ltd.trycloudflare.com/telemetry",
+  "endpoint": "https://climbing-reynolds-write-urls.trycloudflare.com",
+  "inference": "https://climbing-reynolds-write-urls.trycloudflare.com/inference",
+  "telemetry": "https://climbing-reynolds-write-urls.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-17T13:46:12Z"
+  "updated_at": "2026-10-17T13:50:58Z"
 }
