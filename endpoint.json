@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://shops-estimation-fridge-mel.trycloudflare.com",
-  "inference": "https://shops-estimation-fridge-mel.trycloudflare.com/inference",
-  "telemetry": "https://shops-estimation-fridge-mel.trycloudflare.com/telemetry",
+  "endpoint": "https://incentive-midnight-tucson-africa.trycloudflare.com",
+  "inference": "https://incentive-midnight-tucson-africa.trycloudflare.com/inference",
+  "telemetry": "https://incentive-midnight-tucson-africa.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-18T14:07:55Z"
+  "updated_at": "2026-10-18T14:22:57Z"
 }
