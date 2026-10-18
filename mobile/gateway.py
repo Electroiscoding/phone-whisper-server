@@ -20,6 +20,7 @@ import uuid
 import collections
 import queue
 import hashlib
+import fnmatch
 import secrets
 import zlib
 import hmac
