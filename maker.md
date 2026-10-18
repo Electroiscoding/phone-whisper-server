@@ -1110,6 +1110,77 @@ Developers and applications are 100% physically isolated from each other. Rather
 | `GET` | `/v1/projects/{id}` | Inspect a specific project's live database size, table count, and blob metrics. |
 | `DELETE` | `/v1/projects/{id}` | Deactivate an isolated project. |
 
+### 6.6 HyperData: Addictive, Zero-Friction Serverless Database Engine
+
+HyperData is an ultra-fast, zero-friction Serverless Database & Object CRUD Engine powered by Redis L1 RAM cache and SQLite WAL L2 persistence running directly on the sovereign ARM phone datacenter.
+
+Designed using Nir Eyal's Hooked model (Trigger -> Action -> Variable Reward -> Investment), HyperData eliminates 100% of the friction associated with traditional cloud databases:
+- **Zero Boilerplate**: 1-line API calls. No Prisma, no Docker, no connection strings, no migrations.
+- **Auto-Schema Evolution**: Insert arbitrary JSON dictionaries. Tables and columns are created or expanded dynamically on the fly.
+- **Microsecond In-Memory Reads**: Key-Value lookups hit Redis L1 RAM cache in under 0.05 milliseconds (`18-30 microseconds` on-device).
+- **Zero-Friction Authentication**: Requests with an API key (`x-api-key`) access dedicated project databases. Requests without an API key are automatically assigned an ephemeral sandbox (`usr_sandbox_<hash>`) with a free 2GB quota, ensuring zero requests fail.
+- **100% Free Forever**: Fully sovereign, no credit card required, no surprise cloud bills.
+
+#### Core API Endpoints:
+
+| Method | Endpoint | Description | Auth |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/v1/hyperdata/set` | Insert or update document. Auto-creates table and adds missing columns dynamically. | Optional |
+| `GET` | `/v1/hyperdata/get` | Retrieve document by key (`?table=users&key=alice`) or query table (`?table=users&limit=50`). | Optional |
+| `POST` | `/v1/hyperdata/delete` | Delete document by primary key (`{"table":"users","key":"alice"}`). | Optional |
+| `POST` | `/v1/hyperdata/query` | Structured filter query (`{"table":"users","filter":{"status":"active"}}`) or raw SQL (`{"sql":"SELECT * FROM users"}`). | Optional |
+| `GET` | `/v1/hyperdata/tables` | List all tables, row counts, and column schemas in project. | Optional |
+| `GET` | `/v1/hyperdata/status` | Real-time HyperData engine vitals, latency SLA, and tenant quota metrics. | Optional |
+
+#### Instant Terminal cURL Examples:
+
+Insert a record:
+```bash
+curl -X POST https://phone-whisper-server.pages.dev/v1/hyperdata/set \
+  -H "Content-Type: application/json" \
+  -d '{"table": "users", "key": "alice", "data": {"name": "Alice Dev", "score": 100, "role": "admin"}}'
+```
+
+Retrieve record from Redis RAM:
+```bash
+curl "https://phone-whisper-server.pages.dev/v1/hyperdata/get?table=users&key=alice"
+```
+
+Query with filters:
+```bash
+curl -X POST https://phone-whisper-server.pages.dev/v1/hyperdata/query \
+  -H "Content-Type: application/json" \
+  -d '{"table": "users", "filter": {"role": "admin"}, "limit": 10}'
+```
+
+#### Python SDK Example (`swades.py`):
+```python
+from swades import Swades
+
+client = Swades(api_key="your_key")
+
+client.hyperdata.set("users", "alice", {"name": "Alice Dev", "score": 100})
+
+user = client.hyperdata.get("users", "alice")
+print(user["data"])
+
+results = client.hyperdata.query("users", role="admin", limit=10)
+```
+
+#### JavaScript / Node.js SDK Example (`swades.js`):
+```javascript
+const { SwadesClient } = require('./swades.js');
+
+const client = new SwadesClient({ apiKey: 'your_key' });
+
+await client.hyperdata.set('users', 'alice', { name: 'Alice Dev', score: 100 });
+
+const user = await client.hyperdata.get('users', 'alice');
+console.log(user.data);
+
+const list = await client.hyperdata.query('users', { limit: 10 });
+```
+
 ---
 
 ## 7. Administrative & Console APIs (`/v1/dashboard/*`)

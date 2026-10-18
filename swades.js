@@ -34,9 +34,95 @@ class SwadesClient {
     return this;
   }
 
-  // --- DATABASE (SQL & FIRESTORE-LIKE CRUD) ---
+  hyperdata = {
+    set: async (table, key, data, options = {}) => {
+      const res = await fetch(`${this.endpoint}/v1/hyperdata/set`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': this.apiKey,
+          'x-project-id': this.projectId
+        },
+        body: JSON.stringify({ table, key, data, ...options })
+      });
+      return await res.json();
+    },
+
+    get: async (table, key = null, options = {}) => {
+      const params = new URLSearchParams({ table, ...options });
+      if (key) params.set('key', key);
+      const res = await fetch(`${this.endpoint}/v1/hyperdata/get?${params.toString()}`, {
+        headers: {
+          'x-api-key': this.apiKey,
+          'x-project-id': this.projectId
+        }
+      });
+      return await res.json();
+    },
+
+    delete: async (table, key) => {
+      const res = await fetch(`${this.endpoint}/v1/hyperdata/delete`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': this.apiKey,
+          'x-project-id': this.projectId
+        },
+        body: JSON.stringify({ table, key })
+      });
+      return await res.json();
+    },
+
+    query: async (table, options = {}) => {
+      const res = await fetch(`${this.endpoint}/v1/hyperdata/query`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': this.apiKey,
+          'x-project-id': this.projectId
+        },
+        body: JSON.stringify({ table, ...options })
+      });
+      return await res.json();
+    },
+
+    sql: async (query) => {
+      const res = await fetch(`${this.endpoint}/v1/hyperdata/query`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': this.apiKey,
+          'x-project-id': this.projectId
+        },
+        body: JSON.stringify({ sql: query })
+      });
+      return await res.json();
+    },
+
+    tables: async () => {
+      const res = await fetch(`${this.endpoint}/v1/hyperdata/tables`, {
+        headers: {
+          'x-api-key': this.apiKey,
+          'x-project-id': this.projectId
+        }
+      });
+      return await res.json();
+    },
+
+    status: async () => {
+      const res = await fetch(`${this.endpoint}/v1/hyperdata/status`, {
+        headers: {
+          'x-api-key': this.apiKey,
+          'x-project-id': this.projectId
+        }
+      });
+      return await res.json();
+    }
+  };
+
   db = {
-    // 1-line SQL query
+    set: async (table, key, data, options = {}) => this.hyperdata.set(table, key, data, options),
+    get: async (table, key = null, options = {}) => this.hyperdata.get(table, key, options),
     query: async (sqlQuery, params = {}) => {
       const res = await fetch(`${this.endpoint}/v1/dashboard/db/sql`, {
         method: 'POST',

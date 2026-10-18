@@ -171,6 +171,64 @@ class CronClient:
         res = self.swades._req("POST", "/v1/cron/demo/smtp", json={"email": email})
         return res.json()
 
+class HyperData:
+    def __init__(self, swades):
+        self.swades = swades
+
+    def set(self, table: str, key: str, data: dict, ttl: int = None):
+        headers = dict(self.swades.headers)
+        payload = {"table": table, "key": key, "data": data}
+        if ttl:
+            payload["ttl"] = ttl
+        res = self.swades._req("POST", "/v1/hyperdata/set", headers=headers, json=payload)
+        return res.json()
+
+    def get(self, table: str, key: str = None, limit: int = 50, offset: int = 0):
+        headers = dict(self.swades.headers)
+        params = {"table": table}
+        if key:
+            params["key"] = key
+        else:
+            params["limit"] = limit
+            params["offset"] = offset
+        res = self.swades._req("GET", "/v1/hyperdata/get", headers=headers, params=params)
+        return res.json()
+
+    def delete(self, table: str, key: str):
+        headers = dict(self.swades.headers)
+        payload = {"table": table, "key": key}
+        res = self.swades._req("POST", "/v1/hyperdata/delete", headers=headers, json=payload)
+        return res.json()
+
+    def query(self, table: str, limit: int = 50, offset: int = 0, order_by: str = None, desc: bool = True, **filters):
+        headers = dict(self.swades.headers)
+        payload = {
+            "table": table,
+            "filter": filters,
+            "limit": limit,
+            "offset": offset,
+            "order_by": order_by,
+            "desc": desc
+        }
+        res = self.swades._req("POST", "/v1/hyperdata/query", headers=headers, json=payload)
+        return res.json()
+
+    def sql(self, query: str):
+        headers = dict(self.swades.headers)
+        payload = {"sql": query}
+        res = self.swades._req("POST", "/v1/hyperdata/query", headers=headers, json=payload)
+        return res.json()
+
+    def tables(self):
+        headers = dict(self.swades.headers)
+        res = self.swades._req("GET", "/v1/hyperdata/tables", headers=headers)
+        return res.json()
+
+    def status(self):
+        headers = dict(self.swades.headers)
+        res = self.swades._req("GET", "/v1/hyperdata/status", headers=headers)
+        return res.json()
+
 class Swades:
     def __init__(self, api_key="", project_id="default", endpoint="https://phone-whisper-server.pages.dev"):
         # Root cause fix: Force permanent Cloudflare Pages domain, sanitize any trycloudflare or localhost
@@ -186,6 +244,8 @@ class Swades:
         }
         self.images = ImageClient(self)
         self.cron = CronClient(self)
+        self.hyperdata = HyperData(self)
+        self.db = self.hyperdata
         self._tts_cache = {}
         self._cache_dir = os.path.expanduser("~/.swades/tts_cache")
         try:

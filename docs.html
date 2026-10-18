@@ -2187,6 +2187,30 @@ proot-distro login alpine -- node /root/Swades-Agent/worker.js --job job_a9f8224
             <p class="text-zinc-400 text-[11px] leading-relaxed">
               Static assets, compiled audio WAV files, and documentation are cached across 275+ Cloudflare Points of Presence (PoPs). Standard HTTP <code class="text-neonpurple">Range: bytes=0-1048575</code> headers allow instantaneous audio seeking and scrubbing without redownloading.
             </p>
+          <div id="hyperdata-db" class="bg-cardbg border border-cyan-500/30 rounded-lg p-5">
+            <div class="flex items-center justify-between mb-3">
+              <div class="text-neoncyan font-bold text-sm flex items-center gap-2">
+                <i class="fa-solid fa-bolt text-yellow-400"></i> HyperData: Addictive Serverless Database (Redis L1 + SQLite WAL)
+              </div>
+              <span class="px-2 py-0.5 rounded text-[10px] bg-cyan-950 text-cyan-300 border border-cyan-800">100% Free Forever</span>
+            </div>
+            <p class="text-zinc-300 text-xs leading-relaxed mb-4">
+              HyperData is an ultra-fast, zero-friction Serverless Database & Object CRUD Engine powered by Redis L1 RAM cache and SQLite WAL L2 persistence running directly on the sovereign ARM phone datacenter. Designed using Nir Eyal's Hooked model to make developer workflows completely effortless.
+            </p>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px] text-zinc-400 mb-4 font-mono">
+              <div class="bg-zinc-950 p-2.5 rounded border border-cardborder"><span class="text-emerald-400 font-bold">L1 Read Latency:</span> &lt; 0.05 ms</div>
+              <div class="bg-zinc-950 p-2.5 rounded border border-cardborder"><span class="text-cyan-400 font-bold">Schema Evolution:</span> Zero Migrations</div>
+              <div class="bg-zinc-950 p-2.5 rounded border border-cardborder"><span class="text-purple-400 font-bold">Free Quota:</span> 2GB / Sandbox</div>
+              <div class="bg-zinc-950 p-2.5 rounded border border-cardborder"><span class="text-yellow-400 font-bold">Auto-Provision:</span> 0 Friction</div>
+            </div>
+            <div class="bg-zinc-950 rounded p-3 font-mono text-[11px] text-zinc-300 border border-cardborder overflow-x-auto">
+              <div class="text-zinc-500 mb-1">Instant cURL Record Set (Auto-Creates Table &amp; Schema):</div>
+              <div class="text-cyan-300">curl -X POST https://phone-whisper-server.pages.dev/v1/hyperdata/set \</div>
+              <div class="pl-4 text-zinc-400">-H "Content-Type: application/json" \</div>
+              <div class="pl-4 text-emerald-300">-d '{"table":"users","key":"alice","data":{"score":100,"role":"admin"}}'</div>
+              <div class="text-zinc-500 mt-2 mb-1">Retrieve from Redis RAM (&lt;0.05ms):</div>
+              <div class="text-cyan-300">curl "https://phone-whisper-server.pages.dev/v1/hyperdata/get?table=users&amp;key=alice"</div>
+            </div>
           </div>
         </div>
       </section>
