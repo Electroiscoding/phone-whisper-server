@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://donate-purple-fax-sensor.trycloudflare.com",
-  "inference": "https://donate-purple-fax-sensor.trycloudflare.com/inference",
-  "telemetry": "https://donate-purple-fax-sensor.trycloudflare.com/telemetry",
+  "endpoint": "https://shops-estimation-fridge-mel.trycloudflare.com",
+  "inference": "https://shops-estimation-fridge-mel.trycloudflare.com/inference",
+  "telemetry": "https://shops-estimation-fridge-mel.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-18T13:49:28Z"
+  "updated_at": "2026-10-18T14:07:55Z"
 }
