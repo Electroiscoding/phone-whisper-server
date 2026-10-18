@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://rush-possibly-anti-gulf.trycloudflare.com",
-  "inference": "https://rush-possibly-anti-gulf.trycloudflare.com/inference",
-  "telemetry": "https://rush-possibly-anti-gulf.trycloudflare.com/telemetry",
+  "endpoint": "https://saying-richardson-fat-assumptions.trycloudflare.com",
+  "inference": "https://saying-richardson-fat-assumptions.trycloudflare.com/inference",
+  "telemetry": "https://saying-richardson-fat-assumptions.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-18T12:16:52Z"
+  "updated_at": "2026-10-18T12:36:27Z"
 }
