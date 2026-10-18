@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://expert-street-oclc-head.trycloudflare.com",
-  "inference": "https://expert-street-oclc-head.trycloudflare.com/inference",
-  "telemetry": "https://expert-street-oclc-head.trycloudflare.com/telemetry",
+  "endpoint": "https://series-cannon-eos-lanes.trycloudflare.com",
+  "inference": "https://series-cannon-eos-lanes.trycloudflare.com/inference",
+  "telemetry": "https://series-cannon-eos-lanes.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-18T15:34:33Z"
+  "updated_at": "2026-10-18T15:34:53Z"
 }
