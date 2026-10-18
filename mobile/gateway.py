@@ -247,6 +247,16 @@ class NativeRedisClient:
         msg_str = json.dumps(message) if isinstance(message, (dict, list)) else str(message)
         return self._execute("PUBLISH", channel, msg_str)
 
+    def delete_pattern(self, pattern):
+        res = self._execute("KEYS", pattern)
+        if isinstance(res, list) and res:
+            self._execute("DEL", *res)
+        with self.lock:
+            for k in list(self._fallback_store.keys()):
+                if fnmatch.fnmatch(k, pattern):
+                    self._fallback_store.pop(k, None)
+                    self._fallback_ttls.pop(k, None)
+
 GLOBAL_REDIS = NativeRedisClient()
 
 def fetch_media_info_fast(url):
@@ -2902,6 +2912,10 @@ class SwadeStorageVault:
 
         GLOBAL_REDIS.incr(f"hd:ver:{safe_tenant}:{safe_table}")
         GLOBAL_REDIS.delete(f"hd:tables:{safe_tenant}")
+        GLOBAL_REDIS.delete_pattern(f"hd:{safe_tenant}:{safe_table}:*")
+        GLOBAL_REDIS.delete_pattern(f"hd:query:{safe_tenant}:{safe_table}:*")
+        GLOBAL_REDIS.delete_pattern(f"hd:search:{safe_tenant}:{safe_table}:*")
+        GLOBAL_REDIS.delete_pattern(f"hd:agg:{safe_tenant}:{safe_table}:*")
 
         conn = self._get_project_conn(safe_tenant)
         try:
