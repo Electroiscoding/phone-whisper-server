@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://myrtle-contain-meet-placing.trycloudflare.com",
-  "inference": "https://myrtle-contain-meet-placing.trycloudflare.com/inference",
-  "telemetry": "https://myrtle-contain-meet-placing.trycloudflare.com/telemetry",
+  "endpoint": "https://survivors-secretary-ppc-insider.trycloudflare.com",
+  "inference": "https://survivors-secretary-ppc-insider.trycloudflare.com/inference",
+  "telemetry": "https://survivors-secretary-ppc-insider.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-18T15:20:30Z"
+  "updated_at": "2026-10-18T15:23:40Z"
 }
