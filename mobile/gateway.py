@@ -2866,7 +2866,14 @@ class SwadeStorageVault:
             if where_clauses:
                 sql += " WHERE " + " AND ".join(where_clauses)
             if clean_gb:
-                sql += f" GROUP BY {clean_gb} ORDER BY count DESC LIMIT 100"
+                order_target = clean_gb
+                for p in select_parts:
+                    if " AS " in p:
+                        alias_part = p.split(" AS ")[-1].strip()
+                        if alias_part.lower() in ["count", "total", "sum"]:
+                            order_target = alias_part
+                            break
+                sql += f" GROUP BY {clean_gb} ORDER BY {order_target} DESC LIMIT 100"
 
             cursor.execute(sql, params)
             rows = [dict(r) for r in cursor.fetchall()]
