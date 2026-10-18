@@ -2527,30 +2527,46 @@ class SwadeStorageVault:
         if not items or not isinstance(items, list):
             raise ValueError("items must be a non-empty list of objects")
         
-        normalized = []
+        normalized_sets = []
+        normalized_deletes = []
         for idx, itm in enumerate(items):
             if not isinstance(itm, dict):
                 itm = {"value": itm}
-            k = str(itm.get("id") or itm.get("key") or f"{int(time.time()*1000)}_{idx}").strip()
-            itm["id"] = k
-            itm["_key"] = k
-            normalized.append((k, itm))
+            op = str(itm.get("op", "set")).lower()
+            itm_table = re.sub(r'[^a-zA-Z0-9_]', '', str(itm.get("table") or safe_table))
+            k = str(itm.get("id") or itm.get("key") or itm.get("_key") or f"{int(time.time()*1000)}_{idx}").strip()
+            if op == "delete":
+                normalized_deletes.append((itm_table, k))
+            else:
+                doc = itm.get("data") if ("data" in itm and isinstance(itm["data"], dict)) else itm
+                doc = dict(doc)
+                doc["id"] = k
+                doc["_key"] = k
+                normalized_sets.append((itm_table, k, doc))
 
-        for k, doc in normalized:
-            GLOBAL_REDIS.set_json(f"hd:{safe_tenant}:{safe_table}:{k}", doc, ex=ttl)
-        GLOBAL_REDIS.incr(f"hd:ver:{safe_tenant}:{safe_table}")
+        affected_tables = {safe_table}
+        for itm_t, k, doc in normalized_sets:
+            affected_tables.add(itm_t)
+            GLOBAL_REDIS.set_json(f"hd:{safe_tenant}:{itm_t}:{k}", doc, ex=ttl)
+
+        for itm_t, k in normalized_deletes:
+            affected_tables.add(itm_t)
+            GLOBAL_REDIS.delete(f"hd:{safe_tenant}:{itm_t}:{k}")
+
+        for t in affected_tables:
+            GLOBAL_REDIS.incr(f"hd:ver:{safe_tenant}:{t}")
         GLOBAL_REDIS.delete(f"hd:tables:{safe_tenant}")
 
         conn = self._get_project_conn(safe_tenant)
-        inserted_keys = []
+        processed_keys = []
         try:
-            for k, doc in normalized:
-                self._auto_ensure_hyperdata_table(conn, safe_table, doc)
+            for itm_t, k, doc in normalized_sets:
+                self._auto_ensure_hyperdata_table(conn, itm_t, doc)
             cursor = conn.cursor()
-            cursor.execute(f"PRAGMA table_info({safe_table})")
-            table_cols = [r[1] for r in cursor.fetchall() if r[1] not in ["_created_at", "_updated_at"]]
             
-            for k, doc in normalized:
+            for itm_t, k, doc in normalized_sets:
+                cursor.execute(f"PRAGMA table_info({itm_t})")
+                table_cols = [r[1] for r in cursor.fetchall() if r[1] not in ["_created_at", "_updated_at"]]
                 insert_cols = []
                 insert_vals = []
                 for col in table_cols:
@@ -2567,25 +2583,34 @@ class SwadeStorageVault:
                 placeholders = ", ".join(["?"] * len(insert_cols))
                 cols_joined = ", ".join(insert_cols)
                 updates_joined = ", ".join([f"{c} = excluded.{c}" for c in insert_cols if c != "id"])
-                sql = f"INSERT INTO {safe_table} ({cols_joined}, _updated_at) VALUES ({placeholders}, CURRENT_TIMESTAMP)"
+                sql = f"INSERT INTO {itm_t} ({cols_joined}, _updated_at) VALUES ({placeholders}, CURRENT_TIMESTAMP)"
                 if updates_joined:
                     sql += f" ON CONFLICT(id) DO UPDATE SET {updates_joined}, _updated_at = CURRENT_TIMESTAMP"
                 else:
                     sql += f" ON CONFLICT(id) DO UPDATE SET _updated_at = CURRENT_TIMESTAMP"
                 cursor.execute(sql, insert_vals)
-                inserted_keys.append(k)
+                processed_keys.append(k)
+
+            for itm_t, k in normalized_deletes:
+                try:
+                    cursor.execute(f"DELETE FROM {itm_t} WHERE id = ?", (k,))
+                    processed_keys.append(k)
+                except Exception:
+                    pass
+
             conn.commit()
         finally:
             conn.close()
 
         elapsed_ms = round((time.perf_counter() - t0) * 1000, 3)
-        GLOBAL_REDIS.publish(f"hd:events:{safe_tenant}:{safe_table}", {"action": "batch", "table": safe_table, "count": len(inserted_keys), "keys": inserted_keys, "ts": time.time()})
+        for t in affected_tables:
+            GLOBAL_REDIS.publish(f"hd:events:{safe_tenant}:{t}", {"action": "batch", "table": t, "count": len(processed_keys), "keys": processed_keys, "ts": time.time()})
         return {
             "status": "success",
             "service": "HyperData",
             "table": safe_table,
-            "count": len(inserted_keys),
-            "keys": inserted_keys,
+            "processed": len(processed_keys),
+            "keys": processed_keys,
             "tier": "RAM L1 + SQLite WAL L2 Pipelined",
             "latency_ms": elapsed_ms
         }
@@ -6604,6 +6629,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_dashboard_analytics_get(parsed)
         elif path in ["/v1/hyperdata/get", "/hyperdata/get", "/v1/db/get", "/db/get"]:
             self.handle_hyperdata_get(parsed)
+        elif path in ["/v1/hyperdata/delete", "/hyperdata/delete", "/v1/db/delete", "/db/delete"] or path.startswith("/v1/hyperdata/delete/") or path.startswith("/hyperdata/delete/") or path.startswith("/v1/db/delete/") or path.startswith("/db/delete/"):
+            self.handle_hyperdata_delete()
         elif path in ["/v1/hyperdata/tables", "/hyperdata/tables", "/v1/db/tables", "/db/tables", "/v1/dashboard/db/tables", "/v1/admin/db/tables"]:
             self.handle_hyperdata_tables(parsed)
         elif path in ["/v1/hyperdata/query", "/hyperdata/query", "/v1/dashboard/db/query", "/v1/admin/db/query", "/v1/db/query", "/db/query"]:
@@ -6701,7 +6728,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         elif path.startswith("/v1/projects/"):
             project_id = path.split("/")[3]
             self.handle_project_delete(project_id)
-        elif path in ["/v1/hyperdata/delete", "/hyperdata/delete", "/v1/db/delete", "/db/delete"]:
+        elif path in ["/v1/hyperdata/delete", "/hyperdata/delete", "/v1/db/delete", "/db/delete"] or path.startswith("/v1/hyperdata/delete/") or path.startswith("/hyperdata/delete/") or path.startswith("/v1/db/delete/") or path.startswith("/db/delete/") or path.startswith("/v1/hyperdata/") or path.startswith("/hyperdata/") or path.startswith("/v1/db/") or path.startswith("/db/"):
             self.handle_hyperdata_delete()
         elif path.startswith('/v1/agent/task/') or path.startswith('/v1/agent/job/'):
             job_id = path.split('/')[-1]
@@ -6773,7 +6800,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_hyperdata_set()
         elif path in ["/v1/hyperdata/get", "/hyperdata/get", "/v1/db/get", "/db/get"]:
             self.handle_hyperdata_get(parsed)
-        elif path in ["/v1/hyperdata/delete", "/hyperdata/delete", "/v1/db/delete", "/db/delete"]:
+        elif path in ["/v1/hyperdata/delete", "/hyperdata/delete", "/v1/db/delete", "/db/delete"] or path.startswith("/v1/hyperdata/delete/") or path.startswith("/hyperdata/delete/") or path.startswith("/v1/db/delete/") or path.startswith("/db/delete/"):
             self.handle_hyperdata_delete()
         elif path in ["/v1/hyperdata/batch", "/hyperdata/batch", "/v1/db/batch", "/db/batch"]:
             self.handle_hyperdata_batch()
@@ -9921,9 +9948,39 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         try:
             length = int(self.headers.get("Content-Length", 0))
             raw_body = self.rfile.read(length).decode("utf-8") if length > 0 else "{}"
-            body = json.loads(raw_body)
-            table = body.get("table", "records")
+            body = json.loads(raw_body) if raw_body and raw_body.strip().startswith("{") else {}
+            table = body.get("table")
             key = body.get("key") or body.get("id")
+            parsed = urllib.parse.urlparse(self.path)
+            qs = urllib.parse.parse_qs(parsed.query)
+            if not table:
+                table = qs.get("table", [None])[0]
+            if not key:
+                key = qs.get("key", [qs.get("id", [None])[0]])[0]
+            if not table or not key:
+                parts = [urllib.parse.unquote(p) for p in parsed.path.strip("/").split("/") if p]
+                if "delete" in parts:
+                    idx = parts.index("delete")
+                    if len(parts) > idx + 1 and not table:
+                        table = parts[idx + 1]
+                    if len(parts) > idx + 2 and not key:
+                        key = "/".join(parts[idx + 2:])
+                elif len(parts) >= 3 and parts[0] in ["v1", "api"] and parts[1] in ["hyperdata", "db"]:
+                    if not table:
+                        table = parts[2]
+                    if not key and len(parts) >= 4:
+                        key = "/".join(parts[3:])
+                elif len(parts) >= 2 and parts[0] in ["hyperdata", "db"]:
+                    if not table:
+                        table = parts[1]
+                    if not key and len(parts) >= 3:
+                        key = "/".join(parts[2:])
+            if table:
+                table = urllib.parse.unquote(str(table)).strip()
+            else:
+                table = "records"
+            if key:
+                key = urllib.parse.unquote(str(key)).strip()
             if not key:
                 self._send_json_response({"status": "error", "service": "HyperData", "error": "Missing key"}, status=400)
                 return
@@ -9969,7 +10026,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             raw_body = self.rfile.read(length).decode("utf-8") if length > 0 else "{}"
             body = json.loads(raw_body)
             table = body.get("table", "records")
-            items = body.get("items") or body.get("records") or body.get("data")
+            items = body.get("items") or body.get("records") or body.get("data") or body.get("operations") or body.get("ops")
             ttl = body.get("ttl")
             if not items or not isinstance(items, list):
                 self._send_json_response({"status": "error", "service": "HyperData", "error": "Missing or invalid 'items' array"}, status=400)
@@ -10008,14 +10065,14 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
 
         self.send_response(200)
         self._send_cors_headers()
-        self.send_header("Content-Type", "text/event-stream")
-        self.send_header("Cache-Control", "no-cache")
+        self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+        self.send_header("Cache-Control", "no-cache, no-transform")
         self.send_header("Connection", "keep-alive")
         self.send_header("X-Accel-Buffering", "no")
         self.end_headers()
 
         try:
-            self.wfile.write(b": ping\n\n")
+            self.wfile.write(b": ping\n\n: " + (b" " * 2048) + b"\n\n")
             self.wfile.flush()
         except Exception:
             return
@@ -10055,7 +10112,13 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                     self.wfile.write(b": ping\n\n")
                     self.wfile.flush()
         except Exception:
-            pass
+            while True:
+                try:
+                    time.sleep(3.0)
+                    self.wfile.write(b": ping\n\n")
+                    self.wfile.flush()
+                except Exception:
+                    break
         finally:
             if fp:
                 try:
