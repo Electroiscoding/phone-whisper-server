@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://flame-warranties-poetry-vip.trycloudflare.com",
-  "inference": "https://flame-warranties-poetry-vip.trycloudflare.com/inference",
-  "telemetry": "https://flame-warranties-poetry-vip.trycloudflare.com/telemetry",
+  "endpoint": "https://exam-exposure-led-liverpool.trycloudflare.com",
+  "inference": "https://exam-exposure-led-liverpool.trycloudflare.com/inference",
+  "telemetry": "https://exam-exposure-led-liverpool.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-18T14:56:26Z"
+  "updated_at": "2026-10-18T14:56:52Z"
 }
