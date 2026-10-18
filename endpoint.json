@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://jan-fabulous-communications-investigate.trycloudflare.com",
-  "inference": "https://jan-fabulous-communications-investigate.trycloudflare.com/inference",
-  "telemetry": "https://jan-fabulous-communications-investigate.trycloudflare.com/telemetry",
+  "endpoint": "https://importance-mobility-peripherals-transform.trycloudflare.com",
+  "inference": "https://importance-mobility-peripherals-transform.trycloudflare.com/inference",
+  "telemetry": "https://importance-mobility-peripherals-transform.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-18T15:45:19Z"
+  "updated_at": "2026-10-18T15:47:51Z"
 }
