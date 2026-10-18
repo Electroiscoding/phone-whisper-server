@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://sunny-ranges-bubble-example.trycloudflare.com",
-  "inference": "https://sunny-ranges-bubble-example.trycloudflare.com/inference",
-  "telemetry": "https://sunny-ranges-bubble-example.trycloudflare.com/telemetry",
+  "endpoint": "https://game-joel-adam-illinois.trycloudflare.com",
+  "inference": "https://game-joel-adam-illinois.trycloudflare.com/inference",
+  "telemetry": "https://game-joel-adam-illinois.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-18T11:35:33Z"
+  "updated_at": "2026-10-18T11:36:50Z"
 }
