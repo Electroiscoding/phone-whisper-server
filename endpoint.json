@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://choose-listings-bride-rod.trycloudflare.com",
-  "inference": "https://choose-listings-bride-rod.trycloudflare.com/inference",
-  "telemetry": "https://choose-listings-bride-rod.trycloudflare.com/telemetry",
+  "endpoint": "https://photographer-performance-valium-brad.trycloudflare.com",
+  "inference": "https://photographer-performance-valium-brad.trycloudflare.com/inference",
+  "telemetry": "https://photographer-performance-valium-brad.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-18T11:42:32Z"
+  "updated_at": "2026-10-18T11:42:54Z"
 }
