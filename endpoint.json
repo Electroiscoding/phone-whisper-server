@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://directions-door-display-ban.trycloudflare.com",
-  "inference": "https://directions-door-display-ban.trycloudflare.com/inference",
-  "telemetry": "https://directions-door-display-ban.trycloudflare.com/telemetry",
+  "endpoint": "https://healing-meal-hygiene-tracy.trycloudflare.com",
+  "inference": "https://healing-meal-hygiene-tracy.trycloudflare.com/inference",
+  "telemetry": "https://healing-meal-hygiene-tracy.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-18T15:29:25Z"
+  "updated_at": "2026-10-18T15:30:23Z"
 }
