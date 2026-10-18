@@ -155,15 +155,15 @@ while true; do
   fi
 
   CURRENT_ACTIVE_URL=$(grep -oE "https://[a-zA-Z0-9-]+\.trycloudflare\.com" $HOME/cf_tunnel.log 2>/dev/null | grep -v "api.trycloudflare.com" | tail -n 1)
-  if [ -n "$CURRENT_ACTIVE_URL" ] && [ $((NOW - TUNNEL_START_TIME)) -ge 15 ] && [ $((NOW - LAST_PROBE_TIME)) -ge 5 ]; then
+  if [ -n "$CURRENT_ACTIVE_URL" ] && [ $((NOW - TUNNEL_START_TIME)) -ge 45 ] && [ $((NOW - LAST_PROBE_TIME)) -ge 30 ]; then
     LAST_PROBE_TIME=$NOW
-    PROBE_STATUS=$(python3 -c 'import urllib.request, sys; sys.exit(0 if urllib.request.urlopen("'"$CURRENT_ACTIVE_URL"'/telemetry", timeout=3).getcode() == 200 else 1)' 2>/dev/null && echo "200" || echo "000")
+    PROBE_STATUS=$(python3 -c 'import urllib.request, sys; sys.exit(0 if urllib.request.urlopen("'"$CURRENT_ACTIVE_URL"'/telemetry", timeout=8).getcode() == 200 else 1)' 2>/dev/null && echo "200" || echo "000")
     if [ "$PROBE_STATUS" = "200" ]; then
       FAIL_COUNT=0
     else
       FAIL_COUNT=$((FAIL_COUNT + 1))
-      echo "$(date): [PROBE WARN] Status $PROBE_STATUS on $CURRENT_ACTIVE_URL (fail $FAIL_COUNT/2)" >> $HOME/nuclear_supervisor.log
-      if [ "$FAIL_COUNT" -ge 2 ]; then
+      echo "$(date): [PROBE WARN] Status $PROBE_STATUS on $CURRENT_ACTIVE_URL (fail $FAIL_COUNT/5)" >> $HOME/nuclear_supervisor.log
+      if [ "$FAIL_COUNT" -ge 5 ]; then
         IS_TUNNEL_DEAD=1
         FAIL_COUNT=0
       fi

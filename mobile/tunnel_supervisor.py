@@ -67,7 +67,7 @@ def probe_tunnel(url):
         return False
     try:
         req = urllib.request.Request(f"{url}/telemetry", headers={"User-Agent": "TunnelSupervisor/1.0"})
-        with urllib.request.urlopen(req, timeout=4) as resp:
+        with urllib.request.urlopen(req, timeout=8) as resp:
             return resp.status == 200
     except Exception:
         return False
@@ -170,18 +170,18 @@ def main():
                 fail_count += 1
                 log(f"Tunnel probe failed (fail_count={fail_count}) for {url}")
 
-            if fail_count >= 2:
+            if fail_count >= 6:
                 log("Tunnel is DEAD! Triggering self-healing recreation...")
                 new_url = spawn_fresh_tunnel()
                 if new_url:
                     fail_count = 0
                 else:
-                    time.sleep(3)
+                    time.sleep(5)
 
-            time.sleep(5)
+            time.sleep(20)
         except Exception as e:
             log(f"Supervisor loop error: {e}")
-            time.sleep(5)
+            time.sleep(20)
 
 if __name__ == "__main__":
     main()

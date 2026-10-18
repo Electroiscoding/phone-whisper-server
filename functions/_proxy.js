@@ -10,7 +10,7 @@ const DEFAULT_FALLBACK_ORIGIN = "https://cited-rising-elderly-facilitate.tryclou
 
 let liveRegisteredOrigin = null;
 let lastRegisteredTime = 0;
-const REGISTRATION_TTL_MS = 180000;
+const REGISTRATION_TTL_MS = 86400000;
 let cachedOrigin = null;
 let lastFetchTime = 0;
 const CACHE_TTL_MS = 60000;
