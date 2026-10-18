@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://miles-dec-purchase-requirements.trycloudflare.com",
-  "inference": "https://miles-dec-purchase-requirements.trycloudflare.com/inference",
-  "telemetry": "https://miles-dec-purchase-requirements.trycloudflare.com/telemetry",
+  "endpoint": "https://frozen-cookies-muscles-batman.trycloudflare.com",
+  "inference": "https://frozen-cookies-muscles-batman.trycloudflare.com/inference",
+  "telemetry": "https://frozen-cookies-muscles-batman.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-18T13:28:22Z"
+  "updated_at": "2026-10-18T13:29:05Z"
 }
