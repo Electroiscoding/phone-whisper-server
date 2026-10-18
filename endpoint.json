@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://instance-debian-gods-bulletin.trycloudflare.com",
-  "inference": "https://instance-debian-gods-bulletin.trycloudflare.com/inference",
-  "telemetry": "https://instance-debian-gods-bulletin.trycloudflare.com/telemetry",
+  "endpoint": "https://rush-possibly-anti-gulf.trycloudflare.com",
+  "inference": "https://rush-possibly-anti-gulf.trycloudflare.com/inference",
+  "telemetry": "https://rush-possibly-anti-gulf.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-18T12:12:26Z"
+  "updated_at": "2026-10-18T12:16:30Z"
 }
