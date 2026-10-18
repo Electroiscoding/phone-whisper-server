@@ -1131,6 +1131,7 @@ Designed using Nir Eyal's Hooked model (Trigger -> Action -> Variable Reward -> 
 | `POST` | `/v1/hyperdata/batch` | High-throughput atomic upsert pipeline (`{"table":"metrics","items":[...]}`). | Optional |
 | `POST` | `/v1/hyperdata/patch` | In-place atomic field increment or merge (`{"table":"users","key":"alice","action":"increment","field":"score","value":5}`). | Optional |
 | `GET` | `/v1/hyperdata/stream` | Server-Sent Events (SSE) real-time reactive change feed backed by Redis Pub/Sub (`?table=users`). | Optional |
+| `GET` | `/v1/hyperdata/search` | Full-text pattern search across columns (`?table=users&q=alice`). | Optional |
 | `POST` | `/v1/hyperdata/query` | Structured filter query (`{"table":"users","filter":{"status":"active"}}`) or raw SQL (`{"sql":"SELECT * FROM users"}`). | Optional |
 | `GET` | `/v1/hyperdata/tables` | List all tables, row counts, and column schemas in project. | Optional |
 | `GET` | `/v1/hyperdata/status` | Real-time HyperData engine vitals, latency SLA, and tenant quota metrics. | Optional |
@@ -1163,6 +1164,11 @@ Stream real-time changes via SSE:
 curl -N "https://phone-whisper-server.pages.dev/v1/hyperdata/stream?table=users"
 ```
 
+Full-text pattern search:
+```bash
+curl "https://phone-whisper-server.pages.dev/v1/hyperdata/search?table=users&q=alice"
+```
+
 Retrieve record from Redis RAM:
 ```bash
 curl "https://phone-whisper-server.pages.dev/v1/hyperdata/get?table=users&key=alice"
@@ -1190,6 +1196,9 @@ client.hyperdata.patch("users", "alice", action="increment", field="score", valu
 user = client.hyperdata.get("users", "alice")
 print(user["data"])
 
+search_hits = client.hyperdata.search("users", "alice")
+print(search_hits["matches"])
+
 results = client.hyperdata.query("users", role="admin", limit=10)
 ```
 
@@ -1204,6 +1213,9 @@ await client.hyperdata.set('users', 'alice', { name: 'Alice Dev', score: 100 });
 await client.hyperdata.batch('telemetry', [{ id: 't1', temp: 32.5 }, { id: 't2', temp: 33.1 }]);
 
 await client.hyperdata.patch('users', 'alice', null, { action: 'increment', field: 'score', value: 10 });
+
+const hits = await client.hyperdata.search('users', 'alice');
+console.log(hits.matches);
 
 const user = await client.hyperdata.get('users', 'alice');
 console.log(user.data);

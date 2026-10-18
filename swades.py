@@ -239,6 +239,14 @@ class HyperData:
                     else:
                         yield ev
 
+    def search(self, table: str, query: str, fields: list = None, limit: int = 50, offset: int = 0):
+        headers = dict(self.swades.headers)
+        params = {"table": table, "q": query, "limit": limit, "offset": offset}
+        if fields:
+            params["fields"] = ",".join(fields) if isinstance(fields, (list, tuple)) else str(fields)
+        res = self.swades._req("GET", "/v1/hyperdata/search", headers=headers, params=params)
+        return res.json()
+
     def query(self, table: str, limit: int = 50, offset: int = 0, order_by: str = None, desc: bool = True, **filters):
         headers = dict(self.swades.headers)
         payload = {

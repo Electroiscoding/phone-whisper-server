@@ -2737,6 +2737,73 @@ class SwadeStorageVault:
         finally:
             conn.close()
 
+    def hyperdata_search(self, tenant_id: str, table_name: str, query: str, fields: list = None, limit: int = 50, offset: int = 0):
+        t0 = time.perf_counter()
+        safe_tenant = re.sub(r'[^a-zA-Z0-9_\-]', '', str(tenant_id or "public_guest"))
+        safe_table = re.sub(r'[^a-zA-Z0-9_]', '', str(table_name or "records"))
+        search_term = str(query or "").strip()
+        limit = max(1, min(500, int(limit)))
+        offset = max(0, int(offset))
+
+        t_ver = GLOBAL_REDIS.get(f"hd:ver:{safe_tenant}:{safe_table}") or "0"
+        s_hash = hashlib.md5(f"{search_term}:{fields}:{limit}:{offset}".encode()).hexdigest()
+        cache_key = f"hd:search:{safe_tenant}:{safe_table}:{t_ver}:{s_hash}"
+        cached = GLOBAL_REDIS.get_json(cache_key)
+        if cached:
+            cached["cached"] = True
+            cached["latency_ms"] = round((time.perf_counter() - t0) * 1000, 3)
+            return cached
+
+        conn = self._get_project_conn(safe_tenant)
+        conn.row_factory = sqlite3.Row
+        try:
+            cursor = conn.cursor()
+            cursor.execute(f"PRAGMA table_info({safe_table})")
+            all_cols = [r[1] for r in cursor.fetchall() if not r[1].startswith("_")]
+            target_cols = [c for c in (fields or all_cols) if c in all_cols]
+            if not target_cols:
+                target_cols = ["id"]
+
+            like_clauses = [f"{c} LIKE ?" for c in target_cols]
+            like_val = f"%{search_term}%"
+            params = [like_val] * len(like_clauses)
+            sql = f"SELECT * FROM {safe_table}"
+            if search_term and like_clauses:
+                sql += " WHERE (" + " OR ".join(like_clauses) + ")"
+            sql += " ORDER BY _updated_at DESC LIMIT ? OFFSET ?"
+            params.extend([limit, offset])
+
+            cursor.execute(sql, params)
+            matches = []
+            for r in cursor.fetchall():
+                row_dict = dict(r)
+                if "_doc" in row_dict and row_dict["_doc"]:
+                    try:
+                        matches.append(json.loads(row_dict["_doc"]))
+                        continue
+                    except Exception:
+                        pass
+                matches.append({k: v for k, v in row_dict.items() if not k.startswith("_")})
+
+            res = {
+                "status": "success",
+                "service": "HyperData",
+                "table": safe_table,
+                "query": search_term,
+                "count": len(matches),
+                "limit": limit,
+                "offset": offset,
+                "matches": matches,
+                "cached": False,
+                "latency_ms": round((time.perf_counter() - t0) * 1000, 3)
+            }
+            GLOBAL_REDIS.set_json(cache_key, res, ex=30)
+            return res
+        except Exception as e:
+            return {"status": "error", "service": "HyperData", "error": str(e), "table": safe_table, "count": 0, "matches": []}
+        finally:
+            conn.close()
+
     def get_secrets(self):
         conn = self._get_conn()
         conn.row_factory = sqlite3.Row
@@ -6372,6 +6439,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_hyperdata_status()
         elif path in ["/v1/hyperdata/stream", "/hyperdata/stream", "/v1/db/stream", "/db/stream"]:
             self.handle_hyperdata_stream(parsed)
+        elif path in ["/v1/hyperdata/search", "/hyperdata/search", "/v1/db/search", "/db/search"]:
+            self.handle_hyperdata_search(parsed)
         elif path in ["/v1/dashboard/logs", "/v1/admin/logs"]:
             self.handle_dashboard_logs()
         elif path in ["/v1/dashboard/secrets", "/v1/admin/secrets"]:
@@ -6535,6 +6604,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_hyperdata_batch()
         elif path in ["/v1/hyperdata/patch", "/hyperdata/patch", "/v1/db/patch", "/db/patch"]:
             self.handle_hyperdata_patch()
+        elif path in ["/v1/hyperdata/search", "/hyperdata/search", "/v1/db/search", "/db/search"]:
+            self.handle_hyperdata_search(parsed)
         elif path in ["/v1/hyperdata/query", "/hyperdata/query"]:
             self.handle_hyperdata_query()
         elif path in ["/v1/hyperdata/sql", "/hyperdata/sql"]:
@@ -9818,6 +9889,21 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 except Exception:
                     pass
 
+    def handle_hyperdata_search(self, parsed):
+        try:
+            tenant_id = self._authenticate_hyperdata_request()
+            qs = urllib.parse.parse_qs(parsed.query)
+            table = qs.get("table", ["records"])[0]
+            query = qs.get("q", [qs.get("query", [""])[0]])[0]
+            limit = int(qs.get("limit", [50])[0])
+            offset = int(qs.get("offset", [0])[0])
+            fields = qs.get("fields", [None])[0]
+            fields_list = [f.strip() for f in fields.split(",") if f.strip()] if fields else None
+            res = _storage_vault.hyperdata_search(tenant_id, table, query, fields=fields_list, limit=limit, offset=offset)
+            self._send_json_response(res, status=200)
+        except Exception as e:
+            self._send_json_response({"status": "error", "service": "HyperData", "error": str(e)}, status=400)
+
     def handle_hyperdata_status(self):
         tenant_id = self._authenticate_hyperdata_request()
         self._send_json_response({
@@ -9832,6 +9918,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             "streaming": "SSE real-time pubsub stream via Redis",
             "batch_upsert": "Atomic multi-record pipeline",
             "atomic_patch": "In-place increment and merge operations",
+            "full_text_search": "Auto-indexed multi-column pattern search",
             "endpoints": {
                 "set": "POST /v1/hyperdata/set",
                 "get": "GET /v1/hyperdata/get?table=<table>&key=<key>",
@@ -9839,6 +9926,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 "batch": "POST /v1/hyperdata/batch",
                 "patch": "POST /v1/hyperdata/patch",
                 "stream": "GET /v1/hyperdata/stream?table=<table>",
+                "search": "GET /v1/hyperdata/search?table=<table>&q=<query>",
                 "query": "POST /v1/hyperdata/query",
                 "tables": "GET /v1/hyperdata/tables"
             }

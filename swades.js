@@ -118,6 +118,17 @@ class SwadesClient {
       return null;
     },
 
+    search: async (table, query, options = {}) => {
+      const params = new URLSearchParams({ table, q: query, ...options });
+      const res = await fetch(`${this.endpoint}/v1/hyperdata/search?${params.toString()}`, {
+        headers: {
+          'x-api-key': this.apiKey,
+          'x-project-id': this.projectId
+        }
+      });
+      return await res.json();
+    },
+
     query: async (table, options = {}) => {
       const res = await fetch(`${this.endpoint}/v1/hyperdata/query`, {
         method: 'POST',
