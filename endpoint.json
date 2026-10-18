@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://duck-istanbul-george-canyon.trycloudflare.com",
-  "inference": "https://duck-istanbul-george-canyon.trycloudflare.com/inference",
-  "telemetry": "https://duck-istanbul-george-canyon.trycloudflare.com/telemetry",
+  "endpoint": "https://bottom-disabled-gen-knowledge.trycloudflare.com",
+  "inference": "https://bottom-disabled-gen-knowledge.trycloudflare.com/inference",
+  "telemetry": "https://bottom-disabled-gen-knowledge.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-18T03:07:33Z"
+  "updated_at": "2026-10-18T03:40:37Z"
 }
