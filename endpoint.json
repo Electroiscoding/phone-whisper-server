@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://cited-rising-elderly-facilitate.trycloudflare.com",
-  "inference": "https://cited-rising-elderly-facilitate.trycloudflare.com/inference",
-  "telemetry": "https://cited-rising-elderly-facilitate.trycloudflare.com/telemetry",
+  "endpoint": "https://controlling-waiver-commissions-marcus.trycloudflare.com",
+  "inference": "https://controlling-waiver-commissions-marcus.trycloudflare.com/inference",
+  "telemetry": "https://controlling-waiver-commissions-marcus.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-18T15:42:00Z"
+  "updated_at": "2026-10-18T15:43:12Z"
 }
