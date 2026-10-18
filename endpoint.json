@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://slots-likes-charged-cats.trycloudflare.com",
-  "inference": "https://slots-likes-charged-cats.trycloudflare.com/inference",
-  "telemetry": "https://slots-likes-charged-cats.trycloudflare.com/telemetry",
+  "endpoint": "https://ships-occurred-seriously-maintaining.trycloudflare.com",
+  "inference": "https://ships-occurred-seriously-maintaining.trycloudflare.com/inference",
+  "telemetry": "https://ships-occurred-seriously-maintaining.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-18T15:07:25Z"
+  "updated_at": "2026-10-18T15:13:53Z"
 }
