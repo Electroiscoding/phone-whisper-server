@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://philips-dvds-gives-taxes.trycloudflare.com",
-  "inference": "https://philips-dvds-gives-taxes.trycloudflare.com/inference",
-  "telemetry": "https://philips-dvds-gives-taxes.trycloudflare.com/telemetry",
+  "endpoint": "https://sodium-orlando-society-bar.trycloudflare.com",
+  "inference": "https://sodium-orlando-society-bar.trycloudflare.com/inference",
+  "telemetry": "https://sodium-orlando-society-bar.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-18T16:07:36Z"
+  "updated_at": "2026-10-18T16:08:37Z"
 }
