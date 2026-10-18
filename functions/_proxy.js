@@ -354,9 +354,10 @@ export async function handleRequest(context) {
     url.pathname.includes("/speech") || 
     url.pathname.includes("/transcriptions") || 
     url.pathname.includes("/chat") || 
-    url.pathname.includes("/inference")
+    url.pathname.includes("/inference") ||
+    url.pathname.includes("/stream")
   );
-  const timeoutMs = isStorageReq ? 15000 : (isLongRunning ? 60000 : 15000);
+  const timeoutMs = isStorageReq ? 15000 : (url.pathname.includes("/stream") ? 300000 : (isLongRunning ? 60000 : 15000));
 
   while (attempt < maxAttempts) {
     attempt++;
