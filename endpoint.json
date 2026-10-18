@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://bacteria-script-polar-snapshot.trycloudflare.com",
-  "inference": "https://bacteria-script-polar-snapshot.trycloudflare.com/inference",
-  "telemetry": "https://bacteria-script-polar-snapshot.trycloudflare.com/telemetry",
+  "endpoint": "https://pray-michel-reads-linked.trycloudflare.com",
+  "inference": "https://pray-michel-reads-linked.trycloudflare.com/inference",
+  "telemetry": "https://pray-michel-reads-linked.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-18T04:26:37Z"
+  "updated_at": "2026-10-18T04:38:28Z"
 }
