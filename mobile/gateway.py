@@ -2664,8 +2664,47 @@ class SwadeStorageVault:
                     col_clean = re.sub(r'[^a-zA-Z0-9_]', '', str(k).strip())
                     if col_clean.lower() in table_cols:
                         real_col = table_cols[col_clean.lower()]
-                        where_clauses.append(f"{real_col} = ?")
-                        params.append(v)
+                        if isinstance(v, list):
+                            if len(v) == 0:
+                                where_clauses.append("1=0")
+                            else:
+                                placeholders = ", ".join(["?"] * len(v))
+                                where_clauses.append(f"{real_col} IN ({placeholders})")
+                                params.extend(v)
+                        elif isinstance(v, dict):
+                            op = str(v.get("op", "")).lower()
+                            val = v.get("val") if "val" in v else v.get("value")
+                            if op in ["in"] and isinstance(val, list):
+                                if len(val) == 0:
+                                    where_clauses.append("1=0")
+                                else:
+                                    placeholders = ", ".join(["?"] * len(val))
+                                    where_clauses.append(f"{real_col} IN ({placeholders})")
+                                    params.extend(val)
+                            elif op in ["array-contains", "contains"]:
+                                where_clauses.append(f"{real_col} LIKE ?")
+                                params.append(f"%{val}%")
+                            elif op in [">=", "gte"]:
+                                where_clauses.append(f"{real_col} >= ?")
+                                params.append(val)
+                            elif op in ["<=", "lte"]:
+                                where_clauses.append(f"{real_col} <= ?")
+                                params.append(val)
+                            elif op in [">", "gt"]:
+                                where_clauses.append(f"{real_col} > ?")
+                                params.append(val)
+                            elif op in ["<", "lt"]:
+                                where_clauses.append(f"{real_col} < ?")
+                                params.append(val)
+                            elif op in ["!=", "ne"]:
+                                where_clauses.append(f"{real_col} != ?")
+                                params.append(val)
+                            else:
+                                where_clauses.append(f"{real_col} = ?")
+                                params.append(val)
+                        else:
+                            where_clauses.append(f"{real_col} = ?")
+                            params.append(v)
 
             sql = f"SELECT * FROM {safe_table}"
             if where_clauses:
@@ -12880,51 +12919,60 @@ def restart_cloudflared_tunnel():
             except Exception:
                 pass
 
-    if new_url:
+        is_healthy = False
         try:
-            with open(os.path.join(home, "current_url.txt"), "w") as f:
-                f.write(new_url + "\n")
+            test_req = urllib.request.Request(f"{new_url}/health", headers={"User-Agent": "TunnelProbe/1.0"})
+            with urllib.request.urlopen(test_req, timeout=5) as test_resp:
+                if test_resp.status == 200:
+                    is_healthy = True
         except Exception:
-            pass
+            is_healthy = False
 
-        ep_data = {
-            "endpoint": new_url,
-            "inference": f"{new_url}/inference",
-            "telemetry": f"{new_url}/telemetry",
-            "phone_lan_ip": "http://192.168.29.2:8080",
-            "mode": "dual_worldwide_and_local",
-            "port": 8080,
-            "updated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-        }
-        for ep_path in ["/sdcard/Download/endpoint.json", os.path.join(home, "endpoint.json"), os.path.join(home, "phone-whisper-server/endpoint.json")]:
+        if is_healthy:
             try:
-                with open(ep_path, "w") as f:
-                    json.dump(ep_data, f, indent=2)
+                with open(os.path.join(home, "current_url.txt"), "w") as f:
+                    f.write(new_url + "\n")
             except Exception:
                 pass
 
-        def _async_push():
+            ep_data = {
+                "endpoint": new_url,
+                "inference": f"{new_url}/inference",
+                "telemetry": f"{new_url}/telemetry",
+                "phone_lan_ip": "http://192.168.29.2:8080",
+                "mode": "dual_worldwide_and_local",
+                "port": 8080,
+                "updated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+            }
+            for ep_path in ["/sdcard/Download/endpoint.json", os.path.join(home, "endpoint.json"), os.path.join(home, "phone-whisper-server/endpoint.json")]:
+                try:
+                    with open(ep_path, "w") as f:
+                        json.dump(ep_data, f, indent=2)
+                except Exception:
+                    pass
+
+            def _async_push():
+                try:
+                    repo_dir = os.path.join(home, "phone-whisper-server")
+                    if os.path.exists(os.path.join(repo_dir, ".git")):
+                        subprocess.run(["git", "-C", repo_dir, "add", "endpoint.json"], check=False)
+                        subprocess.run(["git", "-C", repo_dir, "commit", "-m", f"chore(tunnel): Auto-sync live endpoint [{new_url}]"], check=False)
+                        subprocess.run(["git", "-C", repo_dir, "push", "origin", "main"], check=False)
+                except Exception:
+                    pass
+            threading.Thread(target=_async_push, daemon=True).start()
+
             try:
-                repo_dir = os.path.join(home, "phone-whisper-server")
-                if os.path.exists(os.path.join(repo_dir, ".git")):
-                    subprocess.run(["git", "-C", repo_dir, "add", "endpoint.json"], check=False)
-                    subprocess.run(["git", "-C", repo_dir, "commit", "-m", f"chore(tunnel): Auto-sync live endpoint [{new_url}]"], check=False)
-                    subprocess.run(["git", "-C", repo_dir, "push", "origin", "main"], check=False)
+                payload = json.dumps({"endpoint": new_url, "secret": "mobile_ai_nuclear_key"}).encode("utf-8")
+                req = urllib.request.Request(
+                    "https://phone-whisper-server.pages.dev/register_tunnel",
+                    data=payload,
+                    headers={"Content-Type": "application/json"},
+                    method="POST"
+                )
+                urllib.request.urlopen(req, timeout=5)
             except Exception:
                 pass
-        threading.Thread(target=_async_push, daemon=True).start()
-
-        try:
-            payload = json.dumps({"endpoint": new_url, "secret": "mobile_ai_nuclear_key"}).encode("utf-8")
-            req = urllib.request.Request(
-                "https://phone-whisper-server.pages.dev/register_tunnel",
-                data=payload,
-                headers={"Content-Type": "application/json"},
-                method="POST"
-            )
-            urllib.request.urlopen(req, timeout=5)
-        except Exception:
-            pass
 
     return {
         "status": "restarted" if new_url else "spawned_waiting",
