@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://widespread-test-cork-portraits.trycloudflare.com",
-  "inference": "https://widespread-test-cork-portraits.trycloudflare.com/inference",
-  "telemetry": "https://widespread-test-cork-portraits.trycloudflare.com/telemetry",
+  "endpoint": "https://joined-carlo-chamber-meetings.trycloudflare.com",
+  "inference": "https://joined-carlo-chamber-meetings.trycloudflare.com/inference",
+  "telemetry": "https://joined-carlo-chamber-meetings.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-18T12:37:07Z"
+  "updated_at": "2026-10-18T12:42:00Z"
 }
