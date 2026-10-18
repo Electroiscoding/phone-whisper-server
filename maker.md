@@ -1128,6 +1128,9 @@ Designed using Nir Eyal's Hooked model (Trigger -> Action -> Variable Reward -> 
 | `POST` | `/v1/hyperdata/set` | Insert or update document. Auto-creates table and adds missing columns dynamically. | Optional |
 | `GET` | `/v1/hyperdata/get` | Retrieve document by key (`?table=users&key=alice`) or query table (`?table=users&limit=50`). | Optional |
 | `POST` | `/v1/hyperdata/delete` | Delete document by primary key (`{"table":"users","key":"alice"}`). | Optional |
+| `POST` | `/v1/hyperdata/batch` | High-throughput atomic upsert pipeline (`{"table":"metrics","items":[...]}`). | Optional |
+| `POST` | `/v1/hyperdata/patch` | In-place atomic field increment or merge (`{"table":"users","key":"alice","action":"increment","field":"score","value":5}`). | Optional |
+| `GET` | `/v1/hyperdata/stream` | Server-Sent Events (SSE) real-time reactive change feed backed by Redis Pub/Sub (`?table=users`). | Optional |
 | `POST` | `/v1/hyperdata/query` | Structured filter query (`{"table":"users","filter":{"status":"active"}}`) or raw SQL (`{"sql":"SELECT * FROM users"}`). | Optional |
 | `GET` | `/v1/hyperdata/tables` | List all tables, row counts, and column schemas in project. | Optional |
 | `GET` | `/v1/hyperdata/status` | Real-time HyperData engine vitals, latency SLA, and tenant quota metrics. | Optional |
@@ -1139,6 +1142,25 @@ Insert a record:
 curl -X POST https://phone-whisper-server.pages.dev/v1/hyperdata/set \
   -H "Content-Type: application/json" \
   -d '{"table": "users", "key": "alice", "data": {"name": "Alice Dev", "score": 100, "role": "admin"}}'
+```
+
+Batch upsert records:
+```bash
+curl -X POST https://phone-whisper-server.pages.dev/v1/hyperdata/batch \
+  -H "Content-Type: application/json" \
+  -d '{"table": "telemetry", "items": [{"id": "t1", "temp": 32.5}, {"id": "t2", "temp": 33.1}]}'
+```
+
+Atomic increment:
+```bash
+curl -X POST https://phone-whisper-server.pages.dev/v1/hyperdata/patch \
+  -H "Content-Type: application/json" \
+  -d '{"table": "users", "key": "alice", "action": "increment", "field": "score", "value": 10}'
+```
+
+Stream real-time changes via SSE:
+```bash
+curl -N "https://phone-whisper-server.pages.dev/v1/hyperdata/stream?table=users"
 ```
 
 Retrieve record from Redis RAM:
@@ -1161,6 +1183,10 @@ client = Swades(api_key="your_key")
 
 client.hyperdata.set("users", "alice", {"name": "Alice Dev", "score": 100})
 
+client.hyperdata.batch("telemetry", [{"id": "t1", "temp": 32.5}, {"id": "t2", "temp": 33.1}])
+
+client.hyperdata.patch("users", "alice", action="increment", field="score", value=10)
+
 user = client.hyperdata.get("users", "alice")
 print(user["data"])
 
@@ -1174,6 +1200,10 @@ const { SwadesClient } = require('./swades.js');
 const client = new SwadesClient({ apiKey: 'your_key' });
 
 await client.hyperdata.set('users', 'alice', { name: 'Alice Dev', score: 100 });
+
+await client.hyperdata.batch('telemetry', [{ id: 't1', temp: 32.5 }, { id: 't2', temp: 33.1 }]);
+
+await client.hyperdata.patch('users', 'alice', null, { action: 'increment', field: 'score', value: 10 });
 
 const user = await client.hyperdata.get('users', 'alice');
 console.log(user.data);

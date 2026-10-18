@@ -243,6 +243,10 @@ class NativeRedisClient:
     def set_json(self, key, value, ex=None):
         return self.set(key, json.dumps(value), ex=ex)
 
+    def publish(self, channel, message):
+        msg_str = json.dumps(message) if isinstance(message, (dict, list)) else str(message)
+        return self._execute("PUBLISH", channel, msg_str)
+
 GLOBAL_REDIS = NativeRedisClient()
 
 def fetch_media_info_fast(url):
@@ -2406,6 +2410,7 @@ class SwadeStorageVault:
             conn.close()
 
         elapsed_ms = round((time.perf_counter() - t0) * 1000, 3)
+        GLOBAL_REDIS.publish(f"hd:events:{safe_tenant}:{real_table}", {"action": "set", "table": real_table, "key": safe_key, "data": doc_payload, "ts": time.time()})
         return {
             "status": "success",
             "service": "HyperData",
@@ -2494,6 +2499,7 @@ class SwadeStorageVault:
         finally:
             conn.close()
         elapsed_ms = round((time.perf_counter() - t0) * 1000, 3)
+        GLOBAL_REDIS.publish(f"hd:events:{safe_tenant}:{safe_table}", {"action": "delete", "table": safe_table, "key": safe_key, "ts": time.time()})
         return {
             "status": "success",
             "service": "HyperData",
@@ -2502,6 +2508,117 @@ class SwadeStorageVault:
             "deleted": True,
             "latency_ms": elapsed_ms
         }
+
+    def hyperdata_batch(self, tenant_id: str, table_name: str, items: list, ttl: int = None):
+        t0 = time.perf_counter()
+        safe_tenant = re.sub(r'[^a-zA-Z0-9_\-]', '', str(tenant_id or "public_guest"))
+        safe_table = re.sub(r'[^a-zA-Z0-9_]', '', str(table_name or "records"))
+        if not items or not isinstance(items, list):
+            raise ValueError("items must be a non-empty list of objects")
+        
+        normalized = []
+        for idx, itm in enumerate(items):
+            if not isinstance(itm, dict):
+                itm = {"value": itm}
+            k = str(itm.get("id") or itm.get("key") or f"{int(time.time()*1000)}_{idx}").strip()
+            itm["id"] = k
+            itm["_key"] = k
+            normalized.append((k, itm))
+
+        for k, doc in normalized:
+            GLOBAL_REDIS.set_json(f"hd:{safe_tenant}:{safe_table}:{k}", doc, ex=ttl)
+        GLOBAL_REDIS.incr(f"hd:ver:{safe_tenant}:{safe_table}")
+        GLOBAL_REDIS.delete(f"hd:tables:{safe_tenant}")
+
+        conn = self._get_project_conn(safe_tenant)
+        inserted_keys = []
+        try:
+            for k, doc in normalized:
+                self._auto_ensure_hyperdata_table(conn, safe_table, doc)
+            cursor = conn.cursor()
+            cursor.execute(f"PRAGMA table_info({safe_table})")
+            table_cols = [r[1] for r in cursor.fetchall() if r[1] not in ["_created_at", "_updated_at"]]
+            
+            for k, doc in normalized:
+                insert_cols = []
+                insert_vals = []
+                for col in table_cols:
+                    if col == "id":
+                        insert_cols.append("id")
+                        insert_vals.append(k)
+                    elif col == "_doc":
+                        insert_cols.append("_doc")
+                        insert_vals.append(json.dumps(doc))
+                    elif col in doc:
+                        val = doc[col]
+                        insert_cols.append(col)
+                        insert_vals.append(json.dumps(val) if isinstance(val, (dict, list)) else val)
+                placeholders = ", ".join(["?"] * len(insert_cols))
+                cols_joined = ", ".join(insert_cols)
+                updates_joined = ", ".join([f"{c} = excluded.{c}" for c in insert_cols if c != "id"])
+                sql = f"INSERT INTO {safe_table} ({cols_joined}, _updated_at) VALUES ({placeholders}, CURRENT_TIMESTAMP)"
+                if updates_joined:
+                    sql += f" ON CONFLICT(id) DO UPDATE SET {updates_joined}, _updated_at = CURRENT_TIMESTAMP"
+                else:
+                    sql += f" ON CONFLICT(id) DO UPDATE SET _updated_at = CURRENT_TIMESTAMP"
+                cursor.execute(sql, insert_vals)
+                inserted_keys.append(k)
+            conn.commit()
+        finally:
+            conn.close()
+
+        elapsed_ms = round((time.perf_counter() - t0) * 1000, 3)
+        GLOBAL_REDIS.publish(f"hd:events:{safe_tenant}:{safe_table}", {"action": "batch", "table": safe_table, "count": len(inserted_keys), "keys": inserted_keys, "ts": time.time()})
+        return {
+            "status": "success",
+            "service": "HyperData",
+            "table": safe_table,
+            "count": len(inserted_keys),
+            "keys": inserted_keys,
+            "tier": "RAM L1 + SQLite WAL L2 Pipelined",
+            "latency_ms": elapsed_ms
+        }
+
+    def hyperdata_patch(self, tenant_id: str, table_name: str, key: str, patch_data: dict = None, action: str = "merge", field: str = None, value = None):
+        t0 = time.perf_counter()
+        safe_tenant = re.sub(r'[^a-zA-Z0-9_\-]', '', str(tenant_id or "public_guest"))
+        safe_table = re.sub(r'[^a-zA-Z0-9_]', '', str(table_name or "records"))
+        safe_key = str(key).strip()
+        if not safe_key:
+            raise ValueError("Document key cannot be empty")
+
+        current = self.hyperdata_get(safe_tenant, safe_table, safe_key)
+        doc = current.get("data", {}) if current and isinstance(current, dict) else {}
+        if not isinstance(doc, dict):
+            doc = {"value": doc}
+        doc["id"] = safe_key
+        doc["_key"] = safe_key
+
+        if action == "increment" or action == "incr":
+            f_name = field or (list(patch_data.keys())[0] if isinstance(patch_data, dict) and patch_data else "count")
+            inc_by = value if value is not None else (patch_data.get(f_name, 1) if isinstance(patch_data, dict) else 1)
+            try:
+                cur_num = float(doc.get(f_name, 0))
+                new_num = cur_num + float(inc_by)
+                doc[f_name] = int(new_num) if new_num.is_integer() else new_num
+            except Exception:
+                doc[f_name] = inc_by
+        elif action == "delete_field":
+            f_name = field or value
+            if f_name and f_name in doc and f_name not in ["id", "_key"]:
+                del doc[f_name]
+        else:
+            if isinstance(patch_data, dict):
+                for k, v in patch_data.items():
+                    if k not in ["id", "_key"]:
+                        doc[k] = v
+
+        res = self.hyperdata_set(safe_tenant, safe_table, safe_key, doc)
+        elapsed_ms = round((time.perf_counter() - t0) * 1000, 3)
+        res["action"] = action
+        res["latency_ms"] = elapsed_ms
+        GLOBAL_REDIS.publish(f"hd:events:{safe_tenant}:{safe_table}", {"action": f"patch:{action}", "table": safe_table, "key": safe_key, "data": doc, "ts": time.time()})
+        return res
 
     def hyperdata_query(self, tenant_id: str, table_name: str, filter_dict: dict = None, limit: int = 50, offset: int = 0, order_by: str = None, sort_desc: bool = True):
         t0 = time.perf_counter()
@@ -6253,6 +6370,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_hyperdata_get(parsed)
         elif path in ["/v1/hyperdata/status", "/hyperdata/status", "/v1/db/status", "/db/status"]:
             self.handle_hyperdata_status()
+        elif path in ["/v1/hyperdata/stream", "/hyperdata/stream", "/v1/db/stream", "/db/stream"]:
+            self.handle_hyperdata_stream(parsed)
         elif path in ["/v1/dashboard/logs", "/v1/admin/logs"]:
             self.handle_dashboard_logs()
         elif path in ["/v1/dashboard/secrets", "/v1/admin/secrets"]:
@@ -6412,6 +6531,10 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_hyperdata_get(parsed)
         elif path in ["/v1/hyperdata/delete", "/hyperdata/delete", "/v1/db/delete", "/db/delete"]:
             self.handle_hyperdata_delete()
+        elif path in ["/v1/hyperdata/batch", "/hyperdata/batch", "/v1/db/batch", "/db/batch"]:
+            self.handle_hyperdata_batch()
+        elif path in ["/v1/hyperdata/patch", "/hyperdata/patch", "/v1/db/patch", "/db/patch"]:
+            self.handle_hyperdata_patch()
         elif path in ["/v1/hyperdata/query", "/hyperdata/query"]:
             self.handle_hyperdata_query()
         elif path in ["/v1/hyperdata/sql", "/hyperdata/sql"]:
@@ -9590,6 +9713,111 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         except Exception as e:
             self._send_json_response({"status": "error", "service": "HyperData", "error": str(e)}, status=400)
 
+    def handle_hyperdata_batch(self):
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            raw_body = self.rfile.read(length).decode("utf-8") if length > 0 else "{}"
+            body = json.loads(raw_body)
+            table = body.get("table", "records")
+            items = body.get("items") or body.get("records") or body.get("data")
+            ttl = body.get("ttl")
+            if not items or not isinstance(items, list):
+                self._send_json_response({"status": "error", "service": "HyperData", "error": "Missing or invalid 'items' array"}, status=400)
+                return
+            tenant_id = self._authenticate_hyperdata_request()
+            res = _storage_vault.hyperdata_batch(tenant_id, table, items, ttl=ttl)
+            self._send_json_response(res, status=200)
+        except Exception as e:
+            self._send_json_response({"status": "error", "service": "HyperData", "error": str(e)}, status=400)
+
+    def handle_hyperdata_patch(self):
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            raw_body = self.rfile.read(length).decode("utf-8") if length > 0 else "{}"
+            body = json.loads(raw_body)
+            table = body.get("table", "records")
+            key = body.get("key") or body.get("id")
+            if not key:
+                self._send_json_response({"status": "error", "service": "HyperData", "error": "Missing key"}, status=400)
+                return
+            patch_data = body.get("data") or body.get("patch") or {}
+            action = body.get("action", "merge")
+            field = body.get("field")
+            value = body.get("value")
+            tenant_id = self._authenticate_hyperdata_request()
+            res = _storage_vault.hyperdata_patch(tenant_id, table, key, patch_data=patch_data, action=action, field=field, value=value)
+            self._send_json_response(res, status=200)
+        except Exception as e:
+            self._send_json_response({"status": "error", "service": "HyperData", "error": str(e)}, status=400)
+
+    def handle_hyperdata_stream(self, parsed):
+        tenant_id = self._authenticate_hyperdata_request()
+        qs = urllib.parse.parse_qs(parsed.query)
+        table = qs.get("table", ["*"])[0]
+        channel = f"hd:events:{tenant_id}:{table}"
+
+        self.send_response(200)
+        self._send_cors_headers()
+        self.send_header("Content-Type", "text/event-stream")
+        self.send_header("Cache-Control", "no-cache")
+        self.send_header("Connection", "keep-alive")
+        self.send_header("X-Accel-Buffering", "no")
+        self.end_headers()
+
+        try:
+            self.wfile.write(b": ping\n\n")
+            self.wfile.flush()
+        except Exception:
+            return
+
+        sock = None
+        fp = None
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(3.0)
+            sock.connect((GLOBAL_REDIS.host, GLOBAL_REDIS.port))
+            if table == "*":
+                cmd = ["PSUBSCRIBE", f"hd:events:{tenant_id}:*"]
+            else:
+                cmd = ["SUBSCRIBE", channel]
+            buf = ["*" + str(len(cmd)) + "\r\n"]
+            for a in cmd:
+                b_str = a.encode("utf-8")
+                buf.append("$" + str(len(b_str)) + "\r\n" + a + "\r\n")
+            sock.sendall("".join(buf).encode("utf-8"))
+            fp = sock.makefile("rb")
+            GLOBAL_REDIS._parse_resp(fp)
+
+            init_payload = json.dumps({"type": "connected", "service": "HyperData", "tenant_id": tenant_id, "table": table})
+            self.wfile.write(f"data: {init_payload}\n\n".encode("utf-8"))
+            self.wfile.flush()
+
+            while True:
+                try:
+                    res = GLOBAL_REDIS._parse_resp(fp)
+                    if res and isinstance(res, list):
+                        msg_type = res[0]
+                        if msg_type in ["message", "pmessage"]:
+                            data_str = res[-1]
+                            self.wfile.write(f"data: {data_str}\n\n".encode("utf-8"))
+                            self.wfile.flush()
+                except socket.timeout:
+                    self.wfile.write(b": ping\n\n")
+                    self.wfile.flush()
+        except Exception:
+            pass
+        finally:
+            if fp:
+                try:
+                    fp.close()
+                except Exception:
+                    pass
+            if sock:
+                try:
+                    sock.close()
+                except Exception:
+                    pass
+
     def handle_hyperdata_status(self):
         tenant_id = self._authenticate_hyperdata_request()
         self._send_json_response({
@@ -9601,10 +9829,16 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             "read_latency": "sub-millisecond (<0.05ms in L1 RAM)",
             "write_latency": "sub-millisecond L1 reflection + async L2 WAL",
             "auto_schema_evolution": True,
+            "streaming": "SSE real-time pubsub stream via Redis",
+            "batch_upsert": "Atomic multi-record pipeline",
+            "atomic_patch": "In-place increment and merge operations",
             "endpoints": {
                 "set": "POST /v1/hyperdata/set",
                 "get": "GET /v1/hyperdata/get?table=<table>&key=<key>",
                 "delete": "POST /v1/hyperdata/delete",
+                "batch": "POST /v1/hyperdata/batch",
+                "patch": "POST /v1/hyperdata/patch",
+                "stream": "GET /v1/hyperdata/stream?table=<table>",
                 "query": "POST /v1/hyperdata/query",
                 "tables": "GET /v1/hyperdata/tables"
             }

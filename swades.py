@@ -200,6 +200,45 @@ class HyperData:
         res = self.swades._req("POST", "/v1/hyperdata/delete", headers=headers, json=payload)
         return res.json()
 
+    def batch(self, table: str, items: list, ttl: int = None):
+        headers = dict(self.swades.headers)
+        payload = {"table": table, "items": items}
+        if ttl is not None:
+            payload["ttl"] = ttl
+        res = self.swades._req("POST", "/v1/hyperdata/batch", headers=headers, json=payload)
+        return res.json()
+
+    def patch(self, table: str, key: str, data: dict = None, action: str = "merge", field: str = None, value = None):
+        headers = dict(self.swades.headers)
+        payload = {"table": table, "key": key, "action": action}
+        if data is not None:
+            payload["data"] = data
+        if field is not None:
+            payload["field"] = field
+        if value is not None:
+            payload["value"] = value
+        res = self.swades._req("POST", "/v1/hyperdata/patch", headers=headers, json=payload)
+        return res.json()
+
+    def stream(self, table: str = "*", callback = None):
+        import urllib.request
+        headers = {"x-api-key": self.swades.api_key, "x-project-id": self.swades.project_id}
+        url = f"{self.swades.endpoint}/v1/hyperdata/stream?table={table}"
+        req = urllib.request.Request(url, headers=headers)
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            for line in resp:
+                line_str = line.decode("utf-8").strip()
+                if line_str.startswith("data:"):
+                    raw = line_str[5:].strip()
+                    try:
+                        ev = json.loads(raw)
+                    except Exception:
+                        ev = raw
+                    if callback:
+                        callback(ev)
+                    else:
+                        yield ev
+
     def query(self, table: str, limit: int = 50, offset: int = 0, order_by: str = None, desc: bool = True, **filters):
         headers = dict(self.swades.headers)
         payload = {

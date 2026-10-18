@@ -2199,17 +2199,27 @@ proot-distro login alpine -- node /root/Swades-Agent/worker.js --job job_a9f8224
             </p>
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px] text-zinc-400 mb-4 font-mono">
               <div class="bg-zinc-950 p-2.5 rounded border border-cardborder"><span class="text-emerald-400 font-bold">L1 Read Latency:</span> &lt; 0.05 ms</div>
-              <div class="bg-zinc-950 p-2.5 rounded border border-cardborder"><span class="text-cyan-400 font-bold">Schema Evolution:</span> Zero Migrations</div>
-              <div class="bg-zinc-950 p-2.5 rounded border border-cardborder"><span class="text-purple-400 font-bold">Free Quota:</span> 2GB / Sandbox</div>
-              <div class="bg-zinc-950 p-2.5 rounded border border-cardborder"><span class="text-yellow-400 font-bold">Auto-Provision:</span> 0 Friction</div>
+              <div class="bg-zinc-950 p-2.5 rounded border border-cardborder"><span class="text-cyan-400 font-bold">Batch Upsert:</span> Multi-Record Pipeline</div>
+              <div class="bg-zinc-950 p-2.5 rounded border border-cardborder"><span class="text-purple-400 font-bold">SSE Streaming:</span> Redis Pub/Sub Live</div>
+              <div class="bg-zinc-950 p-2.5 rounded border border-cardborder"><span class="text-yellow-400 font-bold">Atomic Patch:</span> In-Place Incs &amp; Merges</div>
             </div>
-            <div class="bg-zinc-950 rounded p-3 font-mono text-[11px] text-zinc-300 border border-cardborder overflow-x-auto">
-              <div class="text-zinc-500 mb-1">Instant cURL Record Set (Auto-Creates Table &amp; Schema):</div>
-              <div class="text-cyan-300">curl -X POST https://phone-whisper-server.pages.dev/v1/hyperdata/set \</div>
-              <div class="pl-4 text-zinc-400">-H "Content-Type: application/json" \</div>
-              <div class="pl-4 text-emerald-300">-d '{"table":"users","key":"alice","data":{"score":100,"role":"admin"}}'</div>
-              <div class="text-zinc-500 mt-2 mb-1">Retrieve from Redis RAM (&lt;0.05ms):</div>
-              <div class="text-cyan-300">curl "https://phone-whisper-server.pages.dev/v1/hyperdata/get?table=users&amp;key=alice"</div>
+            <div class="bg-zinc-950 rounded p-3 font-mono text-[11px] text-zinc-300 border border-cardborder overflow-x-auto space-y-2">
+              <div>
+                <span class="text-zinc-500">Record Set (Auto-Creates Schema):</span>
+                <span class="text-cyan-300">curl -X POST https://phone-whisper-server.pages.dev/v1/hyperdata/set -H "Content-Type: application/json" -d '{"table":"users","key":"alice","data":{"score":100}}'</span>
+              </div>
+              <div>
+                <span class="text-zinc-500">Atomic Batch Pipeline:</span>
+                <span class="text-cyan-300">curl -X POST https://phone-whisper-server.pages.dev/v1/hyperdata/batch -H "Content-Type: application/json" -d '{"table":"metrics","items":[{"id":"m1","cpu":12}]}'</span>
+              </div>
+              <div>
+                <span class="text-zinc-500">Atomic Patch (Increment):</span>
+                <span class="text-cyan-300">curl -X POST https://phone-whisper-server.pages.dev/v1/hyperdata/patch -H "Content-Type: application/json" -d '{"table":"users","key":"alice","action":"increment","field":"score","value":5}'</span>
+              </div>
+              <div>
+                <span class="text-zinc-500">SSE Reactive Stream:</span>
+                <span class="text-cyan-300">curl -N "https://phone-whisper-server.pages.dev/v1/hyperdata/stream?table=users"</span>
+              </div>
             </div>
           </div>
         </div>

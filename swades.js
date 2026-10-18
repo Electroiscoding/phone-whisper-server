@@ -73,6 +73,51 @@ class SwadesClient {
       return await res.json();
     },
 
+    batch: async (table, items, options = {}) => {
+      const res = await fetch(`${this.endpoint}/v1/hyperdata/batch`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': this.apiKey,
+          'x-project-id': this.projectId
+        },
+        body: JSON.stringify({ table, items, ...options })
+      });
+      return await res.json();
+    },
+
+    patch: async (table, key, patchData = null, options = {}) => {
+      const payload = { table, key, data: patchData, ...options };
+      const res = await fetch(`${this.endpoint}/v1/hyperdata/patch`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': this.apiKey,
+          'x-project-id': this.projectId
+        },
+        body: JSON.stringify(payload)
+      });
+      return await res.json();
+    },
+
+    stream: (table = '*', onEvent = null) => {
+      const url = `${this.endpoint}/v1/hyperdata/stream?table=${encodeURIComponent(table)}&api_key=${encodeURIComponent(this.apiKey)}&project_id=${encodeURIComponent(this.projectId)}`;
+      if (typeof EventSource !== 'undefined') {
+        const es = new EventSource(url);
+        if (onEvent) {
+          es.onmessage = (e) => {
+            try {
+              onEvent(JSON.parse(e.data));
+            } catch (_) {
+              onEvent(e.data);
+            }
+          };
+        }
+        return es;
+      }
+      return null;
+    },
+
     query: async (table, options = {}) => {
       const res = await fetch(`${this.endpoint}/v1/hyperdata/query`, {
         method: 'POST',
