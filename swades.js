@@ -129,6 +129,34 @@ class SwadesClient {
       return await res.json();
     },
 
+    aggregate: async (table, options = {}) => {
+      const params = new URLSearchParams({ table });
+      if (options.groupBy || options.by) params.set('by', options.groupBy || options.by);
+      if (options.metrics) {
+        params.set('metrics', typeof options.metrics === 'object' ? JSON.stringify(options.metrics) : options.metrics);
+      }
+      const res = await fetch(`${this.endpoint}/v1/hyperdata/aggregate?${params.toString()}`, {
+        headers: {
+          'x-api-key': this.apiKey,
+          'x-project-id': this.projectId
+        }
+      });
+      return await res.json();
+    },
+
+    drop: async (table) => {
+      const res = await fetch(`${this.endpoint}/v1/hyperdata/drop`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': this.apiKey,
+          'x-project-id': this.projectId
+        },
+        body: JSON.stringify({ table })
+      });
+      return await res.json();
+    },
+
     query: async (table, options = {}) => {
       const res = await fetch(`${this.endpoint}/v1/hyperdata/query`, {
         method: 'POST',

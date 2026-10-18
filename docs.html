@@ -2224,6 +2224,14 @@ proot-distro login alpine -- node /root/Swades-Agent/worker.js --job job_a9f8224
                 <span class="text-zinc-500">Pattern Search:</span>
                 <span class="text-cyan-300">curl "https://phone-whisper-server.pages.dev/v1/hyperdata/search?table=users&amp;q=alice"</span>
               </div>
+              <div>
+                <span class="text-zinc-500">In-Memory Aggregations:</span>
+                <span class="text-cyan-300">curl "https://phone-whisper-server.pages.dev/v1/hyperdata/aggregate?table=users&amp;by=role"</span>
+              </div>
+              <div>
+                <span class="text-zinc-500">Drop Table Cleanly:</span>
+                <span class="text-cyan-300">curl -X POST https://phone-whisper-server.pages.dev/v1/hyperdata/drop -H "Content-Type: application/json" -d '{"table":"old_logs"}'</span>
+              </div>
             </div>
           </div>
         </div>

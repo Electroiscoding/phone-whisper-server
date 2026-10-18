@@ -1132,6 +1132,8 @@ Designed using Nir Eyal's Hooked model (Trigger -> Action -> Variable Reward -> 
 | `POST` | `/v1/hyperdata/patch` | In-place atomic field increment or merge (`{"table":"users","key":"alice","action":"increment","field":"score","value":5}`). | Optional |
 | `GET` | `/v1/hyperdata/stream` | Server-Sent Events (SSE) real-time reactive change feed backed by Redis Pub/Sub (`?table=users`). | Optional |
 | `GET` | `/v1/hyperdata/search` | Full-text pattern search across columns (`?table=users&q=alice`). | Optional |
+| `GET` | `/v1/hyperdata/aggregate` | Instant in-memory aggregations & GROUP BY metrics (`?table=orders&by=status&metrics={"total":"SUM(amount)"}`). | Optional |
+| `POST` | `/v1/hyperdata/drop` | Drop an entire table cleanly and clear all Redis cache keys (`{"table":"old_logs"}`). | Optional |
 | `POST` | `/v1/hyperdata/query` | Structured filter query (`{"table":"users","filter":{"status":"active"}}`) or raw SQL (`{"sql":"SELECT * FROM users"}`). | Optional |
 | `GET` | `/v1/hyperdata/tables` | List all tables, row counts, and column schemas in project. | Optional |
 | `GET` | `/v1/hyperdata/status` | Real-time HyperData engine vitals, latency SLA, and tenant quota metrics. | Optional |
@@ -1169,6 +1171,18 @@ Full-text pattern search:
 curl "https://phone-whisper-server.pages.dev/v1/hyperdata/search?table=users&q=alice"
 ```
 
+Real-time aggregation & GROUP BY:
+```bash
+curl "https://phone-whisper-server.pages.dev/v1/hyperdata/aggregate?table=users&by=role"
+```
+
+Drop a table:
+```bash
+curl -X POST https://phone-whisper-server.pages.dev/v1/hyperdata/drop \
+  -H "Content-Type: application/json" \
+  -d '{"table": "old_users"}'
+```
+
 Retrieve record from Redis RAM:
 ```bash
 curl "https://phone-whisper-server.pages.dev/v1/hyperdata/get?table=users&key=alice"
@@ -1199,6 +1213,9 @@ print(user["data"])
 search_hits = client.hyperdata.search("users", "alice")
 print(search_hits["matches"])
 
+stats = client.hyperdata.aggregate("users", group_by="role")
+print(stats["rows"])
+
 results = client.hyperdata.query("users", role="admin", limit=10)
 ```
 
@@ -1216,6 +1233,9 @@ await client.hyperdata.patch('users', 'alice', null, { action: 'increment', fiel
 
 const hits = await client.hyperdata.search('users', 'alice');
 console.log(hits.matches);
+
+const stats = await client.hyperdata.aggregate('users', { groupBy: 'role' });
+console.log(stats.rows);
 
 const user = await client.hyperdata.get('users', 'alice');
 console.log(user.data);

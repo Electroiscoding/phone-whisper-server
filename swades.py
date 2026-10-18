@@ -247,6 +247,22 @@ class HyperData:
         res = self.swades._req("GET", "/v1/hyperdata/search", headers=headers, params=params)
         return res.json()
 
+    def aggregate(self, table: str, group_by: str = None, metrics: dict = None):
+        headers = dict(self.swades.headers)
+        params = {"table": table}
+        if group_by:
+            params["group_by"] = group_by
+        if metrics:
+            params["metrics"] = json.dumps(metrics) if isinstance(metrics, dict) else str(metrics)
+        res = self.swades._req("GET", "/v1/hyperdata/aggregate", headers=headers, params=params)
+        return res.json()
+
+    def drop(self, table: str):
+        headers = dict(self.swades.headers)
+        payload = {"table": table}
+        res = self.swades._req("POST", "/v1/hyperdata/drop", headers=headers, json=payload)
+        return res.json()
+
     def query(self, table: str, limit: int = 50, offset: int = 0, order_by: str = None, desc: bool = True, **filters):
         headers = dict(self.swades.headers)
         payload = {

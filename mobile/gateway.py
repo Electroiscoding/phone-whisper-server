@@ -2804,6 +2804,118 @@ class SwadeStorageVault:
         finally:
             conn.close()
 
+    def hyperdata_aggregate(self, tenant_id: str, table_name: str, group_by: str = None, metrics: dict = None, filter_dict: dict = None):
+        t0 = time.perf_counter()
+        safe_tenant = re.sub(r'[^a-zA-Z0-9_\-]', '', str(tenant_id or "public_guest"))
+        safe_table = re.sub(r'[^a-zA-Z0-9_]', '', str(table_name or "records"))
+
+        t_ver = GLOBAL_REDIS.get(f"hd:ver:{safe_tenant}:{safe_table}") or "0"
+        agg_raw = json.dumps({"gb": group_by, "m": metrics, "f": filter_dict}, sort_keys=True)
+        agg_hash = hashlib.md5(agg_raw.encode()).hexdigest()
+        cache_key = f"hd:agg:{safe_tenant}:{safe_table}:{t_ver}:{agg_hash}"
+        cached = GLOBAL_REDIS.get_json(cache_key)
+        if cached:
+            cached["cached"] = True
+            cached["latency_ms"] = round((time.perf_counter() - t0) * 1000, 3)
+            return cached
+
+        conn = self._get_project_conn(safe_tenant)
+        conn.row_factory = sqlite3.Row
+        try:
+            cursor = conn.cursor()
+            cursor.execute(f"PRAGMA table_info({safe_table})")
+            table_cols = {r[1].lower(): r[1] for r in cursor.fetchall()}
+            if not table_cols:
+                return {"status": "success", "service": "HyperData", "table": safe_table, "count": 0, "rows": [], "latency_ms": round((time.perf_counter() - t0) * 1000, 3)}
+
+            select_parts = []
+            clean_gb = None
+            if group_by:
+                gb_raw = re.sub(r'[^a-zA-Z0-9_]', '', str(group_by)).strip().lower()
+                if gb_raw in table_cols:
+                    clean_gb = table_cols[gb_raw]
+                    select_parts.append(f"{clean_gb} AS {clean_gb}")
+
+            if not metrics:
+                select_parts.append("COUNT(*) AS count")
+            else:
+                for alias, expr in metrics.items():
+                    clean_alias = re.sub(r'[^a-zA-Z0-9_]', '', str(alias)).strip()
+                    expr_str = str(expr).strip().upper()
+                    m = re.match(r'^(COUNT|SUM|AVG|MIN|MAX)\(([a-zA-Z0-9_*]+)\)$', expr_str)
+                    if m:
+                        fn, col = m.groups()
+                        if col == "*" or col.lower() in table_cols:
+                            real_col = "*" if col == "*" else table_cols[col.lower()]
+                            select_parts.append(f"{fn}({real_col}) AS {clean_alias}")
+
+            if not select_parts:
+                select_parts.append("COUNT(*) AS count")
+
+            where_clauses = []
+            params = []
+            if isinstance(filter_dict, dict):
+                for k, v in filter_dict.items():
+                    col_clean = re.sub(r'[^a-zA-Z0-9_]', '', str(k).strip())
+                    if col_clean.lower() in table_cols:
+                        real_col = table_cols[col_clean.lower()]
+                        where_clauses.append(f"{real_col} = ?")
+                        params.append(v)
+
+            sql = f"SELECT {', '.join(select_parts)} FROM {safe_table}"
+            if where_clauses:
+                sql += " WHERE " + " AND ".join(where_clauses)
+            if clean_gb:
+                sql += f" GROUP BY {clean_gb} ORDER BY count DESC LIMIT 100"
+
+            cursor.execute(sql, params)
+            rows = [dict(r) for r in cursor.fetchall()]
+
+            res = {
+                "status": "success",
+                "service": "HyperData",
+                "table": safe_table,
+                "group_by": clean_gb,
+                "count": len(rows),
+                "rows": rows,
+                "cached": False,
+                "latency_ms": round((time.perf_counter() - t0) * 1000, 3)
+            }
+            GLOBAL_REDIS.set_json(cache_key, res, ex=30)
+            return res
+        except Exception as e:
+            return {"status": "error", "service": "HyperData", "error": str(e), "table": safe_table, "count": 0, "rows": []}
+        finally:
+            conn.close()
+
+    def hyperdata_drop(self, tenant_id: str, table_name: str):
+        t0 = time.perf_counter()
+        safe_tenant = re.sub(r'[^a-zA-Z0-9_\-]', '', str(tenant_id or "public_guest"))
+        safe_table = re.sub(r'[^a-zA-Z0-9_]', '', str(table_name or "records"))
+
+        GLOBAL_REDIS.incr(f"hd:ver:{safe_tenant}:{safe_table}")
+        GLOBAL_REDIS.delete(f"hd:tables:{safe_tenant}")
+
+        conn = self._get_project_conn(safe_tenant)
+        try:
+            cursor = conn.cursor()
+            cursor.execute(f"DROP TABLE IF EXISTS {safe_table}")
+            conn.commit()
+        except Exception:
+            pass
+        finally:
+            conn.close()
+
+        elapsed_ms = round((time.perf_counter() - t0) * 1000, 3)
+        GLOBAL_REDIS.publish(f"hd:events:{safe_tenant}:{safe_table}", {"action": "drop", "table": safe_table, "ts": time.time()})
+        return {
+            "status": "success",
+            "service": "HyperData",
+            "table": safe_table,
+            "dropped": True,
+            "latency_ms": elapsed_ms
+        }
+
     def get_secrets(self):
         conn = self._get_conn()
         conn.row_factory = sqlite3.Row
@@ -6441,6 +6553,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_hyperdata_stream(parsed)
         elif path in ["/v1/hyperdata/search", "/hyperdata/search", "/v1/db/search", "/db/search"]:
             self.handle_hyperdata_search(parsed)
+        elif path in ["/v1/hyperdata/aggregate", "/hyperdata/aggregate", "/v1/db/aggregate", "/db/aggregate"]:
+            self.handle_hyperdata_aggregate(parsed)
         elif path in ["/v1/dashboard/logs", "/v1/admin/logs"]:
             self.handle_dashboard_logs()
         elif path in ["/v1/dashboard/secrets", "/v1/admin/secrets"]:
@@ -6606,6 +6720,10 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_hyperdata_patch()
         elif path in ["/v1/hyperdata/search", "/hyperdata/search", "/v1/db/search", "/db/search"]:
             self.handle_hyperdata_search(parsed)
+        elif path in ["/v1/hyperdata/aggregate", "/hyperdata/aggregate", "/v1/db/aggregate", "/db/aggregate"]:
+            self.handle_hyperdata_aggregate(parsed)
+        elif path in ["/v1/hyperdata/drop", "/hyperdata/drop", "/v1/db/drop", "/db/drop"]:
+            self.handle_hyperdata_drop()
         elif path in ["/v1/hyperdata/query", "/hyperdata/query"]:
             self.handle_hyperdata_query()
         elif path in ["/v1/hyperdata/sql", "/hyperdata/sql"]:
@@ -9904,6 +10022,45 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         except Exception as e:
             self._send_json_response({"status": "error", "service": "HyperData", "error": str(e)}, status=400)
 
+    def handle_hyperdata_aggregate(self, parsed):
+        try:
+            tenant_id = self._authenticate_hyperdata_request()
+            qs = urllib.parse.parse_qs(parsed.query)
+            table = qs.get("table", ["records"])[0]
+            group_by = qs.get("group_by", [qs.get("by", [None])[0]])[0]
+            metrics_raw = qs.get("metrics", [None])[0]
+            metrics = None
+            if metrics_raw:
+                try:
+                    metrics = json.loads(metrics_raw)
+                except Exception:
+                    metrics = {}
+                    for item in metrics_raw.split(","):
+                        if ":" in item:
+                            k, v = item.split(":", 1)
+                            metrics[k.strip()] = v.strip()
+                        elif item.strip():
+                            metrics[item.strip()] = item.strip()
+            res = _storage_vault.hyperdata_aggregate(tenant_id, table, group_by=group_by, metrics=metrics)
+            self._send_json_response(res, status=200)
+        except Exception as e:
+            self._send_json_response({"status": "error", "service": "HyperData", "error": str(e)}, status=400)
+
+    def handle_hyperdata_drop(self):
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            raw_body = self.rfile.read(length).decode("utf-8") if length > 0 else "{}"
+            body = json.loads(raw_body)
+            table = body.get("table")
+            if not table:
+                self._send_json_response({"status": "error", "service": "HyperData", "error": "Missing 'table' to drop"}, status=400)
+                return
+            tenant_id = self._authenticate_hyperdata_request()
+            res = _storage_vault.hyperdata_drop(tenant_id, table)
+            self._send_json_response(res, status=200)
+        except Exception as e:
+            self._send_json_response({"status": "error", "service": "HyperData", "error": str(e)}, status=400)
+
     def handle_hyperdata_status(self):
         tenant_id = self._authenticate_hyperdata_request()
         self._send_json_response({
@@ -9919,6 +10076,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             "batch_upsert": "Atomic multi-record pipeline",
             "atomic_patch": "In-place increment and merge operations",
             "full_text_search": "Auto-indexed multi-column pattern search",
+            "aggregations": "Real-time GROUP BY & COUNT/SUM/AVG metrics in Redis L1",
             "endpoints": {
                 "set": "POST /v1/hyperdata/set",
                 "get": "GET /v1/hyperdata/get?table=<table>&key=<key>",
@@ -9927,6 +10085,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 "patch": "POST /v1/hyperdata/patch",
                 "stream": "GET /v1/hyperdata/stream?table=<table>",
                 "search": "GET /v1/hyperdata/search?table=<table>&q=<query>",
+                "aggregate": "GET /v1/hyperdata/aggregate?table=<table>&by=<col>",
+                "drop": "POST /v1/hyperdata/drop",
                 "query": "POST /v1/hyperdata/query",
                 "tables": "GET /v1/hyperdata/tables"
             }
