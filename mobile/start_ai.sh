@@ -45,6 +45,7 @@ pull_latest_code() {
 
 start_gateway() {
   pull_latest_code
+  cd "$HOME"
   python3 $HOME/gateway.py >> $HOME/gateway.log 2>&1 &
   echo "$(date): [START] Launched gateway.py (PID $!)" >> $HOME/nuclear_supervisor.log
 }

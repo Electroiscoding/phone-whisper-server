@@ -12812,7 +12812,7 @@ def get_tunnel_status_info():
     if url:
         try:
             req = urllib.request.Request(f"{url}/health", headers={"User-Agent": "TunnelProbe/1.0"})
-            with urllib.request.urlopen(req, timeout=3) as resp:
+            with urllib.request.urlopen(req, timeout=8) as resp:
                 is_alive = (resp.status == 200)
         except Exception:
             is_alive = False
@@ -12954,19 +12954,19 @@ def start_tunnel_registration_daemon():
                             headers={"Content-Type": "application/json"},
                             method="POST"
                         )
-                        with urllib.request.urlopen(req, timeout=3) as resp:
+                        with urllib.request.urlopen(req, timeout=8) as resp:
                             if resp.status == 200:
                                 last_registered = url
                     except Exception:
                         pass
                 else:
                     consecutive_failures += 1
-                    if consecutive_failures >= 2:
+                    if consecutive_failures >= 8:
                         consecutive_failures = 0
                         restart_cloudflared_tunnel()
             except Exception:
                 pass
-            time.sleep(5)
+            time.sleep(30)
 
     t = threading.Thread(target=_worker, daemon=True)
     t.start()
