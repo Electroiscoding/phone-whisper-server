@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://recruitment-cargo-accepts-llc.trycloudflare.com",
-  "inference": "https://recruitment-cargo-accepts-llc.trycloudflare.com/inference",
-  "telemetry": "https://recruitment-cargo-accepts-llc.trycloudflare.com/telemetry",
+  "endpoint": "https://terrorists-garlic-cents-junior.trycloudflare.com",
+  "inference": "https://terrorists-garlic-cents-junior.trycloudflare.com/inference",
+  "telemetry": "https://terrorists-garlic-cents-junior.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-19T16:39:31Z"
+  "updated_at": "2026-10-19T17:25:53Z"
 }
