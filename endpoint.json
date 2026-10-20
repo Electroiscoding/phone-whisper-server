@@ -1,7 +1,7 @@
 {
-  "endpoint": "https://mood-weights-groups-plc.trycloudflare.com",
-  "inference": "https://mood-weights-groups-plc.trycloudflare.com/inference",
-  "telemetry": "https://mood-weights-groups-plc.trycloudflare.com/telemetry",
+  "endpoint": "https://appendix-podcast-compliance-theaters.trycloudflare.com",
+  "inference": "https://appendix-podcast-compliance-theaters.trycloudflare.com/inference",
+  "telemetry": "https://appendix-podcast-compliance-theaters.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
