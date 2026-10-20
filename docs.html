@@ -317,6 +317,7 @@
             <li><a href="#api-rank" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all"><i class="fa-solid fa-ranking-star mr-1 text-neoncyan"></i> POST /v1/rank (Frostbite v0.1)</a></li>
             <li><a href="#api-monopoly" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all"><i class="fa-solid fa-dice mr-1 text-amber-400"></i> /v1/monopoly/rooms (GridLock 1v1)</a></li>
             <li><a href="#api-media" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all"><i class="fa-solid fa-play mr-1 text-rose-400"></i> /v1/media/* (Zero-Disk Media Processor)</a></li>
+            <li><a href="#api-nikolinus" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all"><i class="fa-solid fa-cloud mr-1 text-neoncyan"></i> Nikolinus Cloud (Auth / DB / Fn)</a></li>
           </ul>
         </div>
 
@@ -3241,6 +3242,97 @@ curl -X POST "https://phone-whisper-server.pages.dev/v1/monopoly/rooms/ROMA/trad
               <div class="font-bold text-rose-300 mb-1">3. Direct Audio Download or Whisper Pipe</div>
               <div class="text-zinc-400 text-[10px] mb-2 font-mono">GET or POST /v1/media/stream?format=audio&download=1</div>
               <pre class="text-zinc-300 overflow-x-auto"><code>curl -L "https://phone-whisper-server.pages.dev/v1/media/stream?url=https://www.youtube.com/watch?v=dQw4w9WgXcQ&format=audio&download=1" -o audio.mp3</code></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- NIKOLINUS SOVEREIGN CLOUD STACK -->
+        <div id="api-nikolinus" class="bg-cardbg border border-neoncyan/40 rounded-xl p-6 mb-8 font-mono text-xs shadow-2xl shadow-cyan-950/20">
+          <div class="flex items-center justify-between border-b border-cardborder pb-3 mb-4">
+            <div class="flex items-center gap-3">
+              <span class="px-2.5 py-1 rounded bg-cyan-900/60 border border-cyan-700 text-cyan-300 font-bold">SOVEREIGN CLOUD</span>
+              <span class="text-white font-bold text-sm">Nikolinus Cloud Stack (Auth, JSONB Database & Serverless Functions)</span>
+            </div>
+            <span class="text-[10px] px-2 py-0.5 rounded bg-zinc-800 text-neoncyan border border-zinc-700">POSTGRES • BUN</span>
+          </div>
+
+          <div class="text-zinc-300 mb-4 leading-relaxed font-sans text-sm">
+            High-performance, single-table Postgres document store, JWT authentication engine, and serverless handler runtime. Accessible natively through the Cloudflare Edge Gateway alongside the Phone AI Datacenter.
+          </div>
+
+          <div class="space-y-4">
+            <!-- 1. Authentication -->
+            <div class="p-3 rounded bg-zinc-950/70 border border-cardborder">
+              <div class="flex items-center justify-between mb-1">
+                <span class="font-bold text-cyan-300">1. Authentication Engine (/signup, /signin, /me)</span>
+                <span class="text-[10px] text-zinc-500 font-mono">PORT 4001 / EDGE /authentication/*</span>
+              </div>
+              <div class="text-zinc-400 text-[10px] mb-2 font-mono">JWT Access Token (15m) + Rotatable Session Token (30 days)</div>
+              <pre class="text-zinc-300 overflow-x-auto"><code># Sign In
+curl -X POST https://phone-whisper-server.pages.dev/authentication/signin \
+  -H "Content-Type: application/json" \
+  -d '{"email":"developer@cloud.ai","password":"password123"}'
+
+# Verify Profile
+curl -s https://phone-whisper-server.pages.dev/authentication/me \
+  -H "Authorization: Bearer &lt;access_token&gt;"</code></pre>
+            </div>
+
+            <!-- 2. Database -->
+            <div class="p-3 rounded bg-zinc-950/70 border border-cardborder">
+              <div class="flex items-center justify-between mb-1">
+                <span class="font-bold text-emerald-300">2. JSONB Document Store (/doc, /query, /watch)</span>
+                <span class="text-[10px] text-zinc-500 font-mono">PORT 4002 / EDGE /database/*</span>
+              </div>
+              <div class="text-zinc-400 text-[10px] mb-2 font-mono">Single-table JSONB NoSQL with GIN indexing + Server-Sent Events</div>
+              <pre class="text-zinc-300 overflow-x-auto"><code># Create Document (Auto UUIDv7 ID)
+curl -X POST https://phone-whisper-server.pages.dev/database/doc/todos \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer &lt;access_token&gt;" \
+  -d '{"title":"Ship to Production","done":false}'
+
+# Query with Operators (==, !=, &lt;, &lt;=, &gt;, &gt;=, in, contains)
+curl -X POST https://phone-whisper-server.pages.dev/database/query \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer &lt;access_token&gt;" \
+  -d '{"collection":"todos","where":[["done","==",false]],"orderBy":["created_at","desc"],"limit":20}'</code></pre>
+            </div>
+
+            <!-- 3. Functions -->
+            <div class="p-3 rounded bg-zinc-950/70 border border-cardborder">
+              <div class="flex items-center justify-between mb-1">
+                <span class="font-bold text-purple-300">3. Serverless Functions Engine (/call/*)</span>
+                <span class="text-[10px] text-zinc-500 font-mono">PORT 4003 / EDGE /functions/*</span>
+              </div>
+              <div class="text-zinc-400 text-[10px] mb-2 font-mono">Dynamic handlers with pooled Postgres client (ctx.sql)</div>
+              <pre class="text-zinc-300 overflow-x-auto"><code># Call Hello Function (Public)
+curl -X POST https://phone-whisper-server.pages.dev/functions/call/hello \
+  -H "Content-Type: application/json" \
+  -d '{"data":{"name":"EdgeDeveloper"}}'
+
+# Call Count Function (Authenticated)
+curl -X POST https://phone-whisper-server.pages.dev/functions/call/count \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer &lt;access_token&gt;" \
+  -d '{"data":{"collection":"todos"}}'</code></pre>
+            </div>
+
+            <!-- 4. Client SDK Snippet -->
+            <div class="p-3 rounded bg-zinc-950/70 border border-cardborder">
+              <div class="font-bold text-amber-300 mb-1">4. 1-Minute Web / Mobile Integration</div>
+              <div class="text-zinc-400 text-[10px] mb-2 font-mono">JavaScript / TypeScript Universal Client</div>
+              <pre class="text-zinc-300 overflow-x-auto"><code>import { Auth } from "https://phone-whisper-server.pages.dev/authentication/client";
+import { Database } from "https://phone-whisper-server.pages.dev/database/client";
+import { Functions } from "https://phone-whisper-server.pages.dev/functions/client";
+
+const BASE = "https://phone-whisper-server.pages.dev";
+const auth = new Auth(`${BASE}/authentication`);
+const db = new Database(`${BASE}/database`, auth);
+const fn = new Functions(`${BASE}/functions`, auth);
+
+await auth.signIn("user@example.com", "password123");
+const doc = await db.collection("tasks").add({ title: "Live task!", done: false });
+console.log("Created doc:", doc.id);</code></pre>
             </div>
           </div>
         </div>

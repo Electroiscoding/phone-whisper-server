@@ -40,14 +40,18 @@ export async function onRequest(context) {
     }
   }
 
-  const apiPrefixes = ["/v1/", "/auth/", "/s/", "/screen/"];
+  const apiPrefixes = [
+    "/v1/", "/auth/", "/s/", "/screen/",
+    "/authentication/", "/database/", "/functions/", "/doc/", "/rules/", "/call/"
+  ];
   const apiExactPaths = [
     "/inference", "/telemetry", "/tts", "/speech", "/health", 
     "/models", "/backends", "/benchmark", 
     "/compress", "/decompress", "/acc", "/acc/info", "/acc/status", 
     "/acc/control", "/images/compress", "/image/compress", 
     "/images/info", "/image/info", "/compress/image", "/info/image", "/info/images",
-    "/rank", "/stats"
+    "/rank", "/stats",
+    "/signup", "/signin", "/refresh", "/signout", "/me", "/query", "/watch"
   ];
   const isApi = apiPrefixes.some(prefix => url.pathname.startsWith(prefix)) || apiExactPaths.includes(url.pathname);
 

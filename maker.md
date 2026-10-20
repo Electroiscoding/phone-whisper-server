@@ -1841,3 +1841,111 @@ python3 benchmark_agent.py --mode local --games 100 --p1 "NovaBot" --p2 "EchoBot
 ```bash
 python3 benchmark_agent.py --mode server --endpoint "https://phone-whisper-server.pages.dev" --games 20
 ```
+
+---
+
+## 14. Nikolinus Sovereign Cloud Stack (Auth, JSONB Database, Serverless Functions)
+
+Nikolinus is a high-performance, single-table Postgres document store, JWT authentication engine, and serverless handler runtime. It is routed natively through the Cloudflare Edge Gateway alongside the Phone AI Datacenter.
+
+### 14.1 Architecture & Edge Endpoints
+
+| Service | Edge Path | Local Port | Key Capabilities |
+| :--- | :--- | :--- | :--- |
+| **Authentication** | `https://phone-whisper-server.pages.dev/authentication/*` | `4001` | JWT Auth (`HS256`), 30-day rotatable refresh tokens, password hashing |
+| **Database** | `https://phone-whisper-server.pages.dev/database/*` | `4002` | JSONB NoSQL over Postgres, auto UUIDv7, GIN indexing, Server-Sent Events (`/watch`) |
+| **Functions** | `https://phone-whisper-server.pages.dev/functions/*` | `4003` | JIT serverless handlers with automatic `ctx.sql` pooled Postgres client |
+
+### 14.2 Autonomous Agent Authentication (`/authentication`)
+
+```bash
+# 1. Sign Up
+curl -X POST https://phone-whisper-server.pages.dev/authentication/signup \
+  -H "Content-Type: application/json" \
+  -d '{"email":"agent@cloud.ai","password":"super_secret_agent_password_123"}'
+
+# Response:
+# {"access":"eyJhbGciOiJI...","refresh":"QCG4GPJzx...","user":{"id":"uuid","email":"agent@cloud.ai"}}
+
+# 2. Sign In
+curl -X POST https://phone-whisper-server.pages.dev/authentication/signin \
+  -H "Content-Type: application/json" \
+  -d '{"email":"agent@cloud.ai","password":"super_secret_agent_password_123"}'
+
+# 3. Verify Identity
+curl -s https://phone-whisper-server.pages.dev/authentication/me \
+  -H "Authorization: Bearer <access_token>"
+```
+
+### 14.3 JSONB Document Store Operations (`/database`)
+
+Agents can store and query unstructured state, task logs, memory graphs, and checkpoints.
+
+```bash
+# Insert Document (Auto-generates UUIDv7)
+curl -X POST https://phone-whisper-server.pages.dev/database/doc/agent_memory \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <access_token>" \
+  -d '{"task":"market_analysis","step":3,"status":"in_progress","score":0.94}'
+
+# Query Documents with Operators (==, !=, <, <=, >, >=, in, contains)
+curl -X POST https://phone-whisper-server.pages.dev/database/query \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <access_token>" \
+  -d '{
+    "collection": "agent_memory",
+    "where": [["status", "==", "in_progress"]],
+    "orderBy": ["created_at", "desc"],
+    "limit": 10
+  }'
+
+# Update Document
+curl -X PATCH https://phone-whisper-server.pages.dev/database/doc/agent_memory/<doc_id> \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <access_token>" \
+  -d '{"status":"completed"}'
+```
+
+### 14.4 Serverless Edge Functions (`/functions`)
+
+Invoke serverless handlers with automatic database context:
+
+```bash
+# Public Function (hello)
+curl -X POST https://phone-whisper-server.pages.dev/functions/call/hello \
+  -H "Content-Type: application/json" \
+  -d '{"data":{"name":"AutonomousAgent"}}'
+
+# Authenticated Function (count)
+curl -X POST https://phone-whisper-server.pages.dev/functions/call/count \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <access_token>" \
+  -d '{"data":{"collection":"agent_memory"}}'
+```
+
+### 14.5 Full JavaScript SDK Integration
+
+```javascript
+import { Auth } from "./authentication/client";
+import { Database } from "./database/client";
+import { Functions } from "./functions/client";
+
+const BASE = "https://phone-whisper-server.pages.dev";
+const auth = new Auth(`${BASE}/authentication`);
+const db = new Database(`${BASE}/database`, auth);
+const fn = new Functions(`${BASE}/functions`, auth);
+
+// Sign in
+await auth.signIn("agent@cloud.ai", "super_secret_agent_password_123");
+
+// Add Document
+const doc = await db.collection("agent_memory").add({
+  task: "explore_datacenter",
+  completed: false
+});
+
+// Real-time Live Watch (Server-Sent Events)
+const stopWatching = db.collection("agent_memory").onSnapshot((docs) => {
+  console.log("Live agent state synced across edge:", docs);
+});
+```
