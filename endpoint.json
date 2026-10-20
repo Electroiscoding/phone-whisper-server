@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://mpg-daniel-consecutive-mode.trycloudflare.com",
-  "inference": "https://mpg-daniel-consecutive-mode.trycloudflare.com/inference",
-  "telemetry": "https://mpg-daniel-consecutive-mode.trycloudflare.com/telemetry",
+  "endpoint": "https://moderate-recommends-perfume-forming.trycloudflare.com",
+  "inference": "https://moderate-recommends-perfume-forming.trycloudflare.com/inference",
+  "telemetry": "https://moderate-recommends-perfume-forming.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-20T15:03:29Z"
+  "updated_at": "2026-10-20T15:26:28Z"
 }
