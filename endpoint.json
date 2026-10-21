@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://genetics-wedding-hop-township.trycloudflare.com",
-  "inference": "https://genetics-wedding-hop-township.trycloudflare.com/inference",
-  "telemetry": "https://genetics-wedding-hop-township.trycloudflare.com/telemetry",
+  "endpoint": "https://crimes-buses-meet-cardiac.trycloudflare.com",
+  "inference": "https://crimes-buses-meet-cardiac.trycloudflare.com/inference",
+  "telemetry": "https://crimes-buses-meet-cardiac.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-21T06:41:01Z"
+  "updated_at": "2026-10-21T08:22:26Z"
 }
