@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://crimes-buses-meet-cardiac.trycloudflare.com",
-  "inference": "https://crimes-buses-meet-cardiac.trycloudflare.com/inference",
-  "telemetry": "https://crimes-buses-meet-cardiac.trycloudflare.com/telemetry",
+  "endpoint": "https://motels-lexmark-dental-rugs.trycloudflare.com",
+  "inference": "https://motels-lexmark-dental-rugs.trycloudflare.com/inference",
+  "telemetry": "https://motels-lexmark-dental-rugs.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-21T08:22:26Z"
+  "updated_at": "2026-10-21T21:43:50Z"
 }
