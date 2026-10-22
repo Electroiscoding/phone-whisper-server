@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://motels-lexmark-dental-rugs.trycloudflare.com",
-  "inference": "https://motels-lexmark-dental-rugs.trycloudflare.com/inference",
-  "telemetry": "https://motels-lexmark-dental-rugs.trycloudflare.com/telemetry",
+  "endpoint": "https://codes-years-cross-pete.trycloudflare.com",
+  "inference": "https://codes-years-cross-pete.trycloudflare.com/inference",
+  "telemetry": "https://codes-years-cross-pete.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-21T21:43:50Z"
+  "updated_at": "2026-10-22T12:52:37Z"
 }
