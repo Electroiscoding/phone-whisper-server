@@ -614,7 +614,48 @@
       margin-top: 6px;
       display: flex;
       align-items: center;
-      gap: 4px;
+      gap: 6px;
+    }
+
+    .live-stream-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 10px;
+      font-family: var(--font-mono, monospace);
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      color: #34d399;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      padding: 1px 7px;
+      border-radius: 4px;
+    }
+
+    .live-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #34d399;
+      box-shadow: 0 0 6px #34d399;
+      animation: pulse-stream-dot 0.8s infinite alternate ease-in-out;
+    }
+
+    @keyframes pulse-stream-dot {
+      0% { opacity: 0.3; transform: scale(0.8); }
+      100% { opacity: 1; transform: scale(1.2); }
+    }
+
+    .stream-badge-done {
+      font-size: 10px;
+      font-family: var(--font-mono, monospace);
+      font-weight: 600;
+      color: var(--colab-text-secondary);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.04);
+      padding: 1px 6px;
+      border-radius: 3px;
+      margin-left: 6px;
     }
 
     /* TEXT CELL */
@@ -1144,6 +1185,10 @@
         width: 26px;
         height: 26px;
       }
+      .cell-output-area {
+        padding: 8px 10px 10px 14px;
+        font-size: 11px;
+      }
       footer {
         padding: 0 8px;
         height: 26px;
@@ -1565,16 +1610,54 @@
 
       cell.status = "running";
       updateStatus(true);
-      renderCells();
 
+      // In-place DOM update so streaming begins immediately without layout shift
+      const cellEl = document.getElementById(`cell-${cellId}`);
+      let outputArea = null;
+      let stdoutEl = null;
+      let errorEl = null;
+      let resultEl = null;
+      let timeEl = null;
+
+      if (cellEl) {
+        const runBtn = cellEl.querySelector(".run-btn");
+        if (runBtn) {
+          runBtn.className = "run-btn running";
+          runBtn.innerHTML = '<span class="material-symbols-outlined">progress_activity</span>';
+        }
+        outputArea = cellEl.querySelector(".cell-output-area");
+        if (!outputArea) {
+          outputArea = document.createElement("div");
+          outputArea.className = "cell-output-area";
+          cellEl.appendChild(outputArea);
+        }
+        outputArea.innerHTML = `
+          <div class="output-stdout" style="display:none;"></div>
+          <div class="output-result" style="display:none;"></div>
+          <div class="output-error" style="display:none;"></div>
+          <div class="output-time">
+            <span class="live-stream-badge"><span class="live-dot"></span>STREAMING LOGS</span>
+          </div>
+        `;
+        stdoutEl = outputArea.querySelector(".output-stdout");
+        resultEl = outputArea.querySelector(".output-result");
+        errorEl = outputArea.querySelector(".output-error");
+        timeEl = outputArea.querySelector(".output-time");
+      }
+
+      cell.output = { stdout: "", stderr: "", result: null, error: null };
       const t0 = performance.now();
+
       try {
         const res = await fetch(`${API_BASE}/v1/notebook/execute`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ code: cell.content, session_id: "default" })
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "text/event-stream"
+          },
+          body: JSON.stringify({ code: cell.content, session_id: "default", stream: true })
         });
-        
+
         if (!res.ok) {
           let errText = `Server returned HTTP ${res.status}`;
           try {
@@ -1584,31 +1667,157 @@
           throw new Error(errText);
         }
 
-        const data = await res.json();
-        const elapsed = Math.round(performance.now() - t0);
+        const isSSE = (res.headers.get("content-type") || "").includes("text/event-stream") && res.body;
 
-        cell.status = data.status === "ok" ? "success" : "error";
-        cell.executionCount = data.execution_count;
-        cell.output = {
-          stdout: data.stdout,
-          stderr: data.stderr,
-          result: data.result,
-          error: data.error
-        };
-        cell.latencyMs = data.latency_ms || elapsed;
+        if (isSSE) {
+          const reader = res.body.getReader();
+          const decoder = new TextDecoder("utf-8");
+          let buffer = "";
 
-        document.getElementById("lastExecutionTimer").innerText = `Last: ${cell.latencyMs}ms`;
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const chunks = buffer.split("\n\n");
+            buffer = chunks.pop(); // keep partial trailing chunk
+
+            for (const chunk of chunks) {
+              const trimmed = chunk.trim();
+              if (!trimmed || trimmed.startsWith(":")) continue;
+
+              const dataIdx = trimmed.indexOf("data: ");
+              if (dataIdx === -1) continue;
+              const jsonStr = trimmed.slice(dataIdx + 6).trim();
+              if (!jsonStr) continue;
+
+              try {
+                const event = JSON.parse(jsonStr);
+
+                if (event.type === "stdout") {
+                  cell.output.stdout += event.text;
+                  if (stdoutEl) {
+                    stdoutEl.style.display = "block";
+                    stdoutEl.textContent = cell.output.stdout;
+                    outputArea.scrollTop = outputArea.scrollHeight;
+                  }
+                } else if (event.type === "stderr") {
+                  cell.output.stderr = (cell.output.stderr || "") + event.text;
+                  if (errorEl) {
+                    errorEl.style.display = "block";
+                    errorEl.textContent = cell.output.stderr;
+                    outputArea.scrollTop = outputArea.scrollHeight;
+                  }
+                } else if (event.type === "result") {
+                  cell.output.result = event.result;
+                  if (resultEl) {
+                    resultEl.style.display = "block";
+                    resultEl.textContent = event.result;
+                    outputArea.scrollTop = outputArea.scrollHeight;
+                  }
+                } else if (event.type === "error") {
+                  cell.output.error = event.error;
+                  if (errorEl) {
+                    errorEl.style.display = "block";
+                    errorEl.textContent = formatTraceback(event.error);
+                    outputArea.scrollTop = outputArea.scrollHeight;
+                  }
+                } else if (event.type === "done") {
+                  const d = event.result || {};
+                  cell.status = d.status === "ok" ? "success" : "error";
+                  cell.executionCount = d.execution_count;
+                  cell.latencyMs = d.latency_ms || Math.round(performance.now() - t0);
+                  if (d.stdout) cell.output.stdout = d.stdout;
+                  if (d.stderr) cell.output.stderr = d.stderr;
+                  if (d.result) cell.output.result = d.result;
+                  if (d.error) cell.output.error = d.error;
+
+                  if (cellEl) {
+                    const countEl = cellEl.querySelector(".exec-count");
+                    if (countEl) countEl.textContent = `[${cell.executionCount || ' '}]`;
+                  }
+                  if (timeEl) {
+                    timeEl.innerHTML = `
+                      <span class="material-symbols-outlined" style="font-size: 13px;">schedule</span>
+                      <span>Executed in ${cell.latencyMs}ms</span>
+                      <span class="stream-badge-done">LIVE STREAMED</span>
+                    `;
+                  }
+                }
+              } catch (parseErr) {
+                console.warn("[SSE JSON error]", parseErr, jsonStr);
+              }
+            }
+          }
+        } else {
+          // Standard JSON fallback
+          const data = await res.json();
+          const elapsed = Math.round(performance.now() - t0);
+          cell.status = data.status === "ok" ? "success" : "error";
+          cell.executionCount = data.execution_count;
+          cell.output = {
+            stdout: data.stdout,
+            stderr: data.stderr,
+            result: data.result,
+            error: data.error
+          };
+          cell.latencyMs = data.latency_ms || elapsed;
+
+          if (stdoutEl && cell.output.stdout) {
+            stdoutEl.style.display = "block";
+            stdoutEl.textContent = cell.output.stdout;
+          }
+          if (resultEl && cell.output.result) {
+            resultEl.style.display = "block";
+            resultEl.textContent = cell.output.result;
+          }
+          if (errorEl && cell.output.error) {
+            errorEl.style.display = "block";
+            errorEl.textContent = formatTraceback(cell.output.error);
+          }
+          if (timeEl) {
+            timeEl.innerHTML = `
+              <span class="material-symbols-outlined" style="font-size: 13px;">schedule</span>
+              <span>Executed in ${cell.latencyMs}ms</span>
+            `;
+          }
+          if (cellEl) {
+            const countEl = cellEl.querySelector(".exec-count");
+            if (countEl) countEl.textContent = `[${cell.executionCount || ' '}]`;
+          }
+        }
+
+        const timer = document.getElementById("lastExecutionTimer");
+        if (timer) timer.innerText = `Last: ${cell.latencyMs || Math.round(performance.now() - t0)}ms`;
       } catch (err) {
         cell.status = "error";
         cell.output = {
           error: { traceback: [String(err.message || err)] }
         };
         cell.latencyMs = Math.round(performance.now() - t0);
+        if (errorEl) {
+          errorEl.style.display = "block";
+          errorEl.textContent = String(err.message || err);
+        }
+        if (timeEl) {
+          timeEl.innerHTML = `
+            <span class="material-symbols-outlined" style="font-size: 13px;">error</span>
+            <span>Failed after ${cell.latencyMs}ms</span>
+          `;
+        }
       } finally {
         updateStatus(false);
-        renderCells();
+        if (cellEl) {
+          const runBtn = cellEl.querySelector(".run-btn");
+          if (runBtn) {
+            const isOk = cell.status === "success";
+            runBtn.className = `run-btn ${isOk ? 'success' : 'error'}`;
+            runBtn.innerHTML = `<span class="material-symbols-outlined">${isOk ? 'check_circle' : 'error'}</span>`;
+          }
+        }
       }
     }
+
 
     async function runAllCells() {
       for (const cell of cells) {

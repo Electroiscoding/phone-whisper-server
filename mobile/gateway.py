@@ -6624,6 +6624,12 @@ class ColabSubprocessProxy:
     def run(self, *popenargs, **kwargs):
         if popenargs:
             args = popenargs[0]
+            if isinstance(args, str) and "pip" in args and "sklearn" in args:
+                args = re.sub(r'\bsklearn\b', 'scikit-learn', args)
+                popenargs = (args,) + popenargs[1:]
+            elif isinstance(args, (list, tuple)) and any("sklearn" in str(x) for x in args):
+                args = [re.sub(r'\bsklearn\b', 'scikit-learn', str(x)) for x in args]
+                popenargs = (args,) + popenargs[1:]
             intercepted = self._intercept_cmd(args, kwargs)
             if intercepted is not None:
                 return intercepted
@@ -6640,6 +6646,12 @@ class ColabSubprocessProxy:
     def Popen(self, *popenargs, **kwargs):
         if popenargs:
             args = popenargs[0]
+            if isinstance(args, str) and "pip" in args and "sklearn" in args:
+                args = re.sub(r'\bsklearn\b', 'scikit-learn', args)
+                popenargs = (args,) + popenargs[1:]
+            elif isinstance(args, (list, tuple)) and any("sklearn" in str(x) for x in args):
+                args = [re.sub(r'\bsklearn\b', 'scikit-learn', str(x)) for x in args]
+                popenargs = (args,) + popenargs[1:]
             intercepted = self._intercept_cmd(args, kwargs)
             if intercepted is not None:
                 class MockPopen:
@@ -6716,6 +6728,70 @@ def _build_default_notebook_namespace():
         "display": _sys.modules.get("IPython.display", {}).display if hasattr(_sys.modules.get("IPython.display"), "display") else print,
     }
 
+class StreamingStream:
+    """Redirects stdout/stderr in real time and invokes callback on every write"""
+    def __init__(self, callback, channel="stdout"):
+        self._buf = io.StringIO()
+        self._cb = callback
+        self._channel = channel
+        self._lock = threading.Lock()
+
+    def write(self, s):
+        if not s:
+            return 0
+        with self._lock:
+            self._buf.write(s)
+        if self._cb:
+            try:
+                self._cb(self._channel, s)
+            except Exception:
+                pass
+        return len(s)
+
+    def flush(self):
+        pass
+
+    def getvalue(self):
+        with self._lock:
+            return self._buf.getvalue()
+
+    def isatty(self):
+        return False
+
+def run_streaming_cmd(cmd, callback=None, timeout=300):
+    """Executes a shell command streaming stdout/stderr line-by-line hyper fast"""
+    output_lines = []
+    if "pip" in cmd and "sklearn" in cmd:
+        cmd = re.sub(r'\bsklearn\b', 'scikit-learn', cmd)
+    try:
+        proc = _colab_sub_proxy.Popen(
+            cmd,
+            shell=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1,
+            universal_newlines=True
+        )
+        if proc.stdout:
+            for line in iter(proc.stdout.readline, ''):
+                output_lines.append(line)
+                if callback:
+                    try:
+                        callback("stdout", line)
+                    except Exception:
+                        pass
+        proc.wait(timeout=timeout)
+    except Exception as e:
+        err_msg = f"[Process error: {e}]\n"
+        output_lines.append(err_msg)
+        if callback:
+            try:
+                callback("stderr", err_msg)
+            except Exception:
+                pass
+    return "".join(output_lines)
+
 class NotebookKernelSession:
     def __init__(self, session_id="default"):
         self.session_id = session_id
@@ -6726,7 +6802,7 @@ class NotebookKernelSession:
         self.last_used = time.time()
         self.is_busy = False
 
-    def execute(self, code_text):
+    def execute(self, code_text, stream_callback=None):
         with self.lock:
             self.is_busy = True
             self.last_used = time.time()
@@ -6753,17 +6829,22 @@ class NotebookKernelSession:
                         if parent: os.makedirs(parent, exist_ok=True)
                         with open(filepath, "w", encoding="utf-8") as wf:
                             wf.write(cell_body)
-                        shell_outputs.append(f"Writing {filepath}\n")
+                        msg = f"Writing {filepath}\n"
+                        shell_outputs.append(msg)
+                        if stream_callback:
+                            stream_callback("stdout", msg)
                     except Exception as we:
-                        shell_outputs.append(f"Error writing file {arg}: {we}\n")
+                        msg = f"Error writing file {arg}: {we}\n"
+                        shell_outputs.append(msg)
+                        if stream_callback:
+                            stream_callback("stderr", msg)
                     lines = []
                 elif magic in ("bash", "sh"):
-                    try:
-                        res = _colab_sub_proxy.run(cell_body, shell=True, capture_output=True, text=True, timeout=180)
-                        if res.stdout: shell_outputs.append(res.stdout)
-                        if res.stderr: shell_outputs.append(res.stderr)
-                    except Exception as be:
-                        shell_outputs.append(f"[Bash Error: {be}]\n")
+                    def sub_cb(ch, t):
+                        if stream_callback:
+                            stream_callback(ch, t)
+                    out = run_streaming_cmd(cell_body, callback=sub_cb if stream_callback else None, timeout=300)
+                    shell_outputs.append(out)
                     lines = []
                 elif magic in ("time", "timeit"):
                     lines = raw_lines[1:]
@@ -6776,12 +6857,11 @@ class NotebookKernelSession:
                     cmd = stripped[1:].strip()
                     if cmd.startswith("sudo "):
                         cmd = cmd[5:].strip()
-                    try:
-                        res = _colab_sub_proxy.run(cmd, shell=True, capture_output=True, text=True, timeout=120)
-                        if res.stdout: shell_outputs.append(res.stdout)
-                        if res.stderr: shell_outputs.append(res.stderr)
-                    except Exception as ce:
-                        shell_outputs.append(f"[Shell Notice: {ce}]\n")
+                    def sub_cb(ch, t):
+                        if stream_callback:
+                            stream_callback(ch, t)
+                    out = run_streaming_cmd(cmd, callback=sub_cb if stream_callback else None, timeout=300)
+                    shell_outputs.append(out)
                 # Directory change: %cd
                 elif stripped.startswith("%cd") or stripped == "%cd":
                     parts = stripped.split(None, 1)
@@ -6794,37 +6874,48 @@ class NotebookKernelSession:
                         target_exp = os.path.expanduser(target)
                         os.makedirs(target_exp, exist_ok=True)
                         os.chdir(target_exp)
-                        shell_outputs.append(f"{os.getcwd()}\n")
+                        msg = f"{os.getcwd()}\n"
+                        shell_outputs.append(msg)
+                        if stream_callback:
+                            stream_callback("stdout", msg)
                     except Exception as cde:
-                        shell_outputs.append(f"[cd error: {cde}]\n")
+                        msg = f"[cd error: {cde}]\n"
+                        shell_outputs.append(msg)
+                        if stream_callback:
+                            stream_callback("stderr", msg)
                 # %pip or %conda package installs
                 elif stripped.startswith("%pip ") or stripped.startswith("%conda "):
                     cmd_part = stripped.split(None, 1)[1]
                     cmd = f"{sys.executable} -m pip " + cmd_part
-                    try:
-                        res = _colab_sub_proxy.run(cmd, shell=True, capture_output=True, text=True, timeout=180)
-                        if res.stdout: shell_outputs.append(res.stdout)
-                        if res.stderr: shell_outputs.append(res.stderr)
-                    except Exception as pe:
-                        shell_outputs.append(f"[Pip Notice: {pe}]\n")
+                    def sub_cb(ch, t):
+                        if stream_callback:
+                            stream_callback(ch, t)
+                    out = run_streaming_cmd(cmd, callback=sub_cb if stream_callback else None, timeout=300)
+                    shell_outputs.append(out)
                 # %env or %set_env
                 elif stripped.startswith("%env ") or stripped.startswith("%set_env "):
                     env_expr = stripped.split(None, 1)[1].strip()
                     if "=" in env_expr:
                         k, v = env_expr.split("=", 1)
                         os.environ[k.strip()] = v.strip().strip("'\"")
-                        shell_outputs.append(f"env: {k.strip()}={v.strip()}\n")
+                        msg = f"env: {k.strip()}={v.strip()}\n"
+                        shell_outputs.append(msg)
+                        if stream_callback:
+                            stream_callback("stdout", msg)
                 # %pwd
                 elif stripped == "%pwd":
-                    shell_outputs.append(f"{os.getcwd()}\n")
+                    msg = f"{os.getcwd()}\n"
+                    shell_outputs.append(msg)
+                    if stream_callback:
+                        stream_callback("stdout", msg)
                 # %ls
                 elif stripped.startswith("%ls"):
                     arg = stripped[3:].strip()
-                    try:
-                        res = _colab_sub_proxy.run(f"ls {arg}", shell=True, capture_output=True, text=True)
-                        if res.stdout: shell_outputs.append(res.stdout)
-                    except Exception:
-                        pass
+                    def sub_cb(ch, t):
+                        if stream_callback:
+                            stream_callback(ch, t)
+                    out = run_streaming_cmd(f"ls {arg}", callback=sub_cb if stream_callback else None, timeout=30)
+                    shell_outputs.append(out)
                 # Silently ignore IPython-only visual magics without SyntaxError
                 elif stripped.startswith(("%matplotlib", "%config", "%load_ext", "%reload_ext", "%autoreload", "%whos")):
                     continue
@@ -6835,12 +6926,12 @@ class NotebookKernelSession:
                 else:
                     cleaned_py.append(line)
 
-            stdout_buf = io.StringIO()
-            stderr_buf = io.StringIO()
+            stdout_stream = StreamingStream(stream_callback, "stdout")
+            stderr_stream = StreamingStream(stream_callback, "stderr")
             old_stdout = sys.stdout
             old_stderr = sys.stderr
-            sys.stdout = stdout_buf
-            sys.stderr = stderr_buf
+            sys.stdout = stdout_stream
+            sys.stderr = stderr_stream
 
             status = "ok"
             result_repr = None
@@ -6857,15 +6948,20 @@ class NotebookKernelSession:
                         eval_val = eval(compile(ast.Expression(body=last_expr.value), "<notebook-cell>", "eval"), self.namespace)
                         if eval_val is not None:
                             result_repr = repr(eval_val)
+                            if stream_callback:
+                                stream_callback("result", result_repr)
                     else:
                         exec(compile(parsed, "<notebook-cell>", "exec"), self.namespace)
                 except Exception as e:
                     status = "error"
+                    tb_lines = traceback.format_exc().splitlines()
                     error_info = {
                         "ename": type(e).__name__,
                         "evalue": str(e),
-                        "traceback": traceback.format_exc().splitlines()
+                        "traceback": tb_lines
                     }
+                    if stream_callback:
+                        stream_callback("error", error_info)
                 finally:
                     sys.stdout = old_stdout
                     sys.stderr = old_stderr
@@ -6875,13 +6971,13 @@ class NotebookKernelSession:
 
             self.is_busy = False
             latency_ms = (time.perf_counter() - t_start) * 1000.0
-            final_stdout = "".join(shell_outputs) + stdout_buf.getvalue()
+            final_stdout = "".join(shell_outputs) + stdout_stream.getvalue()
 
             return {
                 "execution_count": self.execution_count,
                 "status": status,
                 "stdout": final_stdout,
-                "stderr": stderr_buf.getvalue(),
+                "stderr": stderr_stream.getvalue(),
                 "result": result_repr,
                 "error": error_info,
                 "latency_ms": round(latency_ms, 2)
@@ -9558,9 +9654,59 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
 
         code = payload.get("code", "")
         session_id = payload.get("session_id", "default")
+        stream_requested = (
+            payload.get("stream", False)
+            or "text/event-stream" in (self.headers.get("Accept") or "").lower()
+            or self.path.endswith("/stream")
+        )
+
         session = _notebook_kernel_mgr.get_session(session_id)
-        result = session.execute(code)
-        self._send_json_response(result)
+
+        if stream_requested:
+            self.send_response(200)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+            self.send_header("Cache-Control", "no-cache, no-transform")
+            self.send_header("Connection", "close")
+            self.send_header("X-Accel-Buffering", "no")
+            self.end_headers()
+
+            def stream_cb(ch, text_or_data):
+                try:
+                    payload_evt = {"type": ch}
+                    if ch in ("stdout", "stderr"):
+                        payload_evt["text"] = str(text_or_data)
+                    elif ch == "result":
+                        payload_evt["result"] = str(text_or_data)
+                    elif ch == "error":
+                        payload_evt["error"] = text_or_data
+                    else:
+                        payload_evt["data"] = text_or_data
+                    chunk = json.dumps(payload_evt)
+                    self.wfile.write(f"data: {chunk}\n\n".encode("utf-8"))
+                    self.wfile.flush()
+                except Exception:
+                    pass
+
+            try:
+                self.wfile.write(b": ping\n\n")
+                self.wfile.flush()
+            except Exception:
+                return
+
+            result = session.execute(code, stream_callback=stream_cb)
+
+            try:
+                done_chunk = json.dumps({"type": "done", "result": result})
+                self.wfile.write(f"data: {done_chunk}\n\n".encode("utf-8"))
+                self.wfile.flush()
+            except Exception:
+                pass
+            self.close_connection = True
+            return
+        else:
+            result = session.execute(code)
+            self._send_json_response(result)
 
     def handle_notebook_reset_post(self):
         try:
