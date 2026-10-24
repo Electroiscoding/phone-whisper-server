@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://oddws-49-37-11-171.run.pinggy-free.link",
-  "inference": "https://oddws-49-37-11-171.run.pinggy-free.link/inference",
-  "telemetry": "https://oddws-49-37-11-171.run.pinggy-free.link/telemetry",
+  "endpoint": "https://hrlpv-49-37-11-171.run.pinggy-free.link",
+  "inference": "https://hrlpv-49-37-11-171.run.pinggy-free.link/inference",
+  "telemetry": "https://hrlpv-49-37-11-171.run.pinggy-free.link/telemetry",
   "phone_lan_ip": "http://127.0.0.1:8081",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-24T15:48:27Z"
+  "updated_at": "2026-10-24T15:48:44Z"
 }
