@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>NOIR — Sovereign Python Notebook</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23767677' d='M7.157 22.201A1.784 1.799 0 0 1 5.374 24a1.784 1.799 0 0 1-1.784-1.799 1.784 1.799 0 0 1 1.784-1.799 1.784 1.799 0 0 1 1.783 1.799zM20.582 1.427a1.415 1.427 0 0 1-1.415 1.428 1.415 1.427 0 0 1-1.416-1.428A1.415 1.427 0 0 1 19.167 0a1.415 1.427 0 0 1 1.415 1.427zM4.992 3.336A1.047 1.056 0 0 1 3.946 4.39a1.047 1.056 0 0 1-1.047-1.055A1.047 1.056 0 0 1 3.946 2.28a1.047 1.056 0 0 1 1.046 1.056z'/%3E%3Cpath fill='%23F37626' d='M12.328 4.853c3.769 0 7.06 1.38 8.768 3.424a9.363 9.363 0 0 0-3.393-4.547 9.238 9.238 0 0 0-5.377-1.728A9.238 9.238 0 0 0 6.95 3.73a9.363 9.363 0 0 0-3.394 4.547c1.713-2.04 5.004-3.424 8.772-3.424zm.001 13.295c-3.768 0-7.06-1.381-8.768-3.425a9.363 9.363 0 0 0 3.394 4.547A9.238 9.238 0 0 0 12.33 21a9.238 9.238 0 0 0 5.377-1.729 9.363 9.363 0 0 0 3.393-4.547c-1.712 2.044-5.003 3.425-8.772 3.425Z'/%3E%3C/svg%3E">
   <link rel="shortcut icon" href="/favicon.ico">
@@ -1083,8 +1083,53 @@
       background: var(--colab-surface-hover);
     }
 
+    .mobile-symbol-strip {
+      display: none;
+    }
+
     /* RESPONSIVE MOBILE STYLES */
     @media (max-width: 768px) {
+      .mobile-symbol-strip {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 8px;
+        background: #181818;
+        border-top: 1px solid var(--colab-border-subtle);
+        overflow-x: auto;
+        white-space: nowrap;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+        position: sticky;
+        bottom: 26px;
+        z-index: 40;
+      }
+      .mobile-symbol-strip::-webkit-scrollbar {
+        display: none;
+      }
+      .sym-btn {
+        background: #252525;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        color: #e8eaed;
+        font-family: var(--colab-code-font);
+        font-size: 13px;
+        font-weight: 600;
+        min-width: 32px;
+        height: 30px;
+        padding: 0 8px;
+        border-radius: 4px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        touch-action: manipulation;
+        user-select: none;
+        cursor: pointer;
+        flex-shrink: 0;
+      }
+      .sym-btn:active {
+        background: var(--colab-blue);
+        color: #1e1e1e;
+      }
       .top-bar {
         padding: 0 8px;
         height: 44px;
@@ -1365,6 +1410,27 @@
         <button class="term-send-btn" onclick="runTerminalCmd()">Run</button>
       </div>
     </div>
+  <!-- MOBILE QUICK SYMBOL STRIP (Instant Touch Coding Keys) -->
+  <div class="mobile-symbol-strip" id="mobileSymbolStrip">
+    <button type="button" class="sym-btn" onclick="insertSymbol('    ')" title="Indent (4 spaces)">Tab</button>
+    <button type="button" class="sym-btn" onclick="insertSymbol(':')">:</button>
+    <button type="button" class="sym-btn" onclick="insertSymbol('(')">(</button>
+    <button type="button" class="sym-btn" onclick="insertSymbol(')')">)</button>
+    <button type="button" class="sym-btn" onclick="insertSymbol('[')">[</button>
+    <button type="button" class="sym-btn" onclick="insertSymbol(']')">]</button>
+    <button type="button" class="sym-btn" onclick="insertSymbol('{')">{</button>
+    <button type="button" class="sym-btn" onclick="insertSymbol('}')">}</button>
+    <button type="button" class="sym-btn" onclick="insertSymbol('=')">=</button>
+    <button type="button" class="sym-btn" onclick="insertSymbol('&quot;')">"</button>
+    <button type="button" class="sym-btn" onclick="insertSymbol('\'')">'</button>
+    <button type="button" class="sym-btn" onclick="insertSymbol('!')">!</button>
+    <button type="button" class="sym-btn" onclick="insertSymbol('%')">%</button>
+    <button type="button" class="sym-btn" onclick="insertSymbol('_')">_</button>
+    <button type="button" class="sym-btn" onclick="insertSymbol('#')">#</button>
+    <button type="button" class="sym-btn" onclick="insertSymbol('.')">.</button>
+    <button type="button" class="sym-btn" onclick="insertSymbol(',')">,</button>
+    <button type="button" class="sym-btn" onclick="insertSymbol('+')">+</button>
+    <button type="button" class="sym-btn" onclick="insertSymbol('-')">-</button>
   </div>
 
   <!-- FOOTER STATUS BAR -->
@@ -1548,7 +1614,7 @@
               </button>
             </div>
             <div class="cell-editor-wrapper">
-              <textarea class="cell-editor" id="editor-${cell.id}" rows="${Math.max(2, (cell.content.split('\n').length))}" spellcheck="false">${escapeHtml(cell.content)}</textarea>
+              <textarea class="cell-editor" id="editor-${cell.id}" rows="${Math.max(2, (cell.content.split('\n').length))}" spellcheck="false" autocapitalize="none" autocorrect="off" autocomplete="off">${escapeHtml(cell.content)}</textarea>
             </div>
           </div>
 
@@ -1560,6 +1626,7 @@
               <div class="output-time">
                 <span class="material-symbols-outlined" style="font-size: 13px;">schedule</span>
                 <span>Executed in ${cell.latencyMs}ms</span>
+                <span class="stream-badge-done">LIVE STREAMED</span>
               </div>
             </div>
           ` : ''}
@@ -1599,6 +1666,25 @@
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;");
+    }
+
+    let lastActiveTextarea = null;
+    document.addEventListener("focusin", (e) => {
+      if (e.target && e.target.classList.contains("cell-editor")) {
+        lastActiveTextarea = e.target;
+      }
+    });
+
+    function insertSymbol(sym) {
+      const ta = lastActiveTextarea || document.querySelector(".cell-editor");
+      if (!ta) return;
+      ta.focus();
+      const start = ta.selectionStart;
+      const end = ta.selectionEnd;
+      const val = ta.value;
+      ta.value = val.substring(0, start) + sym + val.substring(end);
+      ta.selectionStart = ta.selectionEnd = start + sym.length;
+      ta.dispatchEvent(new Event("input", { bubbles: true }));
     }
 
     async function executeCell(cellId) {

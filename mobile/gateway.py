@@ -6404,8 +6404,75 @@ _mesh_sync_thread.start()
 # NOIR COLAB-FRIENDLY SOVEREIGN RUNTIME SYSTEM
 # ==============================================================================
 
+def _remap_colab_kaggle_path(p):
+    """Maps virtual /content and /kaggle root paths to Termux $HOME locations."""
+    if not isinstance(p, (str, bytes, os.PathLike)):
+        return p
+    p_str = os.fspath(p) if hasattr(os, "fspath") else str(p)
+    home = os.path.expanduser("~")
+    if p_str == "/content" or p_str.startswith("/content/"):
+        rel = p_str[len("/content"):].lstrip("/")
+        return os.path.join(home, "content", rel)
+    if p_str == "/kaggle" or p_str.startswith("/kaggle/"):
+        rel = p_str[len("/kaggle"):].lstrip("/")
+        return os.path.join(home, "kaggle", rel)
+    return p
+
+# Hook builtins.open transparently so any module opening /content/... or /kaggle/... works
+import builtins, _io
+_orig_builtin_open = builtins.open
+_orig_io_open = _io.open
+def _colab_safe_open(file, *args, **kwargs):
+    mapped = _remap_colab_kaggle_path(file)
+    mode = args[0] if args else kwargs.get("mode", "r")
+    if any(m in str(mode) for m in ("w", "a", "x")):
+        try:
+            parent = os.path.dirname(os.fspath(mapped) if hasattr(os, "fspath") else str(mapped))
+            if parent and not os.path.exists(parent):
+                os.makedirs(parent, exist_ok=True)
+        except Exception:
+            pass
+    return _orig_builtin_open(mapped, *args, **kwargs)
+
+builtins.open = _colab_safe_open
+import io as _io_module
+_io_module.open = _colab_safe_open
+
+# Hook standard os.path checks
+_orig_os_path_exists = os.path.exists
+os.path.exists = lambda p: _orig_os_path_exists(_remap_colab_kaggle_path(p))
+
+_orig_os_path_isfile = os.path.isfile
+os.path.isfile = lambda p: _orig_os_path_isfile(_remap_colab_kaggle_path(p))
+
+_orig_os_path_isdir = os.path.isdir
+os.path.isdir = lambda p: _orig_os_path_isdir(_remap_colab_kaggle_path(p))
+
+_orig_os_listdir = os.listdir
+def _safe_os_listdir(p="."):
+    mapped = _remap_colab_kaggle_path(p)
+    try:
+        return _orig_os_listdir(mapped)
+    except FileNotFoundError:
+        if str(p).startswith(("/content", "/kaggle")):
+            os.makedirs(mapped, exist_ok=True)
+            return []
+        raise
+os.listdir = _safe_os_listdir
+
+_orig_os_walk = os.walk
+def _safe_os_walk(top, *args, **kwargs):
+    mapped = _remap_colab_kaggle_path(top)
+    if not os.path.exists(mapped) and str(top).startswith(("/content", "/kaggle")):
+        os.makedirs(mapped, exist_ok=True)
+    return _orig_os_walk(mapped, *args, **kwargs)
+os.walk = _safe_os_walk
+
+_orig_os_makedirs = os.makedirs
+os.makedirs = lambda name, mode=0o777, exist_ok=False: _orig_os_makedirs(_remap_colab_kaggle_path(name), mode=mode, exist_ok=exist_ok)
+
 def _init_colab_environment():
-    """Configures environment variables, /content directories, and mocks google.colab."""
+    """Configures environment variables, /content directories, sample datasets, and mocks google.colab & kaggle."""
     import types
     # 1. Ensure Termux bin paths are top-priority in PATH so ffmpeg, ffprobe, python3 work everywhere
     termux_bins = [
@@ -6426,11 +6493,34 @@ def _init_colab_environment():
     os.environ["TDF_PREVENT_COLAB_TIMEOUT"] = "1"
     os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
-    # 3. Provision /content and /content/drive
+    # 3. Provision /content, /content/sample_data, and /content/drive
     home_dir = os.path.expanduser("~")
     content_dir = os.path.join(home_dir, "content")
     try:
         os.makedirs(os.path.join(content_dir, "drive", "MyDrive"), exist_ok=True)
+        sample_data_dir = os.path.join(content_dir, "sample_data")
+        os.makedirs(sample_data_dir, exist_ok=True)
+
+        cal_path = os.path.join(sample_data_dir, "california_housing_train.csv")
+        if not os.path.exists(cal_path):
+            with open(cal_path, "w", encoding="utf-8") as f:
+                f.write(
+                    "longitude,latitude,housing_median_age,total_rooms,total_bedrooms,population,households,median_income,median_house_value\n"
+                    "-114.3100,34.1900,15.0,5612.0,1283.0,1015.0,472.0,1.4936,66900.0\n"
+                    "-114.4700,34.4000,19.0,7650.0,1901.0,1129.0,463.0,1.8200,80100.0\n"
+                    "-114.5600,33.6900,17.0,720.0,174.0,333.0,117.0,1.6509,85700.0\n"
+                    "-114.5700,33.6400,14.0,1501.0,337.0,515.0,226.0,3.1917,73400.0\n"
+                    "-114.5700,33.5700,20.0,1454.0,326.0,624.0,262.0,1.9250,65500.0\n"
+                )
+        mnist_path = os.path.join(sample_data_dir, "mnist_train_small.csv")
+        if not os.path.exists(mnist_path):
+            with open(mnist_path, "w", encoding="utf-8") as f:
+                f.write("label," + ",".join([f"pixel{i}" for i in range(784)]) + "\n" + "6," + ",".join(["0"]*784) + "\n")
+        readme_path = os.path.join(sample_data_dir, "README.md")
+        if not os.path.exists(readme_path):
+            with open(readme_path, "w", encoding="utf-8") as f:
+                f.write("# Colab Sample Data provisioned by NOIR Sovereign Runtime\n")
+
         if not os.path.exists("/content"):
             try:
                 os.symlink(content_dir, "/content")
@@ -6457,6 +6547,9 @@ def _init_colab_environment():
     output = types.ModuleType("google.colab.output")
     userdata = types.ModuleType("google.colab.userdata")
     patches = types.ModuleType("google.colab.patches")
+    auth = types.ModuleType("google.colab.auth")
+    data_table = types.ModuleType("google.colab.data_table")
+    runtime = types.ModuleType("google.colab.runtime")
 
     def drive_mount(mountpoint="/content/drive", force_remount=False):
         os.makedirs(mountpoint, exist_ok=True)
@@ -6474,7 +6567,16 @@ def _init_colab_environment():
 
     output.clear = lambda wait=False: None
     output.eval_js = lambda code: None
+    output.serve_kernel_port_as_iframe = lambda port, *a, **k: print(f"Port {port} forwarded.")
     userdata.get = lambda key: os.environ.get(key, "")
+
+    auth.authenticate_user = lambda: print("[google.colab.auth] Sovereign runtime authenticated.")
+
+    data_table.enable_dataframe_formatter = lambda: None
+    data_table.disable_dataframe_formatter = lambda: None
+    data_table.DataTable = lambda df, *a, **k: df
+
+    runtime.unassign = lambda: print("[google.colab.runtime] Runtime preserved.")
 
     def cv2_imshow(img):
         try:
@@ -6491,6 +6593,9 @@ def _init_colab_environment():
     colab.output = output
     colab.userdata = userdata
     colab.patches = patches
+    colab.auth = auth
+    colab.data_table = data_table
+    colab.runtime = runtime
     google.colab = colab
 
     sys.modules["google"] = google
@@ -6500,6 +6605,9 @@ def _init_colab_environment():
     sys.modules["google.colab.output"] = output
     sys.modules["google.colab.userdata"] = userdata
     sys.modules["google.colab.patches"] = patches
+    sys.modules["google.colab.auth"] = auth
+    sys.modules["google.colab.data_table"] = data_table
+    sys.modules["google.colab.runtime"] = runtime
 
     # 6. Mock kaggle_secrets
     kaggle_sec = types.ModuleType("kaggle_secrets")
@@ -6510,7 +6618,20 @@ def _init_colab_environment():
     kaggle_sec.UserSecretsClient = UserSecretsClient
     sys.modules["kaggle_secrets"] = kaggle_sec
 
-    # 7. Mock IPython & IPython.display
+    # 7. Mock kagglehub
+    kagglehub = types.ModuleType("kagglehub")
+    def _kh_download(handle, path=""):
+        p_name = handle.strip("/").split("/")[-1] if handle else "dataset"
+        target_p = os.path.join(kaggle_dir, "input", p_name)
+        os.makedirs(target_p, exist_ok=True)
+        print(f"[kagglehub] Dataset '{handle}' ready at {target_p}")
+        return target_p
+    kagglehub.dataset_download = _kh_download
+    kagglehub.model_download = _kh_download
+    kagglehub.competition_download = _kh_download
+    sys.modules["kagglehub"] = kagglehub
+
+    # 8. Mock IPython & IPython.display
     ipython = types.ModuleType("IPython")
     ipy_display = types.ModuleType("IPython.display")
     class MockDisplayObj:
@@ -6526,6 +6647,9 @@ def _init_colab_environment():
     class Audio(MockDisplayObj): pass
     class Video(MockDisplayObj): pass
     class Markdown(MockDisplayObj): pass
+    class Latex(MockDisplayObj): pass
+    class Math(MockDisplayObj): pass
+    class Javascript(MockDisplayObj): pass
 
     def mock_display(*args, **kwargs):
         for a in args:
@@ -6541,6 +6665,9 @@ def _init_colab_environment():
     ipy_display.Audio = Audio
     ipy_display.Video = Video
     ipy_display.Markdown = Markdown
+    ipy_display.Latex = Latex
+    ipy_display.Math = Math
+    ipy_display.Javascript = Javascript
     ipy_display.JSON = MockDisplayObj
     ipy_display.FileLink = MockDisplayObj
 
@@ -6556,6 +6683,8 @@ class ColabSubprocessProxy:
     and executes them safely within Android Termux."""
     def __init__(self, real_sub):
         self._real = real_sub
+        self._orig_run = real_sub.run
+        self._orig_Popen = real_sub.Popen
         for attr in dir(real_sub):
             if not attr.startswith("__"):
                 try:
@@ -6621,20 +6750,29 @@ class ColabSubprocessProxy:
 
         return None
 
+    def _remap_cmd(self, s):
+        if not isinstance(s, str): return s
+        if s.strip().startswith("sudo "):
+            s = s.strip()[5:].strip()
+        if "pip" in s and "sklearn" in s:
+            s = re.sub(r'\bsklearn\b', 'scikit-learn', s)
+        home = os.path.expanduser("~")
+        return re.sub(r'(?<![A-Za-z0-9_~])/(content|kaggle)(?=[/\s\x22\x27]|$)', lambda m: os.path.join(home, m.group(1)), s)
+
     def run(self, *popenargs, **kwargs):
         if popenargs:
             args = popenargs[0]
-            if isinstance(args, str) and "pip" in args and "sklearn" in args:
-                args = re.sub(r'\bsklearn\b', 'scikit-learn', args)
+            if isinstance(args, str):
+                args = self._remap_cmd(args)
                 popenargs = (args,) + popenargs[1:]
-            elif isinstance(args, (list, tuple)) and any("sklearn" in str(x) for x in args):
-                args = [re.sub(r'\bsklearn\b', 'scikit-learn', str(x)) for x in args]
+            elif isinstance(args, (list, tuple)):
+                args = [self._remap_cmd(str(x)) if isinstance(x, str) else x for x in args]
                 popenargs = (args,) + popenargs[1:]
             intercepted = self._intercept_cmd(args, kwargs)
             if intercepted is not None:
                 return intercepted
         try:
-            return self._real.run(*popenargs, **kwargs)
+            return self._orig_run(*popenargs, **kwargs)
         except PermissionError as pe:
             return subprocess.CompletedProcess(
                 args=popenargs[0] if popenargs else "",
@@ -6646,11 +6784,11 @@ class ColabSubprocessProxy:
     def Popen(self, *popenargs, **kwargs):
         if popenargs:
             args = popenargs[0]
-            if isinstance(args, str) and "pip" in args and "sklearn" in args:
-                args = re.sub(r'\bsklearn\b', 'scikit-learn', args)
+            if isinstance(args, str):
+                args = self._remap_cmd(args)
                 popenargs = (args,) + popenargs[1:]
-            elif isinstance(args, (list, tuple)) and any("sklearn" in str(x) for x in args):
-                args = [re.sub(r'\bsklearn\b', 'scikit-learn', str(x)) for x in args]
+            elif isinstance(args, (list, tuple)):
+                args = [self._remap_cmd(str(x)) if isinstance(x, str) else x for x in args]
                 popenargs = (args,) + popenargs[1:]
             intercepted = self._intercept_cmd(args, kwargs)
             if intercepted is not None:
@@ -6667,7 +6805,7 @@ class ColabSubprocessProxy:
                         return self.returncode
                 return MockPopen(intercepted)
         try:
-            return self._real.Popen(*popenargs, **kwargs)
+            return self._orig_Popen(*popenargs, **kwargs)
         except PermissionError as pe:
             cp = subprocess.CompletedProcess(
                 args=popenargs[0] if popenargs else "",
@@ -6707,7 +6845,14 @@ subprocess.check_output = _colab_sub_proxy.check_output
 
 def _build_default_notebook_namespace():
     import os as _os, sys as _sys, time as _time, json as _json, math as _math, re as _re, shutil as _shutil, glob as _glob, base64 as _base64
-    from pathlib import Path as _Path
+    from pathlib import Path as _RealOrigPath
+    
+    def ColabPath(*args, **kwargs):
+        if args:
+            first = _remap_colab_kaggle_path(args[0])
+            args = (first,) + args[1:]
+        return _RealOrigPath(*args, **kwargs)
+
     google_mod = _sys.modules.get("google")
     return {
         "__name__": "__main__",
@@ -6722,8 +6867,11 @@ def _build_default_notebook_namespace():
         "base64": _base64,
         "subprocess": _colab_sub_proxy,
         "shutil": _shutil,
-        "Path": _Path,
+        "Path": ColabPath,
+        "open": _colab_safe_open,
         "google": google_mod,
+        "kaggle_secrets": _sys.modules.get("kaggle_secrets"),
+        "kagglehub": _sys.modules.get("kagglehub"),
         "IPython": _sys.modules.get("IPython"),
         "display": _sys.modules.get("IPython.display", {}).display if hasattr(_sys.modules.get("IPython.display"), "display") else print,
     }
@@ -6761,8 +6909,7 @@ class StreamingStream:
 def run_streaming_cmd(cmd, callback=None, timeout=300):
     """Executes a shell command streaming stdout/stderr line-by-line hyper fast"""
     output_lines = []
-    if "pip" in cmd and "sklearn" in cmd:
-        cmd = re.sub(r'\bsklearn\b', 'scikit-learn', cmd)
+    cmd = _colab_sub_proxy._remap_cmd(cmd)
     try:
         proc = _colab_sub_proxy.Popen(
             cmd,
@@ -6813,7 +6960,7 @@ class NotebookKernelSession:
             cleaned_py = []
             shell_outputs = []
             
-            # 1. Handle Cell Magics (%%writefile, %%bash, %%sh, %%time)
+            # 1. Handle Cell Magics (%%writefile, %%bash, %%sh, %%time, %%capture, %%python, %%html)
             lines = raw_lines
             if raw_lines and raw_lines[0].strip().startswith("%%"):
                 first_line = raw_lines[0].strip()
@@ -6824,7 +6971,7 @@ class NotebookKernelSession:
 
                 if magic == "writefile":
                     try:
-                        filepath = os.path.expanduser(arg)
+                        filepath = os.path.expanduser(_remap_colab_kaggle_path(arg))
                         parent = os.path.dirname(filepath)
                         if parent: os.makedirs(parent, exist_ok=True)
                         with open(filepath, "w", encoding="utf-8") as wf:
@@ -6845,6 +6992,35 @@ class NotebookKernelSession:
                             stream_callback(ch, t)
                     out = run_streaming_cmd(cell_body, callback=sub_cb if stream_callback else None, timeout=300)
                     shell_outputs.append(out)
+                    lines = []
+                elif magic == "capture":
+                    cap_var = arg.strip()
+                    cap_buf_out = io.StringIO()
+                    cap_buf_err = io.StringIO()
+                    old_out, old_err = sys.stdout, sys.stderr
+                    sys.stdout, sys.stderr = cap_buf_out, cap_buf_err
+                    try:
+                        exec(compile(cell_body, "<notebook-cell>", "exec"), self.namespace)
+                    except Exception as ce:
+                        cap_buf_err.write(traceback.format_exc())
+                    finally:
+                        sys.stdout, sys.stderr = old_out, old_err
+                    if cap_var:
+                        class CaptureOutput:
+                            def __init__(self, out, err):
+                                self.stdout = out
+                                self.stderr = err
+                            def __repr__(self):
+                                return f"<CaptureOutput: {len(self.stdout)} chars stdout>"
+                        self.namespace[cap_var] = CaptureOutput(cap_buf_out.getvalue(), cap_buf_err.getvalue())
+                    lines = []
+                elif magic in ("python", "python3"):
+                    lines = raw_lines[1:]
+                elif magic in ("html", "HTML"):
+                    if stream_callback:
+                        stream_callback("result", cell_body)
+                    lines = []
+                elif magic in ("javascript", "js"):
                     lines = []
                 elif magic in ("time", "timeit"):
                     lines = raw_lines[1:]
@@ -6871,7 +7047,7 @@ class NotebookKernelSession:
                     elif target.startswith("/kaggle/working"):
                         target = "~/kaggle/working"
                     try:
-                        target_exp = os.path.expanduser(target)
+                        target_exp = os.path.expanduser(_remap_colab_kaggle_path(target))
                         os.makedirs(target_exp, exist_ok=True)
                         os.chdir(target_exp)
                         msg = f"{os.getcwd()}\n"
@@ -6916,8 +7092,30 @@ class NotebookKernelSession:
                             stream_callback(ch, t)
                     out = run_streaming_cmd(f"ls {arg}", callback=sub_cb if stream_callback else None, timeout=30)
                     shell_outputs.append(out)
+                # %system cmd
+                elif stripped.startswith("%system "):
+                    cmd = stripped[8:].strip()
+                    def sub_cb(ch, t):
+                        if stream_callback:
+                            stream_callback(ch, t)
+                    out = run_streaming_cmd(cmd, callback=sub_cb if stream_callback else None, timeout=300)
+                    shell_outputs.append(out)
+                # %reset
+                elif stripped.startswith("%reset"):
+                    self.reset()
+                    msg = "Runtime reset complete.\n"
+                    shell_outputs.append(msg)
+                    if stream_callback:
+                        stream_callback("stdout", msg)
+                # %who or %whos
+                elif stripped.startswith(("%who", "%whos")):
+                    keys = [k for k in self.namespace.keys() if not k.startswith("_")]
+                    msg = "Variables in scope:\n" + "\n".join(f"  {k} ({type(self.namespace[k]).__name__})" for k in keys) + "\n"
+                    shell_outputs.append(msg)
+                    if stream_callback:
+                        stream_callback("stdout", msg)
                 # Silently ignore IPython-only visual magics without SyntaxError
-                elif stripped.startswith(("%matplotlib", "%config", "%load_ext", "%reload_ext", "%autoreload", "%whos")):
+                elif stripped.startswith(("%matplotlib", "%config", "%load_ext", "%reload_ext", "%autoreload")):
                     continue
                 # Strip %time or %timeit line prefix
                 elif stripped.startswith(("%time ", "%timeit ")):
