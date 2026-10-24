@@ -6439,13 +6439,24 @@ def _init_colab_environment():
     except Exception:
         pass
 
-    # 4. Mock google.colab in sys.modules
+    # 4. Provision Kaggle standard working directories
+    kaggle_dir = os.path.join(home_dir, "kaggle")
+    for kd in ["working", "input", "temp"]:
+        try:
+            os.makedirs(os.path.join(kaggle_dir, kd), exist_ok=True)
+        except Exception:
+            pass
+    os.environ["KAGGLE_KERNEL_RUN_TYPE"] = "Interactive"
+    os.environ["KAGGLE_CONTAINER_NAME"] = "noir-arm64-runtime"
+
+    # 5. Mock google.colab in sys.modules
     google = types.ModuleType("google")
     colab = types.ModuleType("google.colab")
     drive = types.ModuleType("google.colab.drive")
     files = types.ModuleType("google.colab.files")
     output = types.ModuleType("google.colab.output")
     userdata = types.ModuleType("google.colab.userdata")
+    patches = types.ModuleType("google.colab.patches")
 
     def drive_mount(mountpoint="/content/drive", force_remount=False):
         os.makedirs(mountpoint, exist_ok=True)
@@ -6461,14 +6472,25 @@ def _init_colab_environment():
     files.download = files_download
     files.upload = files_upload
 
-    output.clear = lambda: None
+    output.clear = lambda wait=False: None
     output.eval_js = lambda code: None
     userdata.get = lambda key: os.environ.get(key, "")
+
+    def cv2_imshow(img):
+        try:
+            import cv2
+            out_p = os.path.expanduser("~/output_frame.jpg")
+            cv2.imwrite(out_p, img)
+            print(f"[cv2_imshow] Frame rendered ({img.shape[1]}x{img.shape[0]}) -> {out_p}")
+        except Exception:
+            print("[cv2_imshow] Frame rendered")
+    patches.cv2_imshow = cv2_imshow
 
     colab.drive = drive
     colab.files = files
     colab.output = output
     colab.userdata = userdata
+    colab.patches = patches
     google.colab = colab
 
     sys.modules["google"] = google
@@ -6477,6 +6499,55 @@ def _init_colab_environment():
     sys.modules["google.colab.files"] = files
     sys.modules["google.colab.output"] = output
     sys.modules["google.colab.userdata"] = userdata
+    sys.modules["google.colab.patches"] = patches
+
+    # 6. Mock kaggle_secrets
+    kaggle_sec = types.ModuleType("kaggle_secrets")
+    class UserSecretsClient:
+        def __init__(self): pass
+        def get_secret(self, key):
+            return os.environ.get(key, "")
+    kaggle_sec.UserSecretsClient = UserSecretsClient
+    sys.modules["kaggle_secrets"] = kaggle_sec
+
+    # 7. Mock IPython & IPython.display
+    ipython = types.ModuleType("IPython")
+    ipy_display = types.ModuleType("IPython.display")
+    class MockDisplayObj:
+        def __init__(self, *args, **kwargs):
+            self.args = args
+            self.kwargs = kwargs
+            self.data = args[0] if args else ""
+        def _repr_html_(self): return str(self.data)
+        def __repr__(self): return f"<{self.__class__.__name__}>"
+
+    class Image(MockDisplayObj): pass
+    class HTML(MockDisplayObj): pass
+    class Audio(MockDisplayObj): pass
+    class Video(MockDisplayObj): pass
+    class Markdown(MockDisplayObj): pass
+
+    def mock_display(*args, **kwargs):
+        for a in args:
+            if hasattr(a, "data") and isinstance(a.data, str):
+                print(a.data)
+            elif not isinstance(a, MockDisplayObj):
+                print(repr(a))
+
+    ipy_display.display = mock_display
+    ipy_display.clear_output = lambda wait=False: None
+    ipy_display.Image = Image
+    ipy_display.HTML = HTML
+    ipy_display.Audio = Audio
+    ipy_display.Video = Video
+    ipy_display.Markdown = Markdown
+    ipy_display.JSON = MockDisplayObj
+    ipy_display.FileLink = MockDisplayObj
+
+    ipython.display = ipy_display
+    if "IPython" not in sys.modules:
+        sys.modules["IPython"] = ipython
+        sys.modules["IPython.display"] = ipy_display
 
 _init_colab_environment()
 
@@ -6641,6 +6712,8 @@ def _build_default_notebook_namespace():
         "shutil": _shutil,
         "Path": _Path,
         "google": google_mod,
+        "IPython": _sys.modules.get("IPython"),
+        "display": _sys.modules.get("IPython.display", {}).display if hasattr(_sys.modules.get("IPython.display"), "display") else print,
     }
 
 class NotebookKernelSession:
@@ -6660,32 +6733,105 @@ class NotebookKernelSession:
             self.execution_count += 1
             t_start = time.perf_counter()
             
-            lines = code_text.splitlines()
+            raw_lines = code_text.splitlines()
             cleaned_py = []
             shell_outputs = []
             
+            # 1. Handle Cell Magics (%%writefile, %%bash, %%sh, %%time)
+            lines = raw_lines
+            if raw_lines and raw_lines[0].strip().startswith("%%"):
+                first_line = raw_lines[0].strip()
+                parts = first_line[2:].split(None, 1)
+                magic = parts[0] if parts else ""
+                arg = parts[1].strip() if len(parts) > 1 else ""
+                cell_body = "\n".join(raw_lines[1:])
+
+                if magic == "writefile":
+                    try:
+                        filepath = os.path.expanduser(arg)
+                        parent = os.path.dirname(filepath)
+                        if parent: os.makedirs(parent, exist_ok=True)
+                        with open(filepath, "w", encoding="utf-8") as wf:
+                            wf.write(cell_body)
+                        shell_outputs.append(f"Writing {filepath}\n")
+                    except Exception as we:
+                        shell_outputs.append(f"Error writing file {arg}: {we}\n")
+                    lines = []
+                elif magic in ("bash", "sh"):
+                    try:
+                        res = _colab_sub_proxy.run(cell_body, shell=True, capture_output=True, text=True, timeout=180)
+                        if res.stdout: shell_outputs.append(res.stdout)
+                        if res.stderr: shell_outputs.append(res.stderr)
+                    except Exception as be:
+                        shell_outputs.append(f"[Bash Error: {be}]\n")
+                    lines = []
+                elif magic in ("time", "timeit"):
+                    lines = raw_lines[1:]
+
+            # 2. Handle Line-by-Line Magics and Shell Commands
             for line in lines:
                 stripped = line.strip()
+                # Shell commands: !cmd
                 if stripped.startswith("!"):
                     cmd = stripped[1:].strip()
-                    try:
-                        res = _colab_sub_proxy.run(cmd, shell=True, capture_output=True, text=True, timeout=60)
-                        if res.stdout:
-                            shell_outputs.append(res.stdout)
-                        if res.stderr:
-                            shell_outputs.append(res.stderr)
-                    except Exception as ce:
-                        shell_outputs.append(f"[Shell Notice: {ce}]\n")
-                elif stripped.startswith("%pip"):
-                    cmd = f"{sys.executable} -m pip " + stripped[4:].strip()
+                    if cmd.startswith("sudo "):
+                        cmd = cmd[5:].strip()
                     try:
                         res = _colab_sub_proxy.run(cmd, shell=True, capture_output=True, text=True, timeout=120)
-                        if res.stdout:
-                            shell_outputs.append(res.stdout)
-                        if res.stderr:
-                            shell_outputs.append(res.stderr)
+                        if res.stdout: shell_outputs.append(res.stdout)
+                        if res.stderr: shell_outputs.append(res.stderr)
+                    except Exception as ce:
+                        shell_outputs.append(f"[Shell Notice: {ce}]\n")
+                # Directory change: %cd
+                elif stripped.startswith("%cd") or stripped == "%cd":
+                    parts = stripped.split(None, 1)
+                    target = parts[1].strip() if len(parts) > 1 else "~"
+                    if target in ("/content", "content"):
+                        target = "~/content"
+                    elif target.startswith("/kaggle/working"):
+                        target = "~/kaggle/working"
+                    try:
+                        target_exp = os.path.expanduser(target)
+                        os.makedirs(target_exp, exist_ok=True)
+                        os.chdir(target_exp)
+                        shell_outputs.append(f"{os.getcwd()}\n")
+                    except Exception as cde:
+                        shell_outputs.append(f"[cd error: {cde}]\n")
+                # %pip or %conda package installs
+                elif stripped.startswith("%pip ") or stripped.startswith("%conda "):
+                    cmd_part = stripped.split(None, 1)[1]
+                    cmd = f"{sys.executable} -m pip " + cmd_part
+                    try:
+                        res = _colab_sub_proxy.run(cmd, shell=True, capture_output=True, text=True, timeout=180)
+                        if res.stdout: shell_outputs.append(res.stdout)
+                        if res.stderr: shell_outputs.append(res.stderr)
                     except Exception as pe:
                         shell_outputs.append(f"[Pip Notice: {pe}]\n")
+                # %env or %set_env
+                elif stripped.startswith("%env ") or stripped.startswith("%set_env "):
+                    env_expr = stripped.split(None, 1)[1].strip()
+                    if "=" in env_expr:
+                        k, v = env_expr.split("=", 1)
+                        os.environ[k.strip()] = v.strip().strip("'\"")
+                        shell_outputs.append(f"env: {k.strip()}={v.strip()}\n")
+                # %pwd
+                elif stripped == "%pwd":
+                    shell_outputs.append(f"{os.getcwd()}\n")
+                # %ls
+                elif stripped.startswith("%ls"):
+                    arg = stripped[3:].strip()
+                    try:
+                        res = _colab_sub_proxy.run(f"ls {arg}", shell=True, capture_output=True, text=True)
+                        if res.stdout: shell_outputs.append(res.stdout)
+                    except Exception:
+                        pass
+                # Silently ignore IPython-only visual magics without SyntaxError
+                elif stripped.startswith(("%matplotlib", "%config", "%load_ext", "%reload_ext", "%autoreload", "%whos")):
+                    continue
+                # Strip %time or %timeit line prefix
+                elif stripped.startswith(("%time ", "%timeit ")):
+                    clean_line = stripped.split(None, 1)[1]
+                    cleaned_py.append(clean_line)
                 else:
                     cleaned_py.append(line)
 

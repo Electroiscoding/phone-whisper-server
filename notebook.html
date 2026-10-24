@@ -1127,19 +1127,22 @@
         top: 6px;
       }
       .run-btn {
-        width: 26px;
-        height: 26px;
+        width: 32px;
+        height: 32px;
       }
       .run-btn .material-symbols-outlined {
-        font-size: 18px;
+        font-size: 20px;
       }
-      .cell-tools {
-        top: -14px;
-        right: 4px;
+      .cell-toolbar {
+        opacity: 0.95;
+        pointer-events: auto;
+        top: -12px;
+        right: 8px;
+        background: #252525;
       }
       .cell-tool-btn {
-        width: 24px;
-        height: 24px;
+        width: 26px;
+        height: 26px;
       }
       footer {
         padding: 0 8px;
@@ -1500,7 +1503,7 @@
               </button>
             </div>
             <div class="cell-editor-wrapper">
-              <textarea class="cell-editor" id="editor-${cell.id}" rows="${Math.max(2, (cell.content.split('\\n').length))}" spellcheck="false">${escapeHtml(cell.content)}</textarea>
+              <textarea class="cell-editor" id="editor-${cell.id}" rows="${Math.max(2, (cell.content.split('\n').length))}" spellcheck="false">${escapeHtml(cell.content)}</textarea>
             </div>
           </div>
 
