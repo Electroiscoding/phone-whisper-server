@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://misc-employee-confirmed-beds.trycloudflare.com",
-  "inference": "https://misc-employee-confirmed-beds.trycloudflare.com/inference",
-  "telemetry": "https://misc-employee-confirmed-beds.trycloudflare.com/telemetry",
+  "endpoint": "https://advertisement-motorcycle-demanding-involve.trycloudflare.com",
+  "inference": "https://advertisement-motorcycle-demanding-involve.trycloudflare.com/inference",
+  "telemetry": "https://advertisement-motorcycle-demanding-involve.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://127.0.0.1:8081",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-24T15:07:39Z"
+  "updated_at": "2026-10-24T15:07:58Z"
 }
