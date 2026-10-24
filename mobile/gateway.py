@@ -14046,14 +14046,8 @@ def restart_cloudflared_tunnel():
                     pass
 
             def _async_push():
-                try:
-                    repo_dir = os.path.join(home, "phone-whisper-server")
-                    if os.path.exists(os.path.join(repo_dir, ".git")):
-                        subprocess.run(["git", "-C", repo_dir, "add", "endpoint.json"], check=False)
-                        subprocess.run(["git", "-C", repo_dir, "commit", "-m", f"chore(tunnel): Auto-sync live endpoint [{new_url}]"], check=False)
-                        subprocess.run(["git", "-C", repo_dir, "push", "origin", "main"], check=False)
-                except Exception:
-                    pass
+                # Git auto-commit disabled to prevent queuing spam builds on Cloudflare Pages
+                pass
             threading.Thread(target=_async_push, daemon=True).start()
 
             try:
