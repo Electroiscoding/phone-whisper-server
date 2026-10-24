@@ -7,6 +7,15 @@
   Cross-Origin-Resource-Policy: cross-origin
   Cross-Origin-Embedder-Policy: unsafe-none
 
+/*.html
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/notebook
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/stats
+  Cache-Control: no-cache, no-store, must-revalidate
+
 /v1/*
   Access-Control-Allow-Origin: *
   Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH
