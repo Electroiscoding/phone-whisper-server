@@ -302,6 +302,71 @@
       background: rgba(138, 180, 248, 0.1);
     }
 
+    /* LEFT DRAWER PANEL (Colab Sidebar) */
+    .left-drawer {
+      width: 280px;
+      background: var(--colab-surface);
+      border-right: 1px solid var(--colab-border-subtle);
+      display: none;
+      flex-direction: column;
+      flex-shrink: 0;
+      z-index: 20;
+    }
+
+    .left-drawer.open {
+      display: flex;
+    }
+
+    .drawer-header {
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      border-bottom: 1px solid var(--colab-border-subtle);
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--colab-text);
+    }
+
+    .drawer-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 16px;
+      font-size: 12px;
+      color: var(--colab-text-secondary);
+    }
+
+    .drawer-item {
+      padding: 6px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .drawer-item:hover {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--colab-text);
+    }
+
+    .search-input {
+      width: 100%;
+      background: var(--colab-bg);
+      border: 1px solid var(--colab-border);
+      border-radius: 4px;
+      padding: 6px 10px;
+      color: var(--colab-text);
+      font-size: 12px;
+      outline: none;
+      margin-bottom: 12px;
+    }
+
+    .search-input:focus {
+      border-color: var(--colab-blue);
+    }
+
     /* NOTEBOOK CONTAINER */
     .notebook-container {
       flex: 1;
@@ -854,18 +919,31 @@
   <div class="workspace">
     <!-- LEFT RAIL -->
     <div class="left-rail">
-      <button class="rail-btn active" title="Table of contents">
+      <button class="rail-btn" id="railBtnToc" title="Table of contents" onclick="toggleLeftDrawer('toc')">
         <span class="material-symbols-outlined">list</span>
       </button>
-      <button class="rail-btn" title="Find and replace">
+      <button class="rail-btn" id="railBtnSearch" title="Find and replace" onclick="toggleLeftDrawer('search')">
         <span class="material-symbols-outlined">search</span>
       </button>
-      <button class="rail-btn" title="Variables explorer">
+      <button class="rail-btn" id="railBtnVars" title="Variables explorer" onclick="toggleLeftDrawer('vars')">
         <span class="material-symbols-outlined">data_object</span>
       </button>
-      <button class="rail-btn" title="Files (Termux storage)">
+      <button class="rail-btn" id="railBtnFiles" title="Files (Termux storage)" onclick="toggleLeftDrawer('files')">
         <span class="material-symbols-outlined">folder</span>
       </button>
+    </div>
+
+    <!-- COLLAPSIBLE LEFT DRAWER (Colab Panel) -->
+    <div class="left-drawer" id="leftDrawer">
+      <div class="drawer-header">
+        <span id="drawerTitle">Table of contents</span>
+        <button class="icon-btn" onclick="closeLeftDrawer()" title="Close panel">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+      <div class="drawer-body" id="drawerBody">
+        <!-- Rendered by toggleLeftDrawer() -->
+      </div>
     </div>
 
     <!-- NOTEBOOK CELLS CONTAINER -->
@@ -1318,19 +1396,150 @@
       a.click();
     }
 
-    document.getElementById("openSettingsBtn").addEventListener("click", openSettings);
-    document.getElementById("resetKernelBtn").addEventListener("click", async () => {
+    let activeDrawerTab = null;
+
+    function toggleLeftDrawer(tabName) {
+      const drawer = document.getElementById("leftDrawer");
+      const title = document.getElementById("drawerTitle");
+      const body = document.getElementById("drawerBody");
+
+      document.querySelectorAll(".rail-btn").forEach(b => b.classList.remove("active"));
+
+      if (activeDrawerTab === tabName && drawer.classList.contains("open")) {
+        closeLeftDrawer();
+        return;
+      }
+
+      activeDrawerTab = tabName;
+      drawer.classList.add("open");
+
+      if (tabName === "toc") {
+        document.getElementById("railBtnToc").classList.add("active");
+        title.innerText = "Table of contents";
+        renderToc(body);
+      } else if (tabName === "search") {
+        document.getElementById("railBtnSearch").classList.add("active");
+        title.innerText = "Find and replace";
+        renderSearch(body);
+      } else if (tabName === "vars") {
+        document.getElementById("railBtnVars").classList.add("active");
+        title.innerText = "Variables explorer";
+        renderVars(body);
+      } else if (tabName === "files") {
+        document.getElementById("railBtnFiles").classList.add("active");
+        title.innerText = "Files (Termux storage)";
+        renderFiles(body);
+      }
+    }
+
+    function closeLeftDrawer() {
+      const drawer = document.getElementById("leftDrawer");
+      drawer.classList.remove("open");
+      document.querySelectorAll(".rail-btn").forEach(b => b.classList.remove("active"));
+      activeDrawerTab = null;
+    }
+
+    function renderToc(container) {
+      container.innerHTML = `
+        <div style="font-size:12px; color:var(--colab-text-secondary); margin-bottom:12px;">Notebook Sections</div>
+        ${cells.map((c, i) => `
+          <div class="drawer-item" onclick="document.getElementById('cell-${c.id}').scrollIntoView({behavior:'smooth'})">
+            <span class="material-symbols-outlined" style="font-size:16px;">code</span>
+            <span>Cell [${i + 1}] (${c.type})</span>
+          </div>
+        `).join('')}
+      `;
+    }
+
+    function renderSearch(container) {
+      container.innerHTML = `
+        <input type="text" class="search-input" id="searchKeyword" placeholder="Find in cells..." oninput="doSearch(this.value)" />
+        <div id="searchResults" style="font-size:12px; color:var(--colab-text-secondary);">Type keywords to search code...</div>
+      `;
+    }
+
+    function doSearch(kw) {
+      const resEl = document.getElementById("searchResults");
+      if (!kw || !kw.trim()) {
+        resEl.innerHTML = "Type keywords to search code...";
+        return;
+      }
+      const matches = cells.filter(c => c.content.toLowerCase().includes(kw.toLowerCase()));
+      if (matches.length === 0) {
+        resEl.innerHTML = `<div style="color:var(--colab-red); padding:8px 0;">No matching cells found.</div>`;
+      } else {
+        resEl.innerHTML = matches.map((c, idx) => `
+          <div class="drawer-item" onclick="document.getElementById('cell-${c.id}').scrollIntoView({behavior:'smooth'})">
+            <span class="material-symbols-outlined" style="font-size:16px;">search</span>
+            <span>Match in Cell #${idx + 1}</span>
+          </div>
+        `).join('');
+      }
+    }
+
+    async function renderVars(container) {
+      container.innerHTML = `<div style="color:var(--colab-text-secondary); padding:8px 0;">Inspecting session variables...</div>`;
       try {
-        await fetch(`${API_BASE}/v1/notebook/reset`, {
+        const res = await fetch(`${API_BASE}/v1/notebook/execute`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ session_id: "default" })
+          body: JSON.stringify({
+            code: "[(k, type(v).__name__, repr(v)[:50]) for k, v in list(locals().items()) if not k.startswith('_') and k not in ('In', 'Out', 'get_ipython', 'exit', 'quit')]",
+            session_id: "default"
+          })
         });
-        alert("Kernel Runtime Reset Successfully!");
+        const d = await res.json();
+        let varList = [];
+        try { varList = eval(d.result || "[]"); } catch(_) {}
+        if (!Array.isArray(varList) || varList.length === 0) {
+          container.innerHTML = `<div style="color:var(--colab-text-secondary); padding:8px 0;">No active user variables yet. Run a cell with variable assignments to inspect them here.</div>`;
+        } else {
+          container.innerHTML = `
+            <div style="font-weight:500; color:var(--colab-text); margin-bottom:8px;">Active Session Variables:</div>
+            ${varList.map(v => `
+              <div class="drawer-item" style="display:flex; justify-content:space-between; font-family:var(--colab-code-font);">
+                <span style="color:var(--colab-orange); font-weight:500;">${v[0]}</span>
+                <span style="color:var(--colab-text-tertiary); font-size:11px;">${v[1]}</span>
+                <span style="color:var(--colab-blue); max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${v[2]}</span>
+              </div>
+            `).join('')}
+          `;
+        }
       } catch (e) {
-        alert("Reset failed: " + e);
+        container.innerHTML = `<div style="color:var(--colab-red);">Could not fetch variables: ${e}</div>`;
       }
-    });
+    }
+
+    async function renderFiles(container) {
+      container.innerHTML = `<div style="color:var(--colab-text-secondary); padding:8px 0;">Listing Termux files...</div>`;
+      try {
+        const res = await fetch(`${API_BASE}/v1/notebook/execute`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            code: "!ls -1",
+            session_id: "default"
+          })
+        });
+        const d = await res.json();
+        const files = (d.stdout || "").trim().split("\n").filter(Boolean);
+        if (files.length === 0) {
+          container.innerHTML = `<div style="color:var(--colab-text-secondary); padding:8px 0;">Directory is empty.</div>`;
+        } else {
+          container.innerHTML = `
+            <div style="font-weight:500; color:var(--colab-text); margin-bottom:8px;">Current Files (${files.length}):</div>
+            ${files.map(f => `
+              <div class="drawer-item">
+                <span class="material-symbols-outlined" style="font-size:16px;">description</span>
+                <span style="font-family:var(--colab-code-font);">${f}</span>
+              </div>
+            `).join('')}
+          `;
+        }
+      } catch (e) {
+        container.innerHTML = `<div style="color:var(--colab-red);">Could not list files: ${e}</div>`;
+      }
+    }
 
     renderCells();
     fetchSystemMetrics();
