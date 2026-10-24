@@ -16,8 +16,8 @@
   <meta property="og:site_name" content="NOIR">
   <meta property="og:title" content="NOIR — Sovereign Python Notebook">
   <meta property="og:description" content="Clean, uninterrupted Python runtime. Pure CPU. Zero timeouts.">
-  <meta property="og:image" content="https://phone-whisper-server.pages.dev/colab_og_cover.jpg">
-  <meta property="og:image:secure_url" content="https://phone-whisper-server.pages.dev/colab_og_cover.jpg">
+  <meta property="og:image" content="https://phone-whisper-server.pages.dev/noir_og.jpg">
+  <meta property="og:image:secure_url" content="https://phone-whisper-server.pages.dev/noir_og.jpg">
   <meta property="og:image:type" content="image/jpeg">
   <meta property="og:image:width" content="1280">
   <meta property="og:image:height" content="720">
@@ -28,7 +28,7 @@
   <meta name="twitter:url" content="https://phone-whisper-server.pages.dev/notebook.html">
   <meta name="twitter:title" content="NOIR — Sovereign Python Notebook">
   <meta name="twitter:description" content="Clean, uninterrupted Python runtime. Pure CPU. Zero timeouts.">
-  <meta name="twitter:image" content="https://phone-whisper-server.pages.dev/colab_og_cover.jpg">
+  <meta name="twitter:image" content="https://phone-whisper-server.pages.dev/noir_og.jpg">
   <meta name="twitter:image:alt" content="NOIR Minimalist Card">
   <meta name="twitter:creator" content="@botmaker583">
 
@@ -923,7 +923,7 @@
       </div>
 
       <div class="top-right">
-        <div class="resource-pill" id="resourcePill" title="Phone CPU & Storage Metrics">
+        <div class="resource-pill" id="resourcePill" title="View Hardware Architecture & Benchmarks" onclick="window.open('stats.html', '_blank')" style="cursor: pointer;">
           <div class="res-metric">
             <span>RAM</span>
             <div class="res-bar"><div id="ramFill" class="res-bar-fill" style="width: 45%;"></div></div>
@@ -953,6 +953,10 @@
       <div class="menu-item" onclick="insertCodeCell()">Insert</div>
       <div class="menu-item" onclick="runAllCells()">Runtime</div>
       <div class="menu-item" onclick="openSettings()">Tools</div>
+      <a class="menu-item" href="stats.html" target="_blank" style="text-decoration: none; color: inherit; display: inline-flex; align-items: center; gap: 4px;">
+        <span class="material-symbols-outlined" style="font-size: 14px; color: #f37626;">memory</span>
+        <span>Specs & Benchmarks</span>
+      </a>
     </div>
   </header>
 

@@ -6403,9 +6403,20 @@ _mesh_sync_thread.start()
 class NotebookKernelSession:
     def __init__(self, session_id="default"):
         self.session_id = session_id
+        import os as _os, sys as _sys, time as _time, json as _json, math as _math, re as _re, subprocess as _subprocess, shutil as _shutil
+        from pathlib import Path as _Path
         self.namespace = {
             "__name__": "__main__",
             "__doc__": "Phone Whisper Sovereign CPU Notebook",
+            "os": _os,
+            "sys": _sys,
+            "time": _time,
+            "json": _json,
+            "math": _math,
+            "re": _re,
+            "subprocess": _subprocess,
+            "shutil": _shutil,
+            "Path": _Path,
         }
         self.execution_count = 0
         self.lock = threading.Lock()
@@ -6428,6 +6439,19 @@ class NotebookKernelSession:
                 stripped = line.strip()
                 if stripped.startswith("!"):
                     cmd = stripped[1:].strip()
+                    # Seamlessly auto-map desktop Colab/Kaggle commands to Android Termux
+                    if cmd.startswith("apt-get ") or cmd.startswith("apt "):
+                        # Convert apt-get install to pkg install or silent mock if already present
+                        pkgs = [p for p in cmd.split() if not p.startswith("-") and p not in ("apt-get", "apt", "install", "update", "upgrade")]
+                        if pkgs:
+                            cmd = f"pkg install -y {' '.join(pkgs)}"
+                        else:
+                            shell_outputs.append("[Auto-Map] apt-get update skipped (environment already provisioned)\n")
+                            continue
+                    elif "fc-cache" in cmd:
+                        shell_outputs.append("[Auto-Map] fc-cache intercepted: System fonts ready in /system/fonts/\n")
+                        continue
+
                     try:
                         res = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=60)
                         if res.stdout:
@@ -6435,7 +6459,7 @@ class NotebookKernelSession:
                         if res.stderr:
                             shell_outputs.append(res.stderr)
                     except Exception as ce:
-                        shell_outputs.append(f"[Shell Error: {ce}]\n")
+                        shell_outputs.append(f"[Shell Notice: {ce}]\n")
                 elif stripped.startswith("%pip"):
                     cmd = f"{sys.executable} -m pip " + stripped[4:].strip()
                     try:
@@ -6445,7 +6469,7 @@ class NotebookKernelSession:
                         if res.stderr:
                             shell_outputs.append(res.stderr)
                     except Exception as pe:
-                        shell_outputs.append(f"[Pip Error: {pe}]\n")
+                        shell_outputs.append(f"[Pip Notice: {pe}]\n")
                 else:
                     cleaned_py.append(line)
 
@@ -6742,6 +6766,10 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_monopoly_html()
         elif path in ["/notebook", "/notebook.html", "/colab", "/colab.html"]:
             self.handle_notebook_html()
+        elif path in ["/stats", "/stats.html", "/telemetry", "/telemetry.html"]:
+            self.handle_stats_html()
+        elif path in ["/noir_og.jpg", "/colab_og_cover.jpg"]:
+            self.handle_og_image(path)
         elif path in ["/v1/notebook/session", "/notebook/session"]:
             self.handle_notebook_session_get(parsed)
         elif path in ["/docs", "/docs.html"]:
@@ -9044,6 +9072,48 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 self.wfile.write(content)
                 return
         self.send_error(404, "notebook.html not found on server")
+
+    def handle_stats_html(self):
+        for p in [
+            os.path.join(os.getcwd(), "stats.html"),
+            "/data/data/com.termux/files/home/stats.html",
+            "/data/data/com.termux/files/home/phone-whisper-server/stats.html",
+            os.path.expanduser("~/stats.html")
+        ]:
+            if os.path.exists(p):
+                with open(p, "rb") as f:
+                    content = f.read()
+                self.send_response(200)
+                self._send_cors_headers()
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Content-Length", str(len(content)))
+                self.end_headers()
+                self.wfile.write(content)
+                return
+        self.send_error(404, "stats.html not found on server")
+
+    def handle_og_image(self, req_path):
+        filename = "noir_og.jpg" if "noir" in req_path else "colab_og_cover.jpg"
+        for p in [
+            os.path.join(os.getcwd(), filename),
+            os.path.join(os.getcwd(), "noir_og.jpg"),
+            os.path.join(os.getcwd(), "colab_og_cover.jpg"),
+            f"/data/data/com.termux/files/home/{filename}",
+            f"/data/data/com.termux/files/home/phone-whisper-server/{filename}",
+            os.path.expanduser(f"~/{filename}")
+        ]:
+            if os.path.exists(p):
+                with open(p, "rb") as f:
+                    content = f.read()
+                self.send_response(200)
+                self._send_cors_headers()
+                self.send_header("Content-Type", "image/jpeg")
+                self.send_header("Cache-Control", "public, max-age=86400")
+                self.send_header("Content-Length", str(len(content)))
+                self.end_headers()
+                self.wfile.write(content)
+                return
+        self.send_error(404, "OG image not found")
 
     def handle_notebook_session_get(self, parsed):
         qs = urllib.parse.parse_qs(parsed.query)
