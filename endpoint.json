@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://laidz-49-37-11-171.run.pinggy-free.link",
-  "inference": "https://laidz-49-37-11-171.run.pinggy-free.link/inference",
-  "telemetry": "https://laidz-49-37-11-171.run.pinggy-free.link/telemetry",
+  "endpoint": "https://dxezp-49-37-11-171.free.pinggy.net",
+  "inference": "https://dxezp-49-37-11-171.free.pinggy.net/inference",
+  "telemetry": "https://dxezp-49-37-11-171.free.pinggy.net/telemetry",
   "phone_lan_ip": "http://127.0.0.1:8081",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-24T15:53:08Z"
+  "updated_at": "2026-10-24T15:53:25Z"
 }
