@@ -1156,53 +1156,9 @@
       background: var(--colab-surface-hover);
     }
 
-    .mobile-symbol-strip {
-      display: none;
-    }
 
     /* RESPONSIVE MOBILE STYLES */
     @media (max-width: 768px) {
-      .mobile-symbol-strip {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        padding: 5px 8px;
-        background: #181818;
-        border-top: 1px solid var(--colab-border-subtle);
-        overflow-x: auto;
-        white-space: nowrap;
-        scrollbar-width: none;
-        -webkit-overflow-scrolling: touch;
-        position: sticky;
-        bottom: 26px;
-        z-index: 40;
-      }
-      .mobile-symbol-strip::-webkit-scrollbar {
-        display: none;
-      }
-      .sym-btn {
-        background: #252525;
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        color: #e8eaed;
-        font-family: var(--colab-code-font);
-        font-size: 13px;
-        font-weight: 600;
-        min-width: 32px;
-        height: 30px;
-        padding: 0 8px;
-        border-radius: 4px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        touch-action: manipulation;
-        user-select: none;
-        cursor: pointer;
-        flex-shrink: 0;
-      }
-      .sym-btn:active {
-        background: var(--colab-blue);
-        color: #1e1e1e;
-      }
       .top-bar {
         padding: 0 8px;
         height: 44px;
@@ -1505,28 +1461,7 @@
     </div>
   </div>
 
-  <!-- MOBILE QUICK SYMBOL STRIP (Instant Touch Coding Keys) -->
-  <div class="mobile-symbol-strip" id="mobileSymbolStrip">
-    <button type="button" class="sym-btn" onclick="insertSymbol('    ')" title="Indent (4 spaces)">Tab</button>
-    <button type="button" class="sym-btn" onclick="insertSymbol(':')">:</button>
-    <button type="button" class="sym-btn" onclick="insertSymbol('(')">(</button>
-    <button type="button" class="sym-btn" onclick="insertSymbol(')')">)</button>
-    <button type="button" class="sym-btn" onclick="insertSymbol('[')">[</button>
-    <button type="button" class="sym-btn" onclick="insertSymbol(']')">]</button>
-    <button type="button" class="sym-btn" onclick="insertSymbol('{')">{</button>
-    <button type="button" class="sym-btn" onclick="insertSymbol('}')">}</button>
-    <button type="button" class="sym-btn" onclick="insertSymbol('=')">=</button>
-    <button type="button" class="sym-btn" onclick="insertSymbol('&quot;')">"</button>
-    <button type="button" class="sym-btn" onclick="insertSymbol('\'')">'</button>
-    <button type="button" class="sym-btn" onclick="insertSymbol('!')">!</button>
-    <button type="button" class="sym-btn" onclick="insertSymbol('%')">%</button>
-    <button type="button" class="sym-btn" onclick="insertSymbol('_')">_</button>
-    <button type="button" class="sym-btn" onclick="insertSymbol('#')">#</button>
-    <button type="button" class="sym-btn" onclick="insertSymbol('.')">.</button>
-    <button type="button" class="sym-btn" onclick="insertSymbol(',')">,</button>
-    <button type="button" class="sym-btn" onclick="insertSymbol('+')">+</button>
-    <button type="button" class="sym-btn" onclick="insertSymbol('-')">-</button>
-  </div>
+
 
   <!-- FOOTER STATUS BAR -->
   <footer>
