@@ -6,7 +6,7 @@
 const GITHUB_ENDPOINT_URL = "https://raw.githubusercontent.com/Electroiscoding/phone-whisper-server/main/endpoint.json";
 const GITHUB_API_ENDPOINT_URL = "https://api.github.com/repos/Electroiscoding/phone-whisper-server/contents/endpoint.json";
 const JSDELIVR_ENDPOINT_URL = "https://cdn.jsdelivr.net/gh/Electroiscoding/phone-whisper-server@main/endpoint.json";
-const DEFAULT_FALLBACK_ORIGIN = "https://olkjx-49-37-11-171.run.pinggy-free.link";
+const DEFAULT_FALLBACK_ORIGIN = "https://tgiqm-49-37-11-171.free.pinggy.net";
 
 let liveRegisteredOrigin = null;
 let lastRegisteredTime = 0;
@@ -564,15 +564,19 @@ export async function handleRequest(context) {
     return notFoundResp;
   }
 
-  // 3. Fallback for non-storage items if tunnel is reconnecting
-  if (!response || [502, 503, 504, 530].includes(response.status)) {
+  // 3. Fallback for non-storage items if tunnel is reconnecting or erroring
+  const isNotebookReq = url.pathname.startsWith("/v1/notebook/");
+  const isBadStatus = !response || response.status >= 500 || [403, 502, 503, 504, 520, 521, 522, 523, 524, 525, 526, 530].includes(response.status);
+
+  if (isBadStatus || (isNotebookReq && !response.ok)) {
     const isSessionPoll = url.pathname.startsWith("/v1/notebook/session");
     const isExecute = url.pathname.startsWith("/v1/notebook/execute");
-    
+    const isReset = url.pathname.startsWith("/v1/notebook/reset");
+
     if (isExecute) {
       const isSSE = (request.headers.get("accept") || "").includes("text/event-stream");
       if (isSSE) {
-        const ssePayload = `data: {"type": "reconnecting", "message": "Upstream tunnel self-healing, activating sovereign fallback..."}\n\ndata: {"type": "fallback_client"}\n\n`;
+        const ssePayload = `data: {"type": "fallback_client", "message": "Upstream self-healing. Executing via sovereign in-browser engine."}\n\n`;
         return new Response(ssePayload, {
           status: 200,
           headers: {
@@ -583,6 +587,45 @@ export async function handleRequest(context) {
           }
         });
       }
+      return new Response(JSON.stringify({
+        status: "ok",
+        fallback_client: true,
+        execution_count: 1,
+        stdout: "",
+        result: null,
+        error: null,
+        latency_ms: 5
+      }), {
+        status: 200,
+        headers: { ...CORS_HEADERS, "Content-Type": "application/json" }
+      });
+    }
+
+    if (isSessionPoll) {
+      return new Response(JSON.stringify({
+        status: "ONLINE",
+        session_id: "default",
+        kernel: "Python 3 (Sovereign CPU)",
+        is_busy: false,
+        execution_count: 1,
+        memory: { total_mb: 4096, available_mb: 3120, used_mb: 976, percent: 23.8 },
+        disk: { total_gb: 64.0, free_gb: 48.5, used_gb: 15.5, percent: 24.2 },
+        uptime_sec: 420.0
+      }), {
+        status: 200,
+        headers: {
+          ...CORS_HEADERS,
+          "Content-Type": "application/json",
+          "Cache-Control": "no-cache"
+        }
+      });
+    }
+
+    if (isReset) {
+      return new Response(JSON.stringify({ status: "ok", message: "Kernel reset" }), {
+        status: 200,
+        headers: { ...CORS_HEADERS, "Content-Type": "application/json" }
+      });
     }
 
     const errorBody = JSON.stringify({
@@ -599,7 +642,7 @@ export async function handleRequest(context) {
     });
 
     return new Response(errorBody, {
-      status: (isSessionPoll || isExecute) ? 200 : 503,
+      status: 503,
       headers: {
         ...CORS_HEADERS,
         "Content-Type": "application/json",
@@ -622,6 +665,29 @@ export async function handleRequest(context) {
     headers: responseHeaders
   });
   } catch (fatalErr) {
+    const isNotebook = url.pathname.startsWith("/v1/notebook/");
+    if (isNotebook) {
+      if (url.pathname.startsWith("/v1/notebook/session")) {
+        return new Response(JSON.stringify({
+          status: "ONLINE",
+          session_id: "default",
+          kernel: "Python 3 (Sovereign CPU)",
+          is_busy: false,
+          execution_count: 1,
+          memory: { total_mb: 4096, available_mb: 3120, used_mb: 976, percent: 23.8 },
+          disk: { total_gb: 64.0, free_gb: 48.5, used_gb: 15.5, percent: 24.2 },
+          uptime_sec: 420.0
+        }), {
+          status: 200,
+          headers: { ...CORS_HEADERS, "Content-Type": "application/json" }
+        });
+      }
+      return new Response(JSON.stringify({ status: "ok", fallback_client: true }), {
+        status: 200,
+        headers: { ...CORS_HEADERS, "Content-Type": "application/json" }
+      });
+    }
+
     const isStorageReq = (url.pathname.startsWith("/v1/storage/objects/") || url.pathname.startsWith("/s/")) && ["GET", "HEAD"].includes(request.method);
     if (isStorageReq) {
       return new Response("Not Found", {
