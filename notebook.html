@@ -68,7 +68,7 @@
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0">
   <!-- Pyodide Sovereign In-Browser Python 3 Runtime for 100% Zero-Failure Execution -->
@@ -525,17 +525,17 @@
     .cell-gutter {
       display: flex;
       align-items: center;
-      gap: 4px;
-      padding-top: 4px;
+      gap: 6px;
+      padding-top: 2px;
       flex-shrink: 0;
       user-select: none;
     }
 
     .exec-count {
-      color: var(--colab-text-tertiary);
+      color: var(--colab-text-secondary);
       font-family: var(--colab-code-font);
       font-size: 11px;
-      min-width: 24px;
+      min-width: 28px;
       text-align: right;
     }
 
@@ -543,9 +543,9 @@
       width: 28px;
       height: 28px;
       border-radius: 50%;
-      border: none;
-      background: transparent;
-      color: var(--colab-text-secondary);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--colab-text);
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -554,17 +554,26 @@
     }
 
     .run-btn:hover {
-      background: rgba(255, 255, 255, 0.1);
-      color: var(--colab-blue);
+      background: var(--colab-blue);
+      color: #1e1e1e;
+      border-color: var(--colab-blue);
     }
 
     .run-btn.running {
       color: var(--colab-orange);
-      animation: spin 1.2s linear infinite;
+      border-color: var(--colab-orange);
+      background: rgba(249, 171, 0, 0.12);
+      animation: spin 1s linear infinite;
     }
 
     .run-btn.success {
       color: var(--colab-green);
+      border-color: var(--colab-green);
+    }
+
+    .run-btn.error {
+      color: var(--colab-red);
+      border-color: var(--colab-red);
     }
 
     @keyframes spin {
@@ -1743,7 +1752,7 @@
         const runBtn = cellEl.querySelector(".run-btn");
         if (runBtn) {
           runBtn.className = "run-btn running";
-          runBtn.innerHTML = '<span class="material-symbols-outlined">progress_activity</span>';
+          runBtn.innerHTML = '<span class="material-symbols-outlined">sync</span>';
         }
         outputArea = cellEl.querySelector(".cell-output-area");
         if (!outputArea) {
@@ -1842,6 +1851,8 @@
                     errorEl.textContent = formatTraceback(event.error);
                     outputArea.scrollTop = outputArea.scrollHeight;
                   }
+                } else if (event.type === "fallback_client") {
+                  throw new Error("fallback_client");
                 } else if (event.type === "done") {
                   const d = event.result || {};
                   cell.status = d.status === "ok" ? "success" : "error";
@@ -1872,6 +1883,9 @@
         } else {
           // Standard JSON fallback
           const data = await res.json();
+          if (data && data.fallback_client) {
+            throw new Error("fallback_client");
+          }
           const elapsed = Math.round(performance.now() - t0);
           cell.status = data.status === "ok" ? "success" : "error";
           cell.executionCount = data.execution_count;
@@ -2307,22 +2321,22 @@ sys.modules['kaggle_secrets'].UserSecretsClient = _MockKaggleSecrets
       const py = await getPyodide();
       let code = cell.content;
 
-      // Filter magics
-      const lines = code.split('\\n');
+      // Filter magics and load manual packages
+      const lines = code.split('\n');
       const cleanLines = [];
       for (const line of lines) {
         const trimmed = line.trim();
         if (trimmed.startsWith('%pip ') || trimmed.startsWith('!pip ')) {
-          const pkg = trimmed.replace(/^(!|%)pip\\s+install\\s+/, '').split(/\\s+/)[0];
+          const pkg = trimmed.replace(/^(!|%)pip\s+install\s+/, '').split(/\s+/)[0];
           if (pkg) {
             try {
               if (stdoutEl) {
                 stdoutEl.style.display = "block";
-                stdoutEl.textContent += `Installing ${pkg} into client environment...\\n`;
+                stdoutEl.textContent += `Installing ${pkg} into sovereign client environment...\n`;
               }
               await py.loadPackage(pkg);
               if (stdoutEl) {
-                stdoutEl.textContent += `Successfully installed ${pkg}\\n`;
+                stdoutEl.textContent += `Successfully installed ${pkg}\n`;
               }
             } catch (_) {}
           }
@@ -2333,14 +2347,29 @@ sys.modules['kaggle_secrets'].UserSecretsClient = _MockKaggleSecrets
         }
         cleanLines.push(line);
       }
-      code = cleanLines.join('\\n');
+      code = cleanLines.join('\n');
+
+      // Auto-load any packages imported in code (scikit-learn, numpy, pandas, scipy, etc.)
+      if (py.loadPackagesFromImports) {
+        if (timeEl) {
+          timeEl.innerHTML = `
+            <span class="material-symbols-outlined" style="font-size: 13px; animation: spin 1s linear infinite;">sync</span>
+            <span>Loading packages & running Python 3...</span>
+          `;
+        }
+        try {
+          await py.loadPackagesFromImports(code);
+        } catch (pkgErr) {
+          console.warn("[Pyodide] package auto-load notice:", pkgErr);
+        }
+      }
 
       let stdoutBuf = "";
       let stderrBuf = "";
 
       py.setStdout({
         batched: (text) => {
-          stdoutBuf += text + "\\n";
+          stdoutBuf += text + "\n";
           cell.output.stdout = stdoutBuf;
           if (stdoutEl) {
             stdoutEl.style.display = "block";
@@ -2352,7 +2381,7 @@ sys.modules['kaggle_secrets'].UserSecretsClient = _MockKaggleSecrets
 
       py.setStderr({
         batched: (text) => {
-          stderrBuf += text + "\\n";
+          stderrBuf += text + "\n";
           cell.output.stderr = stderrBuf;
           if (errorEl) {
             errorEl.style.display = "block";
