@@ -39,6 +39,9 @@ pull_latest_code() {
     cp -f "$REPO/stats.html" "$HOME/stats.html" 2>/dev/null || true
     cp -f "$REPO/noir_og.jpg" "$HOME/noir_og.jpg" 2>/dev/null || true
     cp -f "$REPO/colab_og_cover.jpg" "$HOME/colab_og_cover.jpg" 2>/dev/null || true
+    cp -f "$REPO/favicon.ico" "$HOME/favicon.ico" 2>/dev/null || true
+    cp -f "$REPO/favicon.png" "$HOME/favicon.png" 2>/dev/null || true
+    cp -f "$REPO/favicon.svg" "$HOME/favicon.svg" 2>/dev/null || true
     cp -f "$REPO/maker.md" "$HOME/maker.md" 2>/dev/null || true
     cp -f "$REPO/docs.html" "$HOME/docs.html" 2>/dev/null || true
     cp -f "$REPO/swades.py" "$HOME/swades.py" 2>/dev/null || true

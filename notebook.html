@@ -4,6 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NOIR — Sovereign Python Notebook</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23767677' d='M7.157 22.201A1.784 1.799 0 0 1 5.374 24a1.784 1.799 0 0 1-1.784-1.799 1.784 1.799 0 0 1 1.784-1.799 1.784 1.799 0 0 1 1.783 1.799zM20.582 1.427a1.415 1.427 0 0 1-1.415 1.428 1.415 1.427 0 0 1-1.416-1.428A1.415 1.427 0 0 1 19.167 0a1.415 1.427 0 0 1 1.415 1.427zM4.992 3.336A1.047 1.056 0 0 1 3.946 4.39a1.047 1.056 0 0 1-1.047-1.055A1.047 1.056 0 0 1 3.946 2.28a1.047 1.056 0 0 1 1.046 1.056z'/%3E%3Cpath fill='%23F37626' d='M12.328 4.853c3.769 0 7.06 1.38 8.768 3.424a9.363 9.363 0 0 0-3.393-4.547 9.238 9.238 0 0 0-5.377-1.728A9.238 9.238 0 0 0 6.95 3.73a9.363 9.363 0 0 0-3.394 4.547c1.713-2.04 5.004-3.424 8.772-3.424zm.001 13.295c-3.768 0-7.06-1.381-8.768-3.425a9.363 9.363 0 0 0 3.394 4.547A9.238 9.238 0 0 0 12.33 21a9.238 9.238 0 0 0 5.377-1.729 9.363 9.363 0 0 0 3.393-4.547c-1.712 2.044-5.003 3.425-8.772 3.425Z'/%3E%3C/svg%3E">
+  <link rel="shortcut icon" href="/favicon.ico">
+  <link rel="alternate icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="alternate icon" type="image/png" href="/favicon.png">
   <meta name="description" content="NOIR. Clean, uninterrupted Python runtime. Pure CPU. Zero timeouts.">
   <meta name="keywords" content="NOIR, Jupyter Notebook, Python 3, Bare-metal, NeTuArk, Sovereign Computing">
   <meta name="author" content="Soham Pal & NeTuArk Engineering">
@@ -898,6 +902,278 @@
       98% { transform: scaleX(-1); }
       100% { left: -60px; transform: scaleX(1); }
     }
+
+    /* TOAST NOTIFICATION */
+    .colab-toast {
+      position: fixed;
+      bottom: 40px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: #323232;
+      color: #fff;
+      padding: 8px 18px;
+      border-radius: 20px;
+      font-size: 13px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+      z-index: 9999;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s, transform 0.25s;
+    }
+    .colab-toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* DRAWER BACKDROP (Mobile) */
+    .drawer-backdrop {
+      display: none;
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.55);
+      z-index: 35;
+      backdrop-filter: blur(2px);
+    }
+    .drawer-backdrop.active {
+      display: block;
+    }
+
+    /* BOTTOM TERMINAL DRAWER */
+    .terminal-drawer {
+      position: absolute;
+      bottom: 24px;
+      left: 0;
+      right: 0;
+      height: 250px;
+      background: #111111;
+      border-top: 1px solid var(--colab-border);
+      display: none;
+      flex-direction: column;
+      z-index: 40;
+      box-shadow: 0 -6px 20px rgba(0,0,0,0.6);
+    }
+    .terminal-drawer.open {
+      display: flex;
+    }
+    .terminal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 14px;
+      background: var(--colab-surface);
+      border-bottom: 1px solid var(--colab-border-subtle);
+      font-size: 12px;
+      color: var(--colab-text-secondary);
+    }
+    .terminal-title {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 500;
+      color: var(--colab-text);
+    }
+    .terminal-actions {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .terminal-body {
+      flex: 1;
+      padding: 10px 14px;
+      overflow-y: auto;
+      font-family: var(--colab-code-font);
+      font-size: 12px;
+      line-height: 1.5;
+      color: #e8eaed;
+      background: #0d0d0d;
+    }
+    .term-line {
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .term-line.banner {
+      color: #9aa0a6;
+      font-style: italic;
+    }
+    .term-line.cmd {
+      color: var(--colab-green);
+      font-weight: 500;
+      margin-top: 6px;
+    }
+    .term-line.err {
+      color: var(--colab-red);
+    }
+    .terminal-input-bar {
+      display: flex;
+      align-items: center;
+      padding: 6px 12px;
+      background: #181818;
+      border-top: 1px solid var(--colab-border-subtle);
+      gap: 8px;
+    }
+    .term-prompt {
+      color: var(--colab-orange);
+      font-family: var(--colab-code-font);
+      font-weight: 700;
+      font-size: 13px;
+    }
+    .term-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--colab-text);
+      font-family: var(--colab-code-font);
+      font-size: 13px;
+    }
+    .term-send-btn {
+      background: var(--colab-surface);
+      border: 1px solid var(--colab-border);
+      color: var(--colab-text);
+      border-radius: 4px;
+      padding: 4px 10px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .term-send-btn:hover {
+      background: var(--colab-surface-hover);
+    }
+
+    /* RESPONSIVE MOBILE STYLES */
+    @media (max-width: 768px) {
+      .top-bar {
+        padding: 0 8px;
+        height: 44px;
+      }
+      .top-left {
+        gap: 6px;
+      }
+      .notebook-title {
+        max-width: 120px;
+        font-size: 13px;
+        padding: 2px 4px;
+      }
+      .top-right {
+        gap: 6px;
+      }
+      .resource-pill {
+        padding: 2px 6px;
+        gap: 4px;
+        font-size: 10px;
+      }
+      .res-bar {
+        width: 20px;
+        height: 3px;
+      }
+      #resetKernelBtn span:not(.material-symbols-outlined) {
+        display: none;
+      }
+      #resetKernelBtn {
+        padding: 4px 6px;
+      }
+      .menu-bar {
+        overflow-x: auto;
+        white-space: nowrap;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        padding: 0 8px 4px 8px;
+      }
+      .menu-bar::-webkit-scrollbar {
+        display: none;
+      }
+      .action-bar {
+        padding: 0 8px;
+        overflow-x: auto;
+        white-space: nowrap;
+        scrollbar-width: none;
+      }
+      .action-bar::-webkit-scrollbar {
+        display: none;
+      }
+      .left-rail {
+        width: 40px;
+        padding: 8px 0;
+        gap: 10px;
+      }
+      .rail-btn {
+        width: 32px;
+        height: 32px;
+      }
+      /* Make Left Drawer an overlay on mobile so editor is NEVER squished! */
+      .left-drawer {
+        position: absolute;
+        left: 40px;
+        top: 0;
+        bottom: 0;
+        width: calc(100vw - 48px);
+        max-width: 300px;
+        box-shadow: 6px 0 24px rgba(0, 0, 0, 0.7);
+        z-index: 50;
+      }
+      .notebook-container {
+        padding: 12px 10px 90px 10px;
+      }
+      .cell-card {
+        border-radius: 6px;
+      }
+      .cell-input-wrapper {
+        padding: 8px 10px 8px 36px;
+      }
+      .run-btn-container {
+        left: 4px;
+        top: 6px;
+      }
+      .run-btn {
+        width: 26px;
+        height: 26px;
+      }
+      .run-btn .material-symbols-outlined {
+        font-size: 18px;
+      }
+      .cell-tools {
+        top: -14px;
+        right: 4px;
+      }
+      .cell-tool-btn {
+        width: 24px;
+        height: 24px;
+      }
+      footer {
+        padding: 0 8px;
+        height: 26px;
+      }
+      .footer-left {
+        gap: 6px;
+      }
+      .footer-btn {
+        padding: 2px 6px;
+        font-size: 11px;
+      }
+      .status-indicator span {
+        display: none;
+      }
+      #lastExecutionTimer {
+        font-size: 10px;
+      }
+      .terminal-drawer {
+        height: 260px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .notebook-title {
+        max-width: 90px;
+      }
+      .top-right {
+        gap: 4px;
+      }
+      .resource-pill span {
+        display: none;
+      }
+    }
   </style>
 </head>
 <body>
@@ -907,16 +1183,14 @@
     <div class="top-bar">
       <div class="top-left">
         <div class="colab-logo" title="Jupyter NOIR">
-          <svg viewBox="0 0 44 44" width="28" height="28">
-            <path fill="#F37626" d="M22 6.5c-8.56 0-15.5 6.94-15.5 15.5s6.94 15.5 15.5 15.5 15.5-6.94 15.5-15.5S30.56 6.5 22 6.5zm0 28.5c-7.18 0-13-5.82-13-13s5.82-13 13-13 13 5.82 13 13-5.82 13-13 13z"/>
-            <circle fill="#F37626" cx="22" cy="3.5" r="3.5"/>
-            <circle fill="#616161" cx="35" cy="33" r="3"/>
-            <circle fill="#616161" cx="9" cy="33" r="3"/>
+          <svg viewBox="0 0 24 24" width="28" height="28">
+            <path fill="#767677" d="M7.157 22.201A1.784 1.799 0 0 1 5.374 24a1.784 1.799 0 0 1-1.784-1.799 1.784 1.799 0 0 1 1.784-1.799 1.784 1.799 0 0 1 1.783 1.799zM20.582 1.427a1.415 1.427 0 0 1-1.415 1.428 1.415 1.427 0 0 1-1.416-1.428A1.415 1.427 0 0 1 19.167 0a1.415 1.427 0 0 1 1.415 1.427zM4.992 3.336A1.047 1.056 0 0 1 3.946 4.39a1.047 1.056 0 0 1-1.047-1.055A1.047 1.056 0 0 1 3.946 2.28a1.047 1.056 0 0 1 1.046 1.056z"/>
+            <path fill="#F37626" d="M12.328 4.853c3.769 0 7.06 1.38 8.768 3.424a9.363 9.363 0 0 0-3.393-4.547 9.238 9.238 0 0 0-5.377-1.728A9.238 9.238 0 0 0 6.95 3.73a9.363 9.363 0 0 0-3.394 4.547c1.713-2.04 5.004-3.424 8.772-3.424zm.001 13.295c-3.768 0-7.06-1.381-8.768-3.425a9.363 9.363 0 0 0 3.394 4.547A9.238 9.238 0 0 0 12.33 21a9.238 9.238 0 0 0 5.377-1.729 9.363 9.363 0 0 0 3.393-4.547c-1.712 2.044-5.003 3.425-8.772 3.425Z"/>
           </svg>
         </div>
         <div class="notebook-title-wrapper">
           <input type="text" id="notebookTitle" class="notebook-title" value="Untitled0.ipynb" spellcheck="false" />
-          <button class="icon-btn" title="Star notebook">
+          <button class="icon-btn" id="starBtn" title="Star notebook" onclick="toggleStar()">
             <span class="material-symbols-outlined">star</span>
           </button>
         </div>
@@ -938,7 +1212,7 @@
           <span class="material-symbols-outlined">settings</span>
         </button>
 
-        <button class="btn-action btn-primary" id="resetKernelBtn" title="Restart Kernel Runtime">
+        <button class="btn-action btn-primary" id="resetKernelBtn" title="Restart Kernel Runtime" onclick="resetRuntime()">
           <span class="material-symbols-outlined" style="font-size: 16px;">refresh</span>
           <span>Restart Runtime</span>
         </button>
@@ -1008,6 +1282,7 @@
         <!-- Rendered by toggleLeftDrawer() -->
       </div>
     </div>
+    <div class="drawer-backdrop" id="drawerBackdrop" onclick="closeLeftDrawer()"></div>
 
     <!-- NOTEBOOK CELLS CONTAINER -->
     <div class="notebook-container">
@@ -1015,16 +1290,43 @@
         <!-- Cells rendered dynamically by JS -->
       </div>
     </div>
+
+    <!-- BOTTOM TERMINAL DRAWER -->
+    <div class="terminal-drawer" id="bottomTerminal">
+      <div class="terminal-header">
+        <div class="terminal-title">
+          <span class="material-symbols-outlined" style="font-size: 16px; color: #f37626;">terminal</span>
+          <span>NOIR Sovereign Terminal (Termux ARM64)</span>
+        </div>
+        <div class="terminal-actions">
+          <button class="icon-btn" onclick="clearTerminal()" title="Clear terminal">
+            <span class="material-symbols-outlined" style="font-size: 16px;">block</span>
+          </button>
+          <button class="icon-btn" onclick="toggleBottomTerminal()" title="Close terminal">
+            <span class="material-symbols-outlined" style="font-size: 16px;">close</span>
+          </button>
+        </div>
+      </div>
+      <div class="terminal-body" id="terminalOutput">
+        <div class="term-line banner">NOIR Sovereign Shell [Linux Kernel 4.9 aarch64 • 8x Cortex-A53]</div>
+        <div class="term-line banner">Run direct bash, git, ffmpeg, pip, and pkg commands. Type command and press Enter.</div>
+      </div>
+      <div class="terminal-input-bar">
+        <span class="term-prompt">$</span>
+        <input type="text" id="terminalInput" class="term-input" placeholder="Type a bash command (e.g. ls -la, df -h, ffmpeg -version, pip list)..." spellcheck="false" autocomplete="off" />
+        <button class="term-send-btn" onclick="runTerminalCmd()">Run</button>
+      </div>
+    </div>
   </div>
 
   <!-- FOOTER STATUS BAR -->
   <footer>
     <div class="footer-left">
-      <button class="footer-btn">
+      <button class="footer-btn" id="footerTerminalBtn" onclick="toggleBottomTerminal()" title="Toggle Termux Terminal">
         <span class="material-symbols-outlined" style="font-size: 14px;">terminal</span>
         <span>Terminal</span>
       </button>
-      <button class="footer-btn">
+      <button class="footer-btn" id="footerVarsBtn" onclick="toggleLeftDrawer('vars')" title="Toggle Variables Explorer">
         <span class="material-symbols-outlined" style="font-size: 14px;">data_object</span>
         <span>Variables</span>
       </button>
@@ -1491,8 +1793,11 @@
       const drawer = document.getElementById("leftDrawer");
       const title = document.getElementById("drawerTitle");
       const body = document.getElementById("drawerBody");
+      const backdrop = document.getElementById("drawerBackdrop");
+      const footerVars = document.getElementById("footerVarsBtn");
 
       document.querySelectorAll(".rail-btn").forEach(b => b.classList.remove("active"));
+      if (footerVars) footerVars.classList.remove("active");
 
       if (activeDrawerTab === tabName && drawer.classList.contains("open")) {
         closeLeftDrawer();
@@ -1501,6 +1806,7 @@
 
       activeDrawerTab = tabName;
       drawer.classList.add("open");
+      if (backdrop) backdrop.classList.add("active");
 
       if (tabName === "toc") {
         document.getElementById("railBtnToc").classList.add("active");
@@ -1512,6 +1818,7 @@
         renderSearch(body);
       } else if (tabName === "vars") {
         document.getElementById("railBtnVars").classList.add("active");
+        if (footerVars) footerVars.classList.add("active");
         title.innerText = "Variables explorer";
         renderVars(body);
       } else if (tabName === "files") {
@@ -1523,8 +1830,12 @@
 
     function closeLeftDrawer() {
       const drawer = document.getElementById("leftDrawer");
-      drawer.classList.remove("open");
+      if (drawer) drawer.classList.remove("open");
+      const backdrop = document.getElementById("drawerBackdrop");
+      if (backdrop) backdrop.classList.remove("active");
       document.querySelectorAll(".rail-btn").forEach(b => b.classList.remove("active"));
+      const footerVars = document.getElementById("footerVarsBtn");
+      if (footerVars) footerVars.classList.remove("active");
       activeDrawerTab = null;
     }
 
@@ -1628,6 +1939,116 @@
       } catch (e) {
         container.innerHTML = `<div style="color:var(--colab-red);">Could not list files: ${e}</div>`;
       }
+    }
+
+    // Star notebook
+    function toggleStar() {
+      const btn = document.getElementById("starBtn");
+      if (!btn) return;
+      const isStarred = btn.classList.toggle("starred");
+      const icon = btn.querySelector(".material-symbols-outlined");
+      if (icon) icon.innerText = isStarred ? "grade" : "star";
+      btn.style.color = isStarred ? "#fbc02d" : "";
+      showToast(isStarred ? "Starred notebook" : "Unstarred notebook");
+    }
+
+    // Reset Runtime
+    async function resetRuntime() {
+      const btn = document.getElementById("resetKernelBtn");
+      const icon = btn.querySelector(".material-symbols-outlined");
+      if (icon) icon.style.animation = "spin 0.8s linear infinite";
+      showToast("Restarting sovereign Python runtime...");
+      try {
+        const res = await fetch(`${API_BASE}/v1/notebook/reset`, { method: "POST" });
+        if (res.ok) {
+          showToast("Kernel restarted. State fresh.");
+          fetchSystemMetrics();
+        } else {
+          showToast("Failed to restart kernel");
+        }
+      } catch (e) {
+        showToast("Error connecting to server");
+      } finally {
+        if (icon) icon.style.animation = "";
+      }
+    }
+
+    // Bottom Terminal Drawer
+    function toggleBottomTerminal() {
+      const term = document.getElementById("bottomTerminal");
+      const footerBtn = document.getElementById("footerTerminalBtn");
+      if (!term) return;
+      const isOpen = term.classList.toggle("open");
+      if (footerBtn) footerBtn.classList.toggle("active", isOpen);
+      if (isOpen) {
+        setTimeout(() => document.getElementById("terminalInput")?.focus(), 100);
+      }
+    }
+
+    function clearTerminal() {
+      const out = document.getElementById("terminalOutput");
+      if (out) out.innerHTML = "";
+    }
+
+    async function runTerminalCmd() {
+      const inp = document.getElementById("terminalInput");
+      const out = document.getElementById("terminalOutput");
+      if (!inp || !out) return;
+      const cmd = inp.value.trim();
+      if (!cmd) return;
+      inp.value = "";
+
+      const cmdDiv = document.createElement("div");
+      cmdDiv.className = "term-line cmd";
+      cmdDiv.textContent = `$ ${cmd}`;
+      out.appendChild(cmdDiv);
+      out.scrollTop = out.scrollHeight;
+
+      try {
+        const res = await fetch(`${API_BASE}/v1/notebook/execute`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code: `!${cmd}` })
+        });
+        const data = await res.json();
+        const respDiv = document.createElement("div");
+        respDiv.className = "term-line";
+        if (data.stdout) {
+          respDiv.textContent = data.stdout;
+        } else if (data.stderr) {
+          respDiv.className = "term-line err";
+          respDiv.textContent = data.stderr;
+        } else {
+          respDiv.textContent = "[Exited with 0]";
+        }
+        out.appendChild(respDiv);
+      } catch (err) {
+        const errDiv = document.createElement("div");
+        errDiv.className = "term-line err";
+        errDiv.textContent = `Error: ${err.message}`;
+        out.appendChild(errDiv);
+      }
+      out.scrollTop = out.scrollHeight;
+    }
+
+    document.getElementById("terminalInput")?.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        runTerminalCmd();
+      }
+    });
+
+    // Toast message helper
+    function showToast(msg) {
+      let toast = document.getElementById("colabToast");
+      if (!toast) {
+        toast = document.createElement("div");
+        toast.id = "colabToast";
+        toast.className = "colab-toast";
+        document.body.appendChild(toast);
+      }
+      toast.innerText = msg;
+      toast.classList.add("show");
+      setTimeout(() => toast.classList.remove("show"), 2500);
     }
 
     renderCells();

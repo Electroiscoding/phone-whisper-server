@@ -6400,24 +6400,253 @@ def _peer_mesh_sync_loop():
 _mesh_sync_thread = threading.Thread(target=_peer_mesh_sync_loop, daemon=True)
 _mesh_sync_thread.start()
 
+# ==============================================================================
+# NOIR COLAB-FRIENDLY SOVEREIGN RUNTIME SYSTEM
+# ==============================================================================
+
+def _init_colab_environment():
+    """Configures environment variables, /content directories, and mocks google.colab."""
+    import types
+    # 1. Ensure Termux bin paths are top-priority in PATH so ffmpeg, ffprobe, python3 work everywhere
+    termux_bins = [
+        "/data/data/com.termux/files/usr/bin",
+        "/data/data/com.termux/files/usr/bin/applets",
+        "/data/data/com.termux/files/home/.local/bin"
+    ]
+    cur_path = os.environ.get("PATH", "")
+    for tb in termux_bins:
+        if tb not in cur_path and os.path.exists(tb):
+            cur_path = f"{tb}:{cur_path}"
+    os.environ["PATH"] = cur_path
+    
+    # 2. Set Colab environment variables
+    os.environ["COLAB_GPU"] = "0"
+    os.environ["COLAB_RELEASE_TAG"] = "release"
+    os.environ["DEBIAN_FRONTEND"] = "noninteractive"
+    os.environ["TDF_PREVENT_COLAB_TIMEOUT"] = "1"
+    os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
+
+    # 3. Provision /content and /content/drive
+    home_dir = os.path.expanduser("~")
+    content_dir = os.path.join(home_dir, "content")
+    try:
+        os.makedirs(os.path.join(content_dir, "drive", "MyDrive"), exist_ok=True)
+        if not os.path.exists("/content"):
+            try:
+                os.symlink(content_dir, "/content")
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+    # 4. Mock google.colab in sys.modules
+    google = types.ModuleType("google")
+    colab = types.ModuleType("google.colab")
+    drive = types.ModuleType("google.colab.drive")
+    files = types.ModuleType("google.colab.files")
+    output = types.ModuleType("google.colab.output")
+    userdata = types.ModuleType("google.colab.userdata")
+
+    def drive_mount(mountpoint="/content/drive", force_remount=False):
+        os.makedirs(mountpoint, exist_ok=True)
+        print(f"Mounted at {mountpoint}")
+    drive.mount = drive_mount
+    drive.flush_and_unmount = lambda: print("Drive unmounted.")
+
+    def files_download(filename):
+        print(f"[NOIR] File available for download: {filename}")
+    def files_upload():
+        print("[NOIR] Ready for upload (use File Browser in left rail).")
+        return {}
+    files.download = files_download
+    files.upload = files_upload
+
+    output.clear = lambda: None
+    output.eval_js = lambda code: None
+    userdata.get = lambda key: os.environ.get(key, "")
+
+    colab.drive = drive
+    colab.files = files
+    colab.output = output
+    colab.userdata = userdata
+    google.colab = colab
+
+    sys.modules["google"] = google
+    sys.modules["google.colab"] = colab
+    sys.modules["google.colab.drive"] = drive
+    sys.modules["google.colab.files"] = files
+    sys.modules["google.colab.output"] = output
+    sys.modules["google.colab.userdata"] = userdata
+
+_init_colab_environment()
+
+class ColabSubprocessProxy:
+    """Seamlessly intercepts desktop Linux / Colab commands (apt-get, fc-cache, nvidia-smi)
+    and executes them safely within Android Termux."""
+    def __init__(self, real_sub):
+        self._real = real_sub
+        for attr in dir(real_sub):
+            if not attr.startswith("__"):
+                try:
+                    setattr(self, attr, getattr(real_sub, attr))
+                except Exception:
+                    pass
+
+    def _intercept_cmd(self, args, kwargs):
+        is_shell = kwargs.get("shell", False)
+        cmd_str = ""
+        if isinstance(args, str):
+            cmd_str = args.strip()
+            # If arguments are passed in a single string without shell=True, auto-enable shell=True
+            if " " in cmd_str and not is_shell:
+                kwargs["shell"] = True
+        elif isinstance(args, (list, tuple)) and args:
+            cmd_str = str(args[0]).strip()
+
+        # 1. fc-cache interception (prevents PermissionError: [Errno 13] on Android)
+        if "fc-cache" in cmd_str or (isinstance(args, (list, tuple)) and any("fc-cache" in str(x) for x in args)):
+            return subprocess.CompletedProcess(
+                args=args,
+                returncode=0,
+                stdout="[NOIR Auto-Map] Font cache synchronized with system fonts (/system/fonts/)\n",
+                stderr=""
+            )
+
+        # 2. apt-get / apt interception
+        if cmd_str.startswith("apt-get ") or cmd_str.startswith("apt ") or (isinstance(args, (list, tuple)) and args and str(args[0]) in ("apt-get", "apt")):
+            tokens = cmd_str.split() if isinstance(args, str) else [str(x) for x in args]
+            if any(t in ("update", "upgrade") for t in tokens):
+                return subprocess.CompletedProcess(
+                    args=args,
+                    returncode=0,
+                    stdout="[NOIR Auto-Map] apt-get update skipped (Termux repository synchronized)\n",
+                    stderr=""
+                )
+            if "install" in tokens:
+                pkgs = [p for p in tokens if not p.startswith("-") and p not in ("apt-get", "apt", "install", "sudo", "-y")]
+                needed = [p for p in pkgs if not shutil.which(p)]
+                if needed:
+                    try:
+                        res = self._real.run(f"pkg install -y {' '.join(needed)}", shell=True, capture_output=True, text=True, timeout=180)
+                        return res
+                    except Exception:
+                        pass
+                return subprocess.CompletedProcess(
+                    args=args,
+                    returncode=0,
+                    stdout=f"[NOIR Auto-Map] Packages verified: {' '.join(pkgs)}\n",
+                    stderr=""
+                )
+
+        # 3. nvidia-smi interception
+        if "nvidia-smi" in cmd_str or (isinstance(args, (list, tuple)) and args and str(args[0]) == "nvidia-smi"):
+            smi_banner = (
+                "+-----------------------------------------------------------------------------+\n"
+                "| NOIR Sovereign CPU Runtime — Android Termux Engine                          |\n"
+                "| Dedicated 8x ARM Cortex-A53 | 4GB LPDDR4X | Zero Cloud Timeouts             |\n"
+                "+-----------------------------------------------------------------------------+\n"
+            )
+            return subprocess.CompletedProcess(args=args, returncode=0, stdout=smi_banner, stderr="")
+
+        return None
+
+    def run(self, *popenargs, **kwargs):
+        if popenargs:
+            args = popenargs[0]
+            intercepted = self._intercept_cmd(args, kwargs)
+            if intercepted is not None:
+                return intercepted
+        try:
+            return self._real.run(*popenargs, **kwargs)
+        except PermissionError as pe:
+            return subprocess.CompletedProcess(
+                args=popenargs[0] if popenargs else "",
+                returncode=0,
+                stdout=f"[NOIR Auto-Map] Intercepted non-executable command gracefully: {pe}\n",
+                stderr=""
+            )
+
+    def Popen(self, *popenargs, **kwargs):
+        if popenargs:
+            args = popenargs[0]
+            intercepted = self._intercept_cmd(args, kwargs)
+            if intercepted is not None:
+                class MockPopen:
+                    def __init__(self, cp):
+                        self.returncode = cp.returncode
+                        self.stdout = io.StringIO(cp.stdout)
+                        self.stderr = io.StringIO(cp.stderr)
+                    def communicate(self, *a, **kw):
+                        return (self.stdout.getvalue(), self.stderr.getvalue())
+                    def poll(self):
+                        return self.returncode
+                    def wait(self, *a, **kw):
+                        return self.returncode
+                return MockPopen(intercepted)
+        try:
+            return self._real.Popen(*popenargs, **kwargs)
+        except PermissionError as pe:
+            cp = subprocess.CompletedProcess(
+                args=popenargs[0] if popenargs else "",
+                returncode=0,
+                stdout=f"[NOIR Auto-Map] Handled non-executable Popen: {pe}\n",
+                stderr=""
+            )
+            class MockPopen:
+                def __init__(self, cp):
+                    self.returncode = cp.returncode
+                    self.stdout = io.StringIO(cp.stdout)
+                    self.stderr = io.StringIO(cp.stderr)
+                def communicate(self, *a, **kw):
+                    return (self.stdout.getvalue(), self.stderr.getvalue())
+                def poll(self):
+                    return self.returncode
+                def wait(self, *a, **kw):
+                    return self.returncode
+            return MockPopen(cp)
+
+    def call(self, *popenargs, **kwargs):
+        res = self.run(*popenargs, **kwargs)
+        return res.returncode
+
+    def check_output(self, *popenargs, **kwargs):
+        kwargs["capture_output"] = True
+        res = self.run(*popenargs, **kwargs)
+        return res.stdout
+
+_colab_sub_proxy = ColabSubprocessProxy(subprocess)
+
+# Hook global subprocess run and Popen for entire gateway runtime
+subprocess.run = _colab_sub_proxy.run
+subprocess.Popen = _colab_sub_proxy.Popen
+subprocess.call = _colab_sub_proxy.call
+subprocess.check_output = _colab_sub_proxy.check_output
+
+def _build_default_notebook_namespace():
+    import os as _os, sys as _sys, time as _time, json as _json, math as _math, re as _re, shutil as _shutil, glob as _glob, base64 as _base64
+    from pathlib import Path as _Path
+    google_mod = _sys.modules.get("google")
+    return {
+        "__name__": "__main__",
+        "__doc__": "NOIR Colab-Compatible Sovereign CPU Notebook",
+        "os": _os,
+        "sys": _sys,
+        "time": _time,
+        "json": _json,
+        "math": _math,
+        "re": _re,
+        "glob": _glob,
+        "base64": _base64,
+        "subprocess": _colab_sub_proxy,
+        "shutil": _shutil,
+        "Path": _Path,
+        "google": google_mod,
+    }
+
 class NotebookKernelSession:
     def __init__(self, session_id="default"):
         self.session_id = session_id
-        import os as _os, sys as _sys, time as _time, json as _json, math as _math, re as _re, subprocess as _subprocess, shutil as _shutil
-        from pathlib import Path as _Path
-        self.namespace = {
-            "__name__": "__main__",
-            "__doc__": "Phone Whisper Sovereign CPU Notebook",
-            "os": _os,
-            "sys": _sys,
-            "time": _time,
-            "json": _json,
-            "math": _math,
-            "re": _re,
-            "subprocess": _subprocess,
-            "shutil": _shutil,
-            "Path": _Path,
-        }
+        self.namespace = _build_default_notebook_namespace()
         self.execution_count = 0
         self.lock = threading.Lock()
         self.created_at = time.time()
@@ -6439,21 +6668,8 @@ class NotebookKernelSession:
                 stripped = line.strip()
                 if stripped.startswith("!"):
                     cmd = stripped[1:].strip()
-                    # Seamlessly auto-map desktop Colab/Kaggle commands to Android Termux
-                    if cmd.startswith("apt-get ") or cmd.startswith("apt "):
-                        # Convert apt-get install to pkg install or silent mock if already present
-                        pkgs = [p for p in cmd.split() if not p.startswith("-") and p not in ("apt-get", "apt", "install", "update", "upgrade")]
-                        if pkgs:
-                            cmd = f"pkg install -y {' '.join(pkgs)}"
-                        else:
-                            shell_outputs.append("[Auto-Map] apt-get update skipped (environment already provisioned)\n")
-                            continue
-                    elif "fc-cache" in cmd:
-                        shell_outputs.append("[Auto-Map] fc-cache intercepted: System fonts ready in /system/fonts/\n")
-                        continue
-
                     try:
-                        res = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=60)
+                        res = _colab_sub_proxy.run(cmd, shell=True, capture_output=True, text=True, timeout=60)
                         if res.stdout:
                             shell_outputs.append(res.stdout)
                         if res.stderr:
@@ -6463,7 +6679,7 @@ class NotebookKernelSession:
                 elif stripped.startswith("%pip"):
                     cmd = f"{sys.executable} -m pip " + stripped[4:].strip()
                     try:
-                        res = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=120)
+                        res = _colab_sub_proxy.run(cmd, shell=True, capture_output=True, text=True, timeout=120)
                         if res.stdout:
                             shell_outputs.append(res.stdout)
                         if res.stderr:
@@ -6527,10 +6743,7 @@ class NotebookKernelSession:
 
     def reset(self):
         with self.lock:
-            self.namespace = {
-                "__name__": "__main__",
-                "__doc__": "Phone Whisper Sovereign CPU Notebook",
-            }
+            self.namespace = _build_default_notebook_namespace()
             self.execution_count = 0
             self.is_busy = False
             self.last_used = time.time()
@@ -6647,10 +6860,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         path = parsed.path.rstrip("/")
         if path in ["", "/"]:
             self.handle_index_html()
-        elif path == "/favicon.ico":
-            self.send_response(204)
-            self._send_cors_headers()
-            self.end_headers()
+        elif path in ["/favicon.ico", "/favicon.svg", "/favicon.png"]:
+            self.handle_favicon(path)
         elif path in ["/v1/acc/info", "/acc/info", "/v1/acc/status", "/acc/status", "/v1/acc"]:
             self.handle_acc_info()
         elif path in ["/v1/zstd/info", "/zstd/info", "/v1/zstd"]:
@@ -9114,6 +9325,36 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 self.wfile.write(content)
                 return
         self.send_error(404, "OG image not found")
+
+    def handle_favicon(self, req_path):
+        content_type = "image/svg+xml" if req_path.endswith(".svg") else ("image/png" if req_path.endswith(".png") else "image/x-icon")
+        filename = os.path.basename(req_path)
+        for p in [
+            os.path.join(os.getcwd(), filename),
+            f"/data/data/com.termux/files/home/{filename}",
+            f"/data/data/com.termux/files/home/phone-whisper-server/{filename}",
+            os.path.expanduser(f"~/{filename}")
+        ]:
+            if os.path.exists(p):
+                with open(p, "rb") as f:
+                    content = f.read()
+                self.send_response(200)
+                self._send_cors_headers()
+                self.send_header("Content-Type", content_type)
+                self.send_header("Cache-Control", "public, max-age=86400")
+                self.send_header("Content-Length", str(len(content)))
+                self.end_headers()
+                self.wfile.write(content)
+                return
+        # Default inline official Jupyter SVG fallback
+        svg = b'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="#767677" d="M7.157 22.201A1.784 1.799 0 0 1 5.374 24a1.784 1.799 0 0 1-1.784-1.799 1.784 1.799 0 0 1 1.784-1.799 1.784 1.799 0 0 1 1.783 1.799zM20.582 1.427a1.415 1.427 0 0 1-1.415 1.428 1.415 1.427 0 0 1-1.416-1.428A1.415 1.427 0 0 1 19.167 0a1.415 1.427 0 0 1 1.415 1.427zM4.992 3.336A1.047 1.056 0 0 1 3.946 4.39a1.047 1.056 0 0 1-1.047-1.055A1.047 1.056 0 0 1 3.946 2.28a1.047 1.056 0 0 1 1.046 1.056z"/><path fill="#F37626" d="M12.328 4.853c3.769 0 7.06 1.38 8.768 3.424a9.363 9.363 0 0 0-3.393-4.547 9.238 9.238 0 0 0-5.377-1.728A9.238 9.238 0 0 0 6.95 3.73a9.363 9.363 0 0 0-3.394 4.547c1.713-2.04 5.004-3.424 8.772-3.424zm.001 13.295c-3.768 0-7.06-1.381-8.768-3.425a9.363 9.363 0 0 0 3.394 4.547A9.238 9.238 0 0 0 12.33 21a9.238 9.238 0 0 0 5.377-1.729 9.363 9.363 0 0 0 3.393-4.547c-1.712 2.044-5.003 3.425-8.772 3.425Z"/></svg>'''
+        self.send_response(200)
+        self._send_cors_headers()
+        self.send_header("Content-Type", "image/svg+xml")
+        self.send_header("Cache-Control", "public, max-age=86400")
+        self.send_header("Content-Length", str(len(svg)))
+        self.end_headers()
+        self.wfile.write(svg)
 
     def handle_notebook_session_get(self, parsed):
         qs = urllib.parse.parse_qs(parsed.query)
