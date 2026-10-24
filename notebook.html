@@ -517,26 +517,29 @@
     /* CODE CELL ROW */
     .cell-input-row {
       display: flex;
-      align-items: flex-start;
-      padding: 6px 12px 6px 8px;
-      gap: 8px;
+      align-items: stretch;
+      min-height: 48px;
     }
 
     .cell-gutter {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding-top: 2px;
+      width: 52px;
       flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 8px 0;
+      gap: 4px;
+      border-right: 1px solid var(--colab-border-subtle);
+      background: rgba(0, 0, 0, 0.15);
       user-select: none;
     }
 
     .exec-count {
       color: var(--colab-text-secondary);
       font-family: var(--colab-code-font);
-      font-size: 11px;
-      min-width: 28px;
-      text-align: right;
+      font-size: 10px;
+      text-align: center;
+      line-height: 1;
     }
 
     .run-btn {
@@ -551,6 +554,7 @@
       align-items: center;
       justify-content: center;
       transition: all 0.15s;
+      flex-shrink: 0;
     }
 
     .run-btn:hover {
@@ -582,7 +586,8 @@
 
     .cell-editor-wrapper {
       flex: 1;
-      min-height: 28px;
+      min-width: 0;
+      padding: 8px 14px;
     }
 
     .cell-editor {
@@ -607,11 +612,11 @@
     /* OUTPUT AREA */
     .cell-output-area {
       border-top: 1px solid var(--colab-border-subtle);
-      padding: 10px 16px 12px 42px;
+      padding: 10px 16px 12px 66px;
       font-family: var(--colab-code-font);
       font-size: 12px;
       line-height: 1.5;
-      background: rgba(0, 0, 0, 0.2);
+      background: rgba(0, 0, 0, 0.22);
       border-bottom-left-radius: 8px;
       border-bottom-right-radius: 8px;
       max-height: 480px;
@@ -1646,10 +1651,10 @@
 
           <div class="cell-input-row">
             <div class="cell-gutter">
-              <span class="exec-count">[${cell.executionCount || ' '}]</span>
               <button class="run-btn ${runClass}" onclick="executeCell('${cell.id}')" title="Execute cell (Shift+Enter)">
                 <span class="material-symbols-outlined">${runIcon}</span>
               </button>
+              <span class="exec-count">[${cell.executionCount || ' '}]</span>
             </div>
             <div class="cell-editor-wrapper">
               <textarea class="cell-editor" id="editor-${cell.id}" rows="${Math.max(2, (cell.content.split('\n').length))}" spellcheck="false" autocapitalize="none" autocorrect="off" autocomplete="off">${escapeHtml(cell.content)}</textarea>
@@ -1803,6 +1808,7 @@
           const decoder = new TextDecoder("utf-8");
           let buffer = "";
 
+          let needsFallback = false;
           while (true) {
             const { done, value } = await reader.read();
             if (done) break;
@@ -1820,64 +1826,73 @@
               const jsonStr = trimmed.slice(dataIdx + 6).trim();
               if (!jsonStr) continue;
 
+              let event = null;
               try {
-                const event = JSON.parse(jsonStr);
-
-                if (event.type === "stdout") {
-                  cell.output.stdout += event.text;
-                  if (stdoutEl) {
-                    stdoutEl.style.display = "block";
-                    stdoutEl.textContent = cell.output.stdout;
-                    outputArea.scrollTop = outputArea.scrollHeight;
-                  }
-                } else if (event.type === "stderr") {
-                  cell.output.stderr = (cell.output.stderr || "") + event.text;
-                  if (errorEl) {
-                    errorEl.style.display = "block";
-                    errorEl.textContent = cell.output.stderr;
-                    outputArea.scrollTop = outputArea.scrollHeight;
-                  }
-                } else if (event.type === "result") {
-                  cell.output.result = event.result;
-                  if (resultEl) {
-                    resultEl.style.display = "block";
-                    resultEl.textContent = event.result;
-                    outputArea.scrollTop = outputArea.scrollHeight;
-                  }
-                } else if (event.type === "error") {
-                  cell.output.error = event.error;
-                  if (errorEl) {
-                    errorEl.style.display = "block";
-                    errorEl.textContent = formatTraceback(event.error);
-                    outputArea.scrollTop = outputArea.scrollHeight;
-                  }
-                } else if (event.type === "fallback_client") {
-                  throw new Error("fallback_client");
-                } else if (event.type === "done") {
-                  const d = event.result || {};
-                  cell.status = d.status === "ok" ? "success" : "error";
-                  cell.executionCount = d.execution_count;
-                  cell.latencyMs = d.latency_ms || Math.round(performance.now() - t0);
-                  if (d.stdout) cell.output.stdout = d.stdout;
-                  if (d.stderr) cell.output.stderr = d.stderr;
-                  if (d.result) cell.output.result = d.result;
-                  if (d.error) cell.output.error = d.error;
-
-                  if (cellEl) {
-                    const countEl = cellEl.querySelector(".exec-count");
-                    if (countEl) countEl.textContent = `[${cell.executionCount || ' '}]`;
-                  }
-                  if (timeEl) {
-                    timeEl.innerHTML = `
-                      <span class="material-symbols-outlined" style="font-size: 13px;">schedule</span>
-                      <span>Executed in ${cell.latencyMs}ms</span>
-                      <span class="stream-badge-done">LIVE STREAMED</span>
-                    `;
-                  }
-                }
+                event = JSON.parse(jsonStr);
               } catch (parseErr) {
                 console.warn("[SSE JSON error]", parseErr, jsonStr);
+                continue;
               }
+
+              if (event.type === "fallback_client") {
+                needsFallback = true;
+                break;
+              }
+
+              if (event.type === "stdout") {
+                cell.output.stdout += event.text;
+                if (stdoutEl) {
+                  stdoutEl.style.display = "block";
+                  stdoutEl.textContent = cell.output.stdout;
+                  outputArea.scrollTop = outputArea.scrollHeight;
+                }
+              } else if (event.type === "stderr") {
+                cell.output.stderr = (cell.output.stderr || "") + event.text;
+                if (errorEl) {
+                  errorEl.style.display = "block";
+                  errorEl.textContent = cell.output.stderr;
+                  outputArea.scrollTop = outputArea.scrollHeight;
+                }
+              } else if (event.type === "result") {
+                cell.output.result = event.result;
+                if (resultEl) {
+                  resultEl.style.display = "block";
+                  resultEl.textContent = event.result;
+                  outputArea.scrollTop = outputArea.scrollHeight;
+                }
+              } else if (event.type === "error") {
+                cell.output.error = event.error;
+                if (errorEl) {
+                  errorEl.style.display = "block";
+                  errorEl.textContent = formatTraceback(event.error);
+                  outputArea.scrollTop = outputArea.scrollHeight;
+                }
+              } else if (event.type === "done") {
+                const d = event.result || {};
+                cell.status = d.status === "ok" ? "success" : "error";
+                cell.executionCount = d.execution_count;
+                cell.latencyMs = d.latency_ms || Math.round(performance.now() - t0);
+                if (d.stdout) cell.output.stdout = d.stdout;
+                if (d.stderr) cell.output.stderr = d.stderr;
+                if (d.result) cell.output.result = d.result;
+                if (d.error) cell.output.error = d.error;
+
+                if (cellEl) {
+                  const countEl = cellEl.querySelector(".exec-count");
+                  if (countEl) countEl.textContent = `[${cell.executionCount || ' '}]`;
+                }
+                if (timeEl) {
+                  timeEl.innerHTML = `
+                    <span class="material-symbols-outlined" style="font-size: 13px;">schedule</span>
+                    <span>Executed in ${cell.latencyMs}ms</span>
+                    <span class="stream-badge-done">LIVE STREAMED</span>
+                  `;
+                }
+              }
+            }
+            if (needsFallback) {
+              try { reader.cancel(); } catch(_) {}
+              throw new Error("fallback_client");
             }
           }
         } else {
