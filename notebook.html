@@ -626,24 +626,70 @@
     .output-stdout {
       color: #e8eaed;
       white-space: pre-wrap;
+      word-break: break-word;
     }
 
     .output-stderr {
-      color: #e3742f;
+      color: #fdd663;
+      background: rgba(253, 214, 99, 0.08);
+      border-left: 3px solid #f9ab00;
+      border-radius: 0 4px 4px 0;
+      padding: 6px 12px;
+      margin-top: 8px;
+      margin-bottom: 6px;
       white-space: pre-wrap;
-      margin-top: 4px;
+      word-break: break-word;
+      font-size: 12.5px;
+      line-height: 1.5;
+    }
+
+    .output-stderr-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: #f9ab00;
+      margin-bottom: 4px;
+      user-select: none;
     }
 
     .output-result {
       color: #a8c7fa;
       white-space: pre-wrap;
-      margin-top: 4px;
+      word-break: break-word;
+      margin-top: 6px;
+      border-top: 1px dashed rgba(168, 199, 250, 0.25);
+      padding-top: 6px;
     }
 
     .output-error {
-      color: #f28b82;
+      color: #fca5a5;
+      background: rgba(239, 68, 68, 0.1);
+      border-left: 3px solid #ef4444;
+      border-radius: 0 4px 4px 0;
+      padding: 8px 12px;
+      margin-top: 8px;
+      margin-bottom: 6px;
       white-space: pre-wrap;
-      margin-top: 4px;
+      word-break: break-word;
+      font-size: 12.5px;
+      line-height: 1.5;
+    }
+
+    .output-error-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: #ef4444;
+      margin-bottom: 4px;
+      user-select: none;
     }
 
     .output-time {
@@ -1707,9 +1753,9 @@
           ${cell.output ? `
             <div class="cell-output-area">
               ${cell.output.stdout ? `<div class="output-stdout">${escapeHtml(cell.output.stdout)}</div>` : ''}
-              ${cell.output.stderr ? `<div class="output-stderr">${escapeHtml(cell.output.stderr)}</div>` : ''}
+              ${cell.output.stderr ? `<div class="output-stderr"><div class="output-stderr-header"><span class="material-symbols-outlined" style="font-size:14px;">warning</span>Warning / Stderr</div><div>${escapeHtml(cell.output.stderr)}</div></div>` : ''}
               ${cell.output.result ? `<div class="output-result">${escapeHtml(cell.output.result)}</div>` : ''}
-              ${cell.output.error ? `<div class="output-error">${escapeHtml(formatTraceback(cell.output.error))}</div>` : ''}
+              ${cell.output.error ? `<div class="output-error"><div class="output-error-header"><span class="material-symbols-outlined" style="font-size:14px;">error</span>Error Traceback</div><div>${escapeHtml(formatTraceback(cell.output.error))}</div></div>` : ''}
               <div class="output-time">
                 <span class="material-symbols-outlined" style="font-size: 13px;">schedule</span>
                 <span>Executed in ${cell.latencyMs}ms</span>
@@ -1812,17 +1858,25 @@
         }
         outputArea.innerHTML = `
           <div class="output-stdout" style="display:none;"></div>
-          <div class="output-stderr" style="display:none;"></div>
+          <div class="output-stderr" style="display:none;">
+            <div class="output-stderr-header"><span class="material-symbols-outlined" style="font-size:14px;">warning</span>Warning / Stderr</div>
+            <div class="output-stderr-content"></div>
+          </div>
           <div class="output-result" style="display:none;"></div>
-          <div class="output-error" style="display:none;"></div>
+          <div class="output-error" style="display:none;">
+            <div class="output-error-header"><span class="material-symbols-outlined" style="font-size:14px;">error</span>Error Traceback</div>
+            <div class="output-error-content"></div>
+          </div>
           <div class="output-time">
             <span class="live-stream-badge"><span class="live-dot"></span>STREAMING LOGS</span>
           </div>
         `;
         stdoutEl = outputArea.querySelector(".output-stdout");
         const stderrEl = outputArea.querySelector(".output-stderr");
+        const stderrContentEl = outputArea.querySelector(".output-stderr-content");
         resultEl = outputArea.querySelector(".output-result");
         errorEl = outputArea.querySelector(".output-error");
+        const errorContentEl = outputArea.querySelector(".output-error-content");
         timeEl = outputArea.querySelector(".output-time");
       }
 
@@ -1895,10 +1949,15 @@
                 }
               } else if (event.type === "stderr") {
                 cell.output.stderr = (cell.output.stderr || "") + event.text;
-                const targetEl = stderrEl || errorEl;
-                if (targetEl) {
-                  targetEl.style.display = "block";
-                  targetEl.textContent = cell.output.stderr;
+                if (stderrEl) {
+                  stderrEl.style.display = "block";
+                  const content = stderrEl.querySelector(".output-stderr-content") || stderrEl;
+                  content.textContent = cell.output.stderr;
+                  outputArea.scrollTop = outputArea.scrollHeight;
+                } else if (errorEl) {
+                  errorEl.style.display = "block";
+                  const content = errorEl.querySelector(".output-error-content") || errorEl;
+                  content.textContent = cell.output.stderr;
                   outputArea.scrollTop = outputArea.scrollHeight;
                 }
               } else if (event.type === "result") {
@@ -1912,7 +1971,8 @@
                 cell.output.error = event.error;
                 if (errorEl) {
                   errorEl.style.display = "block";
-                  errorEl.textContent = formatTraceback(event.error);
+                  const content = errorEl.querySelector(".output-error-content") || errorEl;
+                  content.textContent = formatTraceback(event.error);
                   outputArea.scrollTop = outputArea.scrollHeight;
                 }
               } else if (event.type === "done") {
@@ -1975,7 +2035,8 @@
           }
           if (stderrEl && cell.output.stderr) {
             stderrEl.style.display = "block";
-            stderrEl.textContent = cell.output.stderr;
+            const content = stderrEl.querySelector(".output-stderr-content") || stderrEl;
+            content.textContent = cell.output.stderr;
           }
           if (resultEl && cell.output.result) {
             resultEl.style.display = "block";
@@ -1983,7 +2044,8 @@
           }
           if (errorEl && cell.output.error) {
             errorEl.style.display = "block";
-            errorEl.textContent = formatTraceback(cell.output.error);
+            const content = errorEl.querySelector(".output-error-content") || errorEl;
+            content.textContent = formatTraceback(cell.output.error);
           }
           if (timeEl) {
             timeEl.innerHTML = `
@@ -2460,10 +2522,15 @@ sys.modules['kaggle_secrets'].UserSecretsClient = _MockKaggleSecrets
         batched: (text) => {
           stderrBuf += text + "\n";
           cell.output.stderr = stderrBuf;
-          const targetEl = stderrEl || errorEl;
-          if (targetEl) {
-            targetEl.style.display = "block";
-            targetEl.textContent = stderrBuf;
+          if (stderrEl) {
+            stderrEl.style.display = "block";
+            const content = stderrEl.querySelector(".output-stderr-content") || stderrEl;
+            content.textContent = stderrBuf;
+            if (outputArea) outputArea.scrollTop = outputArea.scrollHeight;
+          } else if (errorEl) {
+            errorEl.style.display = "block";
+            const content = errorEl.querySelector(".output-error-content") || errorEl;
+            content.textContent = stderrBuf;
             if (outputArea) outputArea.scrollTop = outputArea.scrollHeight;
           }
         }
@@ -2488,7 +2555,8 @@ sys.modules['kaggle_secrets'].UserSecretsClient = _MockKaggleSecrets
         cell.output.error = { traceback: [String(pyErr.message || pyErr)] };
         if (errorEl) {
           errorEl.style.display = "block";
-          errorEl.textContent = formatTraceback(cell.output.error);
+          const content = errorEl.querySelector(".output-error-content") || errorEl;
+          content.textContent = formatTraceback(cell.output.error);
         }
       }
 
