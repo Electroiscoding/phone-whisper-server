@@ -6,7 +6,7 @@
 const GITHUB_ENDPOINT_URL = "https://raw.githubusercontent.com/Electroiscoding/phone-whisper-server/main/endpoint.json";
 const GITHUB_API_ENDPOINT_URL = "https://api.github.com/repos/Electroiscoding/phone-whisper-server/contents/endpoint.json";
 const JSDELIVR_ENDPOINT_URL = "https://cdn.jsdelivr.net/gh/Electroiscoding/phone-whisper-server@main/endpoint.json";
-const DEFAULT_FALLBACK_ORIGIN = "https://cbuly-49-37-11-171.free.pinggy.net";
+const DEFAULT_FALLBACK_ORIGIN = "https://lhwds-49-37-11-171.run.pinggy-free.link";
 
 let liveRegisteredOrigin = null;
 let lastRegisteredTime = 0;
@@ -387,7 +387,7 @@ export async function handleRequest(context) {
       clearTimeout(timeoutId);
 
       // Invalidate cache and retry on bad gateway / tunnel restart codes
-      if ([403, 502, 503, 504, 530].includes(response.status) && attempt < maxAttempts) {
+      if ((!response || response.status >= 500 || [403, 502, 503, 504, 520, 521, 522, 523, 524, 525, 526, 530].includes(response.status)) && attempt < maxAttempts) {
         cachedOrigin = null;
         await new Promise(r => setTimeout(r, attempt * 150));
         origin = await getLiveOrigin(true, new Set([origin]));
