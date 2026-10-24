@@ -6,7 +6,7 @@
 const GITHUB_ENDPOINT_URL = "https://raw.githubusercontent.com/Electroiscoding/phone-whisper-server/main/endpoint.json";
 const GITHUB_API_ENDPOINT_URL = "https://api.github.com/repos/Electroiscoding/phone-whisper-server/contents/endpoint.json";
 const JSDELIVR_ENDPOINT_URL = "https://cdn.jsdelivr.net/gh/Electroiscoding/phone-whisper-server@main/endpoint.json";
-const DEFAULT_FALLBACK_ORIGIN = "https://gbusm-2405-201-801a-98b2-ff90-d939-9f72-7656.run.pinggy-free.link";
+const DEFAULT_FALLBACK_ORIGIN = "https://zekic-2405-201-801a-98b2-ff90-d939-9f72-7656.run.pinggy-free.link";
 
 let liveRegisteredOrigin = null;
 let lastRegisteredTime = 0;
