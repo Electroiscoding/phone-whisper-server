@@ -1935,7 +1935,16 @@
           }
         } else {
           // Standard JSON fallback
-          const data = await res.json();
+          const rawText = await res.text();
+          if (rawText.includes("fallback_client")) {
+            throw new Error("fallback_client");
+          }
+          let data = {};
+          try {
+            data = JSON.parse(rawText);
+          } catch (_) {
+            throw new Error("fallback_client");
+          }
           if (data && data.fallback_client) {
             throw new Error("fallback_client");
           }
