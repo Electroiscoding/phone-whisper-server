@@ -13987,7 +13987,7 @@ def restart_cloudflared_tunnel():
     # Launch fresh tunnel
     cmd = [
         cf_bin, "tunnel",
-        "--url", "http://127.0.0.1:8080",
+        "--url", f"http://127.0.0.1:{os.environ.get('GATEWAY_PORT', 8080)}",
         "--protocol", "http2",
         "--edge-ip-version", "4",
         "--no-autoupdate"
@@ -14140,7 +14140,7 @@ def main():
     setup_scifi_hud()
     start_tunnel_registration_daemon()
     _currents_manager.start()
-    port = 8080
+    port = int(os.environ.get("GATEWAY_PORT", 8080))
     server_address = ('0.0.0.0', port)
     httpd = ThreadedHTTPServer(server_address, MultiModalGatewayHandler)
     print(f"==================================================")
