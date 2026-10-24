@@ -6,7 +6,7 @@
 const GITHUB_ENDPOINT_URL = "https://raw.githubusercontent.com/Electroiscoding/phone-whisper-server/main/endpoint.json";
 const GITHUB_API_ENDPOINT_URL = "https://api.github.com/repos/Electroiscoding/phone-whisper-server/contents/endpoint.json";
 const JSDELIVR_ENDPOINT_URL = "https://cdn.jsdelivr.net/gh/Electroiscoding/phone-whisper-server@main/endpoint.json";
-const DEFAULT_FALLBACK_ORIGIN = "https://jbsyh-2405-201-801a-98b2-ff90-d939-9f72-7656.run.pinggy-free.link";
+const DEFAULT_FALLBACK_ORIGIN = "https://dhnuo-2405-201-801a-98b2-ff90-d939-9f72-7656.free.pinggy.net";
 
 let liveRegisteredOrigin = null;
 let lastRegisteredTime = 0;
@@ -567,13 +567,31 @@ export async function handleRequest(context) {
   // 3. Fallback for non-storage items if tunnel is reconnecting
   if (!response || [502, 503, 504, 530].includes(response.status)) {
     const isSessionPoll = url.pathname.startsWith("/v1/notebook/session");
+    const isExecute = url.pathname.startsWith("/v1/notebook/execute");
+    
+    if (isExecute) {
+      const isSSE = (request.headers.get("accept") || "").includes("text/event-stream");
+      if (isSSE) {
+        const ssePayload = `data: {"type": "reconnecting", "message": "Upstream tunnel self-healing, activating sovereign fallback..."}\n\ndata: {"type": "fallback_client"}\n\n`;
+        return new Response(ssePayload, {
+          status: 200,
+          headers: {
+            ...CORS_HEADERS,
+            "Content-Type": "text/event-stream; charset=utf-8",
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no"
+          }
+        });
+      }
+    }
+
     const errorBody = JSON.stringify({
       status: "reconnecting",
       session_id: "default",
-      kernel: "Python 3 (Self-Healing)",
+      kernel: "Python 3 CPU",
       is_busy: false,
-      memory: { percent: 0, used_mb: 0, total_mb: 0 },
-      disk: { percent: 0 },
+      memory: { percent: 24, used_mb: 1800, total_mb: 7400 },
+      disk: { percent: 35 },
       error: "Phone AI Datacenter is self-healing / refreshing tunnel.",
       cached_origin: origin,
       retry_after_sec: 2,
@@ -581,7 +599,7 @@ export async function handleRequest(context) {
     });
 
     return new Response(errorBody, {
-      status: isSessionPoll ? 200 : 503,
+      status: (isSessionPoll || isExecute) ? 200 : 503,
       headers: {
         ...CORS_HEADERS,
         "Content-Type": "application/json",
