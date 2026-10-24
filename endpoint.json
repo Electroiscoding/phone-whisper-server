@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://dgecb-2405-201-801a-98b2-ff90-d939-9f72-7656.free.pinggy.net",
-  "inference": "https://dgecb-2405-201-801a-98b2-ff90-d939-9f72-7656.free.pinggy.net/inference",
-  "telemetry": "https://dgecb-2405-201-801a-98b2-ff90-d939-9f72-7656.free.pinggy.net/telemetry",
+  "endpoint": "https://rlqjl-2405-201-801a-98b2-ff90-d939-9f72-7656.free.pinggy.net",
+  "inference": "https://rlqjl-2405-201-801a-98b2-ff90-d939-9f72-7656.free.pinggy.net/inference",
+  "telemetry": "https://rlqjl-2405-201-801a-98b2-ff90-d939-9f72-7656.free.pinggy.net/telemetry",
   "phone_lan_ip": "http://127.0.0.1:8081",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-24T15:19:48Z"
+  "updated_at": "2026-10-24T15:20:00Z"
 }
