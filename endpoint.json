@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://khwvu-2405-201-801a-98b2-ff90-d939-9f72-7656.run.pinggy-free.link",
-  "inference": "https://khwvu-2405-201-801a-98b2-ff90-d939-9f72-7656.run.pinggy-free.link/inference",
-  "telemetry": "https://khwvu-2405-201-801a-98b2-ff90-d939-9f72-7656.run.pinggy-free.link/telemetry",
+  "endpoint": "https://inrbb-2405-201-801a-98b2-ff90-d939-9f72-7656.run.pinggy-free.link",
+  "inference": "https://inrbb-2405-201-801a-98b2-ff90-d939-9f72-7656.run.pinggy-free.link/inference",
+  "telemetry": "https://inrbb-2405-201-801a-98b2-ff90-d939-9f72-7656.run.pinggy-free.link/telemetry",
   "phone_lan_ip": "http://127.0.0.1:8081",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-24T16:01:01Z"
+  "updated_at": "2026-10-24T16:01:19Z"
 }
