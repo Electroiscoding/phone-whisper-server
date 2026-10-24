@@ -102,11 +102,8 @@ def sync_repo(url):
         with open(proxy_file, "w") as f:
             f.write(content)
             
-        subprocess.run(
-            f'git -C "{REPO_DIR}" add endpoint.json functions/_proxy.js && git -C "{REPO_DIR}" commit -m "chore(tunnel): Auto-sync live endpoint [{url}]" && git -C "{REPO_DIR}" push origin main',
-            shell=True, capture_output=True, text=True
-        )
-        print(f"[REPO-SYNC] Pushed {url} to repo", flush=True)
+        # Register is done in real-time via register_with_pages(url); avoid spamming git pushes
+        print(f"[LOCAL-SYNC] Saved {url} to endpoint.json", flush=True)
     except Exception as e:
         print(f"[REPO-SYNC ERROR] {e}", flush=True)
 
