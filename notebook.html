@@ -1775,6 +1775,7 @@
       const cellEl = document.getElementById(`cell-${cellId}`);
       let outputArea = null;
       let stdoutEl = null;
+      let stderrEl = null;
       let errorEl = null;
       let resultEl = null;
       let timeEl = null;
@@ -1807,11 +1808,9 @@
           </div>
         `;
         stdoutEl = outputArea.querySelector(".output-stdout");
-        const stderrEl = outputArea.querySelector(".output-stderr");
-        const stderrContentEl = outputArea.querySelector(".output-stderr-content");
+        stderrEl = outputArea.querySelector(".output-stderr");
         resultEl = outputArea.querySelector(".output-result");
         errorEl = outputArea.querySelector(".output-error");
-        const errorContentEl = outputArea.querySelector(".output-error-content");
         timeEl = outputArea.querySelector(".output-time");
       }
 
