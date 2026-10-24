@@ -71,26 +71,30 @@ def sync_repo(url):
     except Exception as e:
         print(f"[REPO-SYNC ERROR] {e}", flush=True)
 
-def check_phone_lan():
-    try:
-        with urllib.request.urlopen(f"{PHONE_LAN_URL}/health", timeout=3) as r:
-            return r.status == 200
-    except Exception:
-        return False
+def get_phone_target():
+    for target in ["http://127.0.0.1:8081", "http://192.168.29.2:8080"]:
+        try:
+            with urllib.request.urlopen(f"{target}/health", timeout=2) as r:
+                if r.status == 200:
+                    return target
+        except Exception:
+            pass
+    return None
 
 def main():
     print("[SUPERVISOR] Starting resilient phone tunnel watchdog...", flush=True)
     while True:
-        if not check_phone_lan():
-            print("[SUPERVISOR] Phone not responding on LAN 192.168.29.2:8080, waiting 5s...", flush=True)
-            time.sleep(5)
+        target = get_phone_target()
+        if not target:
+            print("[SUPERVISOR] Phone not responding via USB (:8081) or Wi-Fi (192.168.29.2:8080), waiting 4s...", flush=True)
+            time.sleep(4)
             continue
             
-        print("[SUPERVISOR] Phone LAN is online! Ensuring gateway and launching tunnel...", flush=True)
+        print(f"[SUPERVISOR] Phone online via {target}! Ensuring gateway and launching tunnel...", flush=True)
         ensure_gateway()
         try:
             proc = subprocess.Popen(
-                [CLOUDFLARED_BIN, 'tunnel', '--url', PHONE_LAN_URL, '--protocol', 'http2', '--edge-ip-version', '4', '--no-autoupdate'],
+                [CLOUDFLARED_BIN, 'tunnel', '--url', target, '--protocol', 'http2', '--edge-ip-version', '4', '--no-autoupdate'],
                 stderr=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 text=True,
