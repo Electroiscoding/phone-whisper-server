@@ -612,11 +612,11 @@
     /* OUTPUT AREA */
     .cell-output-area {
       border-top: 1px solid var(--colab-border-subtle);
-      padding: 10px 16px 12px 66px;
+      padding: 10px 18px 12px 66px;
       font-family: var(--colab-code-font);
-      font-size: 12px;
-      line-height: 1.5;
-      background: rgba(0, 0, 0, 0.22);
+      font-size: 13px;
+      line-height: 1.6;
+      background: rgba(0, 0, 0, 0.18);
       border-bottom-left-radius: 8px;
       border-bottom-right-radius: 8px;
       max-height: 480px;
@@ -626,6 +626,12 @@
     .output-stdout {
       color: #e8eaed;
       white-space: pre-wrap;
+    }
+
+    .output-stderr {
+      color: #e3742f;
+      white-space: pre-wrap;
+      margin-top: 4px;
     }
 
     .output-result {
@@ -1701,6 +1707,7 @@
           ${cell.output ? `
             <div class="cell-output-area">
               ${cell.output.stdout ? `<div class="output-stdout">${escapeHtml(cell.output.stdout)}</div>` : ''}
+              ${cell.output.stderr ? `<div class="output-stderr">${escapeHtml(cell.output.stderr)}</div>` : ''}
               ${cell.output.result ? `<div class="output-result">${escapeHtml(cell.output.result)}</div>` : ''}
               ${cell.output.error ? `<div class="output-error">${escapeHtml(formatTraceback(cell.output.error))}</div>` : ''}
               <div class="output-time">
@@ -1805,6 +1812,7 @@
         }
         outputArea.innerHTML = `
           <div class="output-stdout" style="display:none;"></div>
+          <div class="output-stderr" style="display:none;"></div>
           <div class="output-result" style="display:none;"></div>
           <div class="output-error" style="display:none;"></div>
           <div class="output-time">
@@ -1812,6 +1820,7 @@
           </div>
         `;
         stdoutEl = outputArea.querySelector(".output-stdout");
+        const stderrEl = outputArea.querySelector(".output-stderr");
         resultEl = outputArea.querySelector(".output-result");
         errorEl = outputArea.querySelector(".output-error");
         timeEl = outputArea.querySelector(".output-time");
@@ -1886,9 +1895,10 @@
                 }
               } else if (event.type === "stderr") {
                 cell.output.stderr = (cell.output.stderr || "") + event.text;
-                if (errorEl) {
-                  errorEl.style.display = "block";
-                  errorEl.textContent = cell.output.stderr;
+                const targetEl = stderrEl || errorEl;
+                if (targetEl) {
+                  targetEl.style.display = "block";
+                  targetEl.textContent = cell.output.stderr;
                   outputArea.scrollTop = outputArea.scrollHeight;
                 }
               } else if (event.type === "result") {
@@ -1963,6 +1973,10 @@
             stdoutEl.style.display = "block";
             stdoutEl.textContent = cell.output.stdout;
           }
+          if (stderrEl && cell.output.stderr) {
+            stderrEl.style.display = "block";
+            stderrEl.textContent = cell.output.stderr;
+          }
           if (resultEl && cell.output.result) {
             resultEl.style.display = "block";
             resultEl.textContent = cell.output.result;
@@ -1994,7 +2008,7 @@
               <span>Executing Sovereign CPU...</span>
             `;
           }
-          await executeInBrowserPyodide(cell, cellEl, outputArea, stdoutEl, resultEl, errorEl, timeEl, t0);
+          await executeInBrowserPyodide(cell, cellEl, outputArea, stdoutEl, stderrEl, resultEl, errorEl, timeEl, t0);
         } catch (pyErr) {
           cell.status = "error";
           cell.output = {
@@ -2380,7 +2394,7 @@ sys.modules['kaggle_secrets'].UserSecretsClient = _MockKaggleSecrets
       return pyodidePromise;
     }
 
-    async function executeInBrowserPyodide(cell, cellEl, outputArea, stdoutEl, resultEl, errorEl, timeEl, t0) {
+    async function executeInBrowserPyodide(cell, cellEl, outputArea, stdoutEl, stderrEl, resultEl, errorEl, timeEl, t0) {
       const py = await getPyodide();
       let code = cell.content;
 
@@ -2446,9 +2460,10 @@ sys.modules['kaggle_secrets'].UserSecretsClient = _MockKaggleSecrets
         batched: (text) => {
           stderrBuf += text + "\n";
           cell.output.stderr = stderrBuf;
-          if (errorEl) {
-            errorEl.style.display = "block";
-            errorEl.textContent = stderrBuf;
+          const targetEl = stderrEl || errorEl;
+          if (targetEl) {
+            targetEl.style.display = "block";
+            targetEl.textContent = stderrBuf;
             if (outputArea) outputArea.scrollTop = outputArea.scrollHeight;
           }
         }

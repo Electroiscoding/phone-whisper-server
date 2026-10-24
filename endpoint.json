@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://lelng-2405-201-801a-98b2-ff90-d939-9f72-7656.run.pinggy-free.link",
-  "inference": "https://lelng-2405-201-801a-98b2-ff90-d939-9f72-7656.run.pinggy-free.link/inference",
-  "telemetry": "https://lelng-2405-201-801a-98b2-ff90-d939-9f72-7656.run.pinggy-free.link/telemetry",
+  "endpoint": "https://njqaz-2405-201-801a-98b2-ff90-d939-9f72-7656.free.pinggy.net",
+  "inference": "https://njqaz-2405-201-801a-98b2-ff90-d939-9f72-7656.free.pinggy.net/inference",
+  "telemetry": "https://njqaz-2405-201-801a-98b2-ff90-d939-9f72-7656.free.pinggy.net/telemetry",
   "phone_lan_ip": "http://127.0.0.1:8081",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-24T16:23:43Z"
+  "updated_at": "2026-10-24T16:23:47Z"
 }
