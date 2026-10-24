@@ -6,7 +6,7 @@ import os
 import urllib.request
 import urllib.error
 
-PHONE_LAN_URL = "http://192.168.29.2:8080"
+PHONE_LAN_URL = "http://127.0.0.1:8081"
 GATEWAY_URL = "http://127.0.0.1:8000"
 PAGES_REG_URL = "https://phone-whisper-server.pages.dev/register_tunnel"
 SHARED_SECRET = "mobile_ai_nuclear_key"
@@ -90,7 +90,7 @@ def main():
         ensure_gateway()
         try:
             proc = subprocess.Popen(
-                [CLOUDFLARED_BIN, 'tunnel', '--url', GATEWAY_URL, '--protocol', 'http2', '--edge-ip-version', '4', '--no-autoupdate'],
+                [CLOUDFLARED_BIN, 'tunnel', '--url', PHONE_LAN_URL, '--protocol', 'http2', '--edge-ip-version', '4', '--no-autoupdate'],
                 stderr=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 text=True,

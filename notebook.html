@@ -1065,7 +1065,7 @@
             <div class="cell-output-area">
               ${cell.output.stdout ? `<div class="output-stdout">${escapeHtml(cell.output.stdout)}</div>` : ''}
               ${cell.output.result ? `<div class="output-result">${escapeHtml(cell.output.result)}</div>` : ''}
-              ${cell.output.error ? `<div class="output-error">${escapeHtml(cell.output.error.traceback.join('\\n'))}</div>` : ''}
+              ${cell.output.error ? `<div class="output-error">${escapeHtml(formatTraceback(cell.output.error))}</div>` : ''}
               <div class="output-time">
                 <span class="material-symbols-outlined" style="font-size: 13px;">schedule</span>
                 <span>Executed in ${cell.latencyMs}ms</span>
@@ -1076,7 +1076,6 @@
 
         container.appendChild(cellEl);
 
-        // Bind auto-resize and change tracking
         const ta = cellEl.querySelector("textarea");
         if (ta) {
           ta.addEventListener("input", (e) => {
@@ -1091,6 +1090,16 @@
           });
         }
       });
+    }
+
+    function formatTraceback(err) {
+      if (!err) return "";
+      if (typeof err === "string") return err;
+      if (Array.isArray(err.traceback)) return err.traceback.join("\n");
+      if (typeof err.traceback === "string") return err.traceback;
+      if (err.evalue) return `${err.ename || 'Error'}: ${err.evalue}`;
+      if (err.message) return err.message;
+      return JSON.stringify(err);
     }
 
     function escapeHtml(text) {
@@ -1119,6 +1128,16 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ code: cell.content, session_id: "default" })
         });
+        
+        if (!res.ok) {
+          let errText = `Server returned HTTP ${res.status}`;
+          try {
+            const errJson = await res.json();
+            if (errJson.error) errText = errJson.error;
+          } catch (_) {}
+          throw new Error(errText);
+        }
+
         const data = await res.json();
         const elapsed = Math.round(performance.now() - t0);
 
@@ -1136,7 +1155,7 @@
       } catch (err) {
         cell.status = "error";
         cell.output = {
-          error: { traceback: [String(err)] }
+          error: { traceback: [String(err.message || err)] }
         };
         cell.latencyMs = Math.round(performance.now() - t0);
       } finally {
@@ -1190,14 +1209,20 @@
       renderCells();
     }
 
-    function updateStatus(isBusy) {
+    function updateStatus(isBusy, isError = false, customMsg = null) {
       const dot = document.getElementById("statusDot");
       const text = document.getElementById("statusText");
-      if (isBusy) {
+      if (isError) {
+        dot.className = "status-dot";
+        dot.style.background = "#f28b82";
+        text.innerText = customMsg || "Server Unreachable";
+      } else if (isBusy) {
         dot.className = "status-dot busy";
+        dot.style.background = "";
         text.innerText = "Executing (CPU)...";
       } else {
         dot.className = "status-dot";
+        dot.style.background = "";
         text.innerText = "Connected (Python 3 CPU)";
       }
     }
@@ -1207,14 +1232,24 @@
         const res = await fetch(`${API_BASE}/v1/notebook/session?session_id=default`);
         if (res.ok) {
           const data = await res.json();
+          if (data.status === "reconnecting") {
+            updateStatus(false, true, "Tunnel Self-Healing / Reconnecting...");
+            return;
+          }
+          updateStatus(data.is_busy, false);
           if (data.memory && data.memory.percent !== undefined) {
             document.getElementById("ramFill").style.width = `${Math.min(100, data.memory.percent)}%`;
+            document.getElementById("resourcePill").title = `RAM: ${data.memory.used_mb || 0}MB / ${data.memory.total_mb || 0}MB (${data.memory.percent}%)`;
           }
           if (data.disk && data.disk.percent !== undefined) {
             document.getElementById("diskFill").style.width = `${Math.min(100, data.disk.percent)}%`;
           }
+        } else {
+          updateStatus(false, true, `Server Unreachable (${res.status})`);
         }
-      } catch (_) {}
+      } catch (err) {
+        updateStatus(false, true, "Server Unreachable (Offline)");
+      }
     }
 
     // Settings Modal
