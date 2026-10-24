@@ -53,7 +53,11 @@ export async function onRequest(context) {
     "/rank", "/stats",
     "/signup", "/signin", "/refresh", "/signout", "/me", "/query", "/watch"
   ];
-  const isApi = apiPrefixes.some(prefix => url.pathname.startsWith(prefix)) || apiExactPaths.includes(url.pathname);
+  const acceptsHtml = (request.headers.get("accept") || "").includes("text/html");
+  let isApi = apiPrefixes.some(prefix => url.pathname.startsWith(prefix)) || apiExactPaths.includes(url.pathname);
+  if (acceptsHtml && (url.pathname === "/stats" || url.pathname === "/telemetry")) {
+    isApi = false;
+  }
 
   if (!isApi) {
     const res = await next();

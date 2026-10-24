@@ -934,7 +934,7 @@
           </div>
         </div>
 
-        <button class="icon-btn" id="openSettingsBtn" title="Notebook Settings">
+        <button class="icon-btn" id="openSettingsBtn" title="Notebook Settings" onclick="openSettings()">
           <span class="material-symbols-outlined">settings</span>
         </button>
 
@@ -1040,7 +1040,7 @@
   </footer>
 
   <!-- SETTINGS MODAL -->
-  <div class="modal-overlay" id="settingsModal">
+  <div class="modal-overlay" id="settingsModal" onclick="if(event.target === this) closeSettings()">
     <div class="settings-modal">
       <div class="modal-header">Settings</div>
       <div class="modal-body">
@@ -1395,11 +1395,37 @@
 
     // Settings Modal
     function openSettings() {
-      document.getElementById("settingsModal").classList.add("open");
+      const modal = document.getElementById("settingsModal");
+      if (modal) modal.classList.add("open");
     }
 
     function closeSettings() {
-      document.getElementById("settingsModal").classList.remove("open");
+      const modal = document.getElementById("settingsModal");
+      if (modal) modal.classList.remove("open");
+    }
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") closeSettings();
+    });
+
+    const themeSelect = document.getElementById("themeSelect");
+    if (themeSelect) {
+      themeSelect.addEventListener("change", (e) => {
+        const theme = e.target.value;
+        if (theme === "light") {
+          document.documentElement.style.setProperty("--colab-bg", "#ffffff");
+          document.documentElement.style.setProperty("--colab-surface", "#f8f9fa");
+          document.documentElement.style.setProperty("--colab-border", "#dadce0");
+          document.documentElement.style.setProperty("--colab-text", "#202124");
+          document.documentElement.style.setProperty("--colab-text-muted", "#5f6368");
+        } else {
+          document.documentElement.style.setProperty("--colab-bg", "#1e1e1e");
+          document.documentElement.style.setProperty("--colab-surface", "#252525");
+          document.documentElement.style.setProperty("--colab-border", "#3c4043");
+          document.documentElement.style.setProperty("--colab-text", "#e8eaed");
+          document.documentElement.style.setProperty("--colab-text-muted", "#9aa0a6");
+        }
+      });
     }
 
     function switchSettingsTab(tabName, tabEl) {
