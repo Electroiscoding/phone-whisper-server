@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://king-spatial-weed-solomon.trycloudflare.com",
-  "inference": "https://king-spatial-weed-solomon.trycloudflare.com/inference",
-  "telemetry": "https://king-spatial-weed-solomon.trycloudflare.com/telemetry",
+  "endpoint": "https://pond-recommendations-tribal-raymond.trycloudflare.com",
+  "inference": "https://pond-recommendations-tribal-raymond.trycloudflare.com/inference",
+  "telemetry": "https://pond-recommendations-tribal-raymond.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://127.0.0.1:8081",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-24T14:20:36Z"
+  "updated_at": "2026-10-24T15:07:26Z"
 }

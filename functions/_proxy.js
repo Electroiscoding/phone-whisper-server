@@ -6,7 +6,7 @@
 const GITHUB_ENDPOINT_URL = "https://raw.githubusercontent.com/Electroiscoding/phone-whisper-server/main/endpoint.json";
 const GITHUB_API_ENDPOINT_URL = "https://api.github.com/repos/Electroiscoding/phone-whisper-server/contents/endpoint.json";
 const JSDELIVR_ENDPOINT_URL = "https://cdn.jsdelivr.net/gh/Electroiscoding/phone-whisper-server@main/endpoint.json";
-const DEFAULT_FALLBACK_ORIGIN = "https://king-spatial-weed-solomon.trycloudflare.com";
+const DEFAULT_FALLBACK_ORIGIN = "https://pond-recommendations-tribal-raymond.trycloudflare.com";
 
 let liveRegisteredOrigin = null;
 let lastRegisteredTime = 0;
@@ -566,8 +566,14 @@ export async function handleRequest(context) {
 
   // 3. Fallback for non-storage items if tunnel is reconnecting
   if (!response || [502, 503, 504, 530].includes(response.status)) {
+    const isSessionPoll = url.pathname.startsWith("/v1/notebook/session");
     const errorBody = JSON.stringify({
       status: "reconnecting",
+      session_id: "default",
+      kernel: "Python 3 (Self-Healing)",
+      is_busy: false,
+      memory: { percent: 0, used_mb: 0, total_mb: 0 },
+      disk: { percent: 0 },
       error: "Phone AI Datacenter is self-healing / refreshing tunnel.",
       cached_origin: origin,
       retry_after_sec: 2,
@@ -575,7 +581,7 @@ export async function handleRequest(context) {
     });
 
     return new Response(errorBody, {
-      status: 503,
+      status: isSessionPoll ? 200 : 503,
       headers: {
         ...CORS_HEADERS,
         "Content-Type": "application/json",
