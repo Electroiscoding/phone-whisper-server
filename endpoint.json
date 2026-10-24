@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://pond-recommendations-tribal-raymond.trycloudflare.com",
-  "inference": "https://pond-recommendations-tribal-raymond.trycloudflare.com/inference",
-  "telemetry": "https://pond-recommendations-tribal-raymond.trycloudflare.com/telemetry",
+  "endpoint": "https://misc-employee-confirmed-beds.trycloudflare.com",
+  "inference": "https://misc-employee-confirmed-beds.trycloudflare.com/inference",
+  "telemetry": "https://misc-employee-confirmed-beds.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://127.0.0.1:8081",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-24T15:07:26Z"
+  "updated_at": "2026-10-24T15:07:39Z"
 }
