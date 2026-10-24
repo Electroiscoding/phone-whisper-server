@@ -1,0 +1,1305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Untitled0.ipynb - Colab</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='%23F9AB00' d='M7.74 3.42C4.54 3.42 2 5.96 2 9.16c0 3.2 2.54 5.74 5.74 5.74 1.7 0 3.23-.74 4.26-1.92-1.03-1.18-1.66-2.73-1.66-4.42 0-3.2 2.54-5.74 5.74-5.74s5.74 2.54 5.74 5.74c0 3.2-2.54 5.74-5.74 5.74-1.7 0-3.23-.74-4.26-1.92 1.03-1.18 1.66-2.73 1.66-4.42 0-3.2-2.54-5.74-5.74-5.74z'/></svg>">
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&family=Google+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+
+  <style>
+    :root {
+      --colab-bg: #1e1e1e;
+      --colab-surface: #282828;
+      --colab-surface-hover: #323232;
+      --colab-border: #3c4043;
+      --colab-border-subtle: #2d3135;
+      --colab-text: #e8eaed;
+      --colab-text-secondary: #9aa0a6;
+      --colab-text-tertiary: #5f6368;
+      --colab-orange: #f9ab00;
+      --colab-orange-hover: #e09b00;
+      --colab-blue: #8ab4f8;
+      --colab-blue-bg: #174ea6;
+      --colab-green: #81c995;
+      --colab-red: #f28b82;
+      --colab-cell-active-border: #4285f4;
+      --colab-code-font: 'Roboto Mono', monospace;
+      --colab-ui-font: 'Google Sans', 'Roboto', sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      background-color: var(--colab-bg);
+      color: var(--colab-text);
+      font-family: var(--colab-ui-font);
+      font-size: 13px;
+      line-height: 1.5;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+      font-size: 18px;
+      line-height: 1;
+      display: inline-block;
+      vertical-align: middle;
+    }
+
+    /* TOP HEADER */
+    header {
+      background: var(--colab-surface);
+      border-bottom: 1px solid var(--colab-border-subtle);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 48px;
+      padding: 0 16px;
+    }
+
+    .top-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .colab-logo {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+    }
+
+    .colab-logo svg {
+      width: 28px;
+      height: 28px;
+    }
+
+    .notebook-title-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .notebook-title {
+      color: var(--colab-text);
+      font-family: var(--colab-ui-font);
+      font-size: 16px;
+      font-weight: 400;
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: 4px;
+      padding: 2px 6px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .notebook-title:hover {
+      border-color: var(--colab-border);
+    }
+
+    .notebook-title:focus {
+      background: #1e1e1e;
+      border-color: var(--colab-blue);
+    }
+
+    .top-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .resource-pill {
+      display: flex;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--colab-border-subtle);
+      border-radius: 16px;
+      padding: 4px 10px;
+      gap: 8px;
+      font-size: 11px;
+      color: var(--colab-text-secondary);
+      cursor: pointer;
+    }
+
+    .resource-pill:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .res-metric {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .res-bar {
+      width: 32px;
+      height: 4px;
+      background: #3c4043;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .res-bar-fill {
+      height: 100%;
+      background: var(--colab-green);
+      width: 35%;
+      transition: width 0.3s;
+    }
+
+    .icon-btn {
+      background: transparent;
+      border: none;
+      color: var(--colab-text-secondary);
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .icon-btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--colab-text);
+    }
+
+    /* MENU BAR */
+    .menu-bar {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      padding: 0 14px 4px 14px;
+    }
+
+    .menu-item {
+      padding: 2px 8px;
+      border-radius: 4px;
+      color: var(--colab-text-secondary);
+      font-size: 12px;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .menu-item:hover {
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--colab-text);
+    }
+
+    /* ACTION BAR */
+    .action-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 40px;
+      padding: 0 16px;
+      background: var(--colab-bg);
+      border-bottom: 1px solid var(--colab-border-subtle);
+    }
+
+    .action-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-action {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      border-radius: 4px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: background 0.15s;
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--colab-text);
+    }
+
+    .btn-secondary:hover {
+      background: var(--colab-surface);
+      border-color: var(--colab-border);
+    }
+
+    .btn-primary {
+      background: var(--colab-surface);
+      border-color: var(--colab-border);
+      color: var(--colab-text);
+    }
+
+    .btn-primary:hover {
+      background: var(--colab-surface-hover);
+    }
+
+    /* MAIN WORKSPACE */
+    .workspace {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* LEFT SIDEBAR (Icon Rail) */
+    .left-rail {
+      width: 48px;
+      background: var(--colab-surface);
+      border-right: 1px solid var(--colab-border-subtle);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 10px 0;
+      gap: 16px;
+      flex-shrink: 0;
+    }
+
+    .rail-btn {
+      color: var(--colab-text-secondary);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+
+    .rail-btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--colab-text);
+    }
+
+    .rail-btn.active {
+      color: var(--colab-blue);
+      background: rgba(138, 180, 248, 0.1);
+    }
+
+    /* NOTEBOOK CONTAINER */
+    .notebook-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px 32px 120px 32px;
+      scroll-behavior: smooth;
+    }
+
+    .cells-list {
+      max-width: 980px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* CELL CARD */
+    .cell-card {
+      background: var(--colab-bg);
+      border: 1px solid var(--colab-border-subtle);
+      border-radius: 8px;
+      position: relative;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      user-select: text;
+    }
+
+    .cell-card.focused {
+      border-color: var(--colab-cell-active-border);
+      box-shadow: 0 0 0 1px var(--colab-cell-active-border);
+    }
+
+    .cell-card:hover .cell-toolbar {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* CELL FLOATING TOOLBAR */
+    .cell-toolbar {
+      position: absolute;
+      top: -14px;
+      right: 16px;
+      background: var(--colab-surface);
+      border: 1px solid var(--colab-border);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      padding: 1px 4px;
+      gap: 2px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.15s;
+      z-index: 10;
+    }
+
+    .cell-tool-btn {
+      background: transparent;
+      border: none;
+      color: var(--colab-text-secondary);
+      border-radius: 3px;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .cell-tool-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--colab-text);
+    }
+
+    /* CODE CELL ROW */
+    .cell-input-row {
+      display: flex;
+      align-items: flex-start;
+      padding: 6px 12px 6px 8px;
+      gap: 8px;
+    }
+
+    .cell-gutter {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding-top: 4px;
+      flex-shrink: 0;
+      user-select: none;
+    }
+
+    .exec-count {
+      color: var(--colab-text-tertiary);
+      font-family: var(--colab-code-font);
+      font-size: 11px;
+      min-width: 24px;
+      text-align: right;
+    }
+
+    .run-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: none;
+      background: transparent;
+      color: var(--colab-text-secondary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+
+    .run-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--colab-blue);
+    }
+
+    .run-btn.running {
+      color: var(--colab-orange);
+      animation: spin 1.2s linear infinite;
+    }
+
+    .run-btn.success {
+      color: var(--colab-green);
+    }
+
+    @keyframes spin {
+      100% { transform: rotate(360deg); }
+    }
+
+    .cell-editor-wrapper {
+      flex: 1;
+      min-height: 28px;
+    }
+
+    .cell-editor {
+      width: 100%;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: #f8f8f2;
+      font-family: var(--colab-code-font);
+      font-size: 13px;
+      line-height: 1.6;
+      resize: vertical;
+      white-space: pre;
+      overflow-wrap: normal;
+      overflow-x: auto;
+      tab-size: 4;
+    }
+
+    /* OUTPUT AREA */
+    .cell-output-area {
+      border-top: 1px solid var(--colab-border-subtle);
+      padding: 10px 16px 12px 42px;
+      font-family: var(--colab-code-font);
+      font-size: 12px;
+      line-height: 1.5;
+      background: rgba(0, 0, 0, 0.2);
+      border-bottom-left-radius: 8px;
+      border-bottom-right-radius: 8px;
+      max-height: 480px;
+      overflow-y: auto;
+    }
+
+    .output-stdout {
+      color: #e8eaed;
+      white-space: pre-wrap;
+    }
+
+    .output-result {
+      color: #a8c7fa;
+      white-space: pre-wrap;
+      margin-top: 4px;
+    }
+
+    .output-error {
+      color: #f28b82;
+      white-space: pre-wrap;
+      margin-top: 4px;
+    }
+
+    .output-time {
+      font-size: 11px;
+      color: var(--colab-text-tertiary);
+      margin-top: 6px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* TEXT CELL */
+    .text-cell-content {
+      padding: 12px 16px;
+      font-size: 14px;
+      color: #e8eaed;
+    }
+
+    /* ADD CELL DIVIDER (Hover between cells) */
+    .cell-insert-zone {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 20px;
+      position: relative;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+
+    .cell-insert-zone:hover {
+      opacity: 1;
+    }
+
+    .cell-insert-buttons {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--colab-surface);
+      border: 1px solid var(--colab-border);
+      border-radius: 12px;
+      padding: 2px 10px;
+      z-index: 5;
+    }
+
+    .insert-btn {
+      background: transparent;
+      border: none;
+      color: var(--colab-text-secondary);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .insert-btn:hover {
+      color: var(--colab-text);
+    }
+
+    /* BOTTOM STATUS BAR */
+    footer {
+      height: 28px;
+      background: var(--colab-surface);
+      border-top: 1px solid var(--colab-border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      font-size: 11px;
+      color: var(--colab-text-secondary);
+      flex-shrink: 0;
+    }
+
+    .footer-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .footer-btn {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: transparent;
+      border: none;
+      color: var(--colab-text-secondary);
+      cursor: pointer;
+      font-size: 11px;
+    }
+
+    .footer-btn:hover {
+      color: var(--colab-text);
+    }
+
+    .footer-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--colab-green);
+    }
+
+    .status-dot.busy {
+      background: var(--colab-orange);
+      animation: pulse 1s infinite alternate;
+    }
+
+    @keyframes pulse {
+      from { opacity: 0.6; }
+      to { opacity: 1; }
+    }
+
+    /* SETTINGS MODAL */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.65);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+    }
+
+    .modal-overlay.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .settings-modal {
+      width: 580px;
+      background: #2a2a2a;
+      border-radius: 8px;
+      border: 1px solid var(--colab-border);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .modal-header {
+      padding: 16px 20px;
+      font-size: 18px;
+      font-weight: 500;
+      border-bottom: 1px solid var(--colab-border-subtle);
+    }
+
+    .modal-body {
+      display: flex;
+      height: 340px;
+    }
+
+    .modal-sidebar {
+      width: 160px;
+      border-right: 1px solid var(--colab-border-subtle);
+      padding: 12px 0;
+    }
+
+    .modal-tab {
+      padding: 8px 16px;
+      color: var(--colab-text-secondary);
+      font-size: 13px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .modal-tab:hover {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--colab-text);
+    }
+
+    .modal-tab.active {
+      color: var(--colab-blue);
+      background: rgba(138, 180, 248, 0.1);
+      font-weight: 500;
+    }
+
+    .modal-content-panel {
+      flex: 1;
+      padding: 16px 20px;
+      overflow-y: auto;
+    }
+
+    .setting-group {
+      margin-bottom: 18px;
+    }
+
+    .setting-label {
+      font-size: 12px;
+      color: var(--colab-text-secondary);
+      margin-bottom: 6px;
+      display: block;
+    }
+
+    .setting-select {
+      background: #1e1e1e;
+      border: 1px solid var(--colab-border);
+      color: var(--colab-text);
+      padding: 8px 12px;
+      border-radius: 4px;
+      width: 100%;
+      outline: none;
+      font-size: 13px;
+    }
+
+    .setting-checkbox {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      color: var(--colab-text);
+      cursor: pointer;
+      margin-bottom: 12px;
+    }
+
+    .setting-checkbox input {
+      accent-color: var(--colab-blue);
+      width: 16px;
+      height: 16px;
+    }
+
+    .modal-footer {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      padding: 12px 20px;
+      border-top: 1px solid var(--colab-border-subtle);
+      background: #252525;
+    }
+
+    .btn-modal-cancel {
+      background: transparent;
+      border: none;
+      color: var(--colab-text-secondary);
+      padding: 6px 14px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .btn-modal-cancel:hover {
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--colab-text);
+    }
+
+    .btn-modal-save {
+      background: var(--colab-blue);
+      border: none;
+      color: #1e1e1e;
+      font-weight: 500;
+      padding: 6px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .btn-modal-save:hover {
+      background: #a8c7fa;
+    }
+
+    /* CORGI / KITTY FLOATING ANIMATION */
+    .corgi-walker {
+      position: fixed;
+      bottom: 28px;
+      left: -60px;
+      font-size: 26px;
+      z-index: 99;
+      pointer-events: none;
+      animation: walkAcross 18s linear infinite;
+    }
+
+    @keyframes walkAcross {
+      0% { left: -60px; transform: scaleX(1); }
+      48% { transform: scaleX(1); }
+      50% { left: 100vw; transform: scaleX(-1); }
+      98% { transform: scaleX(-1); }
+      100% { left: -60px; transform: scaleX(1); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- TOP HEADER -->
+  <header>
+    <div class="top-bar">
+      <div class="top-left">
+        <div class="colab-logo" title="Phone Whisper Sovereign CPU Colab">
+          <svg viewBox="0 0 24 24">
+            <path fill="#F9AB00" d="M7.74 3.42C4.54 3.42 2 5.96 2 9.16c0 3.2 2.54 5.74 5.74 5.74 1.7 0 3.23-.74 4.26-1.92-1.03-1.18-1.66-2.73-1.66-4.42 0-3.2 2.54-5.74 5.74-5.74s5.74 2.54 5.74 5.74c0 3.2-2.54 5.74-5.74 5.74-1.7 0-3.23-.74-4.26-1.92 1.03-1.18 1.66-2.73 1.66-4.42 0-3.2-2.54-5.74-5.74-5.74z"/>
+          </svg>
+        </div>
+        <div class="notebook-title-wrapper">
+          <input type="text" id="notebookTitle" class="notebook-title" value="Untitled0.ipynb" spellcheck="false" />
+          <button class="icon-btn" title="Star notebook">
+            <span class="material-symbols-outlined">star</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="top-right">
+        <div class="resource-pill" id="resourcePill" title="Phone CPU & Storage Metrics">
+          <div class="res-metric">
+            <span>RAM</span>
+            <div class="res-bar"><div id="ramFill" class="res-bar-fill" style="width: 45%;"></div></div>
+          </div>
+          <div class="res-metric">
+            <span>Disk</span>
+            <div class="res-bar"><div id="diskFill" class="res-bar-fill" style="width: 30%;"></div></div>
+          </div>
+        </div>
+
+        <button class="icon-btn" id="openSettingsBtn" title="Notebook Settings">
+          <span class="material-symbols-outlined">settings</span>
+        </button>
+
+        <button class="btn-action btn-primary" id="resetKernelBtn" title="Restart Kernel Runtime">
+          <span class="material-symbols-outlined" style="font-size: 16px;">refresh</span>
+          <span>Restart Runtime</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- MENU BAR -->
+    <div class="menu-bar">
+      <div class="menu-item" onclick="exportIpynb()">File</div>
+      <div class="menu-item" onclick="insertCodeCell()">Edit</div>
+      <div class="menu-item" onclick="toggleOutputs()">View</div>
+      <div class="menu-item" onclick="insertCodeCell()">Insert</div>
+      <div class="menu-item" onclick="runAllCells()">Runtime</div>
+      <div class="menu-item" onclick="openSettings()">Tools</div>
+    </div>
+  </header>
+
+  <!-- ACTION BAR -->
+  <div class="action-bar">
+    <div class="action-left">
+      <button class="btn-action btn-secondary" onclick="insertCodeCell()">
+        <span class="material-symbols-outlined" style="font-size: 16px;">add</span>
+        <span>Code</span>
+      </button>
+      <button class="btn-action btn-secondary" onclick="insertTextCell()">
+        <span class="material-symbols-outlined" style="font-size: 16px;">add</span>
+        <span>Text</span>
+      </button>
+      <button class="btn-action btn-secondary" onclick="runAllCells()">
+        <span class="material-symbols-outlined" style="font-size: 16px;">play_arrow</span>
+        <span>Run all</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- MAIN WORKSPACE -->
+  <div class="workspace">
+    <!-- LEFT RAIL -->
+    <div class="left-rail">
+      <button class="rail-btn active" title="Table of contents">
+        <span class="material-symbols-outlined">list</span>
+      </button>
+      <button class="rail-btn" title="Find and replace">
+        <span class="material-symbols-outlined">search</span>
+      </button>
+      <button class="rail-btn" title="Variables explorer">
+        <span class="material-symbols-outlined">data_object</span>
+      </button>
+      <button class="rail-btn" title="Files (Termux storage)">
+        <span class="material-symbols-outlined">folder</span>
+      </button>
+    </div>
+
+    <!-- NOTEBOOK CELLS CONTAINER -->
+    <div class="notebook-container">
+      <div class="cells-list" id="cellsList">
+        <!-- Cells rendered dynamically by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER STATUS BAR -->
+  <footer>
+    <div class="footer-left">
+      <button class="footer-btn">
+        <span class="material-symbols-outlined" style="font-size: 14px;">terminal</span>
+        <span>Terminal</span>
+      </button>
+      <button class="footer-btn">
+        <span class="material-symbols-outlined" style="font-size: 14px;">data_object</span>
+        <span>Variables</span>
+      </button>
+    </div>
+
+    <div class="footer-right">
+      <div class="status-indicator">
+        <div class="status-dot" id="statusDot"></div>
+        <span id="statusText">Connected (Python 3 CPU)</span>
+      </div>
+      <span id="lastExecutionTimer"></span>
+    </div>
+  </footer>
+
+  <!-- SETTINGS MODAL -->
+  <div class="modal-overlay" id="settingsModal">
+    <div class="settings-modal">
+      <div class="modal-header">Settings</div>
+      <div class="modal-body">
+        <div class="modal-sidebar">
+          <div class="modal-tab active" onclick="switchSettingsTab('site', this)">Site</div>
+          <div class="modal-tab" onclick="switchSettingsTab('editor', this)">Editor</div>
+          <div class="modal-tab" onclick="switchSettingsTab('misc', this)">Miscellaneous</div>
+        </div>
+        <div class="modal-content-panel">
+          <!-- SITE TAB -->
+          <div id="tab-site">
+            <div class="setting-group">
+              <label class="setting-label">Theme</label>
+              <select class="setting-select" id="themeSelect">
+                <option value="dark">dark</option>
+                <option value="adaptive" selected>adaptive</option>
+                <option value="light">light</option>
+              </select>
+            </div>
+            <label class="setting-checkbox">
+              <input type="checkbox" checked />
+              <span>Show desktop notifications for completed executions</span>
+            </label>
+          </div>
+
+          <!-- EDITOR TAB -->
+          <div id="tab-editor" style="display: none;">
+            <div class="setting-group">
+              <label class="setting-label">Editor font family</label>
+              <select class="setting-select">
+                <option selected>Roboto Mono, monospace</option>
+                <option>Fira Code</option>
+                <option>Courier New</option>
+              </select>
+            </div>
+            <div class="setting-group">
+              <label class="setting-label">Editor font size</label>
+              <select class="setting-select">
+                <option>12px</option>
+                <option selected>13px</option>
+                <option>14px</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- MISC TAB -->
+          <div id="tab-misc" style="display: none;">
+            <div class="setting-group">
+              <label class="setting-label">Power level</label>
+              <select class="setting-select">
+                <option selected>No power</option>
+                <option>Some power</option>
+                <option>Many power</option>
+              </select>
+            </div>
+            <label class="setting-checkbox">
+              <input type="checkbox" id="corgiModeCheck" onchange="toggleCorgi(this.checked)" />
+              <span>Corgi mode</span>
+            </label>
+            <label class="setting-checkbox">
+              <input type="checkbox" id="kittyModeCheck" onchange="toggleKitty(this.checked)" />
+              <span>Kitty mode</span>
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-modal-cancel" onclick="closeSettings()">Cancel</button>
+        <button class="btn-modal-save" onclick="closeSettings()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="walkerContainer"></div>
+
+  <script>
+    const API_BASE = window.location.origin;
+    let cells = [
+      {
+        id: "c1",
+        type: "code",
+        content: `import os, sys, platform, time\nprint(f"[*] Python Host: {platform.python_implementation()} {platform.python_version()}")\nprint(f"[*] Machine: {platform.machine()} | System: {platform.system()}")\nprint("[*] Running 100% on Native CPU (Zero GPU Reliance)")`,
+        executionCount: null,
+        status: "idle",
+        output: null,
+        latencyMs: null
+      },
+      {
+        id: "c2",
+        type: "code",
+        content: `# Quick CPU benchmark\nt0 = time.time()\ntotal = sum(i * i for i in range(1_000_000))\nprint(f"Computed sum of squares: {total} in {(time.time() - t0)*1000:.2f}ms")`,
+        executionCount: null,
+        status: "idle",
+        output: null,
+        latencyMs: null
+      }
+    ];
+
+    function renderCells() {
+      const container = document.getElementById("cellsList");
+      container.innerHTML = "";
+
+      cells.forEach((cell, idx) => {
+        // Insert zone before cell
+        const insertZone = document.createElement("div");
+        insertZone.className = "cell-insert-zone";
+        insertZone.innerHTML = `
+          <div class="cell-insert-buttons">
+            <button class="insert-btn" onclick="insertCellAt(${idx}, 'code')">
+              <span class="material-symbols-outlined" style="font-size: 14px;">add</span> Code
+            </button>
+            <button class="insert-btn" onclick="insertCellAt(${idx}, 'text')">
+              <span class="material-symbols-outlined" style="font-size: 14px;">add</span> Text
+            </button>
+          </div>
+        `;
+        container.appendChild(insertZone);
+
+        // Cell element
+        const cellEl = document.createElement("div");
+        cellEl.className = "cell-card";
+        cellEl.id = `cell-${cell.id}`;
+
+        const isRunning = cell.status === "running";
+        const isSuccess = cell.status === "success";
+
+        let runIcon = "play_arrow";
+        let runClass = "";
+        if (isRunning) {
+          runIcon = "progress_activity";
+          runClass = "running";
+        } else if (isSuccess) {
+          runIcon = "check_circle";
+          runClass = "success";
+        }
+
+        cellEl.innerHTML = `
+          <div class="cell-toolbar">
+            <button class="cell-tool-btn" title="Move cell up" onclick="moveCell(${idx}, -1)">
+              <span class="material-symbols-outlined">arrow_upward</span>
+            </button>
+            <button class="cell-tool-btn" title="Move cell down" onclick="moveCell(${idx}, 1)">
+              <span class="material-symbols-outlined">arrow_downward</span>
+            </button>
+            <button class="cell-tool-btn" title="Delete cell" onclick="deleteCell(${idx})">
+              <span class="material-symbols-outlined">delete</span>
+            </button>
+          </div>
+
+          <div class="cell-input-row">
+            <div class="cell-gutter">
+              <span class="exec-count">[${cell.executionCount || ' '}]</span>
+              <button class="run-btn ${runClass}" onclick="executeCell('${cell.id}')" title="Execute cell (Shift+Enter)">
+                <span class="material-symbols-outlined">${runIcon}</span>
+              </button>
+            </div>
+            <div class="cell-editor-wrapper">
+              <textarea class="cell-editor" id="editor-${cell.id}" rows="${Math.max(2, (cell.content.split('\\n').length))}" spellcheck="false">${escapeHtml(cell.content)}</textarea>
+            </div>
+          </div>
+
+          ${cell.output ? `
+            <div class="cell-output-area">
+              ${cell.output.stdout ? `<div class="output-stdout">${escapeHtml(cell.output.stdout)}</div>` : ''}
+              ${cell.output.result ? `<div class="output-result">${escapeHtml(cell.output.result)}</div>` : ''}
+              ${cell.output.error ? `<div class="output-error">${escapeHtml(cell.output.error.traceback.join('\\n'))}</div>` : ''}
+              <div class="output-time">
+                <span class="material-symbols-outlined" style="font-size: 13px;">schedule</span>
+                <span>Executed in ${cell.latencyMs}ms</span>
+              </div>
+            </div>
+          ` : ''}
+        `;
+
+        container.appendChild(cellEl);
+
+        // Bind auto-resize and change tracking
+        const ta = cellEl.querySelector("textarea");
+        if (ta) {
+          ta.addEventListener("input", (e) => {
+            cell.content = e.target.value;
+            ta.rows = Math.max(2, cell.content.split('\n').length);
+          });
+          ta.addEventListener("keydown", (e) => {
+            if (e.shiftKey && e.key === "Enter") {
+              e.preventDefault();
+              executeCell(cell.id);
+            }
+          });
+        }
+      });
+    }
+
+    function escapeHtml(text) {
+      if (!text) return "";
+      return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    }
+
+    async function executeCell(cellId) {
+      const cell = cells.find(c => c.id === cellId);
+      if (!cell) return;
+
+      const ta = document.getElementById(`editor-${cellId}`);
+      if (ta) cell.content = ta.value;
+
+      cell.status = "running";
+      updateStatus(true);
+      renderCells();
+
+      const t0 = performance.now();
+      try {
+        const res = await fetch(`${API_BASE}/v1/notebook/execute`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code: cell.content, session_id: "default" })
+        });
+        const data = await res.json();
+        const elapsed = Math.round(performance.now() - t0);
+
+        cell.status = data.status === "ok" ? "success" : "error";
+        cell.executionCount = data.execution_count;
+        cell.output = {
+          stdout: data.stdout,
+          stderr: data.stderr,
+          result: data.result,
+          error: data.error
+        };
+        cell.latencyMs = data.latency_ms || elapsed;
+
+        document.getElementById("lastExecutionTimer").innerText = `Last: ${cell.latencyMs}ms`;
+      } catch (err) {
+        cell.status = "error";
+        cell.output = {
+          error: { traceback: [String(err)] }
+        };
+        cell.latencyMs = Math.round(performance.now() - t0);
+      } finally {
+        updateStatus(false);
+        renderCells();
+      }
+    }
+
+    async function runAllCells() {
+      for (const cell of cells) {
+        if (cell.type === "code") {
+          await executeCell(cell.id);
+        }
+      }
+    }
+
+    function insertCellAt(index, type) {
+      const newCell = {
+        id: "c_" + Date.now(),
+        type: type,
+        content: type === "code" ? "" : "## New Section",
+        executionCount: null,
+        status: "idle",
+        output: null,
+        latencyMs: null
+      };
+      cells.splice(index, 0, newCell);
+      renderCells();
+    }
+
+    function insertCodeCell() {
+      insertCellAt(cells.length, "code");
+    }
+
+    function insertTextCell() {
+      insertCellAt(cells.length, "text");
+    }
+
+    function deleteCell(index) {
+      if (cells.length <= 1) return;
+      cells.splice(index, 1);
+      renderCells();
+    }
+
+    function moveCell(index, dir) {
+      const target = index + dir;
+      if (target < 0 || target >= cells.length) return;
+      const tmp = cells[index];
+      cells[index] = cells[target];
+      cells[target] = tmp;
+      renderCells();
+    }
+
+    function updateStatus(isBusy) {
+      const dot = document.getElementById("statusDot");
+      const text = document.getElementById("statusText");
+      if (isBusy) {
+        dot.className = "status-dot busy";
+        text.innerText = "Executing (CPU)...";
+      } else {
+        dot.className = "status-dot";
+        text.innerText = "Connected (Python 3 CPU)";
+      }
+    }
+
+    async function fetchSystemMetrics() {
+      try {
+        const res = await fetch(`${API_BASE}/v1/notebook/session?session_id=default`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.memory && data.memory.percent !== undefined) {
+            document.getElementById("ramFill").style.width = `${Math.min(100, data.memory.percent)}%`;
+          }
+          if (data.disk && data.disk.percent !== undefined) {
+            document.getElementById("diskFill").style.width = `${Math.min(100, data.disk.percent)}%`;
+          }
+        }
+      } catch (_) {}
+    }
+
+    // Settings Modal
+    function openSettings() {
+      document.getElementById("settingsModal").classList.add("open");
+    }
+
+    function closeSettings() {
+      document.getElementById("settingsModal").classList.remove("open");
+    }
+
+    function switchSettingsTab(tabName, tabEl) {
+      document.querySelectorAll(".modal-tab").forEach(t => t.classList.remove("active"));
+      tabEl.classList.add("active");
+      document.getElementById("tab-site").style.display = tabName === "site" ? "block" : "none";
+      document.getElementById("tab-editor").style.display = tabName === "editor" ? "block" : "none";
+      document.getElementById("tab-misc").style.display = tabName === "misc" ? "block" : "none";
+    }
+
+    function toggleCorgi(enabled) {
+      const container = document.getElementById("walkerContainer");
+      if (enabled) {
+        container.innerHTML = `<div class="corgi-walker">🐕</div>`;
+      } else {
+        container.innerHTML = "";
+      }
+    }
+
+    function toggleKitty(enabled) {
+      const container = document.getElementById("walkerContainer");
+      if (enabled) {
+        container.innerHTML = `<div class="corgi-walker">🐈</div>`;
+      } else {
+        container.innerHTML = "";
+      }
+    }
+
+    function exportIpynb() {
+      const ipynb = {
+        cells: cells.map(c => ({
+          cell_type: c.type,
+          metadata: {},
+          source: c.content.split('\n').map(l => l + '\n'),
+          outputs: c.output ? [{
+            name: "stdout",
+            output_type: "stream",
+            text: c.output.stdout ? c.output.stdout.split('\n') : []
+          }] : [],
+          execution_count: c.executionCount
+        })),
+        metadata: {
+          kernelspec: {
+            display_name: "Python 3 (Phone Whisper CPU)",
+            language: "python",
+            name: "python3"
+          }
+        },
+        nbformat: 4,
+        nbformat_minor: 4
+      };
+
+      const blob = new Blob([JSON.stringify(ipynb, null, 2)], { type: "application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = (document.getElementById("notebookTitle").value || "notebook") + ".ipynb";
+      a.click();
+    }
+
+    document.getElementById("openSettingsBtn").addEventListener("click", openSettings);
+    document.getElementById("resetKernelBtn").addEventListener("click", async () => {
+      try {
+        await fetch(`${API_BASE}/v1/notebook/reset`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ session_id: "default" })
+        });
+        alert("Kernel Runtime Reset Successfully!");
+      } catch (e) {
+        alert("Reset failed: " + e);
+      }
+    });
+
+    renderCells();
+    fetchSystemMetrics();
+    setInterval(fetchSystemMetrics, 15000);
+  </script>
+</body>
+</html>

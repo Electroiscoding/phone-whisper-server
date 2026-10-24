@@ -38,6 +38,8 @@ import threading
 import subprocess
 import tempfile
 import io
+import ast
+import traceback
 import base64
 import math
 import urllib.request
@@ -6398,6 +6400,137 @@ def _peer_mesh_sync_loop():
 _mesh_sync_thread = threading.Thread(target=_peer_mesh_sync_loop, daemon=True)
 _mesh_sync_thread.start()
 
+class NotebookKernelSession:
+    def __init__(self, session_id="default"):
+        self.session_id = session_id
+        self.namespace = {
+            "__name__": "__main__",
+            "__doc__": "Phone Whisper Sovereign CPU Notebook",
+        }
+        self.execution_count = 0
+        self.lock = threading.Lock()
+        self.created_at = time.time()
+        self.last_used = time.time()
+        self.is_busy = False
+
+    def execute(self, code_text):
+        with self.lock:
+            self.is_busy = True
+            self.last_used = time.time()
+            self.execution_count += 1
+            t_start = time.perf_counter()
+            
+            lines = code_text.splitlines()
+            cleaned_py = []
+            shell_outputs = []
+            
+            for line in lines:
+                stripped = line.strip()
+                if stripped.startswith("!"):
+                    cmd = stripped[1:].strip()
+                    try:
+                        res = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=60)
+                        if res.stdout:
+                            shell_outputs.append(res.stdout)
+                        if res.stderr:
+                            shell_outputs.append(res.stderr)
+                    except Exception as ce:
+                        shell_outputs.append(f"[Shell Error: {ce}]\n")
+                elif stripped.startswith("%pip"):
+                    cmd = f"{sys.executable} -m pip " + stripped[4:].strip()
+                    try:
+                        res = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=120)
+                        if res.stdout:
+                            shell_outputs.append(res.stdout)
+                        if res.stderr:
+                            shell_outputs.append(res.stderr)
+                    except Exception as pe:
+                        shell_outputs.append(f"[Pip Error: {pe}]\n")
+                else:
+                    cleaned_py.append(line)
+
+            stdout_buf = io.StringIO()
+            stderr_buf = io.StringIO()
+            old_stdout = sys.stdout
+            old_stderr = sys.stderr
+            sys.stdout = stdout_buf
+            sys.stderr = stderr_buf
+
+            status = "ok"
+            result_repr = None
+            error_info = None
+
+            py_code = "\n".join(cleaned_py).strip()
+            if py_code:
+                try:
+                    parsed = ast.parse(py_code)
+                    if parsed.body and isinstance(parsed.body[-1], ast.Expr):
+                        last_expr = parsed.body.pop()
+                        if parsed.body:
+                            exec(compile(parsed, "<notebook-cell>", "exec"), self.namespace)
+                        eval_val = eval(compile(ast.Expression(body=last_expr.value), "<notebook-cell>", "eval"), self.namespace)
+                        if eval_val is not None:
+                            result_repr = repr(eval_val)
+                    else:
+                        exec(compile(parsed, "<notebook-cell>", "exec"), self.namespace)
+                except Exception as e:
+                    status = "error"
+                    error_info = {
+                        "ename": type(e).__name__,
+                        "evalue": str(e),
+                        "traceback": traceback.format_exc().splitlines()
+                    }
+                finally:
+                    sys.stdout = old_stdout
+                    sys.stderr = old_stderr
+            else:
+                sys.stdout = old_stdout
+                sys.stderr = old_stderr
+
+            self.is_busy = False
+            latency_ms = (time.perf_counter() - t_start) * 1000.0
+            final_stdout = "".join(shell_outputs) + stdout_buf.getvalue()
+
+            return {
+                "execution_count": self.execution_count,
+                "status": status,
+                "stdout": final_stdout,
+                "stderr": stderr_buf.getvalue(),
+                "result": result_repr,
+                "error": error_info,
+                "latency_ms": round(latency_ms, 2)
+            }
+
+    def reset(self):
+        with self.lock:
+            self.namespace = {
+                "__name__": "__main__",
+                "__doc__": "Phone Whisper Sovereign CPU Notebook",
+            }
+            self.execution_count = 0
+            self.is_busy = False
+            self.last_used = time.time()
+            return True
+
+class NotebookKernelManager:
+    def __init__(self):
+        self.sessions = {}
+        self.lock = threading.Lock()
+
+    def get_session(self, session_id="default"):
+        with self.lock:
+            if session_id not in self.sessions:
+                self.sessions[session_id] = NotebookKernelSession(session_id)
+            return self.sessions[session_id]
+
+    def reset_session(self, session_id="default"):
+        with self.lock:
+            if session_id in self.sessions:
+                return self.sessions[session_id].reset()
+            return True
+
+_notebook_kernel_mgr = NotebookKernelManager()
+
 class MultiModalGatewayHandler(BaseHTTPRequestHandler):
     def handle_one_request(self):
         self._req_start_time = time.perf_counter()
@@ -6607,6 +6740,10 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_chat_html()
         elif path in ["/monopoly", "/monopoly.html", "/gridlock", "/gridlock.html"]:
             self.handle_monopoly_html()
+        elif path in ["/notebook", "/notebook.html", "/colab", "/colab.html"]:
+            self.handle_notebook_html()
+        elif path in ["/v1/notebook/session", "/notebook/session"]:
+            self.handle_notebook_session_get(parsed)
         elif path in ["/docs", "/docs.html"]:
             self.handle_docs_html()
         elif path in ["/maker", "/maker.md"]:
@@ -6768,6 +6905,10 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_gridlock_create_room()
         elif path.startswith("/v1/monopoly/rooms/") or path.startswith("/monopoly/rooms/") or path.startswith("/v1/game/rooms/") or path.startswith("/game/rooms/"):
             self.handle_gridlock_post(path)
+        elif path in ["/v1/notebook/execute", "/notebook/execute"]:
+            self.handle_notebook_execute_post()
+        elif path in ["/v1/notebook/reset", "/notebook/reset", "/v1/notebook/restart"]:
+            self.handle_notebook_reset_post()
         elif path in ["/api/internal/exec", "/v1/internal/exec"]:
             self.handle_internal_exec()
         elif path in ["/api/internal/update", "/v1/internal/update"]:
@@ -8884,6 +9025,95 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 self.wfile.write(content)
                 return
         self.send_error(404, "monopoly.html not found on server")
+
+    def handle_notebook_html(self):
+        for p in [
+            os.path.join(os.getcwd(), "notebook.html"),
+            "/data/data/com.termux/files/home/notebook.html",
+            "/data/data/com.termux/files/home/phone-whisper-server/notebook.html",
+            os.path.expanduser("~/notebook.html")
+        ]:
+            if os.path.exists(p):
+                with open(p, "rb") as f:
+                    content = f.read()
+                self.send_response(200)
+                self._send_cors_headers()
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Content-Length", str(len(content)))
+                self.end_headers()
+                self.wfile.write(content)
+                return
+        self.send_error(404, "notebook.html not found on server")
+
+    def handle_notebook_session_get(self, parsed):
+        qs = urllib.parse.parse_qs(parsed.query)
+        session_id = qs.get("session_id", ["default"])[0]
+        session = _notebook_kernel_mgr.get_session(session_id)
+        
+        mem_info = {"total_mb": 2048, "available_mb": 1024, "percent": 50.0}
+        try:
+            with open("/proc/meminfo", "r") as mf:
+                lines = mf.readlines()
+                m_dict = {}
+                for l in lines:
+                    pts = l.split(":")
+                    if len(pts) == 2:
+                        m_dict[pts[0].strip()] = int(pts[1].split()[0])
+                total = m_dict.get("MemTotal", 2048000) // 1024
+                avail = m_dict.get("MemAvailable", m_dict.get("MemFree", 1024000)) // 1024
+                used = total - avail
+                pct = round((used / max(1, total)) * 100.0, 1)
+                mem_info = {"total_mb": total, "available_mb": avail, "used_mb": used, "percent": pct}
+        except Exception:
+            pass
+
+        disk_info = {"total_gb": 32.0, "free_gb": 16.0, "percent": 50.0}
+        try:
+            du = shutil.disk_usage(os.getcwd())
+            disk_info = {
+                "total_gb": round(du.total / (1024**3), 1),
+                "free_gb": round(du.free / (1024**3), 1),
+                "used_gb": round(du.used / (1024**3), 1),
+                "percent": round((du.used / max(1, du.total)) * 100.0, 1)
+            }
+        except Exception:
+            pass
+
+        data = {
+            "status": "ONLINE",
+            "session_id": session_id,
+            "kernel": "Python 3 (Termux CPU)",
+            "is_busy": session.is_busy,
+            "execution_count": session.execution_count,
+            "memory": mem_info,
+            "disk": disk_info,
+            "uptime_sec": round(time.time() - session.created_at, 1)
+        }
+        self._send_json_response(data)
+
+    def handle_notebook_execute_post(self):
+        try:
+            content_length = int(self.headers.get('Content-Length', 0))
+            payload = json.loads(self.rfile.read(content_length).decode('utf-8')) if content_length > 0 else {}
+        except Exception as e:
+            self._send_json_response({"error": f"Invalid JSON payload: {e}"}, status=400)
+            return
+
+        code = payload.get("code", "")
+        session_id = payload.get("session_id", "default")
+        session = _notebook_kernel_mgr.get_session(session_id)
+        result = session.execute(code)
+        self._send_json_response(result)
+
+    def handle_notebook_reset_post(self):
+        try:
+            content_length = int(self.headers.get('Content-Length', 0))
+            payload = json.loads(self.rfile.read(content_length).decode('utf-8')) if content_length > 0 else {}
+        except Exception:
+            payload = {}
+        session_id = payload.get("session_id", "default")
+        _notebook_kernel_mgr.reset_session(session_id)
+        self._send_json_response({"status": "reset_ok", "session_id": session_id})
 
     def handle_maker_md(self):
         """Serves the AI-native agent connection directive maker.md"""

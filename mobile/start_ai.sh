@@ -35,6 +35,7 @@ pull_latest_code() {
     cp -f "$REPO/mobile/start_ai.sh" "$HOME/start_ai.sh" 2>/dev/null || true
     cp -f "$REPO/mobile/slm_self_heal.py" "$HOME/slm_self_heal.py" 2>/dev/null || true
     cp -f "$REPO/monopoly.html" "$HOME/monopoly.html" 2>/dev/null || true
+    cp -f "$REPO/notebook.html" "$HOME/notebook.html" 2>/dev/null || true
     cp -f "$REPO/maker.md" "$HOME/maker.md" 2>/dev/null || true
     cp -f "$REPO/docs.html" "$HOME/docs.html" 2>/dev/null || true
     cp -f "$REPO/swades.py" "$HOME/swades.py" 2>/dev/null || true
