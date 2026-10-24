@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://duucw-2405-201-801a-98b2-ff90-d939-9f72-7656.run.pinggy-free.link",
-  "inference": "https://duucw-2405-201-801a-98b2-ff90-d939-9f72-7656.run.pinggy-free.link/inference",
-  "telemetry": "https://duucw-2405-201-801a-98b2-ff90-d939-9f72-7656.run.pinggy-free.link/telemetry",
+  "endpoint": "https://pnmct-2405-201-801a-98b2-ff90-d939-9f72-7656.run.pinggy-free.link",
+  "inference": "https://pnmct-2405-201-801a-98b2-ff90-d939-9f72-7656.run.pinggy-free.link/inference",
+  "telemetry": "https://pnmct-2405-201-801a-98b2-ff90-d939-9f72-7656.run.pinggy-free.link/telemetry",
   "phone_lan_ip": "http://127.0.0.1:8081",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-24T16:11:11Z"
+  "updated_at": "2026-10-24T16:11:22Z"
 }
