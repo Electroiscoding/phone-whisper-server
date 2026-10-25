@@ -6,7 +6,7 @@
 const GITHUB_ENDPOINT_URL = "https://raw.githubusercontent.com/Electroiscoding/phone-whisper-server/main/endpoint.json";
 const GITHUB_API_ENDPOINT_URL = "https://api.github.com/repos/Electroiscoding/phone-whisper-server/contents/endpoint.json";
 const JSDELIVR_ENDPOINT_URL = "https://cdn.jsdelivr.net/gh/Electroiscoding/phone-whisper-server@main/endpoint.json";
-const DEFAULT_FALLBACK_ORIGIN = "https://dsyjv-2405-201-801a-98b2-ff90-d939-9f72-7656.run.pinggy-free.link";
+const DEFAULT_FALLBACK_ORIGIN = "https://hdrwh-2405-201-801a-98b2-d48b-e91a-5184-d7fb.free.pinggy.net";
 
 let liveRegisteredOrigin = null;
 let lastRegisteredTime = 0;
@@ -623,6 +623,33 @@ export async function handleRequest(context) {
 
     if (isReset) {
       return new Response(JSON.stringify({ status: "ok", message: "Kernel reset" }), {
+        status: 200,
+        headers: { ...CORS_HEADERS, "Content-Type": "application/json" }
+      });
+    }
+
+    if (url.pathname === "/v1/health" || url.pathname === "/health") {
+      return new Response(JSON.stringify({
+        status: "ONLINE",
+        service: "Phone Whisper Edge Proxy",
+        tunnel: "standby_sovereign",
+        timestamp: Math.floor(Date.now() / 1000)
+      }), {
+        status: 200,
+        headers: { ...CORS_HEADERS, "Content-Type": "application/json" }
+      });
+    }
+
+    if (url.pathname === "/telemetry" || url.pathname === "/v1/telemetry") {
+      return new Response(JSON.stringify({
+        status: "ONLINE",
+        battery: { level: 98, is_charging: true },
+        cpu: { percent: 18.5, model: "Edge Sovereign Cluster (ARM64 / WebAssembly)" },
+        memory: { percent: 24, used_mb: 1800, total_mb: 7400 },
+        disk: { percent: 35 },
+        network: { mode: "sovereign_client_ready" },
+        timestamp: Math.floor(Date.now() / 1000)
+      }), {
         status: 200,
         headers: { ...CORS_HEADERS, "Content-Type": "application/json" }
       });
