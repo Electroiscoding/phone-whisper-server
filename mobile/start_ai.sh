@@ -192,23 +192,21 @@ while true; do
     sleep 5
   fi
 
+  # 1-second dynamic tunnel check: extract active trycloudflare URL
   URL=$(grep -oE "https://[a-zA-Z0-9-]+\.trycloudflare\.com" $HOME/cf_tunnel.log 2>/dev/null | grep -v "api.trycloudflare.com" | tail -n 1)
 
-  if [ -n "$URL" ] && [ $((NOW - LAST_PAGES_HEARTBEAT)) -ge 5 ]; then
-    LAST_PAGES_HEARTBEAT=$NOW
-    python3 -c 'import urllib.request, json; data = json.dumps({"endpoint": "'"$URL"'", "secret": "mobile_ai_nuclear_key"}).encode(); req = urllib.request.Request("https://phone-whisper-server.pages.dev/register_tunnel", data=data, headers={"Content-Type": "application/json"}); urllib.request.urlopen(req, timeout=3)' >/dev/null 2>&1 &
-  fi
-
+  # Instant change detection: if tunnel changed, register and push immediately
   if [ -n "$URL" ] && [ "$URL" != "$SYNCED_URL" ]; then
     echo "$URL" > $HOME/current_url.txt
+    echo "$(date): [TUNNEL-DETECT] Cloudflare Tunnel changed to $URL. Syncing..." >> $HOME/nuclear_supervisor.log
 
-    for RETRY in 1 2 3 4 5; do
-      REG_RESP=$(python3 -c 'import urllib.request, json; data = json.dumps({"endpoint": "'"$URL"'", "secret": "mobile_ai_nuclear_key"}).encode(); req = urllib.request.Request("https://phone-whisper-server.pages.dev/register_tunnel", data=data, headers={"Content-Type": "application/json"}); print(urllib.request.urlopen(req, timeout=5).read().decode())' 2>/dev/null || echo "")
+    for RETRY in 1 2 3; do
+      REG_RESP=$(python3 -c 'import urllib.request, json; data = json.dumps({"endpoint": "'"$URL"'", "secret": "mobile_ai_nuclear_key"}).encode(); req = urllib.request.Request("https://phone-whisper-server.pages.dev/register_tunnel", data=data, headers={"Content-Type": "application/json"}); print(urllib.request.urlopen(req, timeout=4).read().decode())' 2>/dev/null || echo "")
       if echo "$REG_RESP" | grep -q "registered"; then
-        echo "$(date): [EDGE-SYNC] Registered tunnel with Cloudflare Edge (attempt $RETRY)" >> $HOME/nuclear_supervisor.log
+        echo "$(date): [EDGE-SYNC] Registered new tunnel with Cloudflare Edge" >> $HOME/nuclear_supervisor.log
         break
       fi
-      sleep 1
+      sleep 0.5
     done
 
     GIT_OK=0
@@ -241,6 +239,9 @@ JSON_EOF
     if [ "$GIT_OK" -eq 1 ]; then
       SYNCED_URL="$URL"
     fi
+  elif [ -n "$URL" ] && [ $((NOW - LAST_PAGES_HEARTBEAT)) -ge 10 ]; then
+    LAST_PAGES_HEARTBEAT=$NOW
+    python3 -c 'import urllib.request, json; data = json.dumps({"endpoint": "'"$URL"'", "secret": "mobile_ai_nuclear_key"}).encode(); req = urllib.request.Request("https://phone-whisper-server.pages.dev/register_tunnel", data=data, headers={"Content-Type": "application/json"}); urllib.request.urlopen(req, timeout=3)' >/dev/null 2>&1 &
   fi
 
   if [ $((NOW - LAST_LOG_TRIM)) -ge 1800 ]; then
@@ -252,5 +253,5 @@ JSON_EOF
     done
   fi
 
-  sleep 2
+  sleep 1
 done

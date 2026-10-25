@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://hdrwh-2405-201-801a-98b2-d48b-e91a-5184-d7fb.free.pinggy.net",
-  "inference": "https://hdrwh-2405-201-801a-98b2-d48b-e91a-5184-d7fb.free.pinggy.net/inference",
-  "telemetry": "https://hdrwh-2405-201-801a-98b2-d48b-e91a-5184-d7fb.free.pinggy.net/telemetry",
+  "endpoint": "https://oxzwg-49-37-8-176.free.pinggy.net",
+  "inference": "https://oxzwg-49-37-8-176.free.pinggy.net/inference",
+  "telemetry": "https://oxzwg-49-37-8-176.free.pinggy.net/telemetry",
   "phone_lan_ip": "http://127.0.0.1:8081",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-25T18:47:20Z"
+  "updated_at": "2026-10-25T18:51:23Z"
 }
