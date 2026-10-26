@@ -6,7 +6,7 @@
 const GITHUB_ENDPOINT_URL = "https://raw.githubusercontent.com/Electroiscoding/phone-whisper-server/main/endpoint.json";
 const GITHUB_API_ENDPOINT_URL = "https://api.github.com/repos/Electroiscoding/phone-whisper-server/contents/endpoint.json";
 const JSDELIVR_ENDPOINT_URL = "https://cdn.jsdelivr.net/gh/Electroiscoding/phone-whisper-server@main/endpoint.json";
-const DEFAULT_FALLBACK_ORIGIN = "https://uvywa-2405-201-801a-98b2-9b1b-9e3a-a8f8-4f21.run.pinggy-free.link";
+const DEFAULT_FALLBACK_ORIGIN = "https://allowing-cottages-wildlife-desirable.trycloudflare.com";
 
 let liveRegisteredOrigin = null;
 let lastRegisteredTime = 0;

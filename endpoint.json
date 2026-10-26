@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://uvywa-2405-201-801a-98b2-9b1b-9e3a-a8f8-4f21.run.pinggy-free.link",
-  "inference": "https://uvywa-2405-201-801a-98b2-9b1b-9e3a-a8f8-4f21.run.pinggy-free.link/inference",
-  "telemetry": "https://uvywa-2405-201-801a-98b2-9b1b-9e3a-a8f8-4f21.run.pinggy-free.link/telemetry",
-  "phone_lan_ip": "http://127.0.0.1:8081",
+  "endpoint": "https://allowing-cottages-wildlife-desirable.trycloudflare.com",
+  "inference": "https://allowing-cottages-wildlife-desirable.trycloudflare.com/inference",
+  "telemetry": "https://allowing-cottages-wildlife-desirable.trycloudflare.com/telemetry",
+  "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-26T16:00:39Z"
+  "updated_at": "2026-10-26T18:26:11Z"
 }
