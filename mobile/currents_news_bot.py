@@ -6,6 +6,8 @@ import sqlite3
 import random
 import urllib.request
 import urllib.parse
+import re
+import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 
 SERPAPI_KEY = os.environ.get("SERPAPI_KEY", "44bccfe9e25bf03a19e0a5a1be36335bdf596ba87fc363a1c9dd1a91966618f2")
@@ -117,7 +119,11 @@ def is_valid_jpg_or_png(url):
     if not url or not isinstance(url, str) or not url.startswith("http"):
         return False
     path = url.split("?")[0].lower()
-    return path.endswith(".jpg") or path.endswith(".jpeg") or path.endswith(".png")
+    if path.endswith(".jpg") or path.endswith(".jpeg") or path.endswith(".png") or path.endswith(".webp"):
+        return True
+    if "googleusercontent.com" in url or "wikimedia.org" in url or "twimg.com" in url or "fbcdn.net" in url or "cloudfront.net" in url:
+        return True
+    return False
 
 def mirror_image_to_nta(image_url):
     for _ in range(2):
@@ -132,7 +138,7 @@ def mirror_image_to_nta(image_url):
                     continue
 
                 clean_p = image_url.split("?")[0].lower()
-                ext = "png" if clean_p.endswith(".png") else "jpg"
+                ext = "png" if (clean_p.endswith(".png") or data.startswith(b'\x89PNG')) else "jpg"
                 mime = "image/png" if ext == "png" else "image/jpeg"
                 unique_name = f"{int(time.time())}_{random.randint(1000, 9999)}_currents.{ext}"
                 put_url = f"https://ntamediaserver.pages.dev/v1/storage/objects/media/{unique_name}?project_id=netuark_media"
@@ -215,19 +221,56 @@ class CurrentsNewsBot:
             return self.login()
         return self.id_token
 
+    def fetch_news_rss(self, query):
+        try:
+            url = f"https://news.google.com/rss/search?q={urllib.parse.quote(query)}&hl=en-US&gl=US&ceid=US:en"
+            req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"})
+            with urllib.request.urlopen(req, timeout=12) as resp:
+                xml_data = resp.read()
+            root = ET.fromstring(xml_data)
+            channel = root.find("channel")
+            if channel is None:
+                return []
+            items = []
+            for item in channel.findall("item"):
+                title_el = item.find("title")
+                link_el = item.find("link")
+                source_el = item.find("source")
+                if title_el is not None and link_el is not None:
+                    title_text = title_el.text or ""
+                    link_text = link_el.text or ""
+                    source_text = source_el.text if source_el is not None and source_el.text else "Google News Wire"
+                    items.append({
+                        "title": title_text,
+                        "link": link_text,
+                        "source": source_text,
+                        "thumbnail": ""
+                    })
+            return items
+        except Exception as e:
+            print(f"RSS fallback notice: {e}", file=sys.stderr)
+            return []
+
     def fetch_news_for_category(self, cat):
-        params = {
-            "engine": "google_news",
-            "q": cat["q"],
-            "gl": cat.get("gl", "us"),
-            "hl": "en",
-            "api_key": SERPAPI_KEY
-        }
-        url = "https://serpapi.com/search.json?" + urllib.parse.urlencode(params)
-        req = urllib.request.Request(url, headers={"User-Agent": "Currents-Wire/2.0"})
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-            return data.get("news_results", [])
+        try:
+            params = {
+                "engine": "google_news",
+                "q": cat["q"],
+                "gl": cat.get("gl", "us"),
+                "hl": "en",
+                "api_key": SERPAPI_KEY
+            }
+            url = "https://serpapi.com/search.json?" + urllib.parse.urlencode(params)
+            req = urllib.request.Request(url, headers={"User-Agent": "Currents-Wire/2.0"})
+            with urllib.request.urlopen(req, timeout=8) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+                results = data.get("news_results", [])
+                if results:
+                    return results
+        except Exception:
+            pass
+
+        return self.fetch_news_rss(cat["q"])
 
     def fetch_serp_image(self, query_text):
         try:
@@ -238,7 +281,7 @@ class CurrentsNewsBot:
             }
             url = "https://serpapi.com/search.json?" + urllib.parse.urlencode(params)
             req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-            with urllib.request.urlopen(req, timeout=10) as resp:
+            with urllib.request.urlopen(req, timeout=8) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
                 results = data.get("images_results", [])
                 for img in results:
@@ -253,9 +296,46 @@ class CurrentsNewsBot:
             pass
         return ""
 
-    def get_guaranteed_image(self, title, source, item_thumb):
+    def fetch_article_og_image(self, link):
+        try:
+            req = urllib.request.Request(link, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"})
+            with urllib.request.urlopen(req, timeout=6) as resp:
+                html = resp.read().decode("utf-8", errors="ignore")
+                m = re.search(r"""<meta\s+property=["\x27]og:image["\x27]\s+content=["\x27]([^"\x27]+)["\x27]""", html, re.I)
+                if not m:
+                    m = re.search(r"""<meta\s+content=["\x27]([^"\x27]+)["\x27]\s+property=["\x27]og:image["\x27]""", html, re.I)
+                if m:
+                    candidate = m.group(1).strip()
+                    if is_valid_jpg_or_png(candidate):
+                        return candidate
+        except Exception:
+            pass
+        return ""
+
+    def fetch_wikipedia_image(self, query_text):
+        try:
+            clean_term = query_text.replace("\"", "").replace("'", "").strip()
+            url = f"https://en.wikipedia.org/w/api.php?action=query&titles={urllib.parse.quote(clean_term)}&prop=pageimages&format=json&pithumbsize=800"
+            req = urllib.request.Request(url, headers={"User-Agent": "CurrentsNewsBot/1.0"})
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+                pages = data.get("query", {}).get("pages", {})
+                for _, page_info in pages.items():
+                    thumb = page_info.get("thumbnail", {}).get("source")
+                    if thumb and is_valid_jpg_or_png(thumb):
+                        return thumb
+        except Exception:
+            pass
+        return ""
+
+    def get_guaranteed_image(self, title, source, item_thumb, article_link=""):
         if is_valid_jpg_or_png(item_thumb):
             return item_thumb
+
+        if article_link:
+            og_img = self.fetch_article_og_image(article_link)
+            if og_img:
+                return og_img
 
         clean_words = [w for w in title.replace(":", " ").replace("-", " ").replace("'", "").split() if len(w) > 3][:6]
         q1 = " ".join(clean_words)
@@ -263,10 +343,15 @@ class CurrentsNewsBot:
         if img1:
             return img1
 
-        q2 = f"{clean_words[0]} {clean_words[1]} {source}" if len(clean_words) >= 2 else f"{title[:25]} news"
-        img2 = self.fetch_serp_image(q2)
-        if img2:
-            return img2
+        if source:
+            wiki_source_img = self.fetch_wikipedia_image(source)
+            if wiki_source_img:
+                return wiki_source_img
+
+        if clean_words:
+            wiki_topic_img = self.fetch_wikipedia_image(clean_words[0])
+            if wiki_topic_img:
+                return wiki_topic_img
 
         return ""
 
@@ -444,14 +529,20 @@ class CurrentsNewsBot:
             for item in articles:
                 link = item.get("link")
                 title = item.get("title")
-                source = item.get("source", {}).get("name", "News Wire")
+                raw_source = item.get("source")
+                if isinstance(raw_source, dict):
+                    source = raw_source.get("name", "News Wire")
+                elif isinstance(raw_source, str) and raw_source:
+                    source = raw_source
+                else:
+                    source = "News Wire"
                 if not link or not title:
                     continue
                 if self.is_posted(link):
                     continue
 
                 item_thumb = item.get("thumbnail") or ""
-                raw_image_url = self.get_guaranteed_image(title, source, item_thumb)
+                raw_image_url = self.get_guaranteed_image(title, source, item_thumb, article_link=link)
 
                 if not is_valid_jpg_or_png(raw_image_url):
                     continue
