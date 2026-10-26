@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://efdsp-2405-201-801a-98b2-eb0d-1f6c-afb1-fc8e.run.pinggy-free.link",
-  "inference": "https://efdsp-2405-201-801a-98b2-eb0d-1f6c-afb1-fc8e.run.pinggy-free.link/inference",
-  "telemetry": "https://efdsp-2405-201-801a-98b2-eb0d-1f6c-afb1-fc8e.run.pinggy-free.link/telemetry",
+  "endpoint": "https://uvywa-2405-201-801a-98b2-9b1b-9e3a-a8f8-4f21.run.pinggy-free.link",
+  "inference": "https://uvywa-2405-201-801a-98b2-9b1b-9e3a-a8f8-4f21.run.pinggy-free.link/inference",
+  "telemetry": "https://uvywa-2405-201-801a-98b2-9b1b-9e3a-a8f8-4f21.run.pinggy-free.link/telemetry",
   "phone_lan_ip": "http://127.0.0.1:8081",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-26T15:53:48Z"
+  "updated_at": "2026-10-26T16:00:39Z"
 }
