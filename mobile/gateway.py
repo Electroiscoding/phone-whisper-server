@@ -5072,6 +5072,8 @@ _cron_engine = SovereignCronEngine(_storage_vault, _gmail_notifier)
 def get_currents_bot_class():
     for candidate in [
         os.path.expanduser("~/currents_news_bot.py"),
+        os.path.expanduser("~/cool-bohr/mobile/currents_news_bot.py"),
+        os.path.expanduser("~/cool-bohr/currents_news_bot.py"),
         os.path.expanduser("~/phone-whisper-server/mobile/currents_news_bot.py"),
         os.path.expanduser("~/phone-whisper-server/currents_news_bot.py"),
         os.path.join(os.path.dirname(os.path.abspath(__file__)), "currents_news_bot.py"),

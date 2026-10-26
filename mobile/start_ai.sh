@@ -11,7 +11,17 @@ echo "$(date): [STARTUP] Nuclear AI Supervisor starting..." >> $HOME/nuclear_sup
 
 dumpsys battery reset 2>/dev/null || true
 
-REPO="$HOME/phone-whisper-server"
+# Auto-detect repository root directory (supports cool-bohr and phone-whisper-server)
+REPO=""
+for DIR in "$PWD" "$HOME/cool-bohr" "$HOME/phone-whisper-server" "$HOME" "/sdcard/cool-bohr" "/sdcard/Download/cool-bohr"; do
+  if [ -d "$DIR/.git" ]; then
+    REPO="$DIR"
+    break
+  fi
+done
+if [ -z "$REPO" ]; then
+  REPO="$HOME/cool-bohr"
+fi
 SYNCED_URL=""
 LAST_PROBE_TIME=$(date +%s)
 LAST_LOG_TRIM=$(date +%s)
