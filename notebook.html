@@ -2368,7 +2368,10 @@ if not os.path.exists(cal_path):
 
 class _MockColabUserdata:
     @staticmethod
-    def get(k, default=None): return default or "mock_secret"
+    def get(k, default=None):
+        if default is not None: return default
+        import os
+        return os.environ.get(k, "0")
 
 class _MockColabDrive:
     @staticmethod

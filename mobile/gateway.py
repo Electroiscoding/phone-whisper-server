@@ -6570,7 +6570,7 @@ def _init_colab_environment():
     output.clear = lambda wait=False: None
     output.eval_js = lambda code: None
     output.serve_kernel_port_as_iframe = lambda port, *a, **k: print(f"Port {port} forwarded.")
-    userdata.get = lambda key: os.environ.get(key, "")
+    userdata.get = lambda key, default=None: os.environ.get(key, default if default is not None else "0")
 
     auth.authenticate_user = lambda: print("[google.colab.auth] Sovereign runtime authenticated.")
 

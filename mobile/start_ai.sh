@@ -136,11 +136,8 @@ while true; do
         cp -f "$REPO/mobile/start_ai.sh" "$HOME/start_ai.sh" 2>/dev/null || true
         pkill -9 -f "gateway.py" 2>/dev/null || true
         pkill -9 -f "currents_news_bot.py" 2>/dev/null || true
-        sleep 1
-        python3 $HOME/gateway.py >> $HOME/gateway.log 2>&1 &
-        python3 $HOME/currents_news_bot.py 1800 >> $HOME/currents_news_bot.log 2>&1 &
-        echo "$(date): [GIT-RELOAD] Gateway & Currents News Bot restarted with new code" >> $HOME/nuclear_supervisor.log
-        GW_FAIL_COUNT=0
+        echo "$(date): [GIT-RELOAD] Reloading start_ai supervisor..." >> $HOME/nuclear_supervisor.log
+        exec /data/data/com.termux/files/usr/bin/bash "$HOME/start_ai.sh"
       fi
     fi
   fi
