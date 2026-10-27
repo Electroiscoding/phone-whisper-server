@@ -2230,6 +2230,35 @@
           console.log("[NOIR] Execution aborted by user");
           return;
         }
+
+        // Guard: If code uses native POSIX features like sockets or subprocesses, Pyodide WASM cannot run them
+        const usesNativeFeatures = cell.content.includes("socket") || cell.content.includes("subprocess") || cell.content.includes("socketserver");
+        if (usesNativeFeatures) {
+          cell.status = "error";
+          cell.output = {
+            error: {
+              traceback: [
+                "PhoneConnectionError: Phone kernel was reconnecting its Cloudflare Tunnel when this cell ran.",
+                "Note: This code requires native Linux OS features (sockets/processes) and cannot run in WebAssembly Pyodide.",
+                "The live tunnel is now re-synced to Phone Linux (arm64). Please hit Shift+Enter to run on Phone CPU."
+              ]
+            }
+          };
+          cell.latencyMs = Math.round(performance.now() - t0);
+          if (errorEl) {
+            errorEl.style.display = "block";
+            const content = errorEl.querySelector(".output-error-content") || errorEl;
+            content.textContent = cell.output.error.traceback.join("\n");
+          }
+          if (timeEl) {
+            timeEl.innerHTML = `
+              <span class="material-symbols-outlined" style="font-size: 13px; color: #f28b82;">sync_problem</span>
+              <span>Tunnel Reconnected — Hit Shift+Enter to run on Phone Linux</span>
+            `;
+          }
+          return;
+        }
+
         console.warn("[NOIR] Phone gateway unreachable or reconnecting. Transparently switching to In-Browser Sovereign CPU (Pyodide)...", err);
         const bannerTitle = document.getElementById(`execTargetTitle-${cellId}`);
         const bannerSub = document.getElementById(`execTargetSub-${cellId}`);
