@@ -6450,6 +6450,23 @@ os.path.isfile = lambda p: _orig_os_path_isfile(_remap_colab_kaggle_path(p))
 _orig_os_path_isdir = os.path.isdir
 os.path.isdir = lambda p: _orig_os_path_isdir(_remap_colab_kaggle_path(p))
 
+_orig_os_getcwd = os.getcwd
+def _colab_getcwd():
+    cwd = _orig_os_getcwd()
+    home = os.path.expanduser("~")
+    content_root = os.path.join(home, "content")
+    if cwd == content_root:
+        return "/content"
+    if cwd.startswith(content_root + "/"):
+        return "/content" + cwd[len(content_root):]
+    kaggle_root = os.path.join(home, "kaggle")
+    if cwd == kaggle_root:
+        return "/kaggle"
+    if cwd.startswith(kaggle_root + "/"):
+        return "/kaggle" + cwd[len(kaggle_root):]
+    return cwd
+os.getcwd = _colab_getcwd
+
 _orig_os_listdir = os.listdir
 def _safe_os_listdir(p="."):
     mapped = _remap_colab_kaggle_path(p)
