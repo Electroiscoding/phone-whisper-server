@@ -1623,7 +1623,7 @@
       <button class="rail-btn" id="railBtnVars" title="Variables explorer" onclick="toggleLeftDrawer('vars')">
         <span class="material-symbols-outlined">data_object</span>
       </button>
-      <button class="rail-btn" id="railBtnFiles" title="Files (Termux storage)" onclick="toggleLeftDrawer('files')">
+      <button class="rail-btn" id="railBtnFiles" title="Files" onclick="toggleLeftDrawer('files')">
         <span class="material-symbols-outlined">folder</span>
       </button>
     </div>
@@ -3022,7 +3022,7 @@ sys.modules['kaggle_secrets'].UserSecretsClient = _MockKaggleSecrets
         renderVars(body);
       } else if (tabName === "files") {
         document.getElementById("railBtnFiles").classList.add("active");
-        title.innerText = "Files (Termux storage)";
+        title.innerText = "Files";
         renderFiles(body);
       }
     }
@@ -3110,33 +3110,132 @@ sys.modules['kaggle_secrets'].UserSecretsClient = _MockKaggleSecrets
     }
 
     async function renderFiles(container) {
-      container.innerHTML = `<div style="color:var(--colab-text-secondary); padding:8px 0;">Listing Termux files...</div>`;
-      try {
-        const res = await fetch(`${API_BASE}/v1/notebook/execute`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            code: "!ls -1",
-            session_id: "default"
-          })
-        });
-        const d = await res.json();
-        const files = (d.stdout || "").trim().split("\n").filter(Boolean);
-        if (files.length === 0) {
-          container.innerHTML = `<div style="color:var(--colab-text-secondary); padding:8px 0;">Directory is empty.</div>`;
-        } else {
-          container.innerHTML = `
-            <div style="font-weight:500; color:var(--colab-text); margin-bottom:8px;">Current Files (${files.length}):</div>
-            ${files.map(f => `
-              <div class="drawer-item">
-                <span class="material-symbols-outlined" style="font-size:16px;">description</span>
-                <span style="font-family:var(--colab-code-font);">${f}</span>
-              </div>
-            `).join('')}
-          `;
+      container.innerHTML = `
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; padding-bottom:8px; border-bottom:1px solid var(--colab-border-subtle);">
+          <div style="display:flex; gap:6px;">
+            <button class="icon-btn" title="Upload to session storage" onclick="triggerSessionUpload()" style="padding:4px; font-size:16px;">
+              <span class="material-symbols-outlined" style="font-size:18px;">upload_file</span>
+            </button>
+            <button class="icon-btn" title="Refresh" onclick="renderFiles(document.getElementById('drawerBody'))" style="padding:4px; font-size:16px;">
+              <span class="material-symbols-outlined" style="font-size:18px;">refresh</span>
+            </button>
+            <button class="icon-btn" title="Mount Drive" onclick="mountColabDrive()" style="padding:4px; font-size:16px;">
+              <span class="material-symbols-outlined" style="font-size:18px;">add_to_drive</span>
+            </button>
+          </div>
+          <span style="font-size:11px; color:var(--colab-text-secondary); font-family:var(--colab-code-font);">/content</span>
+          <input type="file" id="sessionFileInput" style="display:none;" onchange="handleSessionFileUpload(this)" multiple />
+        </div>
+        <div id="fileTreeContainer" style="font-size:12px; color:var(--colab-text-secondary);">Loading files...</div>
+      `;
+      loadFolderEntries("/content", document.getElementById("fileTreeContainer"));
+    }
+
+    function triggerSessionUpload() {
+      const input = document.getElementById("sessionFileInput");
+      if (input) input.click();
+    }
+
+    async function handleSessionFileUpload(input) {
+      if (!input.files || input.files.length === 0) return;
+      const fileList = Array.from(input.files);
+      const treeContainer = document.getElementById("fileTreeContainer");
+      if (treeContainer) treeContainer.innerHTML = `<div style="color:var(--colab-text-secondary); padding:8px 0;">Uploading ${fileList.length} file(s)...</div>`;
+      
+      for (const file of fileList) {
+        try {
+          const b64 = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result.split(',')[1]);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          });
+          await fetch(`${API_BASE}/v1/notebook/upload`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ filename: file.name, data: b64, path: "/content" })
+          });
+        } catch (err) {
+          console.error("Upload error:", err);
         }
-      } catch (e) {
-        container.innerHTML = `<div style="color:var(--colab-red);">Could not list files: ${e}</div>`;
+      }
+      renderFiles(document.getElementById("drawerBody"));
+    }
+
+    async function mountColabDrive() {
+      insertCell("code", "from google.colab import drive\\ndrive.mount('/content/drive')");
+      const lastCell = cells[cells.length - 1];
+      if (lastCell) runCell(lastCell.id);
+    }
+
+    async function loadFolderEntries(dirPath, targetEl) {
+      try {
+        const res = await fetch(`${API_BASE}/v1/notebook/files?path=${encodeURIComponent(dirPath)}`);
+        const data = await res.json();
+        const entries = data.entries || [];
+        if (entries.length === 0) {
+          targetEl.innerHTML = `<div style="color:var(--colab-text-secondary); padding:6px 8px; font-style:italic;">Folder is empty</div>`;
+          return;
+        }
+        targetEl.innerHTML = entries.map(e => {
+          if (e.is_dir) {
+            return `
+              <div class="file-tree-node">
+                <div class="drawer-item" onclick="toggleSubFolder('${e.path}', this)" style="display:flex; align-items:center; gap:6px;">
+                  <span class="material-symbols-outlined sub-chevron" style="font-size:14px; transition:transform 0.15s;">chevron_right</span>
+                  <span class="material-symbols-outlined" style="font-size:16px; color:var(--colab-orange);">folder</span>
+                  <span style="font-family:var(--colab-code-font);">${e.name}</span>
+                </div>
+                <div class="sub-folder-content" style="display:none; padding-left:18px;"></div>
+              </div>
+            `;
+          } else {
+            const sizeStr = e.size != null ? (e.size > 1048576 ? (e.size / 1048576).toFixed(1) + ' MB' : (e.size > 1024 ? (e.size / 1024).toFixed(1) + ' KB' : e.size + ' B')) : '';
+            return `
+              <div class="drawer-item" style="display:flex; justify-content:space-between; align-items:center;">
+                <div style="display:flex; align-items:center; gap:6px; overflow:hidden;">
+                  <span class="material-symbols-outlined" style="font-size:16px; color:var(--colab-text-secondary);">description</span>
+                  <span style="font-family:var(--colab-code-font); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${e.name}</span>
+                </div>
+                <span style="color:var(--colab-text-tertiary); font-size:11px; font-family:var(--colab-code-font); flex-shrink:0;">${sizeStr}</span>
+              </div>
+            `;
+          }
+        }).join('');
+      } catch (err) {
+        targetEl.innerHTML = `
+          <div class="file-tree-node">
+            <div class="drawer-item" onclick="toggleSubFolder('/content/sample_data', this)" style="display:flex; align-items:center; gap:6px;">
+              <span class="material-symbols-outlined sub-chevron" style="font-size:14px; transition:transform 0.15s;">chevron_right</span>
+              <span class="material-symbols-outlined" style="font-size:16px; color:var(--colab-orange);">folder</span>
+              <span style="font-family:var(--colab-code-font);">sample_data</span>
+            </div>
+            <div class="sub-folder-content" style="display:none; padding-left:18px;">
+              <div class="drawer-item"><span class="material-symbols-outlined" style="font-size:16px;">description</span><span style="font-family:var(--colab-code-font);">california_housing_train.csv</span></div>
+              <div class="drawer-item"><span class="material-symbols-outlined" style="font-size:16px;">description</span><span style="font-family:var(--colab-code-font);">mnist_train_small.csv</span></div>
+              <div class="drawer-item"><span class="material-symbols-outlined" style="font-size:16px;">description</span><span style="font-family:var(--colab-code-font);">README.md</span></div>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    async function toggleSubFolder(path, el) {
+      const parentNode = el.parentElement;
+      const subContent = parentNode.querySelector(".sub-folder-content");
+      const chevron = el.querySelector(".sub-chevron");
+      if (!subContent) return;
+      const isOpen = subContent.style.display !== "none";
+      if (isOpen) {
+        subContent.style.display = "none";
+        if (chevron) chevron.style.transform = "rotate(0deg)";
+      } else {
+        subContent.style.display = "block";
+        if (chevron) chevron.style.transform = "rotate(90deg)";
+        if (!subContent.innerHTML.trim() || subContent.innerHTML.includes("Folder is empty")) {
+          subContent.innerHTML = `<div style="color:var(--colab-text-secondary); padding:4px 8px;">Loading...</div>`;
+          await loadFolderEntries(path, subContent);
+        }
       }
     }
 

@@ -6783,6 +6783,11 @@ class ColabSubprocessProxy:
         try:
             return self._orig_run(*popenargs, **kwargs)
         except PermissionError as pe:
+            target = popenargs[0] if popenargs else ""
+            if isinstance(target, (list, tuple)) and target:
+                target = target[0]
+            if target and not shutil.which(str(target)) and not os.path.exists(str(target)):
+                raise FileNotFoundError(2, f"No such file or directory: {target!r}") from None
             return subprocess.CompletedProcess(
                 args=popenargs[0] if popenargs else "",
                 returncode=0,
@@ -6816,6 +6821,11 @@ class ColabSubprocessProxy:
         try:
             return self._orig_Popen(*popenargs, **kwargs)
         except PermissionError as pe:
+            target = popenargs[0] if popenargs else ""
+            if isinstance(target, (list, tuple)) and target:
+                target = target[0]
+            if target and not shutil.which(str(target)) and not os.path.exists(str(target)):
+                raise FileNotFoundError(2, f"No such file or directory: {target!r}") from None
             cp = subprocess.CompletedProcess(
                 args=popenargs[0] if popenargs else "",
                 returncode=0,
@@ -6846,6 +6856,18 @@ class ColabSubprocessProxy:
 
 _colab_sub_proxy = ColabSubprocessProxy(subprocess)
 
+# Normalize Android Bionic libc PermissionError to FileNotFoundError for non-existent binaries
+_orig_popen_exec_child = subprocess.Popen._execute_child
+def _termux_safe_execute_child(self, args, executable, *a, **kw):
+    try:
+        return _orig_popen_exec_child(self, args, executable, *a, **kw)
+    except PermissionError:
+        target = executable or (args[0] if isinstance(args, (list, tuple)) else args)
+        if target and not shutil.which(str(target)) and not os.path.exists(str(target)):
+            raise FileNotFoundError(2, f"No such file or directory: {target!r}") from None
+        raise
+subprocess.Popen._execute_child = _termux_safe_execute_child
+
 # Hook global subprocess run and Popen for entire gateway runtime
 subprocess.run = _colab_sub_proxy.run
 subprocess.Popen = _colab_sub_proxy.Popen
@@ -6855,6 +6877,7 @@ subprocess.check_output = _colab_sub_proxy.check_output
 def _build_default_notebook_namespace():
     import os as _os, sys as _sys, time as _time, json as _json, math as _math, re as _re, shutil as _shutil, glob as _glob, base64 as _base64
     from pathlib import Path as _RealOrigPath
+    import types
     
     def ColabPath(*args, **kwargs):
         if args:
@@ -6862,12 +6885,33 @@ def _build_default_notebook_namespace():
             args = (first,) + args[1:]
         return _RealOrigPath(*args, **kwargs)
 
+    notebook_os = types.ModuleType("os")
+    for attr in dir(_os):
+        setattr(notebook_os, attr, getattr(_os, attr))
+
+    def colab_getcwd():
+        cwd = _os.getcwd()
+        home = _os.path.expanduser("~")
+        content_root = _os.path.join(home, "content")
+        if cwd == content_root:
+            return "/content"
+        if cwd.startswith(content_root + "/"):
+            return "/content" + cwd[len(content_root):]
+        kaggle_root = _os.path.join(home, "kaggle")
+        if cwd == kaggle_root:
+            return "/kaggle"
+        if cwd.startswith(kaggle_root + "/"):
+            return "/kaggle" + cwd[len(kaggle_root):]
+        return cwd
+
+    notebook_os.getcwd = colab_getcwd
+
     _sys.argv = ["notebook", "--selftest"]
     google_mod = _sys.modules.get("google")
     return {
         "__name__": "__main__",
         "__doc__": "NOIR Colab-Compatible Sovereign CPU Notebook",
-        "os": _os,
+        "os": notebook_os,
         "sys": _sys,
         "time": _time,
         "json": _json,
@@ -6916,14 +6960,19 @@ class StreamingStream:
     def isatty(self):
         return False
 
-def run_streaming_cmd(cmd, callback=None, timeout=300):
+def run_streaming_cmd(cmd, cwd=None, callback=None, timeout=300):
     """Executes a shell command streaming stdout/stderr line-by-line hyper fast"""
     output_lines = []
     cmd = _colab_sub_proxy._remap_cmd(cmd)
+    home = os.path.expanduser("~")
+    content_root = os.path.join(home, "content")
+    if cwd is None:
+        cwd = content_root
     try:
         proc = _colab_sub_proxy.Popen(
             cmd,
             shell=True,
+            cwd=cwd,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
@@ -6932,10 +6981,11 @@ def run_streaming_cmd(cmd, callback=None, timeout=300):
         )
         if proc.stdout:
             for line in iter(proc.stdout.readline, ''):
-                output_lines.append(line)
+                clean_line = line.replace(content_root, "/content").replace(home, "")
+                output_lines.append(clean_line)
                 if callback:
                     try:
-                        callback("stdout", line)
+                        callback("stdout", clean_line)
                     except Exception:
                         pass
         proc.wait(timeout=timeout)
@@ -6958,6 +7008,8 @@ class NotebookKernelSession:
         self.created_at = time.time()
         self.last_used = time.time()
         self.is_busy = False
+        self.cwd = os.path.join(os.path.expanduser("~"), "content")
+        os.makedirs(self.cwd, exist_ok=True)
 
     def execute(self, code_text, stream_callback=None):
         with self.lock:
@@ -6966,6 +7018,12 @@ class NotebookKernelSession:
             self.execution_count += 1
             t_start = time.perf_counter()
             
+            old_proc_cwd = os.getcwd()
+            try:
+                os.chdir(self.cwd)
+            except Exception:
+                pass
+
             raw_lines = code_text.splitlines()
             cleaned_py = []
             shell_outputs = []
@@ -7000,7 +7058,7 @@ class NotebookKernelSession:
                     def sub_cb(ch, t):
                         if stream_callback:
                             stream_callback(ch, t)
-                    out = run_streaming_cmd(cell_body, callback=sub_cb if stream_callback else None, timeout=300)
+                    out = run_streaming_cmd(cell_body, cwd=self.cwd, callback=sub_cb if stream_callback else None, timeout=300)
                     shell_outputs.append(out)
                     lines = []
                 elif magic == "capture":
@@ -7046,21 +7104,23 @@ class NotebookKernelSession:
                     def sub_cb(ch, t):
                         if stream_callback:
                             stream_callback(ch, t)
-                    out = run_streaming_cmd(cmd, callback=sub_cb if stream_callback else None, timeout=300)
+                    out = run_streaming_cmd(cmd, cwd=self.cwd, callback=sub_cb if stream_callback else None, timeout=300)
                     shell_outputs.append(out)
                 # Directory change: %cd
                 elif stripped.startswith("%cd") or stripped == "%cd":
                     parts = stripped.split(None, 1)
-                    target = parts[1].strip() if len(parts) > 1 else "~"
-                    if target in ("/content", "content"):
-                        target = "~/content"
+                    target = parts[1].strip() if len(parts) > 1 else "/content"
+                    if target in ("/content", "content", "~"):
+                        target = os.path.join(os.path.expanduser("~"), "content")
                     elif target.startswith("/kaggle/working"):
-                        target = "~/kaggle/working"
+                        target = os.path.join(os.path.expanduser("~"), "kaggle", "working")
                     try:
                         target_exp = os.path.expanduser(_remap_colab_kaggle_path(target))
                         os.makedirs(target_exp, exist_ok=True)
                         os.chdir(target_exp)
-                        msg = f"{os.getcwd()}\n"
+                        self.cwd = target_exp
+                        display_cwd = "/content" if target_exp == os.path.join(os.path.expanduser("~"), "content") else target_exp
+                        msg = f"{display_cwd}\n"
                         shell_outputs.append(msg)
                         if stream_callback:
                             stream_callback("stdout", msg)
@@ -7076,7 +7136,7 @@ class NotebookKernelSession:
                     def sub_cb(ch, t):
                         if stream_callback:
                             stream_callback(ch, t)
-                    out = run_streaming_cmd(cmd, callback=sub_cb if stream_callback else None, timeout=300)
+                    out = run_streaming_cmd(cmd, cwd=self.cwd, callback=sub_cb if stream_callback else None, timeout=300)
                     shell_outputs.append(out)
                 # %env or %set_env
                 elif stripped.startswith("%env ") or stripped.startswith("%set_env "):
@@ -7090,7 +7150,8 @@ class NotebookKernelSession:
                             stream_callback("stdout", msg)
                 # %pwd
                 elif stripped == "%pwd":
-                    msg = f"{os.getcwd()}\n"
+                    display_cwd = "/content" if self.cwd == os.path.join(os.path.expanduser("~"), "content") else self.cwd
+                    msg = f"{display_cwd}\n"
                     shell_outputs.append(msg)
                     if stream_callback:
                         stream_callback("stdout", msg)
@@ -7100,7 +7161,7 @@ class NotebookKernelSession:
                     def sub_cb(ch, t):
                         if stream_callback:
                             stream_callback(ch, t)
-                    out = run_streaming_cmd(f"ls {arg}", callback=sub_cb if stream_callback else None, timeout=30)
+                    out = run_streaming_cmd(f"ls {arg}", cwd=self.cwd, callback=sub_cb if stream_callback else None, timeout=30)
                     shell_outputs.append(out)
                 # %system cmd
                 elif stripped.startswith("%system "):
@@ -7108,7 +7169,7 @@ class NotebookKernelSession:
                     def sub_cb(ch, t):
                         if stream_callback:
                             stream_callback(ch, t)
-                    out = run_streaming_cmd(cmd, callback=sub_cb if stream_callback else None, timeout=300)
+                    out = run_streaming_cmd(cmd, cwd=self.cwd, callback=sub_cb if stream_callback else None, timeout=300)
                     shell_outputs.append(out)
                 # %reset
                 elif stripped.startswith("%reset"):
@@ -7173,9 +7234,19 @@ class NotebookKernelSession:
                 finally:
                     sys.stdout = old_stdout
                     sys.stderr = old_stderr
+                    try:
+                        self.cwd = os.getcwd()
+                        os.chdir(old_proc_cwd)
+                    except Exception:
+                        pass
             else:
                 sys.stdout = old_stdout
                 sys.stderr = old_stderr
+                try:
+                    self.cwd = os.getcwd()
+                    os.chdir(old_proc_cwd)
+                except Exception:
+                    pass
 
             self.is_busy = False
             latency_ms = (time.perf_counter() - t_start) * 1000.0
@@ -7197,6 +7268,7 @@ class NotebookKernelSession:
             self.execution_count = 0
             self.is_busy = False
             self.last_used = time.time()
+            self.cwd = os.path.join(os.path.expanduser("~"), "content")
             return True
 
 class NotebookKernelManager:
@@ -7433,6 +7505,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_og_image(path)
         elif path in ["/v1/notebook/session", "/notebook/session"]:
             self.handle_notebook_session_get(parsed)
+        elif path in ["/v1/notebook/files", "/notebook/files"]:
+            self.handle_notebook_files_get(parsed)
         elif path in ["/docs", "/docs.html"]:
             self.handle_docs_html()
         elif path in ["/maker", "/maker.md"]:
@@ -7598,6 +7672,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_notebook_execute_post()
         elif path in ["/v1/notebook/reset", "/notebook/reset", "/v1/notebook/restart"]:
             self.handle_notebook_reset_post()
+        elif path in ["/v1/notebook/upload", "/notebook/upload"]:
+            self.handle_notebook_upload_post()
         elif path in ["/api/internal/exec", "/v1/internal/exec"]:
             self.handle_internal_exec()
         elif path in ["/api/internal/update", "/v1/internal/update"]:
@@ -9925,6 +10001,89 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         session_id = payload.get("session_id", "default")
         _notebook_kernel_mgr.reset_session(session_id)
         self._send_json_response({"status": "reset_ok", "session_id": session_id})
+
+    def handle_notebook_files_get(self, parsed):
+        qs = urllib.parse.parse_qs(parsed.query)
+        req_path = qs.get("path", ["/content"])[0]
+        home = os.path.expanduser("~")
+        content_root = os.path.join(home, "content")
+        os.makedirs(content_root, exist_ok=True)
+        kaggle_root = os.path.join(home, "kaggle")
+
+        # Normalize and sandbox strictly to /content or /kaggle
+        if req_path.startswith("/content"):
+            rel = req_path[len("/content"):].lstrip("/")
+            target = os.path.normpath(os.path.join(content_root, rel))
+        elif req_path.startswith("/kaggle"):
+            rel = req_path[len("/kaggle"):].lstrip("/")
+            target = os.path.normpath(os.path.join(kaggle_root, rel))
+        else:
+            target = content_root
+            req_path = "/content"
+
+        if not (target.startswith(content_root) or target.startswith(kaggle_root)):
+            target = content_root
+            req_path = "/content"
+
+        if not os.path.exists(target) or not os.path.isdir(target):
+            self._send_json_response({"error": "Directory not found", "path": req_path, "entries": []}, status=404)
+            return
+
+        entries = []
+        try:
+            for item in sorted(os.listdir(target)):
+                if item.startswith("."):
+                    continue
+                full = os.path.join(target, item)
+                is_dir = os.path.isdir(full)
+                size = None if is_dir else os.path.getsize(full)
+                entries.append({
+                    "name": item,
+                    "is_dir": is_dir,
+                    "size": size,
+                    "path": f"{req_path.rstrip('/')}/{item}"
+                })
+        except Exception as e:
+            self._send_json_response({"error": str(e), "entries": []}, status=500)
+            return
+
+        self._send_json_response({
+            "path": req_path,
+            "entries": entries
+        })
+
+    def handle_notebook_upload_post(self):
+        try:
+            content_length = int(self.headers.get('Content-Length', 0))
+            payload = json.loads(self.rfile.read(content_length).decode('utf-8')) if content_length > 0 else {}
+        except Exception as e:
+            self._send_json_response({"error": f"Invalid payload: {e}"}, status=400)
+            return
+
+        filename = payload.get("filename", "").strip()
+        data_b64 = payload.get("data", "")
+        dest_dir = payload.get("path", "/content").strip()
+
+        if not filename or ".." in filename or "/" in filename:
+            self._send_json_response({"error": "Invalid filename"}, status=400)
+            return
+
+        home = os.path.expanduser("~")
+        content_root = os.path.join(home, "content")
+        target_dir = os.path.normpath(os.path.join(content_root, dest_dir.replace("/content", "").lstrip("/")))
+        if not target_dir.startswith(content_root):
+            target_dir = content_root
+
+        os.makedirs(target_dir, exist_ok=True)
+        dest_path = os.path.join(target_dir, filename)
+
+        try:
+            raw_data = base64.b64decode(data_b64)
+            with open(dest_path, "wb") as f:
+                f.write(raw_data)
+            self._send_json_response({"status": "ok", "path": f"/content/{filename}", "size": len(raw_data)})
+        except Exception as e:
+            self._send_json_response({"error": f"Write failed: {e}"}, status=500)
 
     def handle_maker_md(self):
         """Serves the AI-native agent connection directive maker.md"""
