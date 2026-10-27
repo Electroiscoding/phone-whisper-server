@@ -6464,8 +6464,14 @@ def _colab_getcwd():
         return "/kaggle"
     if cwd.startswith(kaggle_root + "/"):
         return "/kaggle" + cwd[len(kaggle_root):]
-    return cwd
 os.getcwd = _colab_getcwd
+
+_orig_os_chdir = os.chdir
+def _safe_os_chdir(path):
+    mapped = _remap_colab_kaggle_path(path)
+    os.makedirs(mapped, exist_ok=True)
+    return _orig_os_chdir(mapped)
+os.chdir = _safe_os_chdir
 
 _orig_os_listdir = os.listdir
 def _safe_os_listdir(p="."):
@@ -6786,6 +6792,10 @@ class ColabSubprocessProxy:
         return re.sub(r'(?<![A-Za-z0-9_~])/(content|kaggle)(?=[/\s\x22\x27]|$)', lambda m: os.path.join(home, m.group(1)), s)
 
     def run(self, *popenargs, **kwargs):
+        if "cwd" in kwargs and kwargs["cwd"] is not None:
+            kwargs["cwd"] = _remap_colab_kaggle_path(kwargs["cwd"])
+            try: os.makedirs(kwargs["cwd"], exist_ok=True)
+            except Exception: pass
         if popenargs:
             args = popenargs[0]
             if isinstance(args, str):
@@ -6813,6 +6823,10 @@ class ColabSubprocessProxy:
             )
 
     def Popen(self, *popenargs, **kwargs):
+        if "cwd" in kwargs and kwargs["cwd"] is not None:
+            kwargs["cwd"] = _remap_colab_kaggle_path(kwargs["cwd"])
+            try: os.makedirs(kwargs["cwd"], exist_ok=True)
+            except Exception: pass
         if popenargs:
             args = popenargs[0]
             if isinstance(args, str):
@@ -6985,6 +6999,12 @@ def run_streaming_cmd(cmd, cwd=None, callback=None, timeout=300):
     content_root = os.path.join(home, "content")
     if cwd is None:
         cwd = content_root
+    else:
+        cwd = _remap_colab_kaggle_path(cwd)
+    try:
+        os.makedirs(cwd, exist_ok=True)
+    except Exception:
+        pass
     try:
         proc = _colab_sub_proxy.Popen(
             cmd,
@@ -7035,9 +7055,11 @@ class NotebookKernelSession:
             self.execution_count += 1
             t_start = time.perf_counter()
             
-            old_proc_cwd = os.getcwd()
+            old_proc_cwd = _orig_os_getcwd()
             try:
-                os.chdir(self.cwd)
+                real_target = _remap_colab_kaggle_path(self.cwd)
+                os.makedirs(real_target, exist_ok=True)
+                _orig_os_chdir(real_target)
             except Exception:
                 pass
 
@@ -7252,16 +7274,16 @@ class NotebookKernelSession:
                     sys.stdout = old_stdout
                     sys.stderr = old_stderr
                     try:
-                        self.cwd = os.getcwd()
-                        os.chdir(old_proc_cwd)
+                        self.cwd = _remap_colab_kaggle_path(_orig_os_getcwd())
+                        _orig_os_chdir(old_proc_cwd)
                     except Exception:
                         pass
             else:
                 sys.stdout = old_stdout
                 sys.stderr = old_stderr
                 try:
-                    self.cwd = os.getcwd()
-                    os.chdir(old_proc_cwd)
+                    self.cwd = _remap_colab_kaggle_path(_orig_os_getcwd())
+                    _orig_os_chdir(old_proc_cwd)
                 except Exception:
                     pass
 
