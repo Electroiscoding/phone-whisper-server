@@ -567,7 +567,30 @@
       color: var(--colab-orange);
       border-color: var(--colab-orange);
       background: rgba(249, 171, 0, 0.12);
+      cursor: pointer;
+    }
+
+    .run-btn.running .icon-running {
       animation: spin 1s linear infinite;
+    }
+
+    .run-btn.running .icon-stop {
+      display: none;
+    }
+
+    .run-btn.running:hover {
+      animation: none !important;
+      background: rgba(242, 139, 130, 0.25) !important;
+      border-color: #f28b82 !important;
+      color: #f28b82 !important;
+    }
+
+    .run-btn.running:hover .icon-running {
+      display: none !important;
+    }
+
+    .run-btn.running:hover .icon-stop {
+      display: inline-block !important;
     }
 
     .run-btn.success {
@@ -582,6 +605,91 @@
 
     @keyframes spin {
       100% { transform: rotate(360deg); }
+    }
+
+    /* NIR EYAL REAL-TIME PROGRESSIVE FEEDBACK BANNER */
+    .exec-live-banner {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 7px 12px;
+      margin-bottom: 8px;
+      background: rgba(249, 171, 0, 0.08);
+      border: 1px solid rgba(249, 171, 0, 0.3);
+      border-radius: 6px;
+      font-size: 12px;
+      animation: fadeIn 0.15s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-2px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .pulse-ring {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--colab-orange);
+      box-shadow: 0 0 0 0 rgba(249, 171, 0, 0.7);
+      animation: pulseAnim 1.4s infinite;
+      flex-shrink: 0;
+    }
+
+    @keyframes pulseAnim {
+      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(249, 171, 0, 0.7); }
+      70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(249, 171, 0, 0); }
+      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(249, 171, 0, 0); }
+    }
+
+    .exec-banner-text {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .banner-title {
+      font-weight: 600;
+      color: #e8eaed;
+      letter-spacing: 0.2px;
+    }
+
+    .banner-sub {
+      color: var(--colab-text-secondary);
+      font-size: 11px;
+    }
+
+    .exec-banner-timer {
+      font-family: var(--colab-code-font);
+      font-weight: 700;
+      color: var(--colab-orange);
+      font-size: 13px;
+      background: rgba(0, 0, 0, 0.25);
+      padding: 2px 7px;
+      border-radius: 4px;
+      border: 1px solid rgba(249, 171, 0, 0.25);
+    }
+
+    .btn-banner-stop {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(242, 139, 130, 0.15);
+      color: #f28b82;
+      border: 1px solid rgba(242, 139, 130, 0.4);
+      padding: 3px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 600;
+      transition: all 0.15s;
+    }
+
+    .btn-banner-stop:hover {
+      background: #f28b82;
+      color: #202124;
+      border-color: #f28b82;
     }
 
     .cell-editor-wrapper {
@@ -1382,6 +1490,10 @@
         <span class="material-symbols-outlined" style="font-size: 16px;">play_arrow</span>
         <span>Run all</span>
       </button>
+      <button class="btn-action btn-secondary" id="interruptBtn" onclick="interruptExecution()" title="Interrupt Execution (Esc)" style="display:none; color: #f28b82; border-color: rgba(242, 139, 130, 0.4); background: rgba(242, 139, 130, 0.08);">
+        <span class="material-symbols-outlined" style="font-size: 16px; color: #f28b82;">stop_circle</span>
+        <span>Interrupt</span>
+      </button>
       <button class="btn-action btn-secondary" onclick="openIpynbPicker()" title="Upload & Open .ipynb from Colab / Kaggle">
         <span class="material-symbols-outlined" style="font-size: 16px;">upload_file</span>
         <span>Open .ipynb</span>
@@ -1675,8 +1787,8 @@
 
           <div class="cell-input-row">
             <div class="cell-gutter">
-              <button class="run-btn ${runClass}" onclick="executeCell('${cell.id}')" title="Execute cell (Shift+Enter)">
-                <span class="material-symbols-outlined">${runIcon}</span>
+              <button class="run-btn ${runClass}" onclick="executeCell('${cell.id}')" title="${cell.status === 'running' ? 'Interrupt execution (Esc)' : 'Execute cell (Shift+Enter)'}">
+                ${cell.status === 'running' ? '<span class="material-symbols-outlined icon-running">sync</span><span class="material-symbols-outlined icon-stop">stop</span>' : `<span class="material-symbols-outlined">${runIcon}</span>`}
               </button>
               <span class="exec-count">[${cell.executionCount || ' '}]</span>
             </div>
@@ -1760,7 +1872,86 @@
       ta.dispatchEvent(new Event("input", { bubbles: true }));
     }
 
+    // NIR EYAL BEHAVIORAL CONTROL & STATE TRACKER
+    let currentAbortController = null;
+    let currentExecutingCellId = null;
+    let executionTickerTimer = null;
+    let lastKnownPing = 0;
+
+    async function interruptExecution() {
+      if (executionTickerTimer) {
+        clearInterval(executionTickerTimer);
+        executionTickerTimer = null;
+      }
+      const cellId = currentExecutingCellId;
+      if (currentAbortController) {
+        try {
+          currentAbortController.abort();
+        } catch (_) {}
+        currentAbortController = null;
+      }
+      currentExecutingCellId = null;
+      document.title = document.getElementById("notebookTitle")?.value || "Untitled0.ipynb";
+
+      const interruptBtn = document.getElementById("interruptBtn");
+      if (interruptBtn) interruptBtn.style.display = "none";
+
+      showToast("Interrupting execution...");
+
+      // Send kernel reset signal to backend in background
+      try {
+        fetch(`${API_BASE}/v1/notebook/reset`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ session_id: "default" })
+        }).catch(() => {});
+      } catch (_) {}
+
+      if (cellId) {
+        const cell = cells.find(c => c.id === cellId);
+        if (cell) {
+          cell.status = "error";
+          cell.output = cell.output || {};
+          cell.output.stderr = (cell.output.stderr ? cell.output.stderr + "\n" : "") + "KeyboardInterrupt: Execution halted by user";
+        }
+        const cellEl = document.getElementById(`cell-${cellId}`);
+        if (cellEl) {
+          const runBtn = cellEl.querySelector(".run-btn");
+          if (runBtn) {
+            runBtn.title = "Execute cell (Shift+Enter)";
+            runBtn.className = "run-btn error";
+            runBtn.innerHTML = '<span class="material-symbols-outlined">stop_circle</span>';
+          }
+          const banner = document.getElementById(`execBanner-${cellId}`);
+          if (banner) banner.remove();
+          const timeEl = cellEl.querySelector(".output-time");
+          if (timeEl) {
+            timeEl.innerHTML = `
+              <span class="material-symbols-outlined" style="font-size: 13px; color: #f28b82;">cancel</span>
+              <span style="color: #f28b82;">Interrupted by user</span>
+            `;
+          }
+          const stderrEl = cellEl.querySelector(".output-stderr");
+          if (stderrEl) {
+            stderrEl.style.display = "block";
+            const content = stderrEl.querySelector(".output-stderr-content") || stderrEl;
+            content.textContent = cell.output.stderr;
+          }
+        }
+      }
+      updateStatus(false, false, "Ready (Interrupted)");
+      setNotebookFavicon("idle");
+    }
+
     async function executeCell(cellId) {
+      if (currentExecutingCellId) {
+        // If user clicks run button on currently executing cell, interpret as INTERRUPT
+        if (currentExecutingCellId === cellId) {
+          await interruptExecution();
+          return;
+        }
+      }
+
       const cell = cells.find(c => c.id === cellId);
       if (!cell) return;
 
@@ -1768,7 +1959,12 @@
       if (ta) cell.content = ta.value;
 
       cell.status = "running";
-      updateStatus(true);
+      currentExecutingCellId = cellId;
+      currentAbortController = new AbortController();
+
+      const interruptBtn = document.getElementById("interruptBtn");
+      if (interruptBtn) interruptBtn.style.display = "inline-flex";
+
       setNotebookFavicon("running");
 
       // In-place DOM update so streaming begins immediately without layout shift
@@ -1783,8 +1979,12 @@
       if (cellEl) {
         const runBtn = cellEl.querySelector(".run-btn");
         if (runBtn) {
+          runBtn.title = "Interrupt execution (Esc)";
           runBtn.className = "run-btn running";
-          runBtn.innerHTML = '<span class="material-symbols-outlined">sync</span>';
+          runBtn.innerHTML = `
+            <span class="material-symbols-outlined icon-running">sync</span>
+            <span class="material-symbols-outlined icon-stop">stop</span>
+          `;
         }
         outputArea = cellEl.querySelector(".cell-output-area");
         if (!outputArea) {
@@ -1793,6 +1993,18 @@
           cellEl.appendChild(outputArea);
         }
         outputArea.innerHTML = `
+          <div class="exec-live-banner" id="execBanner-${cellId}">
+            <div class="pulse-ring"></div>
+            <div class="exec-banner-text">
+              <span class="banner-title" id="execTargetTitle-${cellId}">⚡ Executing on Phone CPU (Linux arm64)</span>
+              <span class="banner-sub" id="execTargetSub-${cellId}">Connecting & streaming output live...</span>
+            </div>
+            <span class="exec-banner-timer" id="cellTimer-${cellId}">0.0s</span>
+            <button class="btn-banner-stop" onclick="interruptExecution()" title="Stop execution (Esc)">
+              <span class="material-symbols-outlined" style="font-size: 14px;">stop</span>
+              <span>Stop</span>
+            </button>
+          </div>
           <div class="output-stdout" style="display:none;"></div>
           <div class="output-stderr" style="display:none;">
             <div class="output-stderr-header"><span class="material-symbols-outlined" style="font-size:14px;">warning</span>Warning / Stderr</div>
@@ -1816,6 +2028,17 @@
 
       cell.output = { stdout: "", stderr: "", result: null, error: null };
       const t0 = performance.now();
+      const baseTitle = document.getElementById("notebookTitle")?.value || "Untitled0.ipynb";
+
+      // Live 100ms ticker for immediate sensory feedback (Nir Eyal model)
+      if (executionTickerTimer) clearInterval(executionTickerTimer);
+      executionTickerTimer = setInterval(() => {
+        const elapsedSec = ((performance.now() - t0) / 1000).toFixed(1);
+        const timerEl = document.getElementById(`cellTimer-${cellId}`);
+        if (timerEl) timerEl.textContent = `${elapsedSec}s`;
+        updateStatus(true, false, `⚡ Phone CPU • Executing (${elapsedSec}s) • Click Stop to cancel`);
+        document.title = `▶ [${elapsedSec}s] ${baseTitle}`;
+      }, 100);
 
       try {
         const res = await fetch(`${API_BASE}/v1/notebook/execute`, {
@@ -1824,7 +2047,8 @@
             "Content-Type": "application/json",
             "Accept": "text/event-stream"
           },
-          body: JSON.stringify({ code: cell.content, session_id: "default", stream: true })
+          body: JSON.stringify({ code: cell.content, session_id: "default", stream: true }),
+          signal: currentAbortController.signal
         });
 
         if (!res.ok) {
@@ -1835,6 +2059,9 @@
           } catch (_) {}
           throw new Error(errText);
         }
+
+        const bannerSub = document.getElementById(`execTargetSub-${cellId}`);
+        if (bannerSub) bannerSub.textContent = "Connected. Executing Python code...";
 
         const isSSE = (res.headers.get("content-type") || "").includes("text/event-stream") && res.body;
 
@@ -1881,6 +2108,7 @@
                   stdoutEl.textContent = cell.output.stdout;
                   outputArea.scrollTop = outputArea.scrollHeight;
                 }
+                if (bannerSub) bannerSub.textContent = `Streaming stdout (${cell.output.stdout.length} chars)...`;
               } else if (event.type === "stderr") {
                 cell.output.stderr = (cell.output.stderr || "") + event.text;
                 if (stderrEl) {
@@ -1924,10 +2152,11 @@
                   if (countEl) countEl.textContent = `[${cell.executionCount || ' '}]`;
                 }
                 if (timeEl) {
+                  const ok = cell.status === "success";
                   timeEl.innerHTML = `
-                    <span class="material-symbols-outlined" style="font-size: 13px;">schedule</span>
-                    <span>Executed in ${cell.latencyMs}ms</span>
-                    <span class="stream-badge-done">LIVE STREAMED</span>
+                    <span class="material-symbols-outlined" style="font-size: 13px; color: ${ok ? 'var(--colab-green)' : '#f28b82'};">${ok ? 'check_circle' : 'error'}</span>
+                    <span>Executed in ${cell.latencyMs}ms on Phone CPU (Linux arm64)</span>
+                    <span class="stream-badge-done">PHONE NATIVE</span>
                   `;
                 }
               }
@@ -1982,9 +2211,10 @@
             content.textContent = formatTraceback(cell.output.error);
           }
           if (timeEl) {
+            const ok = cell.status === "success";
             timeEl.innerHTML = `
-              <span class="material-symbols-outlined" style="font-size: 13px;">schedule</span>
-              <span>Executed in ${cell.latencyMs}ms</span>
+              <span class="material-symbols-outlined" style="font-size: 13px; color: ${ok ? 'var(--colab-green)' : '#f28b82'};">${ok ? 'check_circle' : 'error'}</span>
+              <span>Executed in ${cell.latencyMs}ms on Phone CPU</span>
             `;
           }
           if (cellEl) {
@@ -1996,12 +2226,20 @@
         const timer = document.getElementById("lastExecutionTimer");
         if (timer) timer.innerText = `Last: ${cell.latencyMs || Math.round(performance.now() - t0)}ms`;
       } catch (err) {
-        console.warn("[NOIR] Gateway unreachable or reconnecting. Seamlessly failing over to client sovereign CPU...", err);
+        if (err.name === "AbortError" || String(err.message).includes("aborted")) {
+          console.log("[NOIR] Execution aborted by user");
+          return;
+        }
+        console.warn("[NOIR] Phone gateway unreachable or reconnecting. Transparently switching to In-Browser Sovereign CPU (Pyodide)...", err);
+        const bannerTitle = document.getElementById(`execTargetTitle-${cellId}`);
+        const bannerSub = document.getElementById(`execTargetSub-${cellId}`);
+        if (bannerTitle) bannerTitle.textContent = "🌐 In-Browser Pyodide (WASM CPU)";
+        if (bannerSub) bannerSub.textContent = "Phone offline / reconnecting. Executing client-side sovereign runtime...";
         try {
           if (timeEl) {
             timeEl.innerHTML = `
               <span class="material-symbols-outlined" style="font-size: 13px; animation: spin 1s linear infinite;">sync</span>
-              <span>Executing Sovereign CPU...</span>
+              <span>Executing In-Browser Pyodide...</span>
             `;
           }
           await executeInBrowserPyodide(cell, cellEl, outputArea, stdoutEl, stderrEl, resultEl, errorEl, timeEl, t0);
@@ -2018,29 +2256,44 @@
           }
           if (timeEl) {
             timeEl.innerHTML = `
-              <span class="material-symbols-outlined" style="font-size: 13px;">error</span>
+              <span class="material-symbols-outlined" style="font-size: 13px; color: #f28b82;">error</span>
               <span>Failed after ${cell.latencyMs}ms</span>
             `;
           }
         }
       } finally {
+        if (executionTickerTimer) {
+          clearInterval(executionTickerTimer);
+          executionTickerTimer = null;
+        }
+        currentAbortController = null;
+        currentExecutingCellId = null;
+        const banner = document.getElementById(`execBanner-${cellId}`);
+        if (banner) banner.remove();
+        document.title = baseTitle;
+        const interruptBtn = document.getElementById("interruptBtn");
+        if (interruptBtn) interruptBtn.style.display = "none";
+
         updateStatus(false);
         const isOk = cell.status === "success";
-        setNotebookFavicon(isOk ? "success" : "error");
+        setNotebookFavicon(isOk ? "success" : (cell.status === "idle" ? "idle" : "error"));
         if (cellEl) {
           const runBtn = cellEl.querySelector(".run-btn");
           if (runBtn) {
-            runBtn.className = `run-btn ${isOk ? 'success' : 'error'}`;
-            runBtn.innerHTML = `<span class="material-symbols-outlined">${isOk ? 'check_circle' : 'error'}</span>`;
+            runBtn.title = "Execute cell (Shift+Enter)";
+            runBtn.className = `run-btn ${isOk ? 'success' : (cell.status === 'error' ? 'error' : '')}`;
+            runBtn.innerHTML = `<span class="material-symbols-outlined">${isOk ? 'check_circle' : (cell.status === 'error' ? 'error' : 'play_arrow')}</span>`;
           }
         }
       }
     }
 
-
     async function runAllCells() {
       for (const cell of cells) {
         if (cell.type === "code") {
+          if (cell.status === "error" && cell.output?.stderr?.includes("KeyboardInterrupt")) {
+            break;
+          }
           await executeCell(cell.id);
         }
       }
@@ -2086,43 +2339,52 @@
     function updateStatus(isBusy, isError = false, customMsg = null) {
       const dot = document.getElementById("statusDot");
       const text = document.getElementById("statusText");
+      if (!dot || !text) return;
+      if (customMsg) {
+        text.innerText = customMsg;
+        if (isError) {
+          dot.className = "status-dot";
+          dot.style.background = "#f28b82";
+        }
+        return;
+      }
       if (isError) {
         dot.className = "status-dot";
         dot.style.background = "#f28b82";
-        text.innerText = customMsg || "Server Unreachable";
+        text.innerText = "Phone Server Offline (Local Pyodide Ready)";
       } else if (isBusy) {
         dot.className = "status-dot busy";
         dot.style.background = "";
-        text.innerText = "Executing (CPU)...";
+        text.innerText = "Phone CPU: Busy...";
       } else {
         dot.className = "status-dot";
-        dot.style.background = "";
-        text.innerText = "Connected (Python 3 CPU)";
+        dot.style.background = "#81c995";
+        text.innerText = `Connected: Phone Server (Linux arm64) • ${lastKnownPing ? lastKnownPing + 'ms' : 'Ready'}`;
       }
     }
 
     async function fetchSystemMetrics() {
+      const pingStart = performance.now();
       try {
         const res = await fetch(`${API_BASE}/v1/notebook/session?session_id=default`);
+        lastKnownPing = Math.round(performance.now() - pingStart);
         if (res.ok) {
           const data = await res.json();
-          if (data.status === "reconnecting") {
-            updateStatus(false, false, "Connected (Dual Sovereign + Local)");
-            return;
+          if (!currentExecutingCellId) {
+            updateStatus(data.is_busy, false);
           }
-          updateStatus(data.is_busy, false);
           if (data.memory && data.memory.percent !== undefined) {
             document.getElementById("ramFill").style.width = `${Math.min(100, data.memory.percent)}%`;
-            document.getElementById("resourcePill").title = `RAM: ${data.memory.used_mb || 0}MB / ${data.memory.total_mb || 0}MB (${data.memory.percent}%)`;
+            document.getElementById("resourcePill").title = `Phone RAM: ${data.memory.used_mb || 0}MB / ${data.memory.total_mb || 0}MB (${data.memory.percent}%) • Ping: ${lastKnownPing}ms`;
           }
           if (data.disk && data.disk.percent !== undefined) {
             document.getElementById("diskFill").style.width = `${Math.min(100, data.disk.percent)}%`;
           }
         } else {
-          updateStatus(false, false, "Connected (Python 3 CPU)");
+          if (!currentExecutingCellId) updateStatus(false, false, "Connected (Dual Sovereign + Local)");
         }
       } catch (err) {
-        updateStatus(false, false, "Connected (Python 3 CPU)");
+        if (!currentExecutingCellId) updateStatus(false, true, "Phone Offline (Local Pyodide Ready)");
       }
     }
 
@@ -2138,7 +2400,13 @@
     }
 
     document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape") closeSettings();
+      if (e.key === "Escape") {
+        if (currentExecutingCellId) {
+          interruptExecution();
+        } else {
+          closeSettings();
+        }
+      }
     });
 
     const themeSelect = document.getElementById("themeSelect");
