@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://prototype-chart-protocols-inc.trycloudflare.com",
-  "inference": "https://prototype-chart-protocols-inc.trycloudflare.com/inference",
-  "telemetry": "https://prototype-chart-protocols-inc.trycloudflare.com/telemetry",
+  "endpoint": "https://tmp-authorized-drink-ones.trycloudflare.com",
+  "inference": "https://tmp-authorized-drink-ones.trycloudflare.com/inference",
+  "telemetry": "https://tmp-authorized-drink-ones.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-27T17:13:00Z"
+  "updated_at": "2026-10-27T17:14:58Z"
 }
