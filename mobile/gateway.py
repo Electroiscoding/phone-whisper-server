@@ -6855,6 +6855,7 @@ def _build_default_notebook_namespace():
             args = (first,) + args[1:]
         return _RealOrigPath(*args, **kwargs)
 
+    _sys.argv = ["notebook", "--selftest"]
     google_mod = _sys.modules.get("google")
     return {
         "__name__": "__main__",

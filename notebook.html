@@ -2356,6 +2356,7 @@
           });
           py.runPython(`
 import sys, os
+sys.argv = ['notebook', '--selftest']
 
 for d in ['/content', '/content/sample_data', '/kaggle', '/kaggle/working', '/kaggle/input']:
     try: os.makedirs(d, exist_ok=True)
