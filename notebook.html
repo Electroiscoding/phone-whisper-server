@@ -2635,12 +2635,16 @@ if not os.path.exists(cal_path):
     with open(cal_path, 'w') as f:
         f.write("longitude,latitude,housing_median_age,total_rooms,total_bedrooms,population,households,median_income,median_house_value\\n-114.31,34.19,15.0,5612.0,1283.0,1015.0,472.0,1.4936,66900.0\\n")
 
+class SecretNotFoundError(KeyError): pass
+
 class _MockColabUserdata:
+    SecretNotFoundError = SecretNotFoundError
     @staticmethod
     def get(k, default=None):
-        if default is not None: return default
         import os
-        return os.environ.get(k, "0")
+        if k in os.environ: return os.environ[k]
+        if default is not None: return default
+        raise SecretNotFoundError(f"Secret {k} does not exist in environment")
 
 class _MockColabDrive:
     @staticmethod

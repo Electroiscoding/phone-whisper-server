@@ -6569,10 +6569,17 @@ def _init_colab_environment():
 
     output.clear = lambda wait=False: None
     output.eval_js = lambda code: None
-    output.serve_kernel_port_as_iframe = lambda port, *a, **k: print(f"Port {port} forwarded.")
-    userdata.get = lambda key, default=None: os.environ.get(key, default if default is not None else "0")
+    class SecretNotFoundError(KeyError):
+        pass
+    userdata.SecretNotFoundError = SecretNotFoundError
 
-    auth.authenticate_user = lambda: print("[google.colab.auth] Sovereign runtime authenticated.")
+    def userdata_get(key, default=None):
+        if key in os.environ:
+            return os.environ[key]
+        if default is not None:
+            return default
+        raise SecretNotFoundError(f"Secret {key} does not exist in environment")
+    userdata.get = userdata_get
 
     data_table.enable_dataframe_formatter = lambda: None
     data_table.disable_dataframe_formatter = lambda: None
