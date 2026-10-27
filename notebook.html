@@ -481,6 +481,39 @@
       color: var(--colab-text);
     }
 
+    .file-action-btn {
+      background: transparent;
+      border: none;
+      color: var(--colab-text-secondary);
+      cursor: pointer;
+      padding: 2px 4px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s ease;
+    }
+
+    .file-action-btn:hover {
+      background: rgba(255, 255, 255, 0.12);
+      color: var(--colab-text);
+    }
+
+    .item-actions {
+      display: none;
+      align-items: center;
+      gap: 3px;
+      flex-shrink: 0;
+    }
+
+    .drawer-item:hover .item-actions {
+      display: flex;
+    }
+
+    .drawer-item:hover .file-size {
+      display: none;
+    }
+
     .search-input {
       width: 100%;
       background: var(--colab-bg);
@@ -3181,10 +3214,17 @@ sys.modules['kaggle_secrets'].UserSecretsClient = _MockKaggleSecrets
           if (e.is_dir) {
             return `
               <div class="file-tree-node">
-                <div class="drawer-item" onclick="toggleSubFolder('${e.path}', this)" style="display:flex; align-items:center; gap:6px;">
-                  <span class="material-symbols-outlined sub-chevron" style="font-size:14px; transition:transform 0.15s;">chevron_right</span>
-                  <span class="material-symbols-outlined" style="font-size:16px; color:var(--colab-orange);">folder</span>
-                  <span style="font-family:var(--colab-code-font);">${e.name}</span>
+                <div class="drawer-item" onclick="toggleSubFolder('${e.path}', this)" style="display:flex; align-items:center; justify-content:space-between;">
+                  <div style="display:flex; align-items:center; gap:6px; overflow:hidden;">
+                    <span class="material-symbols-outlined sub-chevron" style="font-size:14px; transition:transform 0.15s;">chevron_right</span>
+                    <span class="material-symbols-outlined" style="font-size:16px; color:var(--colab-orange);">folder</span>
+                    <span style="font-family:var(--colab-code-font); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${e.name}</span>
+                  </div>
+                  <div class="item-actions">
+                    <button class="file-action-btn" title="Copy path" onclick="copyFilePath('${e.path}', this, event)">
+                      <span class="material-symbols-outlined" style="font-size:15px;">content_copy</span>
+                    </button>
+                  </div>
                 </div>
                 <div class="sub-folder-content" style="display:none; padding-left:18px;"></div>
               </div>
@@ -3195,9 +3235,17 @@ sys.modules['kaggle_secrets'].UserSecretsClient = _MockKaggleSecrets
               <div class="drawer-item" style="display:flex; justify-content:space-between; align-items:center;">
                 <div style="display:flex; align-items:center; gap:6px; overflow:hidden;">
                   <span class="material-symbols-outlined" style="font-size:16px; color:var(--colab-text-secondary);">description</span>
-                  <span style="font-family:var(--colab-code-font); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${e.name}</span>
+                  <span style="font-family:var(--colab-code-font); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${e.name}">${e.name}</span>
                 </div>
-                <span style="color:var(--colab-text-tertiary); font-size:11px; font-family:var(--colab-code-font); flex-shrink:0;">${sizeStr}</span>
+                <span class="file-size" style="color:var(--colab-text-tertiary); font-size:11px; font-family:var(--colab-code-font); flex-shrink:0;">${sizeStr}</span>
+                <div class="item-actions">
+                  <button class="file-action-btn" title="Copy path" onclick="copyFilePath('${e.path}', this, event)">
+                    <span class="material-symbols-outlined" style="font-size:15px;">content_copy</span>
+                  </button>
+                  <button class="file-action-btn" title="Download" onclick="downloadFile('${e.path}', event)">
+                    <span class="material-symbols-outlined" style="font-size:15px;">download</span>
+                  </button>
+                </div>
               </div>
             `;
           }
@@ -3205,19 +3253,92 @@ sys.modules['kaggle_secrets'].UserSecretsClient = _MockKaggleSecrets
       } catch (err) {
         targetEl.innerHTML = `
           <div class="file-tree-node">
-            <div class="drawer-item" onclick="toggleSubFolder('/content/sample_data', this)" style="display:flex; align-items:center; gap:6px;">
-              <span class="material-symbols-outlined sub-chevron" style="font-size:14px; transition:transform 0.15s;">chevron_right</span>
-              <span class="material-symbols-outlined" style="font-size:16px; color:var(--colab-orange);">folder</span>
-              <span style="font-family:var(--colab-code-font);">sample_data</span>
+            <div class="drawer-item" onclick="toggleSubFolder('/content/sample_data', this)" style="display:flex; align-items:center; justify-content:space-between;">
+              <div style="display:flex; align-items:center; gap:6px; overflow:hidden;">
+                <span class="material-symbols-outlined sub-chevron" style="font-size:14px; transition:transform 0.15s;">chevron_right</span>
+                <span class="material-symbols-outlined" style="font-size:16px; color:var(--colab-orange);">folder</span>
+                <span style="font-family:var(--colab-code-font);">sample_data</span>
+              </div>
+              <div class="item-actions">
+                <button class="file-action-btn" title="Copy path" onclick="copyFilePath('/content/sample_data', this, event)">
+                  <span class="material-symbols-outlined" style="font-size:15px;">content_copy</span>
+                </button>
+              </div>
             </div>
             <div class="sub-folder-content" style="display:none; padding-left:18px;">
-              <div class="drawer-item"><span class="material-symbols-outlined" style="font-size:16px;">description</span><span style="font-family:var(--colab-code-font);">california_housing_train.csv</span></div>
-              <div class="drawer-item"><span class="material-symbols-outlined" style="font-size:16px;">description</span><span style="font-family:var(--colab-code-font);">mnist_train_small.csv</span></div>
-              <div class="drawer-item"><span class="material-symbols-outlined" style="font-size:16px;">description</span><span style="font-family:var(--colab-code-font);">README.md</span></div>
+              <div class="drawer-item" style="display:flex; justify-content:space-between; align-items:center;">
+                <div style="display:flex; align-items:center; gap:6px; overflow:hidden;">
+                  <span class="material-symbols-outlined" style="font-size:16px;">description</span>
+                  <span style="font-family:var(--colab-code-font);">california_housing_train.csv</span>
+                </div>
+                <div class="item-actions">
+                  <button class="file-action-btn" title="Copy path" onclick="copyFilePath('/content/sample_data/california_housing_train.csv', this, event)"><span class="material-symbols-outlined" style="font-size:15px;">content_copy</span></button>
+                  <button class="file-action-btn" title="Download" onclick="downloadFile('/content/sample_data/california_housing_train.csv', event)"><span class="material-symbols-outlined" style="font-size:15px;">download</span></button>
+                </div>
+              </div>
+              <div class="drawer-item" style="display:flex; justify-content:space-between; align-items:center;">
+                <div style="display:flex; align-items:center; gap:6px; overflow:hidden;">
+                  <span class="material-symbols-outlined" style="font-size:16px;">description</span>
+                  <span style="font-family:var(--colab-code-font);">mnist_train_small.csv</span>
+                </div>
+                <div class="item-actions">
+                  <button class="file-action-btn" title="Copy path" onclick="copyFilePath('/content/sample_data/mnist_train_small.csv', this, event)"><span class="material-symbols-outlined" style="font-size:15px;">content_copy</span></button>
+                  <button class="file-action-btn" title="Download" onclick="downloadFile('/content/sample_data/mnist_train_small.csv', event)"><span class="material-symbols-outlined" style="font-size:15px;">download</span></button>
+                </div>
+              </div>
+              <div class="drawer-item" style="display:flex; justify-content:space-between; align-items:center;">
+                <div style="display:flex; align-items:center; gap:6px; overflow:hidden;">
+                  <span class="material-symbols-outlined" style="font-size:16px;">description</span>
+                  <span style="font-family:var(--colab-code-font);">README.md</span>
+                </div>
+                <div class="item-actions">
+                  <button class="file-action-btn" title="Copy path" onclick="copyFilePath('/content/sample_data/README.md', this, event)"><span class="material-symbols-outlined" style="font-size:15px;">content_copy</span></button>
+                  <button class="file-action-btn" title="Download" onclick="downloadFile('/content/sample_data/README.md', event)"><span class="material-symbols-outlined" style="font-size:15px;">download</span></button>
+                </div>
+              </div>
             </div>
           </div>
         `;
       }
+    }
+
+    function copyFilePath(filePath, btnEl, evt) {
+      if (evt) evt.stopPropagation();
+      navigator.clipboard.writeText(filePath).then(() => {
+        showToast(`Copied path: ${filePath}`);
+        if (btnEl) {
+          const icon = btnEl.querySelector(".material-symbols-outlined");
+          if (icon) {
+            const orig = icon.innerText;
+            icon.innerText = "check";
+            icon.style.color = "var(--colab-green)";
+            setTimeout(() => {
+              icon.innerText = orig;
+              icon.style.color = "";
+            }, 1500);
+          }
+        }
+      }).catch(() => {
+        const ta = document.createElement("textarea");
+        ta.value = filePath;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+        showToast(`Copied path: ${filePath}`);
+      });
+    }
+
+    function downloadFile(filePath, evt) {
+      if (evt) evt.stopPropagation();
+      const filename = filePath.split("/").pop();
+      showToast(`Downloading ${filename}...`);
+      const link = document.createElement("a");
+      link.href = `${API_BASE}/v1/notebook/download?path=${encodeURIComponent(filePath)}`;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     }
 
     async function toggleSubFolder(path, el) {

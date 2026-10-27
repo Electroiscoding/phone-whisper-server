@@ -7524,6 +7524,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_notebook_session_get(parsed)
         elif path in ["/v1/notebook/files", "/notebook/files"]:
             self.handle_notebook_files_get(parsed)
+        elif path in ["/v1/notebook/download", "/notebook/download"]:
+            self.handle_notebook_download_get(parsed)
         elif path in ["/docs", "/docs.html"]:
             self.handle_docs_html()
         elif path in ["/maker", "/maker.md"]:
@@ -10101,6 +10103,56 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self._send_json_response({"status": "ok", "path": f"/content/{filename}", "size": len(raw_data)})
         except Exception as e:
             self._send_json_response({"error": f"Write failed: {e}"}, status=500)
+
+    def handle_notebook_download_get(self, parsed):
+        qs = urllib.parse.parse_qs(parsed.query)
+        req_path = qs.get("path", [""])[0]
+        if not req_path:
+            self._send_json_response({"error": "Missing path parameter"}, status=400)
+            return
+
+        home = os.path.expanduser("~")
+        content_root = os.path.join(home, "content")
+        kaggle_root = os.path.join(home, "kaggle")
+
+        # Sanitize and sandbox path strictly to /content or /kaggle
+        if req_path.startswith("/content"):
+            rel = req_path[len("/content"):].lstrip("/")
+            target = os.path.normpath(os.path.join(content_root, rel))
+        elif req_path.startswith("/kaggle"):
+            rel = req_path[len("/kaggle"):].lstrip("/")
+            target = os.path.normpath(os.path.join(kaggle_root, rel))
+        else:
+            self._send_json_response({"error": "Access denied"}, status=403)
+            return
+
+        if not (target.startswith(content_root) or target.startswith(kaggle_root)):
+            self._send_json_response({"error": "Access denied"}, status=403)
+            return
+
+        if not os.path.exists(target) or os.path.isdir(target):
+            self._send_json_response({"error": "File not found"}, status=404)
+            return
+
+        filename = os.path.basename(target)
+        file_size = os.path.getsize(target)
+
+        self.send_response(200)
+        self._send_cors_headers()
+        self.send_header("Content-Type", "application/octet-stream")
+        self.send_header("Content-Disposition", f'attachment; filename="{filename}"')
+        self.send_header("Content-Length", str(file_size))
+        self.end_headers()
+
+        try:
+            with open(target, "rb") as f:
+                while True:
+                    chunk = f.read(65536)
+                    if not chunk:
+                        break
+                    self.wfile.write(chunk)
+        except Exception:
+            pass
 
     def handle_maker_md(self):
         """Serves the AI-native agent connection directive maker.md"""
