@@ -3393,7 +3393,7 @@ Spam advertisement: Click here to buy cheap luxury watches online now!!</textare
           <!-- INTERACTIVE SCREEN CONTAINER -->
           <div id="phoneScreenContainer" style="position: relative; width: 100%; aspect-ratio: 9/20; max-height: 680px; background: #020617; border-radius: 16px; overflow: hidden; border: 2px solid rgba(255, 255, 255, 0.12); cursor: crosshair; user-select: none;">
             
-            <img id="phoneScreenStreamImg" src="/v1/screen/frame" alt="Phone Screen Stream" style="width: 100%; height: 100%; object-fit: contain; display: block;" onerror="this.src='/v1/screen/frame?t='+Date.now();" />
+            <img id="phoneScreenStreamImg" src="/v1/screen/frame" alt="Phone Screen Stream" style="width: 100%; height: 100%; object-fit: contain; display: block;" />
             
             <!-- TOUCH OVERLAY ANIMATION DOT -->
             <div id="phoneTouchIndicator" style="position: absolute; width: 24px; height: 24px; border-radius: 50%; background: rgba(239, 68, 68, 0.7); border: 2px solid #ffffff; transform: translate(-50%, -50%); display: none; pointer-events: none; z-index: 20; box-shadow: 0 0 12px rgba(239, 68, 68, 0.9);"></div>
@@ -12809,26 +12809,64 @@ func main() {
   <script>
     let phoneStreamActive = true;
     let phoneStreamTimer = null;
+    let phoneStreamInFlight = false;
+    let phoneStreamConsecutiveErrors = 0;
+    let lastFrameTime = Date.now();
+    let frameCount = 0;
 
-    function startPhoneScreenStreaming() {
+    function scheduleNextPhoneFrame(delay = 180) {
+      if (!phoneStreamActive) return;
+      if (phoneStreamTimer) clearTimeout(phoneStreamTimer);
+      phoneStreamTimer = setTimeout(fetchPhoneScreenFrame, delay);
+    }
+
+    function fetchPhoneScreenFrame() {
+      if (!phoneStreamActive || phoneStreamInFlight) return;
       const imgEl = document.getElementById("phoneScreenStreamImg");
       if (!imgEl) return;
-      
-      if (phoneStreamTimer) clearInterval(phoneStreamTimer);
 
-      phoneStreamTimer = setInterval(() => {
-        if (!phoneStreamActive) return;
-        const base = typeof getApiBaseUrl === 'function' ? getApiBaseUrl() : '';
-        imgEl.src = base + "/v1/screen/frame?t=" + Date.now();
-      }, 150);
+      phoneStreamInFlight = true;
+      const base = typeof getApiBaseUrl === 'function' ? getApiBaseUrl() : '';
+      const targetSrc = base + "/v1/screen/frame?t=" + Date.now();
+
+      const preloadImg = new Image();
+      preloadImg.onload = () => {
+        imgEl.src = targetSrc;
+        phoneStreamInFlight = false;
+        phoneStreamConsecutiveErrors = 0;
+        frameCount++;
+        const now = Date.now();
+        if (now - lastFrameTime >= 1000) {
+          const fpsEl = document.getElementById("phoneStreamFps");
+          if (fpsEl) fpsEl.textContent = `~${Math.max(1, frameCount)} FPS`;
+          frameCount = 0;
+          lastFrameTime = now;
+        }
+        scheduleNextPhoneFrame(160);
+      };
+
+      preloadImg.onerror = () => {
+        phoneStreamInFlight = false;
+        phoneStreamConsecutiveErrors++;
+        const backoff = Math.min(3000, 400 * Math.pow(1.3, phoneStreamConsecutiveErrors));
+        const fpsEl = document.getElementById("phoneStreamFps");
+        if (fpsEl) fpsEl.textContent = "Syncing...";
+        scheduleNextPhoneFrame(backoff);
+      };
+
+      preloadImg.src = targetSrc;
+    }
+
+    function startPhoneScreenStreaming() {
+      if (phoneStreamTimer) clearTimeout(phoneStreamTimer);
+      phoneStreamActive = true;
+      phoneStreamInFlight = false;
+      fetchPhoneScreenFrame();
     }
 
     function refreshPhoneScreenFrame() {
-      const imgEl = document.getElementById("phoneScreenStreamImg");
-      if (imgEl) {
-        const base = typeof getApiBaseUrl === 'function' ? getApiBaseUrl() : '';
-        imgEl.src = base + "/v1/screen/frame?t=" + Date.now();
-      }
+      phoneStreamInFlight = false;
+      fetchPhoneScreenFrame();
     }
 
     function togglePhoneStreamRefresh() {
@@ -12840,6 +12878,7 @@ func main() {
           startPhoneScreenStreaming();
         } else {
           btn.innerHTML = '<i class="fa-solid fa-play"></i> Resume Stream';
+          if (phoneStreamTimer) clearTimeout(phoneStreamTimer);
         }
       }
     }
@@ -12861,7 +12900,7 @@ func main() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ x: rx, y: ry, action: action, ...extra })
         });
-        setTimeout(refreshPhoneScreenFrame, 150);
+        setTimeout(refreshPhoneScreenFrame, 120);
       } catch (err) {
         console.error("Phone touch error:", err);
       }
@@ -12875,7 +12914,7 @@ func main() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ key: keyName })
         });
-        setTimeout(refreshPhoneScreenFrame, 200);
+        setTimeout(refreshPhoneScreenFrame, 150);
       } catch (err) {
         console.error("Phone key error:", err);
       }
@@ -12883,13 +12922,21 @@ func main() {
 
     async function launchPhoneApp(appName) {
       try {
+        const badge = document.getElementById("phoneStreamStatusBadge");
+        if (badge) {
+          badge.innerHTML = '<i class="fa-solid fa-circle text-xs mr-1 animate-pulse" style="color: #38bdf8;"></i> NETUARK ACTIVE';
+          badge.style.background = 'rgba(56, 189, 248, 0.2)';
+          badge.style.borderColor = 'rgba(56, 189, 248, 0.4)';
+          badge.style.color = '#38bdf8';
+        }
+
         const base = typeof getApiBaseUrl === 'function' ? getApiBaseUrl() : '';
         await fetch(base + "/v1/screen/app", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ app: appName, action: "launch" })
         });
-        setTimeout(refreshPhoneScreenFrame, 400);
+        setTimeout(refreshPhoneScreenFrame, 300);
       } catch (err) {
         console.error("Phone app launch error:", err);
       }
@@ -12907,7 +12954,7 @@ func main() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ package: pkg, action: "launch" })
         });
-        setTimeout(refreshPhoneScreenFrame, 400);
+        setTimeout(refreshPhoneScreenFrame, 300);
       } catch (err) {
         console.error("Custom app launch error:", err);
       }
