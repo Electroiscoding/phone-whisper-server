@@ -8074,7 +8074,9 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             package_name = data.get("package", "")
             
             if app_id == "netuark" or "netuark" in package_name.lower():
-                res = self._run_shell_cmd("monkey -p com.netuark -c android.intent.category.LAUNCHER 1")
+                res = self._run_shell_cmd("monkey -p com.netuark.app -c android.intent.category.LAUNCHER 1")
+                if res.returncode != 0:
+                    res = self._run_shell_cmd("monkey -p com.netuark -c android.intent.category.LAUNCHER 1")
                 if res.returncode != 0:
                     self._run_shell_cmd("am start -a android.intent.action.VIEW -d content://com.android.externalstorage.documents/document/primary%3ADownload%2FNeTuArk-v4.2.0.apk -t application/vnd.android.package-archive")
             elif package_name:
