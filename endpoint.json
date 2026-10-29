@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://examinations-columbus-linking-manga.trycloudflare.com",
-  "inference": "https://examinations-columbus-linking-manga.trycloudflare.com/inference",
-  "telemetry": "https://examinations-columbus-linking-manga.trycloudflare.com/telemetry",
+  "endpoint": "https://fallen-audit-carbon-sees.trycloudflare.com",
+  "inference": "https://fallen-audit-carbon-sees.trycloudflare.com/inference",
+  "telemetry": "https://fallen-audit-carbon-sees.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-29T17:05:34Z"
+  "updated_at": "2026-10-29T17:25:17Z"
 }
