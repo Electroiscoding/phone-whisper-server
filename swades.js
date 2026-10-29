@@ -955,7 +955,8 @@ class SwadesClient {
       n: options.n ?? options.topK ?? 10,
       fresh: options.fresh ?? 0.01,
       div: options.div ?? 0.05,
-      eps: options.eps ?? 0.1
+      eps: options.eps ?? 0.1,
+      posts: options.posts || null
     };
     const res = await fetch(`${this.endpoint}/v1/recommend`, {
       method: 'POST',

@@ -86,9 +86,69 @@ class RecsysEngine:
 
         self.cat_tensor = self.F[:, :5].argmax(1)
         self.day_tensor = torch.arange(len(self.F)) // PER_DAY
+        self.embedder = None
+
+    def rank_posts(self, posts, aff, hist_ids=None, demo=None, top_k=None):
+        if not posts:
+            return []
+        if self.embedder is None:
+            from sentence_transformers import SentenceTransformer
+            self.embedder = SentenceTransformer("all-MiniLM-L6-v2")
+
+        cat_map = {"tech": 0, "business": 1, "arts": 2, "entertainment": 3, "sports": 4}
+        texts = [p.get("text", "") for p in posts]
+        text_embs = torch.tensor(self.embedder.encode(texts, normalize_embeddings=True))
+
+        cat_one_hot = torch.zeros(len(posts), 5)
+        for i, p in enumerate(posts):
+            c_val = p.get("category", p.get("category_id", 0))
+            if isinstance(c_val, str):
+                c_idx = cat_map.get(c_val.lower(), 0)
+            else:
+                c_idx = int(c_val) if 0 <= int(c_val) < 5 else 0
+            cat_one_hot[i, c_idx] = 1.0
+
+        item_feats = torch.cat([cat_one_hot, text_embs], dim=-1)
+        with torch.no_grad():
+            item_embs = self.item_tower(item_feats)
+
+            aff_t = torch.tensor(aff, dtype=torch.float32)
+            demo_t = torch.tensor(demo or [0.0, 1.0, 0.0, 0.0], dtype=torch.float32)
+            if hist_ids:
+                h = self.F[hist_ids].mean(0)
+            else:
+                h = torch.zeros(self.F.shape[1])
+            u = self.user_tower(aff_t.unsqueeze(0), h.unsqueeze(0), demo_t.unsqueeze(0))[0]
+
+            scores = (item_embs @ u).tolist()
+
+        scored_items = []
+        for p, score in zip(posts, scores):
+            item = dict(p)
+            item["score"] = round(float(score), 4)
+            scored_items.append(item)
+
+        scored_items.sort(key=lambda x: x["score"], reverse=True)
+        for rank, item in enumerate(scored_items, 1):
+            item["rank"] = rank
+
+        if top_k is not None:
+            scored_items = scored_items[:top_k]
+
+        return scored_items
 
     @torch.no_grad()
-    def recommend(self, aff, hist_ids=None, demo=None, seen=None, today=59, n=10, fresh=0.01, div=0.05, eps=0.1):
+    def recommend(self, aff, hist_ids=None, demo=None, seen=None, today=59, n=10, fresh=0.01, div=0.05, eps=0.1, posts=None):
+        if posts:
+            ranked = self.rank_posts(posts, aff=aff, hist_ids=hist_ids, demo=demo, top_k=n)
+            status = "warm" if len(hist_ids or []) >= 3 else "cold"
+            return {
+                "status": "ok",
+                "user_status": status,
+                "total_recs": len(ranked),
+                "posts": ranked
+            }
+
         if hist_ids is None:
             hist_ids = []
         if demo is None:
@@ -137,13 +197,13 @@ class RecsysEngine:
             out.append(best)
             cnt[self.cat_tensor[best]] += 1
 
-        posts = [self.get_post(i) for i in out]
+        posts_out = [self.get_post(i) for i in out]
         status = "warm" if len(hist_ids) >= 3 else "cold"
         return {
             "status": "ok",
             "user_status": status,
-            "total_recs": len(posts),
-            "posts": posts
+            "total_recs": len(posts_out),
+            "posts": posts_out
         }
 
     def get_post(self, post_id):

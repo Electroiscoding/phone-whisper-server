@@ -63,6 +63,25 @@ def run_integration_tests():
         assert data["status"] == "ok"
         print("[+] Alias POST /v1/rank passed.")
 
+    # 4.5 Test POST /v1/recommend with custom candidate posts
+    custom_posts = [
+        {"id": "p_gpu", "text": "Next-gen GPU hardware and AI chip fabrication yields", "category": "Tech"},
+        {"id": "p_sports", "text": "Champions league derby highlights and penalty shootout", "category": "Sports"},
+        {"id": "p_art", "text": "Modern watercolor painting gallery exhibition in Vienna", "category": "Arts"},
+        {"id": "p_biz", "text": "Venture capital startup investments and seed valuations", "category": "Business"}
+    ]
+    custom_payload = json.dumps({
+        "aff": [3.0, 2.0, 0.0] + [0.0] * 12,
+        "posts": custom_posts,
+        "n": 4
+    }).encode()
+    req = urllib.request.Request(f"{base}/v1/recommend", data=custom_payload, headers={"Content-Type": "application/json"})
+    with urllib.request.urlopen(req, timeout=20) as resp:
+        assert resp.status == 200
+        data = json.loads(resp.read().decode())
+        assert data["posts"][0]["id"] == "p_gpu"
+        print(f"[+] Custom posts ranking passed: #1 is {data['posts'][0]['id']} (score: {data['posts'][0]['score']}).")
+
     # 5. Test GET /v1/recommend/post/42
     req = urllib.request.Request(f"{base}/v1/recommend/post/42")
     with urllib.request.urlopen(req, timeout=5) as resp:

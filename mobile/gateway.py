@@ -12630,13 +12630,14 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             fresh = float(payload.get("fresh", 0.01))
             div = float(payload.get("div", 0.05))
             eps = float(payload.get("eps", 0.1))
+            posts = payload.get("posts")
 
             repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
             if repo_root not in sys.path:
                 sys.path.insert(0, repo_root)
             from recsys.engine import get_recsys_engine
             engine = get_recsys_engine()
-            res = engine.recommend(aff=aff, hist_ids=hist_ids, demo=demo, seen=seen, today=today, n=n, fresh=fresh, div=div, eps=eps)
+            res = engine.recommend(aff=aff, hist_ids=hist_ids, demo=demo, seen=seen, today=today, n=n, fresh=fresh, div=div, eps=eps, posts=posts)
             resp_bytes = json.dumps(res).encode("utf-8")
             self.send_response(200)
             self._send_cors_headers()

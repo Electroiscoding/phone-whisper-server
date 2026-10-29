@@ -753,7 +753,7 @@ class Swades:
             except Exception:
                 return data
 
-    def recommend(self, aff, hist_ids=None, demo=None, seen=None, today=59, n=10, fresh=0.01, div=0.05, eps=0.1):
+    def recommend(self, aff, hist_ids=None, demo=None, seen=None, today=59, n=10, fresh=0.01, div=0.05, eps=0.1, posts=None):
         payload = {
             "aff": aff,
             "hist_ids": hist_ids or [],
@@ -765,6 +765,8 @@ class Swades:
             "div": div,
             "eps": eps
         }
+        if posts is not None:
+            payload["posts"] = posts
         res = self._req("POST", "/v1/recommend", json=payload, timeout=30)
         if not res.ok:
             raise RuntimeError(f"Recommendation failed: HTTP {res.status_code} - {res.text}")
