@@ -12617,7 +12617,28 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             payload = json.loads(raw_body.decode("utf-8")) if raw_body else {}
 
             aff = payload.get("aff")
-            if aff is None:
+            if aff is None and isinstance(payload.get("user"), dict):
+                u_obj = payload["user"]
+                aff = [0.0] * 15
+                t_list = u_obj.get("tastes") or []
+                r_str = u_obj.get("roadmap") or ""
+                tastes_str = " ".join([str(t) for t in t_list] + [str(r_str)]).lower()
+                if any(k in tastes_str for k in ["tech", "python", "kernel", "ai", "arm", "simd", "code", "compiler", "software"]):
+                    aff[0] += 3.0
+                    aff[1] += 2.0
+                if any(k in tastes_str for k in ["biz", "business", "finance", "startup", "invest", "venture"]):
+                    aff[3] += 3.0
+                    aff[4] += 2.0
+                if any(k in tastes_str for k in ["art", "design", "creative", "paint", "photo", "literature"]):
+                    aff[6] += 3.0
+                    aff[7] += 2.0
+                if any(k in tastes_str for k in ["entertain", "movie", "film", "music", "game", "anime"]):
+                    aff[9] += 3.0
+                    aff[10] += 2.0
+                if any(k in tastes_str for k in ["sport", "cricket", "f1", "racing", "fitness", "athlete"]):
+                    aff[12] += 3.0
+                    aff[13] += 2.0
+            elif aff is None:
                 aff = [0.0] * 15
             elif len(aff) != 15:
                 aff = (aff + [0.0] * 15)[:15]

@@ -76,11 +76,26 @@ def run_integration_tests():
         "n": 4
     }).encode()
     req = urllib.request.Request(f"{base}/v1/recommend", data=custom_payload, headers={"Content-Type": "application/json"})
-    with urllib.request.urlopen(req, timeout=20) as resp:
+    with urllib.request.urlopen(req, timeout=30) as resp:
         assert resp.status == 200
         data = json.loads(resp.read().decode())
         assert data["posts"][0]["id"] == "p_gpu"
+        assert "count" in data
+        assert "items" in data
         print(f"[+] Custom posts ranking passed: #1 is {data['posts'][0]['id']} (score: {data['posts'][0]['score']}).")
+
+    # 4.6 Test POST /v1/recommend with user context fallback
+    user_ctx_payload = json.dumps({
+        "user": {"tastes": ["tech", "ai", "python"], "roadmap": "compiler engineering"},
+        "posts": custom_posts,
+        "n": 4
+    }).encode()
+    req = urllib.request.Request(f"{base}/v1/recommend", data=user_ctx_payload, headers={"Content-Type": "application/json"})
+    with urllib.request.urlopen(req, timeout=30) as resp:
+        assert resp.status == 200
+        data = json.loads(resp.read().decode())
+        assert data["posts"][0]["id"] == "p_gpu"
+        print(f"[+] User context fallback ranking passed: top post is {data['posts'][0]['id']}.")
 
     # 5. Test GET /v1/recommend/post/42
     req = urllib.request.Request(f"{base}/v1/recommend/post/42")

@@ -146,7 +146,9 @@ class RecsysEngine:
                 "status": "ok",
                 "user_status": status,
                 "total_recs": len(ranked),
-                "posts": ranked
+                "count": len(ranked),
+                "posts": ranked,
+                "items": ranked
             }
 
         if hist_ids is None:
