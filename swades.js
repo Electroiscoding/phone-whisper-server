@@ -6,17 +6,8 @@
 
 class SwadesClient {
   constructor(options = {}) {
-    // Permanent root cause fix: Default endpoint is ALWAYS the sovereign permanent Cloudflare Pages domain.
-    // If endpoint is passed or resolved, normalize any trycloudflare or localhost URL
-    // so all client requests and CDN permalinks ALWAYS point to https://phone-whisper-server.pages.dev.
-    let endpoint = options.endpoint || 'https://phone-whisper-server.pages.dev';
-    if (typeof endpoint === 'string') {
-      endpoint = endpoint.trim().replace(/\/+$/, '');
-      if (endpoint.includes('trycloudflare.com') || endpoint.includes('127.0.0.1') || endpoint.includes('localhost')) {
-        endpoint = 'https://phone-whisper-server.pages.dev';
-      }
-    }
-    this.endpoint = endpoint || 'https://phone-whisper-server.pages.dev';
+    const rawEndpoint = options.endpoint || 'https://phone-whisper-server.pages.dev';
+    this.endpoint = String(rawEndpoint).trim().replace(/\/+$/, '');
     this.apiKey = options.apiKey || '';
     this.projectId = options.projectId || options.project || 'default';
     this._ttsCache = new Map();
@@ -954,18 +945,19 @@ class SwadesClient {
   async imageInfo() {
     return this.images.info();
   }
-  async rank(options = {}) {
+  async recommend(options = {}) {
     const payload = {
-      user: options.user || {},
-      posts: options.posts || [],
-      events: options.events || [],
-      trendingTexts: options.trendingTexts || [],
-      tasteWeight: options.tasteWeight ?? 0.3,
-      roadmapWeight: options.roadmapWeight ?? 0.25,
-      topK: options.topK ?? 20,
-      enforceExposureCap: options.enforceExposureCap ?? true
+      aff: options.aff || Array(15).fill(0),
+      hist_ids: options.hist_ids || options.history || [],
+      demo: options.demo || [0, 1, 0, 0],
+      seen: options.seen || [],
+      today: options.today ?? 59,
+      n: options.n ?? options.topK ?? 10,
+      fresh: options.fresh ?? 0.01,
+      div: options.div ?? 0.05,
+      eps: options.eps ?? 0.1
     };
-    const res = await fetch(`${this.endpoint}/v1/rank`, {
+    const res = await fetch(`${this.endpoint}/v1/recommend`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -976,8 +968,13 @@ class SwadesClient {
     }
     return await res.json();
   }
-  async rankStats() {
-    const res = await fetch(`${this.endpoint}/v1/stats`);
+  async getPost(postId) {
+    const res = await fetch(`${this.endpoint}/v1/recommend/post/${postId}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  }
+  async recommendStatus() {
+    const res = await fetch(`${this.endpoint}/v1/recommend/status`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
   }

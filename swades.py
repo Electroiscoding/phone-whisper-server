@@ -294,10 +294,7 @@ class HyperData:
 
 class Swades:
     def __init__(self, api_key="", project_id="default", endpoint="https://phone-whisper-server.pages.dev"):
-        # Root cause fix: Force permanent Cloudflare Pages domain, sanitize any trycloudflare or localhost
-        if not endpoint or any(x in str(endpoint) for x in ["trycloudflare.com", "127.0.0.1", "localhost", "192.168."]):
-            endpoint = "https://phone-whisper-server.pages.dev"
-        self.endpoint = endpoint.rstrip("/")
+        self.endpoint = (endpoint or "https://phone-whisper-server.pages.dev").rstrip("/")
         self.api_key = api_key
         self.project_id = project_id
         self.headers = {
@@ -756,26 +753,33 @@ class Swades:
             except Exception:
                 return data
 
-    def rank(self, posts, user=None, events=None, trending_texts=None, taste_weight=0.3, roadmap_weight=0.25, top_k=20, enforce_exposure_cap=True):
+    def recommend(self, aff, hist_ids=None, demo=None, seen=None, today=59, n=10, fresh=0.01, div=0.05, eps=0.1):
         payload = {
-            "posts": posts,
-            "user": user or {},
-            "events": events or [],
-            "trendingTexts": trending_texts or [],
-            "tasteWeight": taste_weight,
-            "roadmapWeight": roadmap_weight,
-            "topK": top_k,
-            "enforceExposureCap": enforce_exposure_cap
+            "aff": aff,
+            "hist_ids": hist_ids or [],
+            "demo": demo or [0.0, 1.0, 0.0, 0.0],
+            "seen": seen or [],
+            "today": today,
+            "n": n,
+            "fresh": fresh,
+            "div": div,
+            "eps": eps
         }
-        res = self._req("POST", "/v1/rank", json=payload, timeout=60)
+        res = self._req("POST", "/v1/recommend", json=payload, timeout=30)
         if not res.ok:
-            raise RuntimeError(f"Ranking failed: HTTP {res.status_code} - {res.text}")
+            raise RuntimeError(f"Recommendation failed: HTTP {res.status_code} - {res.text}")
         return res.json()
 
-    def rank_stats(self):
-        res = self._req("GET", "/v1/stats", timeout=15)
+    def get_post(self, post_id):
+        res = self._req("GET", f"/v1/recommend/post/{post_id}", timeout=15)
         if not res.ok:
-            raise RuntimeError(f"Ranking stats failed: HTTP {res.status_code} - {res.text}")
+            raise RuntimeError(f"Get post failed: HTTP {res.status_code} - {res.text}")
+        return res.json()
+
+    def recommend_status(self):
+        res = self._req("GET", "/v1/recommend/status", timeout=15)
+        if not res.ok:
+            raise RuntimeError(f"Recommendation status failed: HTTP {res.status_code} - {res.text}")
         return res.json()
 
     def create_game_room(self, name="Player 1", kind="human", avatar="cat", max_turns=50, start_cash=1500, auto_ai=True):

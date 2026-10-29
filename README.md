@@ -27,6 +27,7 @@
 | **Sovereign SQL Database** | SQLite3 + Microsecond WAL Engine | Python / SQLite3 | `POST /v1/dashboard/db/sql` | <1ms |
 | **Vector Embeddings** | BAAI BGE-Small-en-v1.5 (896-d) | `llama.cpp` | `POST /v1/embeddings` | ~2–3s |
 | **Cross-Encoder Rerank** | BAAI BGE-Reranker-Base | `llama.cpp` | `POST /v1/rerank` | ~10–12s |
+| **Neural RecSys** | Two-Tower (ItemTower + UserTower + MiniLM) | PyTorch / ARM | `POST /v1/recommend` | <1.5ms |
 | **Computer Vision** | Google MediaPipe Spatial AI | ARM CPU | `POST /v1/vision/{task}` | ~5–50ms |
 | **Swades Agent** | Autonomous ReAct Loop + GitHub PRs | Node.js | `POST /v1/agent/submit` | Multi-step Async |
 | **Battery Guard (ACC)** | Advanced Charging Controller (70-80%) | Native Kernel / dumpsys | `GET /v1/acc/info` & `POST /v1/acc/control` | <0.01ms |

@@ -780,138 +780,97 @@ curl -X POST "https://phone-whisper-server.pages.dev/v1/images/compress" \
 curl -s "https://phone-whisper-server.pages.dev/v1/images/info"
 ```
 
-### 4.9 Feed Ranking Engine (Frostbite v0.1 • Sovereign On-Phone Execution)
+### 4.9 Two-Tower Neural Recommendation Engine (ItemTower & UserTower • MiniLM)
 
-The datacenter hosts the **Frostbite v0.1 Feed Ranking Engine** directly on the phone node. The original core algorithm (`algo.py`) executes natively in Termux, combined with the phone's native **BAAI BGE Neural Embedding Model** (`bge-small-en-v1.5-q8_0.gguf`) to rank posts for any user using semantic vector embeddings, engagement signals, time decay, roadmap alignment, taste matching, and anti-spam exposure capping.
+The datacenter hosts a production-grade **Two-Tower Neural Recommendation Engine** directly on the phone node. It decouples candidate post representations (`ItemTower`) from dynamic viewer tastes (`UserTower`), enabling sub-millisecond candidate retrieval ($O(N)$ dot products) over thousands of indexed items with cold-start personalization, freshness decay, diversity re-ranking, and $\epsilon$-greedy exploration.
 
 #### 4.9.1 Architectural Highlights
-- **100% Sovereign & Keyless**: No API key or bearer token required. Fully open to all developers worldwide.
-- **Unmodified Core Algorithm**: Executes the exact `algo.py` mathematical equations via `bootstrap.py` and `RankingService`.
-- **Real Neural Embeddings**: Semantic text similarities are computed using 384-dimensional GGUF embeddings generated on phone silicon.
-- **Sub-Second Latency**: Typical response latency is 200ms–400ms when cached, and ~800ms–1800ms for cold embeddings.
-- **Exposure Governor**: Built-in stateful exposure capping dynamically limits low-quality or repetitive posts per viewer.
+- **100% Sovereign & Keyless**: No API key or bearer token required. Fully open to all web developers and mobile clients worldwide.
+- **Two-Tower Architecture**: 270,336 total parameters (ItemTower: 132,736 · UserTower: 137,600) mapping items and users into a shared 128-dimensional unit hypersphere.
+- **Real Neural Embeddings**: Items are encoded using 5-category distributions combined with 384-dimensional dense sentence embeddings from `sentence-transformers/all-MiniLM-L6-v2`.
+- **Sub-Millisecond Retrieval**: Offline item tower precomputation allows live user scoring in under 1.5ms.
+- **Cold-Start Resilience**: 0-engagement cold users gracefully fall back to demographic priors and exploration, delivering a 2.5× recall lift over random baselines.
 
-#### 4.9.2 Mathematical Scoring Architecture
-The final score of each post is computed using a multi-factor ranking pipeline:
+#### 4.9.2 Mathematical Retrieval & Scoring Architecture
+The final recommendations are selected through candidate retrieval, age decay, diversity penalization, and exploration:
 
-$$\text{FinalScore} = \text{EngagementQuality} \times \left(1 + \text{MasteryScore} + \text{RoadmapScore} \times W_{\text{roadmap}} + \text{TasteScore} \times W_{\text{taste}}\right) \times \text{SoftRegency} \times \text{ExposureCap}$$
+1. **Cosine Retrieval with Freshness Penalty**:
+   $$\text{score}_i = \mathbf{u} \cdot \mathbf{v}_i - \lambda_{\text{fresh}} \cdot (\text{today} - \text{day}_i)$$
+   Where $\mathbf{u}$ is the 128-dim User Tower vector, $\mathbf{v}_i$ is the 128-dim Item Tower vector for candidate post $i$, and $\lambda_{\text{fresh}} = 0.01$ penalizes stale content.
 
-1. **Bayesian Starting Quality**: Incorporates viewer accessibility biases, keyboard concepts, and creator metadata to compute an initial prior quality before engagement events arrive.
-2. **Engagement Calibration**: Dwell time is normalized against the viewer's personal dwell history and silent reading speeds (~200 wpm) weighted by viewport visibility fraction.
-3. **Soft Recency & Durability**: Applies non-linear recency decay that avoids penalizing durable, high-quality reference material too quickly.
-4. **Semantic Roadmap Alignment**: Computes cosine similarity between the post text / author corpus and the viewer's long-term goal (`roadmap`).
-5. **Taste Alignment**: Measures semantic proximity between the post content and up to 50 user taste categories.
-6. **Exploration Noise**: Introduces controlled epsilon-greedy exploration noise scaled by view count normalizers so new creators receive fair exposure.
-7. **Exposure Governor**: Probabilistically suppresses low-quality posts ($Q < \text{threshold}$) so they appear to a given viewer at most ~5% of the time.
+2. **Greedy Diversity Re-ranking**:
+   $$\text{pick}^* = \arg\max_{c \notin \text{picked}} \left(\text{score}_c - \lambda_{\text{div}} \cdot \text{count}[\text{category}_c]\right)$$
+   Where $\lambda_{\text{div}} = 0.05$ penalizes repeatedly selecting the same category, preventing single-topic echo chambers.
 
-#### 4.9.3 API Reference: `POST /v1/rank`
+3. **$\epsilon$-Greedy Exploration ($\epsilon = 0.1$)**:
+   With probability 10%, an item is sampled uniformly from the active 14-day pool to surface emerging content and generate unbiased training logs.
 
-- **Endpoint**: `POST /v1/rank` (aliases: `/rank`, `/v1/feed/rank`)
+#### 4.9.3 API Reference: `POST /v1/recommend`
+
+- **Endpoint**: `POST /v1/recommend` (aliases: `/recommend`, `/v1/rank`, `/rank`)
 - **Headers**: `Content-Type: application/json`
 - **Auth**: None (Keyless / Open API)
 
 ##### Request Schema:
 ```json
 {
-  "user": {
-    "userId": "u1",
-    "accessibilityScore": 0.5,
-    "gpsLatitude": 37.7749,
-    "gpsLongitude": -122.4194,
-    "keyboardConcepts": ["python", "ai"],
-    "dwellHistorySeconds": [12.5, 45.0, 3.2],
-    "deviceAgeYears": 1.5,
-    "deviceIsCharging": true,
-    "deviceBandwidthMbps": 50.0,
-    "roadmap": "master autonomous ai systems and edge computing",
-    "tastes": ["machine learning", "robotics", "open source"]
-  },
-  "posts": [
-    {
-      "postId": "p_edge_ai",
-      "text": "Complete guide to deploying neural networks on budget ARM smartphones.",
-      "authorId": "author_42",
-      "hasArtifact": true,
-      "ageHours": 2.5,
-      "isVideo": false,
-      "grammarPenalty": 0.0,
-      "metadataScore": 0.9,
-      "impressionCount": 15,
-      "likeCount": 8,
-      "replyCount": 2,
-      "latitude": 37.7833,
-      "longitude": -122.4167,
-      "authorPostTexts": ["edge computing notes", "arm optimization"]
-    }
-  ],
-  "events": [
-    {
-      "postId": "p_edge_ai",
-      "dwellSeconds": 34.0,
-      "viewportVisibleFraction": 1.0,
-      "liked": true,
-      "replied": false,
-      "sessionSeconds": 120.0
-    }
-  ],
-  "trendingTexts": ["breakthrough in edge ai", "sovereign computing"],
-  "tasteWeight": 0.35,
-  "roadmapWeight": 0.30,
-  "topK": 20,
-  "enforceExposureCap": true
+  "aff": [1.0, 0.7, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+  "hist_ids": [42, 101, 305],
+  "demo": [0.0, 1.0, 0.0, 0.0],
+  "seen": [42],
+  "today": 59,
+  "n": 5,
+  "fresh": 0.01,
+  "div": 0.05,
+  "eps": 0.1
 }
 ```
 
 ##### Field Specifications:
 | Parameter | Type | Required | Default | Meaning |
 | :--- | :--- | :--- | :--- | :--- |
-| `posts` | array | **Yes** | - | 1 to 2000 post records to score and sort. |
-| `user.userId` | string | No | `"anonymous"` | Viewer identity for exposure tracking. |
-| `user.roadmap` | string | No | `null` | Viewer's current mission or learning objective (up to 2000 chars). |
-| `user.tastes` | string[] | No | `[]` | Up to 50 topic tags reflecting user interests. |
-| `events` | array | No | `[]` | View history events (dwell seconds, viewport visibility, interactions). |
-| `tasteWeight` | float | No | `0.3` | Multiplier for semantic taste affinity (0 to 2.0). |
-| `roadmapWeight`| float | No | `0.25` | Multiplier for long-term goal alignment (0 to 2.0). |
-| `topK` | integer | No | `20` | Maximum number of ranked results returned. |
-| `enforceExposureCap` | bool | No | `true` | When true, probabilistically limits low-quality content. |
+| `aff` | float[15] | **Yes** | `[0.0]*15` | Log-transformed interaction values for 5 categories × 3 signals (`[like, watch, comment]`). |
+| `hist_ids` | int[] | No | `[]` | Post IDs previously engaged by user (empty for cold users). |
+| `demo` | float[4] | No | `[0,1,0,0]` | One-hot encoded user age demographic bucket. |
+| `seen` | int[] | No | `[]` | Post IDs already viewed (excluded from recommendations). |
+| `today` | int | No | `59` | Current simulation day index (0 to 59). |
+| `n` | int | No | `10` | Number of recommendations to return. |
+| `fresh` | float | No | `0.01` | Daily freshness penalty weight. |
+| `div` | float | No | `0.05` | Category diversity penalty weight. |
+| `eps` | float | No | `0.1` | Epsilon exploration probability. |
 
 ##### Response Schema (200 OK):
 ```json
 {
-  "userId": "u1",
-  "count": 1,
-  "latencyMs": 345.8,
-  "items": [
+  "status": "ok",
+  "user_status": "warm",
+  "total_recs": 5,
+  "posts": [
     {
-      "rank": 1,
-      "postId": "p_edge_ai",
-      "finalScore": 0.4128,
-      "engagementQuality": 0.764,
-      "regencyScore": 0.089,
-      "masteryScore": 0.663,
-      "explorationScore": 0.182,
-      "roadmapScore": 0.942,
-      "tasteScore": 0.891,
-      "exposureCap": 1.0
+      "id": 5975,
+      "text": "overclocking, wafer yields, chip fabrication: a quick breakdown Covers benchmarks in detail.",
+      "category": "Tech",
+      "category_id": 0,
+      "day": 59,
+      "quality": 1.42
     }
   ]
 }
 ```
 
-#### 4.9.4 API Reference: `GET /v1/stats`
-Returns live engine telemetry, total requests served, mean latency, and active cache counts:
+#### 4.9.4 API Reference: `GET /v1/recommend/post/{id}`
+Returns details for a specific post by index:
 ```bash
-curl -s "https://phone-whisper-server.pages.dev/v1/stats"
-```
-```json
-{
-  "requests": 142,
-  "meanLatencyMs": 312.4,
-  "cachedTexts": 648
-}
+curl -s "https://phone-whisper-server.pages.dev/v1/recommend/post/42"
 ```
 
-#### 4.9.5 Developer Integration Examples
+#### 4.9.5 API Reference: `GET /v1/recommend/status`
+Returns live engine status and indexing telemetry:
+```bash
+curl -s "https://phone-whisper-server.pages.dev/v1/recommend/status"
+```
+
+#### 4.9.6 Developer Integration Examples
 
 ##### Python (`swades.py` SDK):
 ```python
@@ -919,22 +878,13 @@ from swades import Swades
 
 client = Swades()
 
-posts = [
-    {"postId": "post_1", "text": "Deep learning on microcontrollers and ARM chips", "ageHours": 1.0},
-    {"postId": "post_2", "text": "Classic chocolate chip cookie recipes", "ageHours": 4.0}
-]
+# Recommend posts based on user affinity (e.g. strong tech engagement):
+aff = [2.5, 1.5, 0.0] + [0.0] * 12
+recs = client.recommend(aff=aff, hist_ids=[5900, 5901], n=5)
 
-user = {
-    "userId": "user_dev",
-    "roadmap": "learn embedded machine learning",
-    "tastes": ["tinyml", "python", "edge computing"]
-}
-
-# 1-line rank call with zero API keys:
-result = client.rank(posts, user=user, top_k=10)
-print(f"Ranked {result['count']} items in {result['latencyMs']:.1f}ms:")
-for item in result["items"]:
-    print(f"#{item['rank']} {item['postId']} - score: {item['finalScore']:.3f} (roadmap: {item['roadmapScore']:.2f})")
+print(f"Status: {recs['user_status']} | Returned {recs['total_recs']} posts:")
+for post in recs["posts"]:
+    print(f"[{post['category']}] #{post['id']}: {post['text']}")
 ```
 
 ##### JavaScript / TypeScript (`swades.js` SDK):
@@ -943,34 +893,21 @@ import { SwadesClient } from './swades.js';
 
 const client = new SwadesClient();
 
-const result = await client.rank({
-  user: {
-    userId: 'web_dev',
-    roadmap: 'master modern web design',
-    tastes: ['css', 'typescript', 'architecture']
-  },
-  posts: [
-    { postId: 'p1', text: 'Tailwind and CSS Grid architecture guide' },
-    { postId: 'p2', text: 'How to clean household leather jackets' }
-  ],
-  topK: 5
+const result = await client.recommend({
+  aff: [2.5, 1.5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  hist_ids: [5900, 5901],
+  n: 5
 });
 
-console.log(`Ranked in ${result.latencyMs}ms:`, result.items);
+console.log(`User state: ${result.user_status}`);
+result.posts.forEach(p => console.log(`[${p.category}] ${p.text}`));
 ```
 
 ##### Direct cURL:
 ```bash
-curl -X POST "https://phone-whisper-server.pages.dev/v1/rank" \
+curl -X POST "https://phone-whisper-server.pages.dev/v1/recommend" \
   -H "Content-Type: application/json" \
-  -d '{
-    "user": {"userId": "curl_user", "roadmap": "learn neural networks"},
-    "posts": [
-      {"postId": "post_a", "text": "Introduction to neural network weights and biases"},
-      {"postId": "post_b", "text": "How to repair bicycle tire punctures"}
-    ],
-    "topK": 5
-  }'
+  -d '{"aff": [1.0, 0.7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "n": 5}'
 ```
 
 ---

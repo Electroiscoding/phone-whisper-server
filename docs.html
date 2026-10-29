@@ -314,7 +314,7 @@
             <li><a href="#api-images" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">POST /v1/images/compress</a></li>
             <li><a href="#api-acc" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">GET & POST /v1/acc/*</a></li>
             <li><a href="#api-cron" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">POST /v1/cron/*</a></li>
-            <li><a href="#api-rank" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all"><i class="fa-solid fa-ranking-star mr-1 text-neoncyan"></i> POST /v1/rank (Frostbite v0.1)</a></li>
+            <li><a href="#api-rank" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all"><i class="fa-solid fa-ranking-star mr-1 text-neoncyan"></i> POST /v1/recommend (Two-Tower RecSys)</a></li>
             <li><a href="#api-monopoly" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all"><i class="fa-solid fa-dice mr-1 text-amber-400"></i> /v1/monopoly/rooms (GridLock 1v1)</a></li>
             <li><a href="#api-media" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all"><i class="fa-solid fa-play mr-1 text-rose-400"></i> /v1/media/* (Zero-Disk Media Processor)</a></li>
             <li><a href="#api-nikolinus" class="toc-item block py-1 px-2 border-l border-transparent text-zinc-400 hover:text-white hover:border-zinc-600 transition-all"><i class="fa-solid fa-cloud mr-1 text-neoncyan"></i> Nikolinus Cloud (Auth / DB / Fn)</a></li>
@@ -2986,105 +2986,79 @@ console.log("Created Job:", job.job_id);</code></pre>
           </div>
         </div>
 
-        <!-- ENDPOINT 15: POST /v1/rank & GET /v1/stats (FROSTBITE v0.1 FEED RANKING) -->
+        <!-- ENDPOINT 15: POST /v1/recommend & GET /v1/recommend/status (TWO-TOWER RECSYS) -->
         <div id="api-rank" class="bg-cardbg border border-cardborder rounded-xl p-6 mb-8 font-mono text-xs">
           <div class="flex items-center justify-between border-b border-cardborder pb-3 mb-4">
             <div class="flex items-center gap-3">
               <span class="px-2.5 py-1 rounded bg-cyan-900/60 border border-cyan-700 text-cyan-300 font-bold">POST &amp; GET</span>
-              <span class="text-white font-bold text-sm">/v1/rank &amp; /v1/stats</span>
+              <span class="text-white font-bold text-sm">/v1/recommend &amp; /v1/recommend/status</span>
             </div>
-            <span class="text-[10px] px-2 py-0.5 rounded bg-zinc-800 text-neoncyan border border-zinc-700">FROSTBITE v0.1</span>
+            <span class="text-[10px] px-2 py-0.5 rounded bg-zinc-800 text-neoncyan border border-zinc-700">TWO-TOWER v1.0</span>
           </div>
           <p class="text-zinc-300 text-[11px] mb-4 leading-relaxed">
-            Autonomous Frostbite v0.1 multi-signal content ranking engine running directly on the phone node. Features <strong class="text-neoncyan">BAAI BGE neural semantic embeddings (384-d)</strong>, engagement quality calibration, soft access recency, Bayesian starting priors, roadmap goal alignment, taste matching, and an anti-spam <strong class="text-neonemerald">Exposure Governor</strong>. 100% keyless open API.
+            Autonomous Two-Tower neural recommendation engine (<strong class="text-neoncyan">ItemTower + UserTower + all-MiniLM-L6-v2</strong>) running directly on phone silicon. Decouples 389-dim item representations from live 15-dim user affinity signals, delivering sub-millisecond retrieval with freshness decay, diversity re-ranking, and epsilon-greedy exploration. 100% keyless open API.
           </p>
 
           <div class="space-y-4">
             <div>
-              <span class="text-zinc-400 text-[10px] block mb-1 font-bold">1. RANK FEED FOR A USER (RAW HTTP / CURL):</span>
-              <pre class="bg-zinc-950 p-3 rounded border border-cardborder text-cyan-400 overflow-x-auto"><code>curl -X POST "https://phone-whisper-server.pages.dev/v1/rank" \
+              <span class="text-zinc-400 text-[10px] block mb-1 font-bold">1. GET PERSONALIZED RECOMMENDATIONS (RAW HTTP / CURL):</span>
+              <pre class="bg-zinc-950 p-3 rounded border border-cardborder text-cyan-400 overflow-x-auto"><code>curl -X POST "https://phone-whisper-server.pages.dev/v1/recommend" \
   -H "Content-Type: application/json" \
   -d '{
-    "user": {
-      "userId": "u1",
-      "roadmap": "master autonomous AI systems",
-      "tastes": ["python", "machine learning"]
-    },
-    "posts": [
-      {"postId": "p1", "text": "Deep learning tutorial for Python developers", "ageHours": 1.0},
-      {"postId": "p2", "text": "Homemade pasta recipe with basil pesto", "ageHours": 2.0}
-    ],
-    "topK": 5
+    "aff": [1.0, 0.7, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+    "hist_ids": [42, 101],
+    "demo": [0.0, 1.0, 0.0, 0.0],
+    "seen": [42],
+    "today": 59,
+    "n": 5
   }'</code></pre>
             </div>
             <div>
-              <span class="text-zinc-400 text-[10px] block mb-1 font-bold">RESPONSE SCHEMA (SORTED BEST FIRST):</span>
+              <span class="text-zinc-400 text-[10px] block mb-1 font-bold">RESPONSE SCHEMA (TOP CANDIDATES):</span>
               <pre class="bg-zinc-950 p-3 rounded border border-cardborder text-zinc-300 overflow-x-auto"><code>{
-  "userId": "u1",
-  "count": 2,
-  "latencyMs": 287.9,
-  "items": [
+  "status": "ok",
+  "user_status": "warm",
+  "total_recs": 5,
+  "posts": [
     {
-      "rank": 1,
-      "postId": "p1",
-      "finalScore": 0.362,
-      "engagementQuality": 0.706,
-      "regencyScore": 0.089,
-      "masteryScore": 0.663,
-      "explorationScore": 0.224,
-      "roadmapScore": 1.0,
-      "tasteScore": 1.0,
-      "exposureCap": 1.0
-    },
-    {
-      "rank": 2,
-      "postId": "p2",
-      "finalScore": 0.339,
-      "engagementQuality": 0.695,
-      "regencyScore": 0.089,
-      "masteryScore": 0.663,
-      "explorationScore": 0.251,
-      "roadmapScore": 0.637,
-      "tasteScore": 0.843,
-      "exposureCap": 1.0
+      "id": 5975,
+      "text": "overclocking, wafer yields, chip fabrication: a quick breakdown Covers benchmarks in detail.",
+      "category": "Tech",
+      "category_id": 0,
+      "day": 59,
+      "quality": 1.42
     }
   ]
 }</code></pre>
             </div>
             <div>
-              <span class="text-zinc-400 text-[10px] block mb-1 font-bold">2. LIVE RANKING TELEMETRY (GET /v1/stats):</span>
-              <pre class="bg-zinc-950 p-3 rounded border border-cardborder text-purple-400 overflow-x-auto"><code>curl -s "https://phone-whisper-server.pages.dev/v1/stats"</code></pre>
+              <span class="text-zinc-400 text-[10px] block mb-1 font-bold">2. ENGINE TELEMETRY &amp; STATUS (GET /v1/recommend/status):</span>
+              <pre class="bg-zinc-950 p-3 rounded border border-cardborder text-purple-400 overflow-x-auto"><code>curl -s "https://phone-whisper-server.pages.dev/v1/recommend/status"</code></pre>
             </div>
             <div>
               <span class="text-zinc-400 text-[10px] block mb-1 font-bold">3. PYTHON SDK INTEGRATION (swades.py):</span>
               <pre class="bg-zinc-950 p-3 rounded border border-cardborder text-emerald-400 overflow-x-auto"><code>from swades import Swades
 
 client = Swades()
-res = client.rank(
-    posts=[
-        {"postId": "p1", "text": "Deep learning tutorial for Python developers", "ageHours": 1.0},
-        {"postId": "p2", "text": "Homemade pasta recipe with basil pesto", "ageHours": 2.0}
-    ],
-    user={"userId": "u1", "roadmap": "master AI", "tastes": ["python", "ai"]},
-    top_k=5
+res = client.recommend(
+    aff=[1.0, 0.7, 0.0] + [0.0] * 12,
+    hist_ids=[42, 101],
+    n=5
 )
-for item in res["items"]:
-    print(f"#{item['rank']} {item['postId']} - score: {item['finalScore']:.3f}")</code></pre>
+for p in res["posts"]:
+    print(f"[{p['category']}] #{p['id']}: {p['text']}")</code></pre>
             </div>
             <div>
               <span class="text-zinc-400 text-[10px] block mb-1 font-bold">4. JAVASCRIPT SDK INTEGRATION (swades.js):</span>
               <pre class="bg-zinc-950 p-3 rounded border border-cardborder text-amber-400 overflow-x-auto"><code>import { SwadesClient } from './swades.js';
 
 const client = new SwadesClient();
-const res = await client.rank({
-  user: { userId: 'u1', roadmap: 'master AI', tastes: ['python', 'ai'] },
-  posts: [
-    { postId: 'p1', text: 'Deep learning tutorial for Python developers', ageHours: 1.0 },
-    { postId: 'p2', text: 'Homemade pasta recipe with basil pesto', ageHours: 2.0 }
-  ],
-  topK: 5
+const res = await client.recommend({
+  aff: [1.0, 0.7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  hist_ids: [42, 101],
+  n: 5
 });
-console.log('Ranked Items:', res.items);</code></pre>
+console.log('Recommendations:', res.posts);</code></pre>
             </div>
           </div>
         </div>
@@ -5505,9 +5479,9 @@ WAL file size: 1.4 MB • Checkpoint status: PASS (0 uncommitted frames)
       { title: 'POST /v1/compress Zstandard', hash: '#api-zstd', tag: 'API' },
       { title: 'Zstandard Image Compression Engine', hash: '#model-images', tag: 'MODEL' },
       { title: 'POST /v1/images/compress', hash: '#api-images', tag: 'API' },
-      { title: 'Frostbite v0.1 Feed Ranking Algorithm', hash: '#api-rank', tag: 'MODEL' },
-      { title: 'POST /v1/rank Feed Ranking', hash: '#api-rank', tag: 'API' },
-      { title: 'GET /v1/stats Ranking Telemetry', hash: '#api-rank', tag: 'API' },
+      { title: 'Two-Tower RecSys Neural Model', hash: '#api-rank', tag: 'MODEL' },
+      { title: 'POST /v1/recommend Personalized Feed', hash: '#api-rank', tag: 'API' },
+      { title: 'GET /v1/recommend/status RecSys Telemetry', hash: '#api-rank', tag: 'API' },
       { title: 'Whisper Base.en ASR Model', hash: '#model-whisper', tag: 'MODEL' },
       { title: 'Qwen 2.5 0.5B Instruct SLM', hash: '#model-qwen', tag: 'MODEL' },
       { title: 'Piper-VITS Neural TTS Voice', hash: '#model-piper', tag: 'MODEL' },

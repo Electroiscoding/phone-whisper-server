@@ -6464,6 +6464,7 @@ def _colab_getcwd():
         return "/kaggle"
     if cwd.startswith(kaggle_root + "/"):
         return "/kaggle" + cwd[len(kaggle_root):]
+    return cwd
 os.getcwd = _colab_getcwd
 
 _orig_os_chdir = os.chdir
@@ -7441,10 +7442,13 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_media_stream_get(parsed)
         elif path in ["/health", "/v1/health", "/v1/models"]:
             self.handle_health()
-        elif path in ["/v1/rank/stats", "/v1/stats", "/stats"]:
-            self.handle_feed_rank_stats()
-        elif path in ["/v1/rank", "/rank", "/v1/feed/rank"]:
-            self.handle_feed_rank_get()
+        elif path in ["/v1/recommend/status", "/v1/rank/stats", "/v1/stats", "/stats"]:
+            self.handle_feed_recommend_status()
+        elif path.startswith("/v1/recommend/post/") or path.startswith("/v1/post/"):
+            raw_id = path.split("/")[-1]
+            self.handle_feed_post_detail(raw_id)
+        elif path in ["/v1/recommend", "/recommend", "/v1/rank", "/rank", "/v1/feed/rank"]:
+            self.handle_feed_recommend_get()
         elif path in ["/v1/tunnel/status", "/tunnel/status"]:
             self.handle_tunnel_status()
         elif path in ["/v1/tunnel/restart", "/tunnel/restart"]:
@@ -7817,8 +7821,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.proxy_llama_embeddings()
         elif path in ["/v1/rerank", "/rerank"]:
             self.proxy_bge_rerank()
-        elif path in ["/v1/rank", "/rank", "/v1/feed/rank"]:
-            self.handle_feed_rank()
+        elif path in ["/v1/recommend", "/recommend", "/v1/rank", "/rank", "/v1/feed/rank"]:
+            self.handle_feed_recommend()
         elif path in ["/v1/audio/speech", "/speech", "/tts", "/v1/tts"]:
             self.handle_tts()
         elif path == "/load":
@@ -12558,9 +12562,9 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                     "status": "ACTIVE"
                 },
                 "feed_ranking": {
-                    "endpoint": "/v1/rank",
-                    "aliases": ["/rank", "/v1/feed/rank"],
-                    "model": "BAAI BGE-Small-en-v1.5 + Frostbite v0.1 Engine (JIT Active)",
+                    "endpoint": "/v1/recommend",
+                    "aliases": ["/recommend", "/v1/rank", "/rank"],
+                    "model": "Two-Tower RecSys (ItemTower + UserTower + all-MiniLM-L6-v2)",
                     "auth": "Open / No API Key Required",
                     "status": "ACTIVE"
                 },
@@ -12585,17 +12589,18 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(payload)
 
-    def handle_feed_rank_get(self):
+    def handle_feed_recommend_get(self):
         info = {
-            "name": "Frostbite v0.1 Feed Ranking Engine",
+            "name": "Two-Tower Neural Recommendation Engine",
+            "model": "ItemTower + UserTower + all-MiniLM-L6-v2",
             "status": "ONLINE",
             "method": "POST",
-            "description": "Feed Ranking requires a POST request with a JSON body containing candidate posts and viewer preferences.",
-            "endpoint": "/v1/rank",
-            "stats_endpoint": "/v1/stats",
+            "endpoint": "/v1/recommend",
+            "aliases": ["/recommend", "/v1/rank", "/rank"],
+            "stats_endpoint": "/v1/recommend/status",
+            "post_endpoint": "/v1/recommend/post/{id}",
             "docs": "https://phone-whisper-server.pages.dev/docs#api-rank",
-            "studio": "https://phone-whisper-server.pages.dev/#feed-ranking-studio",
-            "sample_curl": "curl -X POST https://phone-whisper-server.pages.dev/v1/rank -H 'Content-Type: application/json' -d '{\"user\":{\"userId\":\"u1\",\"tastes\":[\"ai\"]},\"posts\":[{\"postId\":\"1\",\"text\":\"Neural networks guide\"}]}'"
+            "sample_curl": "curl -X POST https://phone-whisper-server.pages.dev/v1/recommend -H 'Content-Type: application/json' -d '{\"aff\":[1.0,0.7,0,0,0,0,0,0,0,0,0,0,0,0,0],\"n\":5}'"
         }
         resp_bytes = json.dumps(info, indent=2).encode("utf-8")
         self.send_response(200)
@@ -12605,22 +12610,34 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(resp_bytes)
 
-    def handle_feed_rank(self):
+    def handle_feed_recommend(self):
         try:
             content_length = int(self.headers.get("Content-Length", 0))
             raw_body = self.rfile.read(content_length) if content_length > 0 else b"{}"
-            payload = json.loads(raw_body.decode("utf-8"))
-            if "user" not in payload or payload["user"] is None:
-                payload["user"] = {"userId": "anonymous"}
-            if "/data/data/com.termux/files/home/ntaglo" not in sys.path:
-                sys.path.insert(0, "/data/data/com.termux/files/home/ntaglo")
-            import bootstrap
-            engine, api = bootstrap.load_algo()
-            if not hasattr(self.server, "ranking_service") or self.server.ranking_service is None:
-                self.server.ranking_service = api.RankingService()
-            request = api.RankRequest.model_validate(payload)
-            response = self.server.ranking_service.rank(request)
-            resp_bytes = json.dumps(response.model_dump()).encode("utf-8")
+            payload = json.loads(raw_body.decode("utf-8")) if raw_body else {}
+
+            aff = payload.get("aff")
+            if aff is None:
+                aff = [0.0] * 15
+            elif len(aff) != 15:
+                aff = (aff + [0.0] * 15)[:15]
+
+            hist_ids = payload.get("hist_ids") or payload.get("history") or []
+            demo = payload.get("demo") or [0.0, 1.0, 0.0, 0.0]
+            seen = payload.get("seen") or []
+            today = int(payload.get("today", 59))
+            n = int(payload.get("n", payload.get("topK", 10)))
+            fresh = float(payload.get("fresh", 0.01))
+            div = float(payload.get("div", 0.05))
+            eps = float(payload.get("eps", 0.1))
+
+            repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            if repo_root not in sys.path:
+                sys.path.insert(0, repo_root)
+            from recsys.engine import get_recsys_engine
+            engine = get_recsys_engine()
+            res = engine.recommend(aff=aff, hist_ids=hist_ids, demo=demo, seen=seen, today=today, n=n, fresh=fresh, div=div, eps=eps)
+            resp_bytes = json.dumps(res).encode("utf-8")
             self.send_response(200)
             self._send_cors_headers()
             self.send_header("Content-Type", "application/json")
@@ -12636,27 +12653,15 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(err_bytes)
 
-    def handle_feed_rank_stats(self):
+    def handle_feed_recommend_status(self):
         try:
-            cached = GLOBAL_REDIS.get("rank:stats:data")
-            if cached:
-                resp_bytes = cached.encode("utf-8") if isinstance(cached, str) else cached
-                self.send_response(200)
-                self._send_cors_headers()
-                self.send_header("Content-Type", "application/json")
-                self.send_header("Content-Length", str(len(resp_bytes)))
-                self.end_headers()
-                self.wfile.write(resp_bytes)
-                return
-            if "/data/data/com.termux/files/home/ntaglo" not in sys.path:
-                sys.path.insert(0, "/data/data/com.termux/files/home/ntaglo")
-            import bootstrap
-            engine, api = bootstrap.load_algo()
-            if not hasattr(self.server, "ranking_service") or self.server.ranking_service is None:
-                self.server.ranking_service = api.RankingService()
-            stats_data = self.server.ranking_service.stats()
-            resp_bytes = json.dumps(stats_data).encode("utf-8")
-            GLOBAL_REDIS.set("rank:stats:data", resp_bytes.decode("utf-8"), ex=15)
+            repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            if repo_root not in sys.path:
+                sys.path.insert(0, repo_root)
+            from recsys.engine import get_recsys_engine
+            engine = get_recsys_engine()
+            stats_data = engine.stats()
+            resp_bytes = json.dumps(stats_data, indent=2).encode("utf-8")
             self.send_response(200)
             self._send_cors_headers()
             self.send_header("Content-Type", "application/json")
@@ -12666,6 +12671,31 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         except Exception as e:
             err_bytes = json.dumps({"detail": str(e)}).encode("utf-8")
             self.send_response(500)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(err_bytes)))
+            self.end_headers()
+            self.wfile.write(err_bytes)
+
+    def handle_feed_post_detail(self, raw_id):
+        try:
+            post_id = int(raw_id)
+            repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            if repo_root not in sys.path:
+                sys.path.insert(0, repo_root)
+            from recsys.engine import get_recsys_engine
+            engine = get_recsys_engine()
+            post = engine.get_post(post_id)
+            resp_bytes = json.dumps(post).encode("utf-8")
+            self.send_response(200)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(resp_bytes)))
+            self.end_headers()
+            self.wfile.write(resp_bytes)
+        except Exception as e:
+            err_bytes = json.dumps({"detail": str(e)}).encode("utf-8")
+            self.send_response(404)
             self._send_cors_headers()
             self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", str(len(err_bytes)))
