@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://springfield-automated-innovation-pair.trycloudflare.com",
-  "inference": "https://springfield-automated-innovation-pair.trycloudflare.com/inference",
-  "telemetry": "https://springfield-automated-innovation-pair.trycloudflare.com/telemetry",
+  "endpoint": "https://examinations-columbus-linking-manga.trycloudflare.com",
+  "inference": "https://examinations-columbus-linking-manga.trycloudflare.com/inference",
+  "telemetry": "https://examinations-columbus-linking-manga.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-28T09:01:15Z"
+  "updated_at": "2026-10-29T15:39:20Z"
 }
