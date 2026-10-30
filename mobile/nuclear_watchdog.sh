@@ -47,7 +47,7 @@ while true; do
   IS_TUNNEL_DEAD=0
   if ! pgrep -f "cloudflared tunnel" > /dev/null; then
     IS_TUNNEL_DEAD=1
-  elif tail -n 10 $HOME/cf_tunnel.log 2>/dev/null | grep -qE "Connection terminated|context deadline exceeded|error shutting down"; then
+  elif tail -n 10 $HOME/cf_tunnel.log 2>/dev/null | grep -qE "Connection terminated|context deadline exceeded|error shutting down|Incoming request ended abruptly|Failed to proxy HTTP"; then
     IS_TUNNEL_DEAD=1
   fi
 
