@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://projects-containers-voters-seal.trycloudflare.com",
-  "inference": "https://projects-containers-voters-seal.trycloudflare.com/inference",
-  "telemetry": "https://projects-containers-voters-seal.trycloudflare.com/telemetry",
+  "endpoint": "https://oklahoma-gadgets-thesaurus-exact.trycloudflare.com",
+  "inference": "https://oklahoma-gadgets-thesaurus-exact.trycloudflare.com/inference",
+  "telemetry": "https://oklahoma-gadgets-thesaurus-exact.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-30T15:16:28Z"
+  "updated_at": "2026-10-30T15:53:45Z"
 }
