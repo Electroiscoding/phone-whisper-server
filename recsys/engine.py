@@ -219,13 +219,25 @@ class RecsysEngine:
         text_embs = self._get_text_embeddings(texts)
 
         cat_one_hot = np.zeros((len(posts), 5), dtype=np.float32)
+        is_vague = []
         for i, p in enumerate(posts):
-            c_val = p.get("category", p.get("category_id", 0))
+            c_val = p.get("category", p.get("category_id", ""))
+            vague = False
             if isinstance(c_val, str):
-                c_idx = cat_map.get(c_val.lower(), 0)
+                c_clean = c_val.lower().strip()
+                if c_clean == "vague" or c_clean not in cat_map:
+                    vague = True
+                    c_idx = -1
+                else:
+                    c_idx = cat_map[c_clean]
             else:
-                c_idx = int(c_val) if 0 <= int(c_val) < 5 else 0
-            cat_one_hot[i, c_idx] = 1.0
+                c_idx = int(c_val) if 0 <= int(c_val) < 5 else -1
+
+            if c_idx >= 0 and not vague:
+                cat_one_hot[i, c_idx] = 1.0
+            else:
+                vague = True
+            is_vague.append(vague)
 
         item_feats = np.concatenate([cat_one_hot, text_embs], axis=-1)
         item_embs = self.forward_item(item_feats)
@@ -238,17 +250,62 @@ class RecsysEngine:
             h = np.zeros(self.F.shape[1], dtype=np.float32)
 
         u = self.forward_user(aff_arr, h, demo_arr)[0]
-        scores = (item_embs @ u).tolist()
+        raw_scores = (item_embs @ u).tolist()
+
+        import time
+        now_ts = time.time() * 1000.0
 
         scored_items = []
-        for p, score in zip(posts, scores):
+        for p, raw_s, vague in zip(posts, raw_scores, is_vague):
             item = dict(p)
+            text_str = item.get("text", "").strip()
+            text_len = len(text_str)
+
+            score = float(raw_s)
+
+            # Heavy penalty for vague / low-quality / emoji-only posts
+            if vague or text_len < 8:
+                score = score * 0.3 - 0.45
+                item["category"] = "vague"
+                item["is_vague"] = True
+
+            # Recency freshness decay if timestamp is present
+            ts = item.get("timestamp")
+            if ts and isinstance(ts, (int, float)) and ts > 0:
+                age_hours = max(0.0, (now_ts - float(ts)) / 3600000.0)
+                recency_penalty = min(0.25, age_hours * 0.002)
+                score -= recency_penalty
+
             if "text" in item and len(item["text"]) > 250:
                 item["text"] = item["text"][:250] + "..."
-            item["score"] = round(float(score), 4)
+            item["score"] = round(score, 4)
             scored_items.append(item)
 
         scored_items.sort(key=lambda x: x["score"], reverse=True)
+
+        # Author diversity clamp: max 2 consecutive posts from same author
+        diversified = []
+        overflow = []
+        last_author = None
+        consecutive_count = 0
+
+        for it in scored_items:
+            auth = it.get("author", "anonymous")
+            if auth and auth != "anonymous" and auth == last_author:
+                consecutive_count += 1
+            else:
+                last_author = auth
+                consecutive_count = 1
+
+            if consecutive_count <= 2:
+                diversified.append(it)
+            else:
+                it["score"] = round(it["score"] - 0.15 * (consecutive_count - 2), 4)
+                overflow.append(it)
+
+        scored_items = diversified + overflow
+        scored_items.sort(key=lambda x: x["score"], reverse=True)
+
         for rank, item in enumerate(scored_items, 1):
             item["rank"] = rank
 
