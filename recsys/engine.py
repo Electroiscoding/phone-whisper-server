@@ -1,7 +1,14 @@
 import os
+import json
+import urllib.request
 import numpy as np
-import torch
-from recsys.model import ItemTower, UserTower
+
+try:
+    import torch
+    HAVE_TORCH = True
+except ImportError:
+    torch = None
+    HAVE_TORCH = False
 
 NC, NS, PER_DAY, DAYS, POOL = 5, 6, 100, 60, 14
 CAT_NAMES = ["Tech", "Business", "Arts", "Entertainment", "Sports"]
@@ -63,43 +70,117 @@ def _generate_post(c, s):
 
 TEXTS = [_generate_post(c, s) for c, s in zip(_cat, _sub)]
 
+def _relu(x):
+    return np.maximum(x, 0.0)
+
+def _l2_norm(x):
+    norm = np.linalg.norm(x, axis=-1, keepdims=True)
+    return x / np.maximum(norm, 1e-12)
+
 class RecsysEngine:
     def __init__(self, data_dir=None):
         if data_dir is None:
             data_dir = os.path.dirname(__file__)
-        data_path = os.path.join(data_dir, "data.pt")
-        item_path = os.path.join(data_dir, "item_tower.pt")
-        user_path = os.path.join(data_dir, "user_tower.pt")
 
-        data = torch.load(data_path, map_location="cpu", weights_only=False)
-        self.F = data["F"]
+        npz_path = os.path.join(data_dir, "weights.npz")
+        if os.path.exists(npz_path):
+            w = np.load(npz_path)
+            self.it_w0 = w["it_w0"]
+            self.it_b0 = w["it_b0"]
+            self.it_w2 = w["it_w2"]
+            self.it_b2 = w["it_b2"]
+            self.ut_w0 = w["ut_w0"]
+            self.ut_b0 = w["ut_b0"]
+            self.ut_w2 = w["ut_w2"]
+            self.ut_b2 = w["ut_b2"]
+            self.F = w["F"]
+        elif HAVE_TORCH:
+            data_path = os.path.join(data_dir, "data.pt")
+            item_path = os.path.join(data_dir, "item_tower.pt")
+            user_path = os.path.join(data_dir, "user_tower.pt")
+            data = torch.load(data_path, map_location="cpu", weights_only=False)
+            self.F = data["F"].detach().cpu().numpy()
+            it_sd = torch.load(item_path, map_location="cpu", weights_only=True)
+            ut_sd = torch.load(user_path, map_location="cpu", weights_only=True)
+            self.it_w0 = it_sd["net.0.weight"].detach().cpu().numpy()
+            self.it_b0 = it_sd["net.0.bias"].detach().cpu().numpy()
+            self.it_w2 = it_sd["net.2.weight"].detach().cpu().numpy()
+            self.it_b2 = it_sd["net.2.bias"].detach().cpu().numpy()
+            self.ut_w0 = ut_sd["net.0.weight"].detach().cpu().numpy()
+            self.ut_b0 = ut_sd["net.0.bias"].detach().cpu().numpy()
+            self.ut_w2 = ut_sd["net.2.weight"].detach().cpu().numpy()
+            self.ut_b2 = ut_sd["net.2.bias"].detach().cpu().numpy()
+        else:
+            raise FileNotFoundError(f"Neither weights.npz nor PyTorch weights found in {data_dir}")
 
-        self.item_tower = ItemTower(item_in=389, out=128)
-        self.user_tower = UserTower(item_in=389, aff=15, demo=4, out=128)
-        self.item_tower.load_state_dict(torch.load(item_path, map_location="cpu", weights_only=True))
-        self.user_tower.load_state_dict(torch.load(user_path, map_location="cpu", weights_only=True))
-        self.item_tower.eval()
-        self.user_tower.eval()
-
-        with torch.no_grad():
-            self.IV = self.item_tower(self.F)
-
-        self.cat_tensor = self.F[:, :5].argmax(1)
-        self.day_tensor = torch.arange(len(self.F)) // PER_DAY
+        self.IV = self.forward_item(self.F)
+        self.cat_array = self.F[:, :5].argmax(1)
+        self.day_array = np.arange(len(self.F)) // PER_DAY
         self.embedder = None
+
+    def forward_item(self, x):
+        h = _relu(x @ self.it_w0.T + self.it_b0)
+        o = h @ self.it_w2.T + self.it_b2
+        return _l2_norm(o)
+
+    def forward_user(self, aff, hist, demo):
+        if aff.ndim == 1:
+            aff = aff[np.newaxis, :]
+        if hist.ndim == 1:
+            hist = hist[np.newaxis, :]
+        if demo.ndim == 1:
+            demo = demo[np.newaxis, :]
+        x = np.concatenate([aff, hist, demo], axis=-1)
+        h = _relu(x @ self.ut_w0.T + self.ut_b0)
+        o = h @ self.ut_w2.T + self.ut_b2
+        return _l2_norm(o)
+
+    def _get_text_embeddings(self, texts):
+        endpoints = ["http://127.0.0.1:8080/v1/embeddings", "http://127.0.0.1:8002/v1/embeddings"]
+        for ep in endpoints:
+            try:
+                embs = []
+                for t in texts:
+                    req_data = json.dumps({"input": t}).encode("utf-8")
+                    req = urllib.request.Request(ep, data=req_data, headers={"Content-Type": "application/json"})
+                    with urllib.request.urlopen(req, timeout=1.5) as resp:
+                        d = json.loads(resp.read().decode("utf-8"))
+                        embs.append(d["data"][0]["embedding"][:384])
+                if len(embs) == len(texts):
+                    arr = np.array(embs, dtype=np.float32)
+                    return _l2_norm(arr)
+            except Exception:
+                pass
+
+        try:
+            if self.embedder is None:
+                from sentence_transformers import SentenceTransformer
+                self.embedder = SentenceTransformer("all-MiniLM-L6-v2")
+            emb = self.embedder.encode(texts, normalize_embeddings=True)
+            return np.array(emb, dtype=np.float32)
+        except Exception:
+            pass
+
+        embs = []
+        for t in texts:
+            vec = np.zeros(384, dtype=np.float32)
+            words = t.lower().split()
+            for w in words:
+                h = abs(hash(w)) % 384
+                vec[h] += 1.0
+            embs.append(vec)
+        arr = np.array(embs, dtype=np.float32)
+        return _l2_norm(arr)
 
     def rank_posts(self, posts, aff, hist_ids=None, demo=None, top_k=None):
         if not posts:
             return []
-        if self.embedder is None:
-            from sentence_transformers import SentenceTransformer
-            self.embedder = SentenceTransformer("all-MiniLM-L6-v2")
 
         cat_map = {"tech": 0, "business": 1, "arts": 2, "entertainment": 3, "sports": 4}
         texts = [p.get("text", "") for p in posts]
-        text_embs = torch.tensor(self.embedder.encode(texts, normalize_embeddings=True))
+        text_embs = self._get_text_embeddings(texts)
 
-        cat_one_hot = torch.zeros(len(posts), 5)
+        cat_one_hot = np.zeros((len(posts), 5), dtype=np.float32)
         for i, p in enumerate(posts):
             c_val = p.get("category", p.get("category_id", 0))
             if isinstance(c_val, str):
@@ -108,19 +189,18 @@ class RecsysEngine:
                 c_idx = int(c_val) if 0 <= int(c_val) < 5 else 0
             cat_one_hot[i, c_idx] = 1.0
 
-        item_feats = torch.cat([cat_one_hot, text_embs], dim=-1)
-        with torch.no_grad():
-            item_embs = self.item_tower(item_feats)
+        item_feats = np.concatenate([cat_one_hot, text_embs], axis=-1)
+        item_embs = self.forward_item(item_feats)
 
-            aff_t = torch.tensor(aff, dtype=torch.float32)
-            demo_t = torch.tensor(demo or [0.0, 1.0, 0.0, 0.0], dtype=torch.float32)
-            if hist_ids:
-                h = self.F[hist_ids].mean(0)
-            else:
-                h = torch.zeros(self.F.shape[1])
-            u = self.user_tower(aff_t.unsqueeze(0), h.unsqueeze(0), demo_t.unsqueeze(0))[0]
+        aff_arr = np.array(aff, dtype=np.float32)
+        demo_arr = np.array(demo or [0.0, 1.0, 0.0, 0.0], dtype=np.float32)
+        if hist_ids:
+            h = self.F[hist_ids].mean(axis=0)
+        else:
+            h = np.zeros(self.F.shape[1], dtype=np.float32)
 
-            scores = (item_embs @ u).tolist()
+        u = self.forward_user(aff_arr, h, demo_arr)[0]
+        scores = (item_embs @ u).tolist()
 
         scored_items = []
         for p, score in zip(posts, scores):
@@ -137,7 +217,6 @@ class RecsysEngine:
 
         return scored_items
 
-    @torch.no_grad()
     def recommend(self, aff, hist_ids=None, demo=None, seen=None, today=59, n=10, fresh=0.01, div=0.05, eps=0.1, posts=None):
         if posts:
             ranked = self.rank_posts(posts, aff=aff, hist_ids=hist_ids, demo=demo, top_k=n)
@@ -158,46 +237,49 @@ class RecsysEngine:
         if seen is None:
             seen = []
 
-        aff_t = torch.tensor(aff, dtype=torch.float32)
-        demo_t = torch.tensor(demo, dtype=torch.float32)
+        aff_arr = np.array(aff, dtype=np.float32)
+        demo_arr = np.array(demo, dtype=np.float32)
 
         if hist_ids:
-            h = self.F[hist_ids].mean(0)
+            h = self.F[hist_ids].mean(axis=0)
         else:
-            h = torch.zeros(self.F.shape[1])
+            h = np.zeros(self.F.shape[1], dtype=np.float32)
 
-        u = self.user_tower(aff_t.unsqueeze(0), h.unsqueeze(0), demo_t.unsqueeze(0))[0]
+        u = self.forward_user(aff_arr, h, demo_arr)[0]
 
-        ok = (self.day_tensor <= today) & (self.day_tensor >= today - POOL)
+        ok = (self.day_array <= today) & (self.day_array >= today - POOL)
         if seen:
-            ok[list(seen)] = False
+            for s in seen:
+                if 0 <= s < len(ok):
+                    ok[s] = False
 
-        scores = (self.IV @ u - fresh * (today - self.day_tensor)).masked_fill(~ok, -1e9)
+        scores = (self.IV @ u - fresh * (today - self.day_array))
+        scores[~ok] = -1e9
         k = min(200, int(ok.sum()))
-        cand = scores.topk(k).indices.tolist()
+        cand = np.argsort(scores)[-k:][::-1].tolist()
 
         out = []
-        cnt = torch.zeros(5)
+        cnt = np.zeros(5, dtype=np.float32)
 
         for _ in range(n):
-            if torch.rand(1) < eps:
-                pool = ok.clone()
+            if np.random.rand() < eps:
+                pool = ok.copy()
                 for o in out:
                     pool[o] = False
-                valid = pool.nonzero().squeeze(1)
+                valid = np.where(pool)[0]
                 if len(valid) == 0:
                     break
-                idx = valid[torch.randint(len(valid), (1,))].item()
+                idx = int(np.random.choice(valid))
                 out.append(idx)
-                cnt[self.cat_tensor[idx]] += 1
+                cnt[self.cat_array[idx]] += 1
                 continue
 
             rem = [c for c in cand if c not in out]
             if not rem:
                 break
-            best = max(rem, key=lambda c: scores[c].item() - div * cnt[self.cat_tensor[c]].item())
+            best = max(rem, key=lambda c: scores[c] - div * cnt[self.cat_array[c]])
             out.append(best)
-            cnt[self.cat_tensor[best]] += 1
+            cnt[self.cat_array[best]] += 1
 
         posts_out = [self.get_post(i) for i in out]
         status = "warm" if len(hist_ids) >= 3 else "cold"
@@ -205,19 +287,20 @@ class RecsysEngine:
             "status": "ok",
             "user_status": status,
             "total_recs": len(posts_out),
-            "posts": posts_out
+            "posts": posts_out,
+            "items": posts_out
         }
 
     def get_post(self, post_id):
         if post_id < 0 or post_id >= NI:
             raise IndexError(f"post_id must be between 0 and {NI - 1}")
-        cat_id = int(self.cat_tensor[post_id])
+        cat_id = int(self.cat_array[post_id])
         return {
             "id": post_id,
             "text": TEXTS[post_id],
             "category": CAT_NAMES[cat_id],
             "category_id": cat_id,
-            "day": int(self.day_tensor[post_id]),
+            "day": int(self.day_array[post_id]),
             "quality": round(float(_qual[post_id]), 3)
         }
 
@@ -239,3 +322,4 @@ def get_recsys_engine():
     if _instance is None:
         _instance = RecsysEngine()
     return _instance
+

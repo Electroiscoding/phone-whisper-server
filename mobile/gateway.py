@@ -12610,6 +12610,22 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(resp_bytes)
 
+    def _get_recsys_engine(self):
+        search_paths = [
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), "phone-whisper-server"),
+            os.path.dirname(os.path.abspath(__file__)),
+            "/data/data/com.termux/files/home/phone-whisper-server",
+            "/data/data/com.termux/files/home",
+        ]
+        for sp in search_paths:
+            if os.path.exists(os.path.join(sp, "recsys")):
+                if sp not in sys.path:
+                    sys.path.insert(0, sp)
+                break
+        from recsys.engine import get_recsys_engine
+        return get_recsys_engine()
+
     def handle_feed_recommend(self):
         try:
             content_length = int(self.headers.get("Content-Length", 0))
@@ -12638,6 +12654,21 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 if any(k in tastes_str for k in ["sport", "cricket", "f1", "racing", "fitness", "athlete"]):
                     aff[12] += 3.0
                     aff[13] += 2.0
+            elif aff is None and isinstance(payload.get("userContext"), dict):
+                u_obj = payload["userContext"]
+                aff = [0.0] * 15
+                t_list = u_obj.get("tastes") or []
+                t_str = " ".join([str(t) for t in t_list]).lower()
+                if any(w in t_str for w in ["tech", "ai", "code", "gpu", "compiler", "arm", "python"]):
+                    aff[0] += 3.0
+                if any(w in t_str for w in ["biz", "startup", "finance", "venture", "saas"]):
+                    aff[3] += 3.0
+                if any(w in t_str for w in ["art", "design", "creative", "paint"]):
+                    aff[6] += 3.0
+                if any(w in t_str for w in ["music", "film", "movie", "game"]):
+                    aff[9] += 3.0
+                if any(w in t_str for w in ["sport", "fitness", "f1", "racing", "cricket"]):
+                    aff[12] += 3.0
             elif aff is None:
                 aff = [0.0] * 15
             elif len(aff) != 15:
@@ -12647,17 +12678,13 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             demo = payload.get("demo") or [0.0, 1.0, 0.0, 0.0]
             seen = payload.get("seen") or []
             today = int(payload.get("today", 59))
-            n = int(payload.get("n", payload.get("topK", 10)))
+            n = int(payload.get("n", payload.get("count", payload.get("items", payload.get("topK", 10)))))
             fresh = float(payload.get("fresh", 0.01))
             div = float(payload.get("div", 0.05))
             eps = float(payload.get("eps", 0.1))
             posts = payload.get("posts")
 
-            repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            if repo_root not in sys.path:
-                sys.path.insert(0, repo_root)
-            from recsys.engine import get_recsys_engine
-            engine = get_recsys_engine()
+            engine = self._get_recsys_engine()
             res = engine.recommend(aff=aff, hist_ids=hist_ids, demo=demo, seen=seen, today=today, n=n, fresh=fresh, div=div, eps=eps, posts=posts)
             resp_bytes = json.dumps(res).encode("utf-8")
             self.send_response(200)
@@ -12677,11 +12704,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
 
     def handle_feed_recommend_status(self):
         try:
-            repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            if repo_root not in sys.path:
-                sys.path.insert(0, repo_root)
-            from recsys.engine import get_recsys_engine
-            engine = get_recsys_engine()
+            engine = self._get_recsys_engine()
             stats_data = engine.stats()
             resp_bytes = json.dumps(stats_data, indent=2).encode("utf-8")
             self.send_response(200)
@@ -12702,11 +12725,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
     def handle_feed_post_detail(self, raw_id):
         try:
             post_id = int(raw_id)
-            repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            if repo_root not in sys.path:
-                sys.path.insert(0, repo_root)
-            from recsys.engine import get_recsys_engine
-            engine = get_recsys_engine()
+            engine = self._get_recsys_engine()
             post = engine.get_post(post_id)
             resp_bytes = json.dumps(post).encode("utf-8")
             self.send_response(200)
@@ -12715,6 +12734,14 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.send_header("Content-Length", str(len(resp_bytes)))
             self.end_headers()
             self.wfile.write(resp_bytes)
+        except Exception as e:
+            err_bytes = json.dumps({"detail": str(e)}).encode("utf-8")
+            self.send_response(404)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(err_bytes)))
+            self.end_headers()
+            self.wfile.write(err_bytes)
         except Exception as e:
             err_bytes = json.dumps({"detail": str(e)}).encode("utf-8")
             self.send_response(404)
