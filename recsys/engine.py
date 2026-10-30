@@ -1,6 +1,7 @@
 import os
 import json
 import urllib.request
+import hashlib
 import numpy as np
 
 try:
@@ -77,6 +78,27 @@ def _l2_norm(x):
     norm = np.linalg.norm(x, axis=-1, keepdims=True)
     return x / np.maximum(norm, 1e-12)
 
+_TEXT_EMB_CACHE = {}
+_MAX_CACHE_SIZE = 10000
+
+def _compute_projection_embedding(text: str, dim: int = 384) -> np.ndarray:
+    vec = np.zeros(dim, dtype=np.float32)
+    words = text.lower().split()
+    if not words:
+        return vec
+    for pos, w in enumerate(words):
+        h = int(hashlib.md5(w.encode("utf-8")).hexdigest()[:8], 16)
+        idx1 = h % dim
+        idx2 = (h >> 9) % dim
+        sign = 1.0 if (h & 1) else -1.0
+        pos_weight = 1.0 / (1.0 + 0.05 * pos)
+        vec[idx1] += sign * pos_weight
+        vec[idx2] += (sign * 0.5) * pos_weight
+    norm = np.linalg.norm(vec)
+    if norm > 1e-12:
+        vec /= norm
+    return vec
+
 class RecsysEngine:
     def __init__(self, data_dir=None):
         if data_dir is None:
@@ -136,40 +158,56 @@ class RecsysEngine:
         return _l2_norm(o)
 
     def _get_text_embeddings(self, texts):
-        endpoints = ["http://127.0.0.1:8080/v1/embeddings", "http://127.0.0.1:8002/v1/embeddings"]
-        for ep in endpoints:
-            try:
-                embs = []
-                for t in texts:
-                    req_data = json.dumps({"input": t}).encode("utf-8")
-                    req = urllib.request.Request(ep, data=req_data, headers={"Content-Type": "application/json"})
-                    with urllib.request.urlopen(req, timeout=1.5) as resp:
-                        d = json.loads(resp.read().decode("utf-8"))
-                        embs.append(d["data"][0]["embedding"][:384])
-                if len(embs) == len(texts):
-                    arr = np.array(embs, dtype=np.float32)
-                    return _l2_norm(arr)
-            except Exception:
-                pass
+        global _TEXT_EMB_CACHE
+        if not texts:
+            return np.zeros((0, 384), dtype=np.float32)
 
-        try:
-            if self.embedder is None:
-                from sentence_transformers import SentenceTransformer
-                self.embedder = SentenceTransformer("all-MiniLM-L6-v2")
-            emb = self.embedder.encode(texts, normalize_embeddings=True)
-            return np.array(emb, dtype=np.float32)
-        except Exception:
-            pass
+        results = []
+        uncached_indices = []
+        uncached_texts = []
 
-        embs = []
-        for t in texts:
-            vec = np.zeros(384, dtype=np.float32)
-            words = t.lower().split()
-            for w in words:
-                h = abs(hash(w)) % 384
-                vec[h] += 1.0
-            embs.append(vec)
-        arr = np.array(embs, dtype=np.float32)
+        for i, t in enumerate(texts):
+            clean_t = (t or "").strip()
+            if clean_t in _TEXT_EMB_CACHE:
+                results.append(_TEXT_EMB_CACHE[clean_t])
+            else:
+                results.append(None)
+                uncached_indices.append(i)
+                uncached_texts.append(clean_t)
+
+        if uncached_indices:
+            use_embedder = False
+            if os.environ.get("USE_SENTENCE_TRANSFORMER") == "1":
+                if self.embedder is not None:
+                    use_embedder = True
+                elif HAVE_TORCH:
+                    try:
+                        from sentence_transformers import SentenceTransformer
+                        self.embedder = SentenceTransformer("all-MiniLM-L6-v2")
+                        use_embedder = True
+                    except Exception:
+                        self.embedder = None
+
+            if use_embedder:
+                try:
+                    embs = self.embedder.encode(uncached_texts, normalize_embeddings=True)
+                    for idx, ct, emb in zip(uncached_indices, uncached_texts, embs):
+                        v = np.array(emb, dtype=np.float32)
+                        _TEXT_EMB_CACHE[ct] = v
+                        results[idx] = v
+                except Exception:
+                    use_embedder = False
+
+            if not use_embedder:
+                for idx, ct in zip(uncached_indices, uncached_texts):
+                    v = _compute_projection_embedding(ct, dim=384)
+                    _TEXT_EMB_CACHE[ct] = v
+                    results[idx] = v
+
+            if len(_TEXT_EMB_CACHE) > _MAX_CACHE_SIZE:
+                _TEXT_EMB_CACHE = dict(list(_TEXT_EMB_CACHE.items())[_MAX_CACHE_SIZE // 2:])
+
+        arr = np.array(results, dtype=np.float32)
         return _l2_norm(arr)
 
     def rank_posts(self, posts, aff, hist_ids=None, demo=None, top_k=None):
