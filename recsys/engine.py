@@ -243,6 +243,8 @@ class RecsysEngine:
         scored_items = []
         for p, score in zip(posts, scores):
             item = dict(p)
+            if "text" in item and len(item["text"]) > 250:
+                item["text"] = item["text"][:250] + "..."
             item["score"] = round(float(score), 4)
             scored_items.append(item)
 

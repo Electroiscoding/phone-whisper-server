@@ -357,7 +357,9 @@ export async function handleRequest(context) {
     url.pathname.includes("/inference") ||
     url.pathname.includes("/notebook") ||
     url.pathname.includes("/execute") ||
-    url.pathname.includes("/stream")
+    url.pathname.includes("/stream") ||
+    url.pathname.includes("/recommend") ||
+    url.pathname.includes("/rank")
   );
   const timeoutMs = isStorageReq ? 15000 : (url.pathname.includes("/stream") || url.pathname.includes("/notebook") || url.pathname.includes("/execute") ? 300000 : (isLongRunning ? 60000 : 15000));
 
