@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://owner-valve-comparisons-briefly.trycloudflare.com",
-  "inference": "https://owner-valve-comparisons-briefly.trycloudflare.com/inference",
-  "telemetry": "https://owner-valve-comparisons-briefly.trycloudflare.com/telemetry",
+  "endpoint": "https://psychology-dover-comp-patients.trycloudflare.com",
+  "inference": "https://psychology-dover-comp-patients.trycloudflare.com/inference",
+  "telemetry": "https://psychology-dover-comp-patients.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-10-31T08:53:18Z"
+  "updated_at": "2026-11-01T14:41:12Z"
 }
