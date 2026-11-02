@@ -8,6 +8,7 @@ import urllib.request
 import urllib.parse
 import re
 import xml.etree.ElementTree as ET
+from html import unescape
 from datetime import datetime, timezone
 
 SERPAPI_KEY = os.environ.get("SERPAPI_KEY", "44bccfe9e25bf03a19e0a5a1be36335bdf596ba87fc363a1c9dd1a91966618f2")
@@ -100,20 +101,165 @@ TOPIC_CATEGORIES = [
     }
 ]
 
-HEADER_PREFIXES = [
-    "JUST IN :",
-    "Breaking:",
-    "Just announced:",
-    "Report:",
-    "Update:"
+WIRE_PREFIXES = [
+    "BREAKING",
+    "JUST IN",
+    "REPORT",
+    "UPDATE",
+    "DISPATCH",
+    "DEVELOPING"
 ]
 
-ANALYSIS_HEADERS = [
-    "Why this matters:",
-    "Key win:",
-    "What this means:",
-    "Context:"
-]
+_SG_REGEX = re.compile(r'data-n-a-sg="([^"]+)"')
+_TS_REGEX = re.compile(r'data-n-a-ts="([^"]+)"')
+_BATCHEXECUTE_URL = "https://news.google.com/_/DotsSplashUi/data/batchexecute"
+
+def decode_google_news_url(source_url):
+    """
+    Decodes Google News RSS/redirect URLs to the canonical publisher destination URL.
+    Tries googlenewsdecoder package if available, else executes the native batchexecute protocol.
+    """
+    if not source_url or "news.google.com" not in source_url:
+        return source_url
+
+    # Attempt 1: Fast external decoder if installed
+    try:
+        from googlenewsdecoder import gnewsdecoder
+        res = gnewsdecoder(source_url)
+        if isinstance(res, dict) and res.get("success") and res.get("decoded_url"):
+            return res["decoded_url"]
+    except Exception:
+        pass
+
+    # Attempt 2: Native standard library batchexecute protocol
+    try:
+        url = urllib.parse.urlparse(source_url)
+        path = url.path.split("/")
+        if len(path) > 1 and path[-2] in ("articles", "read"):
+            art_id = path[-1]
+            req_url = f"https://news.google.com/rss/articles/{art_id}?hl=en-US&gl=US&ceid=US:en"
+            req = urllib.request.Request(
+                req_url,
+                headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+            )
+            with urllib.request.urlopen(req, timeout=8) as resp:
+                html = resp.read().decode("utf-8", errors="ignore")
+
+            sg_m = _SG_REGEX.search(html)
+            ts_m = _TS_REGEX.search(html)
+            if sg_m and ts_m:
+                sig, ts = sg_m.group(1), ts_m.group(1)
+                ctx = [["X", "X", ["X", "X"], None, None, 1, 1, "US:en", None, 1, None, None, None, None, None, 0, 1], "X", "X", 1, [1, 1, 1], 1, 1, None, 0, 0, None, 0]
+                inner = ["garturlreq", ctx, art_id, int(ts) if str(ts).isdigit() else ts, sig]
+                envelopes = [["Fbv4je", json.dumps(inner, separators=(",", ":")), None, "0"]]
+                encoded_req = urllib.parse.quote(json.dumps([envelopes], separators=(",", ":")))
+                body = f"f.req={encoded_req}".encode("utf-8")
+
+                b_req = urllib.request.Request(
+                    _BATCHEXECUTE_URL,
+                    data=body,
+                    headers={
+                        "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+                        "User-Agent": "Mozilla/5.0"
+                    }
+                )
+                with urllib.request.urlopen(b_req, timeout=8) as b_resp:
+                    text = b_resp.read().decode("utf-8")
+
+                body_clean = text.split("\n\n", 1)[1] if "\n\n" in text else text
+                if body_clean.startswith(")]}'"):
+                    body_clean = body_clean.split("\n", 1)[1] if "\n" in body_clean else body_clean[4:]
+                rows = json.loads(body_clean.lstrip())
+                for row in rows:
+                    if isinstance(row, list) and len(row) >= 3:
+                        payload = row[2]
+                        if isinstance(payload, str):
+                            payload = json.loads(payload)
+                        if isinstance(payload, list) and payload and payload[0] == "garturlres":
+                            dest = payload[1]
+                            if dest and dest.startswith("http"):
+                                return dest
+    except Exception:
+        pass
+
+    # Attempt 3: Direct HTTP HEAD/GET redirect follow
+    try:
+        req = urllib.request.Request(
+            source_url,
+            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+        )
+        with urllib.request.urlopen(req, timeout=6) as resp:
+            fin = resp.geturl()
+            if fin and "news.google.com" not in fin:
+                return fin
+    except Exception:
+        pass
+
+    return source_url
+
+def fetch_article_intelligence(url):
+    """
+    Fetches the canonical article page and extracts headline, OpenGraph description,
+    and clean factual body paragraphs. Strips marketing, ads, and boilerplate.
+    """
+    intel = {
+        "title": "",
+        "description": "",
+        "paragraphs": []
+    }
+    if not url or not url.startswith("http") or "news.google.com" in url:
+        return intel
+
+    try:
+        req = urllib.request.Request(
+            url,
+            headers={
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                "Accept-Language": "en-US,en;q=0.9"
+            }
+        )
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            html = resp.read().decode("utf-8", errors="ignore")
+
+        # Extract OG / Meta description
+        m_desc = re.search(r"""<meta\s+(?:name|property)=["\x27](?:og:description|description|twitter:description)["\x27]\s+content=["\x27]([^"\x27]+)["\x27]""", html, re.I)
+        if not m_desc:
+            m_desc = re.search(r"""<meta\s+content=["\x27]([^"\x27]+)["\x27]\s+(?:name|property)=["\x27](?:og:description|description|twitter:description)["\x27]""", html, re.I)
+        if m_desc:
+            raw_d = unescape(m_desc.group(1).strip())
+            if len(raw_d) > 25 and not any(skip in raw_d.lower() for skip in ["javascript", "cookie", "privacy policy", "enable js"]):
+                intel["description"] = raw_d
+
+        # Extract OG title
+        m_title = re.search(r"""<meta\s+(?:property|name)=["\x27](?:og:title|twitter:title)["\x27]\s+content=["\x27]([^"\x27]+)["\x27]""", html, re.I)
+        if m_title:
+            intel["title"] = unescape(m_title.group(1).strip())
+
+        # Extract clean paragraphs from body
+        clean_html = re.sub(r"<(script|style|nav|header|footer|aside|form)[^>]*>.*?</\1>", "", html, flags=re.DOTALL | re.I)
+        raw_paras = re.findall(r"<p[^>]*>(.*?)</p>", clean_html, flags=re.DOTALL | re.I)
+        valid_paras = []
+        for p in raw_paras:
+            # Filter boilerplate, raw URLs, cookie banners, navigation links
+            if (
+                len(txt) > 60
+                and "http://" not in txt
+                and "https://" not in txt
+                and not any(skip in txt.lower() for skip in [
+                    "cookie", "privacy policy", "terms of use", "terms of service", "all rights reserved",
+                    "subscribe to", "sign up for", "advertisement", "newsletter", "read more:",
+                    "click here", "follow us on", "photo:", "image:", "copyright", "associated press text"
+                ])
+            ):
+                valid_paras.append(txt)
+                if len(valid_paras) >= 5:
+                    break
+        intel["paragraphs"] = valid_paras
+    except Exception:
+        pass
+
+    return intel
 
 def is_valid_jpg_or_png(url):
     if not url or not isinstance(url, str) or not url.startswith("http"):
@@ -332,7 +478,7 @@ class CurrentsNewsBot:
         if is_valid_jpg_or_png(item_thumb):
             return item_thumb
 
-        if article_link:
+        if article_link and "news.google.com" not in article_link:
             og_img = self.fetch_article_og_image(article_link)
             if og_img:
                 return og_img
@@ -355,122 +501,43 @@ class CurrentsNewsBot:
 
         return ""
 
-    def generate_news_body(self, title, source, link, category_name):
-        prefix = random.choice(HEADER_PREFIXES)
-        analysis_hdr = random.choice(ANALYSIS_HEADERS)
-        clean_title = title.split(" - ")[0].split(" | ")[0].strip()
+    def generate_news_body(self, title, source, real_url, intel, category_name):
+        """
+        Synthesizes a short-to-medium, zero-fluff journalistic bulletin.
+        Strictly places the canonical publisher URL as the final line.
+        """
+        prefix = random.choice(WIRE_PREFIXES)
+        clean_title = (intel.get("title") or title).split(" - ")[0].split(" | ")[0].strip()
+        headline = f"{prefix}: {clean_title}"
 
-        if category_name == "wire_services":
-            bullets = [
-                "- Rapid fast-breaking factual developments verified across news wires",
-                "- High-frequency global coverage tracking executive and regulatory actions",
-                "- Structured independent verification establishing primary event timeline"
-            ]
-            analysis = "Real-time wire reporting establishes the factual foundation for cross-market event tracking and government decision cycles."
-        elif category_name == "newspapers":
-            bullets = [
-                "- Deep investigative reporting uncovering long-term public interest context",
-                "- Key stakeholder interviews examining administrative and civic ramifications",
-                "- Rigorous editorial verification evaluating complex institutional narratives"
-            ]
-            analysis = "Independent investigative journalism provides vital accountability and deep civic context beyond rapid headline cycles."
-        elif category_name == "broadcast_media":
-            bullets = [
-                "- Live breaking event updates tracking fast-moving physical and economic developments",
-                "- Direct broadcast statements and on-the-record executive interviews",
-                "- Visual and audio field reporting confirming ground-truth realities"
-            ]
-            analysis = "Broadcast reporting delivers immediate eyewitness verification and high-speed updates during rapidly unfolding scenarios."
-        elif category_name == "technology_publications":
-            bullets = [
-                "- Architecture updates and technical teardowns across compute, AI, and developer tools",
-                "- Deep technical scrutiny separating marketing claims from engineering reality",
-                "- Developer ecosystem adoption metrics tracking real-world implementation"
-            ]
-            analysis = "Specialist technology journalism surfaces architectural trade-offs and developer adoption dynamics that general outlets miss."
-        elif category_name == "business_financial_media":
-            bullets = [
-                "- Capital allocation shifts, earnings performance, and valuation benchmarks",
-                "- Market liquidity reactions and enterprise capital expenditure forecasts",
-                "- M&A consolidation and strategic restructuring reshaping competitive moats"
-            ]
-            analysis = "Financial media analysis connects capital formation, market pricing, and balance sheet resilience to long-term industry structure."
-        elif category_name == "official_company_sources":
-            bullets = [
-                "- Direct primary disclosures from engineering blogs, product releases, and IR filings",
-                "- Official statements establishing formal corporate positions and commitments",
-                "- Technical documentation and roadmap releases defining product capabilities"
-            ]
-            analysis = "Primary corporate statements document official capability milestones and product roadmaps directly from source engineering teams."
-        elif category_name == "government_sources":
-            bullets = [
-                "- Formal administrative rulings, statutory updates, and public policy declarations",
-                "- Official regulatory directives impacting economic and technological sovereignty",
-                "- Public interest mandates and institutional governance standards enacted"
-            ]
-            analysis = "Government regulatory announcements define the legal boundaries, compliance regimes, and economic frameworks for domestic and cross-border operations."
-        elif category_name == "regulatory_court_filings":
-            bullets = [
-                "- Primary legal petitions, antitrust briefs, and binding judicial opinions",
-                "- Securities and exchange regulatory disclosures detailing risk factors",
-                "- Enforceable precedent and contractual obligations established in court records"
-            ]
-            analysis = "Court filings and regulatory dockets provide unvarnished legal facts, establishing precise evidentiary records beyond secondary media summaries."
-        elif category_name == "academic_scientific_sources":
-            bullets = [
-                "- Peer-reviewed methodologies and reproducible empirical laboratory results",
-                "- Preprint benchmark releases pushing algorithmic and material frontiers",
-                "- Formal scientific consensus examining validity, error margins, and rigor"
-            ]
-            analysis = "Peer-reviewed scientific research grounds technological and medical advances in rigorous empirical verification and reproducible evidence."
-        elif category_name == "industry_specialist_publications":
-            bullets = [
-                "- Highly focused technical coverage of supply chains, yields, and fabrication nodes",
-                "- Specialized domain analysis of aerospace, energy, and semiconductor telemetry",
-                "- Deep industry-specific nomenclature clarifying operational constraints"
-            ]
-            analysis = "Specialist domain coverage captures intricate packaging yields, supply-chain bottlenecks, and industrial tradecraft that define execution reality."
-        elif category_name == "local_regional_publications":
-            bullets = [
-                "- State-level policy execution, infrastructure progress, and regional economics",
-                "- Ground-level community developments and domestic parliamentary dynamics",
-                "- Sub-national governance impacts often omitted by international media"
-            ]
-            analysis = "Regional reporting delivers crucial granularity on infrastructure deployment, local policy adoption, and community impact."
-        elif category_name == "public_databases_statistical_sources":
-            bullets = [
-                "- Macroeconomic benchmarks, census metrics, and central bank statistical releases",
-                "- Quantitative dataset tracking validating numerical claims across industries",
-                "- Longitudinal economic indicators measuring inflation, trade, and productivity"
-            ]
-            analysis = "Statistical databases and public repositories anchor news narratives to verifiable empirical data rather than speculative reporting."
-        elif category_name == "elon_starlink_india":
-            bullets = [
-                "- Satellite spectrum allocation and regulatory licensing moving toward resolution",
-                "- Cross-industry competition between orbital constellation providers and domestic telecom giants",
-                "- Sovereignty, data security, and regional satellite broadband connectivity milestones"
-            ]
-            analysis = "The collision between orbital satellite networks and established telecom infrastructure represents a pivotal test for national spectrum policy and digital connectivity."
-        else:
-            bullets = [
-                "- Key structural update impacting commercial ecosystem dynamics",
-                "- Engineering execution moving from roadmap planning to live deployment",
-                "- Industry participants responding to shifts in capital and technology distribution"
-            ]
-            analysis = "Execution speed remains the primary differentiator as market participants react to the new development."
+        desc = intel.get("description", "").strip()
+        paras = intel.get("paragraphs", [])
 
+        body_paragraphs = []
+        if desc:
+            body_paragraphs.append(desc)
+
+        for p in paras:
+            if p not in body_paragraphs and not any(p in b or b in p for b in body_paragraphs):
+                body_paragraphs.append(p)
+                if len(" ".join(body_paragraphs)) > 350:
+                    break
+
+        if not body_paragraphs:
+            body_paragraphs.append(f"{clean_title}. Reporting confirmed via primary {source} wire coverage.")
+
+        # Limit to 1-2 tight, factual paragraphs (approx 50-100 words, no filler)
+        editorial_content = "\n\n".join(body_paragraphs[:2])
+
+        # Final line strictly contains only the real destination link
         lines = [
-            f"{prefix} {clean_title}.",
+            headline,
             "",
-            "\n".join(bullets),
+            editorial_content,
             "",
-            f"{analysis_hdr}",
-            f"{analysis}",
-            "",
-            f"Source: {source}",
-            f"Link: {link}"
+            f"{real_url}"
         ]
-        return "\n".join(lines)
+        return "\n".join(lines).strip()
 
     def publish_post(self, text, media_url="", source_url="", publisher=""):
         token = self.get_valid_token()
@@ -508,7 +575,7 @@ class CurrentsNewsBot:
             return doc_name.split("/")[-1]
 
     def run_cycle(self):
-        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Currents scraper cycle initiated...")
+        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Currents scraper cycle initiated (2h cadence)...")
         token = self.login()
         if not token:
             print("Currents login deferred: Network or authentication temporarily unreachable", file=sys.stderr)
@@ -527,7 +594,7 @@ class CurrentsNewsBot:
                 continue
 
             for item in articles:
-                link = item.get("link")
+                raw_link = item.get("link")
                 title = item.get("title")
                 raw_source = item.get("source")
                 if isinstance(raw_source, dict):
@@ -536,13 +603,25 @@ class CurrentsNewsBot:
                     source = raw_source
                 else:
                     source = "News Wire"
-                if not link or not title:
-                    continue
-                if self.is_posted(link):
+
+                if not raw_link or not title:
                     continue
 
+                # Check if raw link was already processed
+                if self.is_posted(raw_link):
+                    continue
+
+                # Decode Google News link to real canonical publisher link
+                real_url = decode_google_news_url(raw_link)
+                if self.is_posted(real_url):
+                    self.mark_posted(raw_link, title, source, "skipped_duplicate")
+                    continue
+
+                # Extract deep article intelligence from the real publisher page
+                intel = fetch_article_intelligence(real_url)
+
                 item_thumb = item.get("thumbnail") or ""
-                raw_image_url = self.get_guaranteed_image(title, source, item_thumb, article_link=link)
+                raw_image_url = self.get_guaranteed_image(title, source, item_thumb, article_link=real_url)
 
                 if not is_valid_jpg_or_png(raw_image_url):
                     continue
@@ -551,22 +630,27 @@ class CurrentsNewsBot:
                 if not final_image_url or not final_image_url.startswith("https://ntamediaserver.pages.dev/"):
                     continue
 
-                post_text = self.generate_news_body(title, source, link, cat["name"])
-                post_id = self.publish_post(post_text, final_image_url, link, source)
+                # Generate clean journalistic bulletin with real_url on final line
+                post_text = self.generate_news_body(title, source, real_url, intel, cat["name"])
+                post_id = self.publish_post(post_text, final_image_url, real_url, source)
                 if not post_id:
                     continue
-                self.mark_posted(link, title, source, post_id)
+
+                # Mark both raw and canonical URLs posted in SQLite
+                self.mark_posted(raw_link, title, source, post_id)
+                self.mark_posted(real_url, title, source, post_id)
+
                 print(f"Published [{post_id}] in [{cat['name']}]:")
                 print(f"Image: {final_image_url}")
-                print(f"Link: {link}")
-                print(f"Title: {title[:70]}")
+                print(f"Publisher Link: {real_url}")
+                print(f"Headline: {title[:75]}")
                 posted_count += 1
                 return posted_count
 
         return posted_count
 
-    def loop(self, interval_seconds=1800):
-        print(f"Starting Currents 24/7 autonomous loop (Interval: {interval_seconds}s)...")
+    def loop(self, interval_seconds=7200):
+        print(f"Starting Currents 24/7 autonomous loop (Interval: {interval_seconds}s / {round(interval_seconds/3600, 1)}h)...")
         while True:
             try:
                 self.run_cycle()
@@ -579,7 +663,7 @@ if __name__ == "__main__":
     if "--run-once" in sys.argv:
         bot.run_cycle()
     else:
-        interval = 1800
+        interval = 7200
         for arg in sys.argv[1:]:
             if arg.isdigit():
                 interval = int(arg)

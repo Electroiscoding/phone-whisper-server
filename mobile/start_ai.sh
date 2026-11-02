@@ -98,7 +98,7 @@ if ! pgrep -f "cloudflared tunnel" > /dev/null; then
 fi
 
 if [ ! -f "$HOME/.disable_currents" ] && ! pgrep -f "currents_news_bot.py" > /dev/null; then
-  python3 $HOME/currents_news_bot.py 1800 >> $HOME/currents_news_bot.log 2>&1 &
+  python3 $HOME/currents_news_bot.py 7200 >> $HOME/currents_news_bot.log 2>&1 &
 fi
 
 while true; do
@@ -109,7 +109,7 @@ while true; do
   fi
 
   if [ ! -f "$HOME/.disable_currents" ] && ! pgrep -f "currents_news_bot.py" > /dev/null; then
-    python3 $HOME/currents_news_bot.py 1800 >> $HOME/currents_news_bot.log 2>&1 &
+    python3 $HOME/currents_news_bot.py 7200 >> $HOME/currents_news_bot.log 2>&1 &
   fi
 
   if ! pgrep -f "battery_daemon.sh" > /dev/null && ! pgrep -f "update_hardware.sh" > /dev/null; then

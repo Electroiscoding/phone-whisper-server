@@ -5174,7 +5174,7 @@ class CurrentsDaemonManager:
                 "last_error": self.last_error
             }
 
-_currents_manager = CurrentsDaemonManager(1800)
+_currents_manager = CurrentsDaemonManager(7200)
 
 
 def _spawn_swades_worker(job_id):
