@@ -97,7 +97,7 @@ if ! pgrep -f "cloudflared tunnel" > /dev/null; then
   start_tunnel
 fi
 
-if ! pgrep -f "currents_news_bot.py" > /dev/null; then
+if [ ! -f "$HOME/.disable_currents" ] && ! pgrep -f "currents_news_bot.py" > /dev/null; then
   python3 $HOME/currents_news_bot.py 1800 >> $HOME/currents_news_bot.log 2>&1 &
 fi
 
@@ -108,7 +108,7 @@ while true; do
     start_redis
   fi
 
-  if ! pgrep -f "currents_news_bot.py" > /dev/null; then
+  if [ ! -f "$HOME/.disable_currents" ] && ! pgrep -f "currents_news_bot.py" > /dev/null; then
     python3 $HOME/currents_news_bot.py 1800 >> $HOME/currents_news_bot.log 2>&1 &
   fi
 
