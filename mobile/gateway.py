@@ -267,13 +267,15 @@ def fetch_media_info_fast(url):
     cached = GLOBAL_REDIS.get_json(cache_key)
     if cached:
         return cached
+    qjs_bin = shutil.which("qjs") or "/data/data/com.termux/files/usr/bin/qjs"
     ydl_opts = {
         "quiet": True,
         "no_warnings": True,
         "noplaylist": True,
-        "socket_timeout": 10,
-        "extractor_args": {"youtube": {"player_client": ["android"]}}
+        "socket_timeout": 15
     }
+    if qjs_bin and os.path.exists(qjs_bin):
+        ydl_opts["js_runtimes"] = {"quickjs": {"path": qjs_bin}}
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=False)
     GLOBAL_REDIS.set_json(cache_key, info, ex=3600)
@@ -14187,19 +14189,24 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             if not source_url:
                 self._send_json_response({"ok": False, "error": "No direct media stream found for resource"}, status=404)
                 return
-            ffmpeg_bin = shutil.which("ffmpeg")
-            if target_format == "wav" and ffmpeg_bin:
+            ffmpeg_bin = shutil.which("ffmpeg") or ("/data/data/com.termux/files/usr/bin/ffmpeg" if os.path.exists("/data/data/com.termux/files/usr/bin/ffmpeg") else None)
+            if target_format in ["wav", "mp3"] and ffmpeg_bin:
                 cmd = [ffmpeg_bin, "-y", "-loglevel", "error", "-i", source_url]
                 if max_duration > 0:
                     cmd.extend(["-t", str(max_duration)])
-                cmd.extend(["-f", "wav", "-ar", "16000", "-ac", "1", "pipe:1"])
+                if target_format == "wav":
+                    cmd.extend(["-f", "wav", "-ar", "16000", "-ac", "1", "pipe:1"])
+                    content_type = "audio/wav"
+                else:
+                    cmd.extend(["-f", "mp3", "-vn", "-b:a", "192k", "pipe:1"])
+                    content_type = "audio/mpeg"
                 self.send_response(200)
                 self._send_cors_headers()
-                self.send_header("Content-Type", "audio/wav")
+                self.send_header("Content-Type", content_type)
                 self.send_header("X-Media-Processor", "FFmpeg-Streaming-Pipe")
                 self.send_header("X-Storage-Persistence", "none-zero-disk")
                 if is_download:
-                    self.send_header("Content-Disposition", f'attachment; filename="{video_title}.wav"')
+                    self.send_header("Content-Disposition", f'attachment; filename="{video_title}.{output_ext}"')
                 self.end_headers()
                 proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, bufsize=64 * 1024)
                 try:
