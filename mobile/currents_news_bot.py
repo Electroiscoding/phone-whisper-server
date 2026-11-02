@@ -197,15 +197,22 @@ def decode_google_news_url(source_url):
 
     return source_url
 
+METRIC_REGEX = re.compile(
+    r'\b(?:\d+(?:[.,]\d+)?\s*(?:%|percent|bps|basis points|million|billion|trillion|\$|€|£|₹|Rs\.?|USD|INR|EUR|shares?|cents?)|Q[1-4]|\b202[4-9]\b)\b',
+    re.IGNORECASE
+)
+
 def fetch_article_intelligence(url):
     """
     Fetches the canonical article page and extracts headline, OpenGraph description,
-    and clean factual body paragraphs. Strips marketing, ads, and boilerplate.
+    clean factual body paragraphs, and hyper-specific metric sentences (numbers, %, currencies, dates).
     """
     intel = {
         "title": "",
         "description": "",
-        "paragraphs": []
+        "paragraphs": [],
+        "metric_sentences": [],
+        "factual_sentences": []
     }
     if not url or not url.startswith("http") or "news.google.com" in url:
         return intel
@@ -220,42 +227,64 @@ def fetch_article_intelligence(url):
             }
         )
         with urllib.request.urlopen(req, timeout=10) as resp:
-            html = resp.read().decode("utf-8", errors="ignore")
+            html_raw = resp.read().decode("utf-8", errors="ignore")
 
         # Extract OG / Meta description
-        m_desc = re.search(r"""<meta\s+(?:name|property)=["\x27](?:og:description|description|twitter:description)["\x27]\s+content=["\x27]([^"\x27]+)["\x27]""", html, re.I)
+        m_desc = re.search(r"""<meta\s+(?:name|property)=["\x27](?:og:description|description|twitter:description)["\x27]\s+content=["\x27]([^"\x27]+)["\x27]""", html_raw, re.I)
         if not m_desc:
-            m_desc = re.search(r"""<meta\s+content=["\x27]([^"\x27]+)["\x27]\s+(?:name|property)=["\x27](?:og:description|description|twitter:description)["\x27]""", html, re.I)
+            m_desc = re.search(r"""<meta\s+content=["\x27]([^"\x27]+)["\x27]\s+(?:name|property)=["\x27](?:og:description|description|twitter:description)["\x27]""", html_raw, re.I)
         if m_desc:
             raw_d = unescape(m_desc.group(1).strip())
             if len(raw_d) > 25 and not any(skip in raw_d.lower() for skip in ["javascript", "cookie", "privacy policy", "enable js"]):
                 intel["description"] = raw_d
 
         # Extract OG title
-        m_title = re.search(r"""<meta\s+(?:property|name)=["\x27](?:og:title|twitter:title)["\x27]\s+content=["\x27]([^"\x27]+)["\x27]""", html, re.I)
+        m_title = re.search(r"""<meta\s+(?:property|name)=["\x27](?:og:title|twitter:title)["\x27]\s+content=["\x27]([^"\x27]+)["\x27]""", html_raw, re.I)
         if m_title:
             intel["title"] = unescape(m_title.group(1).strip())
 
         # Extract clean paragraphs from body
-        clean_html = re.sub(r"<(script|style|nav|header|footer|aside|form)[^>]*>.*?</\1>", "", html, flags=re.DOTALL | re.I)
+        clean_html = re.sub(r"<(script|style|nav|header|footer|aside|form|figure)[^>]*>.*?</\1>", "", html_raw, flags=re.DOTALL | re.I)
         raw_paras = re.findall(r"<p[^>]*>(.*?)</p>", clean_html, flags=re.DOTALL | re.I)
         valid_paras = []
+        metric_sents = []
+        factual_sents = []
+
+        skip_keywords = [
+            "cookie", "privacy policy", "terms of use", "terms of service", "all rights reserved",
+            "subscribe to", "sign up for", "advertisement", "newsletter", "read more:",
+            "click here", "follow us on", "photo:", "image:", "copyright", "associated press text",
+            "view comments", "listen to this article", "also check", "check out", "read our",
+            "see our", "find out more", "top five holdings", "best picks for", "click through",
+            "download the app", "share this article", "join our", "ranks on our list", "on our list of",
+            "as per our database", "please check out", "investor letter:", "stated the following",
+            "disclosure:", "disclaimer:"
+        ]
+
         for p in raw_paras:
-            # Filter boilerplate, raw URLs, cookie banners, navigation links
+            txt = re.sub(r"<[^>]+>", "", p).strip()
+            txt = unescape(txt)
             if (
-                len(txt) > 60
+                len(txt) > 50
                 and "http://" not in txt
                 and "https://" not in txt
-                and not any(skip in txt.lower() for skip in [
-                    "cookie", "privacy policy", "terms of use", "terms of service", "all rights reserved",
-                    "subscribe to", "sign up for", "advertisement", "newsletter", "read more:",
-                    "click here", "follow us on", "photo:", "image:", "copyright", "associated press text"
-                ])
+                and not any(skip in txt.lower() for skip in skip_keywords)
             ):
                 valid_paras.append(txt)
-                if len(valid_paras) >= 5:
-                    break
-        intel["paragraphs"] = valid_paras
+                sents = re.split(r'(?<=[.!?])\s+(?=[A-Z0-9\$\"“])', txt)
+                for s in sents:
+                    s_clean = s.strip()
+                    if 40 <= len(s_clean) <= 320 and not any(skip in s_clean.lower() for skip in skip_keywords):
+                        if METRIC_REGEX.search(s_clean):
+                            if s_clean not in metric_sents:
+                                metric_sents.append(s_clean)
+                        else:
+                            if s_clean not in factual_sents:
+                                factual_sents.append(s_clean)
+
+        intel["paragraphs"] = valid_paras[:6]
+        intel["metric_sentences"] = metric_sents
+        intel["factual_sentences"] = factual_sents
     except Exception:
         pass
 
@@ -369,6 +398,8 @@ class CurrentsNewsBot:
 
     def fetch_news_rss(self, query):
         try:
+            if "when:" not in query:
+                query = f"{query} when:2d"
             url = f"https://news.google.com/rss/search?q={urllib.parse.quote(query)}&hl=en-US&gl=US&ceid=US:en"
             req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"})
             with urllib.request.urlopen(req, timeout=12) as resp:
@@ -398,10 +429,13 @@ class CurrentsNewsBot:
             return []
 
     def fetch_news_for_category(self, cat):
+        q = cat["q"]
+        if "when:" not in q:
+            q = f"{q} when:2d"
         try:
             params = {
                 "engine": "google_news",
-                "q": cat["q"],
+                "q": q,
                 "gl": cat.get("gl", "us"),
                 "hl": "en",
                 "api_key": SERPAPI_KEY
@@ -416,7 +450,7 @@ class CurrentsNewsBot:
         except Exception:
             pass
 
-        return self.fetch_news_rss(cat["q"])
+        return self.fetch_news_rss(q)
 
     def fetch_serp_image(self, query_text):
         try:
@@ -504,30 +538,41 @@ class CurrentsNewsBot:
     def generate_news_body(self, title, source, real_url, intel, category_name):
         """
         Synthesizes a short-to-medium, zero-fluff journalistic bulletin.
+        Prioritizes hyper-specific metric data, percentages, numbers, and hard facts.
         Strictly places the canonical publisher URL as the final line.
         """
         prefix = random.choice(WIRE_PREFIXES)
         clean_title = (intel.get("title") or title).split(" - ")[0].split(" | ")[0].strip()
         headline = f"{prefix}: {clean_title}"
 
+        metric_sents = intel.get("metric_sentences", [])
+        factual_sents = intel.get("factual_sentences", [])
         desc = intel.get("description", "").strip()
-        paras = intel.get("paragraphs", [])
 
-        body_paragraphs = []
-        if desc:
-            body_paragraphs.append(desc)
-
-        for p in paras:
-            if p not in body_paragraphs and not any(p in b or b in p for b in body_paragraphs):
-                body_paragraphs.append(p)
-                if len(" ".join(body_paragraphs)) > 350:
+        chosen_sents = []
+        # Priority 1: Concrete metric/data sentences
+        for s in metric_sents:
+            if s not in chosen_sents:
+                chosen_sents.append(s)
+                if len(chosen_sents) >= 2:
                     break
 
-        if not body_paragraphs:
-            body_paragraphs.append(f"{clean_title}. Reporting confirmed via primary {source} wire coverage.")
+        # Priority 2: High-information factual sentences
+        if len(chosen_sents) < 2:
+            for s in factual_sents:
+                if s not in chosen_sents and not any(s in c or c in s for c in chosen_sents):
+                    chosen_sents.append(s)
+                    if len(chosen_sents) >= 2:
+                        break
 
-        # Limit to 1-2 tight, factual paragraphs (approx 50-100 words, no filler)
-        editorial_content = "\n\n".join(body_paragraphs[:2])
+        # Priority 3: Verified clean meta description
+        if not chosen_sents and desc and len(desc) > 35:
+            chosen_sents.append(desc)
+
+        if not chosen_sents:
+            chosen_sents.append(f"{clean_title}. Reporting confirmed via primary coverage from {source}.")
+
+        editorial_content = " ".join(chosen_sents)
 
         # Final line strictly contains only the real destination link
         lines = [
@@ -613,12 +658,19 @@ class CurrentsNewsBot:
 
                 # Decode Google News link to real canonical publisher link
                 real_url = decode_google_news_url(raw_link)
+                if not real_url or "news.google.com" in real_url:
+                    continue
+
                 if self.is_posted(real_url):
                     self.mark_posted(raw_link, title, source, "skipped_duplicate")
                     continue
 
                 # Extract deep article intelligence from the real publisher page
                 intel = fetch_article_intelligence(real_url)
+
+                # Ensure hyper-specific content: must have concrete metrics or solid factual sentences
+                if not intel.get("metric_sentences") and len(intel.get("factual_sentences", [])) < 2:
+                    continue
 
                 item_thumb = item.get("thumbnail") or ""
                 raw_image_url = self.get_guaranteed_image(title, source, item_thumb, article_link=real_url)
