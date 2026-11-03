@@ -210,7 +210,7 @@ while true; do
     echo "$(date): [TUNNEL-DETECT] Cloudflare Tunnel changed to $URL. Syncing..." >> $HOME/nuclear_supervisor.log
 
     for RETRY in 1 2 3; do
-      REG_RESP=$(python3 -c 'import urllib.request, json; data = json.dumps({"endpoint": "'"$URL"'", "secret": "mobile_ai_nuclear_key"}).encode(); req = urllib.request.Request("https://phone-whisper-server.pages.dev/register_tunnel", data=data, headers={"Content-Type": "application/json"}); print(urllib.request.urlopen(req, timeout=4).read().decode())' 2>/dev/null || echo "")
+      REG_RESP=$(python3 -c 'import urllib.request, json; data = json.dumps({"endpoint": "'"$URL"'", "secret": "mobile_ai_nuclear_key"}).encode(); req = urllib.request.Request("https://phone-whisper-server.pages.dev/register_tunnel", data=data, headers={"Content-Type": "application/json", "User-Agent": "Mozilla/5.0"}); print(urllib.request.urlopen(req, timeout=4).read().decode())' 2>/dev/null || echo "")
       if echo "$REG_RESP" | grep -q "registered"; then
         echo "$(date): [EDGE-SYNC] Registered new tunnel with Cloudflare Edge" >> $HOME/nuclear_supervisor.log
         break
@@ -250,7 +250,7 @@ JSON_EOF
     fi
   elif [ -n "$URL" ] && [ $((NOW - LAST_PAGES_HEARTBEAT)) -ge 10 ]; then
     LAST_PAGES_HEARTBEAT=$NOW
-    python3 -c 'import urllib.request, json; data = json.dumps({"endpoint": "'"$URL"'", "secret": "mobile_ai_nuclear_key"}).encode(); req = urllib.request.Request("https://phone-whisper-server.pages.dev/register_tunnel", data=data, headers={"Content-Type": "application/json"}); urllib.request.urlopen(req, timeout=3)' >/dev/null 2>&1 &
+    python3 -c 'import urllib.request, json; data = json.dumps({"endpoint": "'"$URL"'", "secret": "mobile_ai_nuclear_key"}).encode(); req = urllib.request.Request("https://phone-whisper-server.pages.dev/register_tunnel", data=data, headers={"Content-Type": "application/json", "User-Agent": "Mozilla/5.0"}); urllib.request.urlopen(req, timeout=3)' >/dev/null 2>&1 &
   fi
 
   if [ $((NOW - LAST_LOG_TRIM)) -ge 1800 ]; then
