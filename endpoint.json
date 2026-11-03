@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://psychology-dover-comp-patients.trycloudflare.com",
-  "inference": "https://psychology-dover-comp-patients.trycloudflare.com/inference",
-  "telemetry": "https://psychology-dover-comp-patients.trycloudflare.com/telemetry",
+  "endpoint": "https://quote-hook-harris-comedy.trycloudflare.com",
+  "inference": "https://quote-hook-harris-comedy.trycloudflare.com/inference",
+  "telemetry": "https://quote-hook-harris-comedy.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-11-02T14:54:44Z"
+  "updated_at": "2026-11-03T13:31:13Z"
 }
