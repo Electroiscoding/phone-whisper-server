@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://crucial-metal-calls-drain.trycloudflare.com",
-  "inference": "https://crucial-metal-calls-drain.trycloudflare.com/inference",
-  "telemetry": "https://crucial-metal-calls-drain.trycloudflare.com/telemetry",
+  "endpoint": "https://beverly-presents-nickel-luke.trycloudflare.com",
+  "inference": "https://beverly-presents-nickel-luke.trycloudflare.com/inference",
+  "telemetry": "https://beverly-presents-nickel-luke.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-11-03T13:44:14Z"
+  "updated_at": "2026-11-03T13:54:20Z"
 }
