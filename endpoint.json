@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://losses-boxed-requesting-sees.trycloudflare.com",
-  "inference": "https://losses-boxed-requesting-sees.trycloudflare.com/inference",
-  "telemetry": "https://losses-boxed-requesting-sees.trycloudflare.com/telemetry",
+  "endpoint": "https://unnecessary-tackle-barrier-steering.trycloudflare.com",
+  "inference": "https://unnecessary-tackle-barrier-steering.trycloudflare.com/inference",
+  "telemetry": "https://unnecessary-tackle-barrier-steering.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-11-03T14:07:53Z"
+  "updated_at": "2026-11-03T14:17:19Z"
 }
