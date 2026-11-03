@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://liabilities-labels-disclosure-dressed.trycloudflare.com",
-  "inference": "https://liabilities-labels-disclosure-dressed.trycloudflare.com/inference",
-  "telemetry": "https://liabilities-labels-disclosure-dressed.trycloudflare.com/telemetry",
+  "endpoint": "https://transparency-themes-attached-merchants.trycloudflare.com",
+  "inference": "https://transparency-themes-attached-merchants.trycloudflare.com/inference",
+  "telemetry": "https://transparency-themes-attached-merchants.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-11-03T17:00:22Z"
+  "updated_at": "2026-11-03T18:13:30Z"
 }
