@@ -864,7 +864,7 @@ export async function handleRequest(context) {
 
   const responseHeaders = new Headers(response.headers);
   Object.entries(CORS_HEADERS).forEach(([k, v]) => responseHeaders.set(k, v));
-  if (url.pathname.includes("/stream")) {
+  if (url.pathname.includes("/stream") && !url.pathname.includes("/media/")) {
     responseHeaders.set("Cache-Control", "no-cache, no-transform");
     responseHeaders.set("Content-Type", "text/event-stream; charset=utf-8");
     responseHeaders.set("X-Accel-Buffering", "no");

@@ -14190,11 +14190,11 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 self._send_json_response({"ok": False, "error": "No direct media stream found for resource"}, status=404)
                 return
             ffmpeg_bin = shutil.which("ffmpeg") or ("/data/data/com.termux/files/usr/bin/ffmpeg" if os.path.exists("/data/data/com.termux/files/usr/bin/ffmpeg") else None)
-            if target_format in ["wav", "mp3"] and ffmpeg_bin:
+            if target_format in ["wav", "mp3", "audio"] and ffmpeg_bin:
                 cmd = [ffmpeg_bin, "-y", "-loglevel", "error", "-i", source_url]
                 if max_duration > 0:
                     cmd.extend(["-t", str(max_duration)])
-                if target_format == "wav":
+                if target_format in ["wav", "audio"]:
                     cmd.extend(["-f", "wav", "-ar", "16000", "-ac", "1", "pipe:1"])
                     content_type = "audio/wav"
                 else:
