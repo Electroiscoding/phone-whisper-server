@@ -7635,6 +7635,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_screen_frame()
         elif path in ["/v1/screen/stream", "/screen/stream"]:
             self.handle_screen_stream()
+        elif path in ["/v1/screen/app", "/screen/app", "/v1/screen/app/status"]:
+            self.handle_screen_app_get(parsed)
         elif path in ['/auth/github/user-repos', '/user/repos', '/repos']:
             self.handle_github_user_repos()
         else:
@@ -7861,7 +7863,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_screen_touch()
         elif path in ["/v1/screen/key", "/screen/key", "/v1/screen/button"]:
             self.handle_screen_key()
-        elif path in ["/v1/screen/app", "/screen/app", "/v1/screen/launch"]:
+        elif path in ["/v1/screen/app", "/screen/app", "/v1/screen/launch", "/v1/screen/app/status"]:
             self.handle_screen_app()
         else:
             self.send_error(404, f"Unknown endpoint: {path}")
@@ -7886,12 +7888,137 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 return [p, "-s", "127.0.0.1:5555"]
         return ["adb", "-s", "127.0.0.1:5555"]
 
+    @classmethod
+    def _run_adb_shell_cmd(cls, cmd_args, timeout=6):
+        """Executes a shell command via Termux loopback ADB with UID 2000 permissions."""
+        base_cmd = cls._get_adb_base_cmd()
+        if isinstance(cmd_args, str):
+            full_cmd = base_cmd + ["shell", cmd_args]
+        else:
+            full_cmd = base_cmd + ["shell"] + list(cmd_args)
+        env = os.environ.copy()
+        env["TMPDIR"] = "/data/data/com.termux/files/usr/tmp"
+        env.pop("LD_LIBRARY_PATH", None)
+        env.pop("LD_PRELOAD", None)
+        try:
+            return subprocess.run(full_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=timeout, env=env)
+        except Exception as e:
+            class DummyResult:
+                returncode = -1
+                stdout = b""
+                stderr = str(e).encode("utf-8")
+            return DummyResult()
+
     @staticmethod
     def _run_shell_cmd(cmd_str):
+        """Executes a shell command directly with sanitized environment (LD_LIBRARY_PATH and LD_PRELOAD popped)."""
+        env = os.environ.copy()
+        env.pop("LD_LIBRARY_PATH", None)
+        env.pop("LD_PRELOAD", None)
         for shell_path in ["/system/bin/sh", "/data/data/com.termux/files/usr/bin/bash"]:
             if os.path.exists(shell_path):
-                return subprocess.run([shell_path, "-c", cmd_str], stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=5)
-        return subprocess.run(cmd_str, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=5)
+                return subprocess.run([shell_path, "-c", cmd_str], stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=5, env=env)
+        return subprocess.run(cmd_str, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=5, env=env)
+
+    KNOWN_APP_NAMES = {
+        "com.netuark.app": "NeTuArk",
+        "com.netuark": "NeTuArk",
+        "com.termux": "Termux",
+    }
+
+    @classmethod
+    def _resolve_target_package(cls, requested_pkg=None):
+        """Resolves target package name, defaulting to com.netuark.app with dynamic auto-detection."""
+        if requested_pkg and requested_pkg.strip():
+            clean_pkg = requested_pkg.strip()
+            if clean_pkg.lower() in ["netuark", "nta", "default"]:
+                return "com.netuark.app"
+            return clean_pkg
+        # 1. Check if default com.netuark.app is installed
+        check_res = cls._run_adb_shell_cmd("pm list packages com.netuark.app")
+        out_str = check_res.stdout.decode("utf-8", errors="ignore")
+        if check_res.returncode == 0 and "package:com.netuark.app" in out_str:
+            return "com.netuark.app"
+        # 2. Search for any installed package explicitly matching netuark
+        search_res = cls._run_adb_shell_cmd("pm list packages")
+        out_str2 = search_res.stdout.decode("utf-8", errors="ignore")
+        if search_res.returncode == 0:
+            for line in out_str2.splitlines():
+                line = line.strip()
+                if line.startswith("package:"):
+                    pkg = line[len("package:"):].strip()
+                    if pkg and ("netuark" in pkg.lower()):
+                        return pkg
+        return "com.netuark.app"
+
+    @classmethod
+    def _inspect_package_info(cls, package_name):
+        """Queries dynamic package metadata using loopback ADB (dumpsys package, pidof, resolve-activity)."""
+        pkg = cls._resolve_target_package(package_name)
+        app_name = cls.KNOWN_APP_NAMES.get(pkg, pkg.split(".")[-1].capitalize() if "." in pkg else pkg)
+        
+        dump_res = cls._run_adb_shell_cmd(f"dumpsys package {pkg}")
+        dump_out = dump_res.stdout.decode("utf-8", errors="ignore")
+        
+        installed = ("Unable to find package" not in dump_out) and (f"Package [{pkg}]" in dump_out or f"PackageSetting{{" in dump_out)
+        version_name = ""
+        version_code = 0
+        main_activity = ""
+        running = False
+        
+        if installed:
+            vn_match = re.search(r"versionName=([^\s\r\n]+)", dump_out)
+            if vn_match:
+                version_name = vn_match.group(1).strip()
+            
+            vc_match = re.search(r"versionCode=(\d+)", dump_out)
+            if vc_match:
+                try:
+                    version_code = int(vc_match.group(1))
+                except ValueError:
+                    version_code = 0
+            
+            # Secondary resolution via cmd package resolve-activity
+            act_res = cls._run_adb_shell_cmd(f"cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.LAUNCHER {pkg}")
+            act_out = act_res.stdout.decode("utf-8", errors="ignore")
+            for line in act_out.splitlines():
+                line = line.strip()
+                if "/" in line and not line.startswith("priority="):
+                    cpkg, cact = line.split("/", 1)
+                    main_activity = (cpkg + cact) if cact.startswith(".") else cact
+                    break
+            
+            # Extract launcher activity from dumpsys Activity Resolver Table if needed
+            if not main_activity:
+                m = re.search(r"android\.intent\.action\.MAIN.*?\n.*?android\.intent\.category\.LAUNCHER.*?\n\s*[0-9a-fA-F]+\s+([^\s]+)", dump_out)
+                if not m:
+                    m = re.search(r"android\.intent\.category\.LAUNCHER.*?\n\s*[0-9a-fA-F]+\s+([^\s]+)", dump_out)
+                if m:
+                    raw_act = m.group(1).strip()
+                    if "/" in raw_act:
+                        cpkg, cact = raw_act.split("/", 1)
+                        main_activity = (cpkg + cact) if cact.startswith(".") else cact
+                    else:
+                        main_activity = raw_act
+            
+            if not main_activity:
+                main_activity = f"{pkg}.MainActivity"
+            
+            # Query running state via pidof
+            pid_res = cls._run_adb_shell_cmd(f"pidof {pkg}")
+            pid_out = pid_res.stdout.decode("utf-8", errors="ignore")
+            running = bool(re.search(r"\d+", pid_out))
+            
+        return {
+            "status": "ok",
+            "installed": installed,
+            "package": pkg,
+            "app_name": app_name,
+            "version_name": version_name,
+            "version_code": version_code,
+            "running": running,
+            "main_activity": main_activity
+        }
 
     def handle_screen_frame(self):
         """Returns a single JPEG image snapshot of the physical Android phone screen."""
@@ -8003,7 +8130,9 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             else:
                 cmd_str = f"input tap {px} {py}"
 
-            res = self._run_shell_cmd(cmd_str)
+            res = self._run_adb_shell_cmd(cmd_str)
+            if res.returncode != 0:
+                res = self._run_shell_cmd(cmd_str)
             
             self.send_response(200)
             self._send_cors_headers()
@@ -8049,9 +8178,13 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 keycode = key_map.get(key, 3)
 
             if key == "UNLOCK":
-                self._run_shell_cmd("input keyevent 224 && input keyevent 82 && input swipe 360 1200 360 300")
+                self._run_adb_shell_cmd("wm dismiss-keyguard")
+                self._run_adb_shell_cmd("input keyevent 224")
+                self._run_adb_shell_cmd("input swipe 360 1200 360 300")
             else:
-                self._run_shell_cmd(f"input keyevent {keycode}")
+                res = self._run_adb_shell_cmd(f"input keyevent {keycode}")
+                if res.returncode != 0:
+                    self._run_shell_cmd(f"input keyevent {keycode}")
 
             self.send_response(200)
             self._send_cors_headers()
@@ -8069,43 +8202,112 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(msg)
 
+    def handle_screen_app_get(self, parsed=None):
+        """GET /v1/screen/app: Dynamically queries installed package metadata, versions, and running state."""
+        try:
+            target_pkg = ""
+            if parsed and parsed.query:
+                query_params = urllib.parse.parse_qs(parsed.query)
+                target_pkg = query_params.get("package", [""])[0].strip()
+            if not target_pkg and hasattr(self, "path"):
+                p = urllib.parse.urlparse(self.path)
+                if p.query:
+                    qp = urllib.parse.parse_qs(p.query)
+                    target_pkg = qp.get("package", [""])[0].strip()
+            info = self._inspect_package_info(target_pkg)
+            self._send_json_response(info, status=200)
+        except Exception as e:
+            self._send_json_response({
+                "status": "error",
+                "installed": False,
+                "package": "com.netuark.app",
+                "app_name": "NeTuArk",
+                "version_name": "",
+                "version_code": 0,
+                "running": False,
+                "main_activity": "",
+                "error": str(e)
+            }, status=500)
+
     def handle_screen_app(self):
-        """Launches or manages Android APK apps (e.g. NeTuArk)."""
+        """POST /v1/screen/app: Deterministic lifecycle control supporting launch, stop, restart, and status."""
         try:
             length = int(self.headers.get("Content-Length", 0))
             body = self.rfile.read(length) if length > 0 else b""
             data = json.loads(body.decode("utf-8")) if body else {}
-            action = data.get("action", "launch")
-            app_id = data.get("app", "netuark").lower()
-            package_name = data.get("package", "")
             
-            if app_id == "netuark" or "netuark" in package_name.lower():
-                res = self._run_shell_cmd("monkey -p com.netuark.app -c android.intent.category.LAUNCHER 1")
-                if res.returncode != 0:
-                    res = self._run_shell_cmd("monkey -p com.netuark -c android.intent.category.LAUNCHER 1")
-                if res.returncode != 0:
-                    self._run_shell_cmd("am start -a android.intent.action.VIEW -d content://com.android.externalstorage.documents/document/primary%3ADownload%2FNeTuArk-v4.2.0.apk -t application/vnd.android.package-archive")
-            elif package_name:
-                if action == "stop":
-                    self._run_shell_cmd(f"am force-stop {package_name}")
-                else:
-                    self._run_shell_cmd(f"monkey -p {package_name} -c android.intent.category.LAUNCHER 1")
+            action = str(data.get("action", "launch")).lower().strip()
+            raw_pkg = data.get("package") or data.get("app") or ""
+            if raw_pkg.lower() in ["netuark", "nta"]:
+                raw_pkg = "com.netuark.app"
+                
+            pkg = self._resolve_target_package(raw_pkg)
+            
+            if action == "status":
+                info = self._inspect_package_info(pkg)
+                info["action"] = "status"
+                info["returncode"] = 0
+                info["message"] = "App status queried"
+                self._send_json_response(info, status=200)
+                return
 
-            self.send_response(200)
-            self._send_cors_headers()
-            self.send_header("Content-Type", "application/json")
-            resp = json.dumps({"status": "ok", "action": action, "app": app_id, "package": package_name}).encode("utf-8")
-            self.send_header("Content-Length", str(len(resp)))
-            self.end_headers()
-            self.wfile.write(resp)
+            if action == "stop":
+                res = self._run_adb_shell_cmd(f"am force-stop {pkg}")
+                pid_res = self._run_adb_shell_cmd(f"pidof {pkg}")
+                pid_out = pid_res.stdout.decode("utf-8", errors="ignore")
+                running = bool(re.search(r"\d+", pid_out))
+                self._send_json_response({
+                    "status": "ok" if res.returncode == 0 else "error",
+                    "action": "stop",
+                    "package": pkg,
+                    "running": running,
+                    "returncode": res.returncode,
+                    "message": "App force-stopped" if res.returncode == 0 else "Failed to stop app"
+                }, status=200)
+                return
+
+            if action == "restart":
+                self._run_adb_shell_cmd(f"am force-stop {pkg}")
+                time.sleep(0.5)
+                
+            # Launch action (or restart continuation)
+            info = self._inspect_package_info(pkg)
+            act = info.get("main_activity") or f"{pkg}.MainActivity"
+            comp = f"{pkg}/{act}" if "/" not in act else act
+            
+            # Wake device display
+            self._run_adb_shell_cmd("svc power stayon true")
+            self._run_shell_cmd("input keyevent 224")
+            
+            res = self._run_adb_shell_cmd(f"am start -n {comp}")
+            time.sleep(0.5)
+            
+            pid_res = self._run_adb_shell_cmd(f"pidof {pkg}")
+            pid_out = pid_res.stdout.decode("utf-8", errors="ignore")
+            running = bool(re.search(r"\d+", pid_out))
+            
+            act_name = "restart" if action == "restart" else "launch"
+            msg = "App restarted into foreground" if action == "restart" else "App launched into foreground"
+            if res.returncode != 0:
+                msg = f"Failed to {act_name} app: returncode {res.returncode}"
+                
+            self._send_json_response({
+                "status": "ok" if res.returncode == 0 else "error",
+                "action": act_name,
+                "package": pkg,
+                "running": running,
+                "returncode": res.returncode,
+                "message": msg
+            }, status=200)
         except Exception as e:
-            self.send_response(500)
-            self._send_cors_headers()
-            self.send_header("Content-Type", "application/json")
-            msg = json.dumps({"error": str(e)}).encode("utf-8")
-            self.send_header("Content-Length", str(len(msg)))
-            self.end_headers()
-            self.wfile.write(msg)
+            self._send_json_response({
+                "status": "error",
+                "action": "unknown",
+                "package": "com.netuark.app",
+                "running": False,
+                "returncode": -1,
+                "message": str(e)
+            }, status=500)
 
     # =========================================================================
     # GITHUB OAUTH HANDLERS

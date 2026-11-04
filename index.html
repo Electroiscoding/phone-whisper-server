@@ -3688,7 +3688,7 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
           <span>Mode 7: Cloud Phone Remote & App Engine</span>
         </span>
         <h2 class="section-title">Remote Cloud Phone Screen & App Studio</h2>
-        <p class="section-desc">Stream the Redmi 9i ARM phone screen live at low latency and control installed Android apps (like <b>NeTuArk</b>) with real-time web touch & hardware navigation events.</p>
+        <p class="section-desc">Stream the connected ARM phone screen live at low latency and control installed Android applications with real-time web touch & hardware navigation events.</p>
       </div>
 
       <div style="display: grid; grid-template-columns: minmax(300px, 380px) 1fr; gap: 1.5rem; align-items: start;">
@@ -3738,30 +3738,41 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
         <!-- RIGHT COLUMN: APP LAUNCHER & REMOTE CONTROLS -->
         <div style="display: flex; flex-direction: column; gap: 1.25rem;">
 
-          <!-- APP DECK CARD: NETUARK -->
+          <!-- APP DECK CARD: DYNAMIC MANAGED APP -->
           <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; padding: 1.25rem;">
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
               <h3 style="color: #f1f5f9; font-size: 1.05rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
                 <i class="fa-solid fa-rocket text-red-400"></i>
-                <span>1-Click App Launcher</span>
+                <span>Dynamic App Launcher &amp; Controller</span>
               </h3>
-              <span style="font-size: 0.72rem; color: #34d399; background: rgba(52, 211, 153, 0.15); padding: 0.15rem 0.5rem; border-radius: 6px;">APK Installed</span>
+              <span id="phoneAppInstalledBadge" style="font-size: 0.72rem; color: #94a3b8; background: rgba(148, 163, 184, 0.15); border: 1px solid rgba(148, 163, 184, 0.3); padding: 0.15rem 0.5rem; border-radius: 6px;">
+                <i class="fa-solid fa-spinner fa-spin text-xs mr-1"></i> Checking App...
+              </span>
             </div>
 
             <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 12px; padding: 1rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
               <div style="display: flex; align-items: center; gap: 0.75rem;">
-                <div style="width: 44px; height: 44px; border-radius: 10px; background: linear-gradient(135deg, #ef4444, #8b5cf6); display: flex; align-items: center; justify-content: center; color: #ffffff; font-weight: 800; font-size: 1.2rem; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);">
-                  N
+                <div id="phoneAppIconInitial" style="width: 44px; height: 44px; border-radius: 10px; background: linear-gradient(135deg, #ef4444, #8b5cf6); display: flex; align-items: center; justify-content: center; color: #ffffff; font-weight: 800; font-size: 1.2rem; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);">
+                  <i class="fa-solid fa-cube"></i>
                 </div>
                 <div>
-                  <div style="color: #f1f5f9; font-weight: 700; font-size: 0.95rem;">NeTuArk (v4.2.0 Build 21)</div>
-                  <div style="color: #94a3b8; font-size: 0.78rem;">Autonomous Network &amp; Security Suite for Android</div>
+                  <div id="phoneAppTitle" style="color: #f1f5f9; font-weight: 700; font-size: 0.95rem;">Loading App Metadata...</div>
+                  <div id="phoneAppSubtitle" style="color: #94a3b8; font-size: 0.78rem;">Connecting to gateway for package inspection...</div>
                 </div>
               </div>
 
-              <div style="display: flex; align-items: center; gap: 0.5rem;">
-                <button onclick="launchPhoneApp('netuark')" class="btn-action" style="padding: 0.55rem 1.2rem; background: linear-gradient(135deg, #ef4444, #dc2626); color: #ffffff; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);">
-                  <i class="fa-solid fa-play"></i> Launch NeTuArk
+              <div id="phoneAppButtonContainer" style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                <button id="btnLaunchPhoneApp" onclick="executePrimaryAppAction('launch')" class="btn-action" style="padding: 0.55rem 1.2rem; background: linear-gradient(135deg, #ef4444, #dc2626); color: #ffffff; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);">
+                  <i class="fa-solid fa-play"></i> <span id="btnLaunchPhoneAppLabel">Launch App</span>
+                </button>
+                <button id="btnStopPhoneApp" onclick="executePrimaryAppAction('stop')" class="btn-action" style="display: none; padding: 0.55rem 1rem; background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.85rem; align-items: center; gap: 0.35rem;">
+                  <i class="fa-solid fa-stop"></i> Stop
+                </button>
+                <button id="btnRestartPhoneApp" onclick="executePrimaryAppAction('restart')" class="btn-action" style="display: none; padding: 0.55rem 1rem; background: rgba(245, 158, 11, 0.2); border: 1px solid rgba(245, 158, 11, 0.4); color: #fbbf24; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.85rem; align-items: center; gap: 0.35rem;">
+                  <i class="fa-solid fa-rotate-right"></i> Restart
+                </button>
+                <button onclick="refreshPhoneAppStatus(true)" title="Refresh App Status" class="btn-action" style="padding: 0.55rem 0.75rem; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); color: #94a3b8; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center;">
+                  <i class="fa-solid fa-arrows-rotate"></i>
                 </button>
               </div>
             </div>
@@ -3775,7 +3786,7 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
             </h3>
             
             <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-              <input type="text" id="customAppPackageInput" placeholder="e.g. com.netuark or com.termux" style="flex: 1; min-width: 200px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.15); color: #f1f5f9; padding: 0.5rem 0.75rem; border-radius: 8px; font-size: 0.85rem; font-family: 'JetBrains Mono', monospace;" />
+              <input type="text" id="customAppPackageInput" placeholder="e.g. com.termux or android package name" style="flex: 1; min-width: 200px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.15); color: #f1f5f9; padding: 0.5rem 0.75rem; border-radius: 8px; font-size: 0.85rem; font-family: 'JetBrains Mono', monospace;" />
               <button onclick="launchCustomApp()" class="btn-action" style="padding: 0.5rem 1rem; background: rgba(56, 189, 248, 0.2); border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.35rem;">
                 <i class="fa-solid fa-arrow-up-right-from-square"></i> Launch App
               </button>
@@ -13472,26 +13483,164 @@ func main() {
       }
     }
 
-    async function launchPhoneApp(appName) {
+    // DYNAMIC APP STATE STORE & LIFECYCLE CONTROLLER
+    let currentPhoneApp = {
+      name: "Managed App",
+      package: "",
+      version_name: "",
+      version_code: "",
+      installed: false,
+      running: false,
+      is_foreground: false
+    };
+    let appStatusPollTimer = null;
+
+    async function refreshPhoneAppStatus(showToastFeedback = false) {
       try {
-        const badge = document.getElementById("phoneStreamStatusBadge");
-        if (badge) {
-          badge.innerHTML = '<i class="fa-solid fa-circle text-xs mr-1 animate-pulse" style="color: #38bdf8;"></i> NETUARK ACTIVE';
-          badge.style.background = 'rgba(56, 189, 248, 0.2)';
-          badge.style.borderColor = 'rgba(56, 189, 248, 0.4)';
-          badge.style.color = '#38bdf8';
+        const base = typeof getApiBaseUrl === 'function' ? getApiBaseUrl() : '';
+        const res = await fetch(base + "/v1/screen/app?action=status", {
+          method: "GET",
+          headers: { "Accept": "application/json" }
+        });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const data = await res.json();
+        const app = data.app || (Array.isArray(data.apps) && data.apps[0]) || data;
+        
+        currentPhoneApp = {
+          name: app.name || "Android App",
+          package: app.package || "",
+          version_name: app.version_name || app.version || "",
+          version_code: app.version_code || app.build || "",
+          installed: !!app.installed,
+          running: !!app.running,
+          is_foreground: !!app.is_foreground
+        };
+
+        // Render dynamic title & version
+        const titleEl = document.getElementById("phoneAppTitle");
+        if (titleEl) {
+          if (currentPhoneApp.installed) {
+            let verStr = "";
+            if (currentPhoneApp.version_name) verStr += `v${currentPhoneApp.version_name}`;
+            if (currentPhoneApp.version_code) verStr += `${verStr ? ' ' : ''}Build ${currentPhoneApp.version_code}`;
+            titleEl.textContent = `${currentPhoneApp.name}${verStr ? ' (' + verStr + ')' : ''}`;
+          } else {
+            titleEl.textContent = `${currentPhoneApp.name || 'Target App'} (Not Installed)`;
+          }
         }
 
+        // Render dynamic subtitle / package info
+        const subEl = document.getElementById("phoneAppSubtitle");
+        if (subEl) {
+          if (currentPhoneApp.installed) {
+            const stateText = currentPhoneApp.running ? "Active in Foreground" : "Installed (Standby)";
+            subEl.textContent = `${currentPhoneApp.package ? currentPhoneApp.package + ' • ' : ''}${stateText}`;
+          } else {
+            subEl.textContent = currentPhoneApp.package ? `Package ${currentPhoneApp.package} missing from device` : "No matching APK installed on phone";
+          }
+        }
+
+        // Render dynamic installed / running badge
+        const instBadge = document.getElementById("phoneAppInstalledBadge");
+        if (instBadge) {
+          if (currentPhoneApp.running) {
+            instBadge.innerHTML = '<i class="fa-solid fa-circle text-xs mr-1 animate-pulse"></i> Running';
+            instBadge.style.color = '#38bdf8';
+            instBadge.style.background = 'rgba(56, 189, 248, 0.15)';
+            instBadge.style.borderColor = 'rgba(56, 189, 248, 0.35)';
+          } else if (currentPhoneApp.installed) {
+            instBadge.innerHTML = '<i class="fa-solid fa-check text-xs mr-1"></i> Installed';
+            instBadge.style.color = '#34d399';
+            instBadge.style.background = 'rgba(52, 211, 153, 0.15)';
+            instBadge.style.borderColor = 'rgba(52, 211, 153, 0.35)';
+          } else {
+            instBadge.innerHTML = '<i class="fa-solid fa-triangle-exclamation text-xs mr-1"></i> Not Installed';
+            instBadge.style.color = '#f87171';
+            instBadge.style.background = 'rgba(239, 68, 68, 0.15)';
+            instBadge.style.borderColor = 'rgba(239, 68, 68, 0.35)';
+          }
+        }
+
+        // Render dynamic icon initial
+        const iconEl = document.getElementById("phoneAppIconInitial");
+        if (iconEl) {
+          const char = (currentPhoneApp.name || "A").trim()[0].toUpperCase();
+          iconEl.textContent = char;
+        }
+
+        // Render stream status badge
+        const streamBadge = document.getElementById("phoneStreamStatusBadge");
+        if (streamBadge) {
+          if (currentPhoneApp.running) {
+            const appDisplayName = (currentPhoneApp.name || "APP").toUpperCase();
+            streamBadge.innerHTML = `<i class="fa-solid fa-circle text-xs mr-1 animate-pulse" style="color: #38bdf8;"></i> ${appDisplayName} ACTIVE`;
+            streamBadge.style.background = 'rgba(56, 189, 248, 0.2)';
+            streamBadge.style.borderColor = 'rgba(56, 189, 248, 0.4)';
+            streamBadge.style.color = '#38bdf8';
+          } else {
+            streamBadge.innerHTML = '<i class="fa-solid fa-circle text-xs mr-1 animate-pulse"></i> LIVE STREAM';
+            streamBadge.style.background = 'rgba(16, 185, 129, 0.2)';
+            streamBadge.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+            streamBadge.style.color = '#34d399';
+          }
+        }
+
+        // Dynamic action buttons visibility
+        const launchBtn = document.getElementById("btnLaunchPhoneApp");
+        const launchLabel = document.getElementById("btnLaunchPhoneAppLabel");
+        const stopBtn = document.getElementById("btnStopPhoneApp");
+        const restartBtn = document.getElementById("btnRestartPhoneApp");
+
+        if (launchBtn && stopBtn && restartBtn) {
+          if (!currentPhoneApp.installed) {
+            launchBtn.disabled = true;
+            launchBtn.style.opacity = '0.5';
+            launchBtn.style.cursor = 'not-allowed';
+            if (launchLabel) launchLabel.textContent = "App Not Installed";
+            stopBtn.style.display = "none";
+            restartBtn.style.display = "none";
+          } else if (currentPhoneApp.running) {
+            launchBtn.disabled = false;
+            launchBtn.style.opacity = '1';
+            launchBtn.style.cursor = 'pointer';
+            if (launchLabel) launchLabel.textContent = "Bring to Front";
+            stopBtn.style.display = "inline-flex";
+            restartBtn.style.display = "inline-flex";
+          } else {
+            launchBtn.disabled = false;
+            launchBtn.style.opacity = '1';
+            launchBtn.style.cursor = 'pointer';
+            if (launchLabel) launchLabel.textContent = "Launch App";
+            stopBtn.style.display = "none";
+            restartBtn.style.display = "none";
+          }
+        }
+      } catch (err) {
+        console.warn("Failed to poll phone app status:", err);
+      }
+    }
+
+    async function executePrimaryAppAction(actionType = 'launch') {
+      try {
         const base = typeof getApiBaseUrl === 'function' ? getApiBaseUrl() : '';
+        const payload = {
+          action: actionType,
+          package: currentPhoneApp.package || "com.netuark.app"
+        };
         await fetch(base + "/v1/screen/app", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ app: appName, action: "launch" })
+          body: JSON.stringify(payload)
         });
-        setTimeout(refreshPhoneScreenFrame, 300);
+        setTimeout(refreshPhoneScreenFrame, 350);
+        setTimeout(refreshPhoneAppStatus, 600);
       } catch (err) {
-        console.error("Phone app launch error:", err);
+        console.error("Primary app action error:", err);
       }
+    }
+
+    async function launchPhoneApp(appName) {
+      return executePrimaryAppAction('launch');
     }
 
     async function launchCustomApp() {
@@ -13506,7 +13655,8 @@ func main() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ package: pkg, action: "launch" })
         });
-        setTimeout(refreshPhoneScreenFrame, 300);
+        setTimeout(refreshPhoneScreenFrame, 350);
+        setTimeout(refreshPhoneAppStatus, 600);
       } catch (err) {
         console.error("Custom app launch error:", err);
       }
@@ -13524,6 +13674,14 @@ func main() {
       }
       
       startPhoneScreenStreaming();
+      refreshPhoneAppStatus();
+      if (!appStatusPollTimer) {
+        appStatusPollTimer = setInterval(() => {
+          if (document.visibilityState === 'visible') {
+            refreshPhoneAppStatus();
+          }
+        }, 6000);
+      }
     });
   </script>
 </body>
