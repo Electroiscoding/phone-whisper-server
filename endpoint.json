@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://collecting-spears-outline-municipal.trycloudflare.com",
-  "inference": "https://collecting-spears-outline-municipal.trycloudflare.com/inference",
-  "telemetry": "https://collecting-spears-outline-municipal.trycloudflare.com/telemetry",
+  "endpoint": "https://collaboration-seconds-portland-blanket.trycloudflare.com",
+  "inference": "https://collaboration-seconds-portland-blanket.trycloudflare.com/inference",
+  "telemetry": "https://collaboration-seconds-portland-blanket.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-11-04T03:10:23Z"
+  "updated_at": "2026-11-04T03:42:42Z"
 }
