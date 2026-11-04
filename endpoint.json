@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://para-having-almost-crop.trycloudflare.com",
-  "inference": "https://para-having-almost-crop.trycloudflare.com/inference",
-  "telemetry": "https://para-having-almost-crop.trycloudflare.com/telemetry",
+  "endpoint": "https://donation-magic-supervisors-diameter.trycloudflare.com",
+  "inference": "https://donation-magic-supervisors-diameter.trycloudflare.com/inference",
+  "telemetry": "https://donation-magic-supervisors-diameter.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-11-04T06:58:43Z"
+  "updated_at": "2026-11-04T07:31:27Z"
 }
