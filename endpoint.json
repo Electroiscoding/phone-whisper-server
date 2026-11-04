@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://collaboration-seconds-portland-blanket.trycloudflare.com",
-  "inference": "https://collaboration-seconds-portland-blanket.trycloudflare.com/inference",
-  "telemetry": "https://collaboration-seconds-portland-blanket.trycloudflare.com/telemetry",
+  "endpoint": "https://projector-charles-soft-omaha.trycloudflare.com",
+  "inference": "https://projector-charles-soft-omaha.trycloudflare.com/inference",
+  "telemetry": "https://projector-charles-soft-omaha.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-11-04T03:42:42Z"
+  "updated_at": "2026-11-04T04:01:29Z"
 }
