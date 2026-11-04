@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://logic-installing-accessory-brands.trycloudflare.com",
-  "inference": "https://logic-installing-accessory-brands.trycloudflare.com/inference",
-  "telemetry": "https://logic-installing-accessory-brands.trycloudflare.com/telemetry",
+  "endpoint": "https://dodge-freelance-believe-sullivan.trycloudflare.com",
+  "inference": "https://dodge-freelance-believe-sullivan.trycloudflare.com/inference",
+  "telemetry": "https://dodge-freelance-believe-sullivan.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-11-04T05:09:50Z"
+  "updated_at": "2026-11-04T05:28:52Z"
 }
