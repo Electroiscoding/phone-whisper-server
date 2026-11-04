@@ -920,13 +920,13 @@
       padding: 1.5rem;
       display: flex;
       flex-direction: column;
-      gap: 4.5rem;
+      gap: 2rem;
     }
 
     /* Hero Section */
     .hero {
       text-align: center;
-      padding: 2.5rem 0 1rem;
+      padding: 1.5rem 0 0.5rem;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -943,7 +943,7 @@
       font-size: 0.82rem;
       font-weight: 600;
       color: var(--success);
-      margin-bottom: 1.5rem;
+      margin-bottom: 0.75rem;
     }
 
     .status-dot {
@@ -2698,6 +2698,119 @@
         gap: 0.35rem !important;
       }
     }
+
+    html {
+      scroll-behavior: smooth;
+    }
+    /* STUDIO WORKSPACE NAVIGATION & ZERO-BLOAT FOCUS MODE */
+    .studio-workspace-bar {
+      position: sticky;
+      top: 58px;
+      z-index: 100;
+      background: rgba(10, 15, 30, 0.94);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 14px;
+      padding: 0.5rem 0.75rem;
+      margin: 1rem 0 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+    .studio-tabs-row {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      overflow-x: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      flex: 1;
+      padding: 2px 0;
+    }
+    .studio-tabs-row::-webkit-scrollbar {
+      display: none;
+    }
+    .workspace-tab-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.4rem 0.8rem;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #94a3b8;
+      background: transparent;
+      border: 1px solid transparent;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+      user-select: none;
+    }
+    .workspace-tab-btn:hover {
+      color: #f1f5f9;
+      background: rgba(255, 255, 255, 0.06);
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+    .workspace-tab-btn.active {
+      color: #38bdf8;
+      background: rgba(56, 189, 248, 0.15);
+      border-color: rgba(56, 189, 248, 0.45);
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.25);
+    }
+    .workspace-tab-btn.active-phone-tab.active {
+      color: #f87171;
+      background: rgba(239, 68, 68, 0.18);
+      border-color: rgba(239, 68, 68, 0.5);
+      box-shadow: 0 0 14px rgba(239, 68, 68, 0.3);
+    }
+    .workspace-view-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      border-left: 1px solid rgba(255, 255, 255, 0.12);
+      padding-left: 0.75rem;
+      flex-shrink: 0;
+    }
+    .workspace-toggle-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.35rem 0.7rem;
+      border-radius: 7px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #cbd5e1;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+    .workspace-toggle-btn:hover {
+      background: rgba(255, 255, 255, 0.12);
+      color: #ffffff;
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+    .workspace-section-fade {
+      animation: workspaceFadeIn 0.22s ease-out forwards;
+    }
+    @keyframes workspaceFadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @media (max-width: 768px) {
+      .studio-workspace-bar {
+        top: 50px;
+        padding: 0.4rem 0.5rem;
+      }
+      .workspace-tab-btn {
+        padding: 0.35rem 0.6rem;
+        font-size: 0.75rem;
+      }
+    }
   </style>
 </head>
 <body>
@@ -2864,9 +2977,8 @@
 
     <!-- Mobile Hamburger Toggle -->
     <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Open Navigation Menu">
-      <i class="fa-solid fa-bars"></i>
-    </button>
   </nav>
+
 
   <!-- Mobile Drawer Menu & Overlay -->
   <div class="mobile-drawer-overlay" id="mobileDrawerOverlay"></div>
@@ -2998,88 +3110,127 @@
         </div>
       </div>
 
-      <!-- HARDWARE MASTERY ACHIEVEMENTS SHELF -->
-      <div style="max-width: 680px; margin: 0 auto 1.25rem; width: 100%;">
-        <div class="achievement-shelf-grid" id="achievementShelfGrid">
-          <div class="achievement-card" id="achieve_first_run">
-            <span class="achievement-icon">⚡</span>
-            <span class="achievement-name">First Strike</span>
-            <span class="achievement-desc">Run 1st inference</span>
-          </div>
-          <div class="achievement-card" id="achieve_chat_thinker">
-            <span class="achievement-icon">🧠</span>
-            <span class="achievement-name">Silicon Thinker</span>
-            <span class="achievement-desc">Stream Qwen 2.5</span>
-          </div>
-          <div class="achievement-card" id="achieve_voice_synth">
-            <span class="achievement-icon">🎙️</span>
-            <span class="achievement-name">Neural Vocalist</span>
-            <span class="achievement-desc">Synthesize Piper</span>
-          </div>
-          <div class="achievement-card" id="achieve_storage_ram">
-            <span class="achievement-icon">💾</span>
-            <span class="achievement-name">RAM Titan</span>
-            <span class="achievement-desc">Read L1 Storage</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- LIVE HARDWARE BENCHMARK SPEEDOMETER & LATENCY ARENA -->
-      <div class="benchmark-arena-card">
-        <div class="benchmark-arena-header">
-          <div style="display: flex; align-items: center; gap: 0.6rem;">
-            <div class="hardware-pulse-ring"></div>
-            <div>
-              <span style="font-weight: 700; color: #ffffff; font-size: 0.92rem;">Hardware Latency &amp; Speedometer Arena</span>
-              <div style="font-size: 0.75rem; color: var(--text-muted);">Real-time ping from your browser to physical ARM Cortex-A53 silicon</div>
+      <!-- SILICON TELEMETRY & SPEEDOMETER LAB (COLLAPSIBLE FOR ZERO BLOAT) -->
+      <details class="hardware-lab-accordion" id="hardwareLabAccordion" style="max-width: 820px; width: 100%; margin: 0.5rem auto 1rem; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 14px; background: rgba(15, 23, 42, 0.6); overflow: hidden; backdrop-filter: blur(10px);">
+        <summary style="padding: 0.65rem 1rem; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-size: 0.82rem; font-weight: 700; color: #38bdf8; user-select: none;">
+          <span style="display: flex; align-items: center; gap: 0.5rem;">
+            <i class="fa-solid fa-gauge-high text-cyan-400"></i>
+            <span>Hardware Latency Arena &amp; Silicon Mastery</span>
+          </span>
+          <span style="font-size: 0.72rem; color: #94a3b8; font-weight: 500;">Click to Expand &bull; <i class="fa-solid fa-chevron-down ml-1"></i></span>
+        </summary>
+        <div style="padding: 1rem; border-top: 1px solid rgba(255, 255, 255, 0.08);">
+          <div class="achievement-shelf-grid" id="achievementShelfGrid" style="margin-bottom: 1rem;">
+            <div class="achievement-card" id="achieve_first_run">
+              <span class="achievement-icon">⚡</span>
+              <span class="achievement-name">First Strike</span>
+              <span class="achievement-desc">Run 1st inference</span>
+            </div>
+            <div class="achievement-card" id="achieve_chat_thinker">
+              <span class="achievement-icon">🧠</span>
+              <span class="achievement-name">Silicon Thinker</span>
+              <span class="achievement-desc">Stream Qwen 2.5</span>
+            </div>
+            <div class="achievement-card" id="achieve_voice_synth">
+              <span class="achievement-icon">🎙️</span>
+              <span class="achievement-name">Neural Vocalist</span>
+              <span class="achievement-desc">Synthesize Piper</span>
+            </div>
+            <div class="achievement-card" id="achieve_storage_ram">
+              <span class="achievement-icon">💾</span>
+              <span class="achievement-name">RAM Titan</span>
+              <span class="achievement-desc">Read L1 Storage</span>
             </div>
           </div>
-          <button class="btn-send-chat" id="runLiveBenchmarkBtn" onclick="runComprehensiveHardwareBenchmark()" style="padding: 0.45rem 1rem; font-size: 0.82rem;">
-            <i class="fa-solid fa-gauge-high mr-1.5 text-cyan-300"></i> <span>⚡ Run Silicon Speed Test</span>
-          </button>
-        </div>
 
-        <div class="benchmark-pings-grid" id="benchmarkPingsGrid">
-          <div class="ping-pill" id="benchCard_storage">
-            <span class="ping-label"><i class="fa-solid fa-database text-amber-400 mr-1.5"></i> L1 RAM Index</span>
-            <span class="ping-val" id="benchPingStorage">-- ms</span>
-          </div>
-          <div class="ping-pill" id="benchCard_embed">
-            <span class="ping-label"><i class="fa-solid fa-brain text-purple-400 mr-1.5"></i> BGE Embedding</span>
-            <span class="ping-val" id="benchPingEmbed">-- ms</span>
-          </div>
-          <div class="ping-pill" id="benchCard_tts">
-            <span class="ping-label"><i class="fa-solid fa-volume-high text-emerald-400 mr-1.5"></i> Piper TTS Frame</span>
-            <span class="ping-val" id="benchPingTTS">-- ms</span>
-          </div>
-          <div class="ping-pill" id="benchCard_qwen">
-            <span class="ping-label"><i class="fa-solid fa-robot text-cyan-400 mr-1.5"></i> Qwen First Token</span>
-            <span class="ping-val" id="benchPingQwen">-- ms</span>
+          <div class="benchmark-arena-card" style="margin: 0;">
+            <div class="benchmark-arena-header">
+              <div style="display: flex; align-items: center; gap: 0.6rem;">
+                <div class="hardware-pulse-ring"></div>
+                <div>
+                  <span style="font-weight: 700; color: #ffffff; font-size: 0.92rem;">Hardware Latency &amp; Speedometer Arena</span>
+                  <div style="font-size: 0.75rem; color: var(--text-muted);">Real-time ping from your browser to physical ARM Cortex-A53 silicon</div>
+                </div>
+              </div>
+              <button class="btn-send-chat" id="runLiveBenchmarkBtn" onclick="runComprehensiveHardwareBenchmark()" style="padding: 0.45rem 1rem; font-size: 0.82rem;">
+                <i class="fa-solid fa-gauge-high mr-1.5 text-cyan-300"></i> <span>⚡ Run Silicon Speed Test</span>
+              </button>
+            </div>
+
+            <div class="benchmark-pings-grid" id="benchmarkPingsGrid">
+              <div class="ping-pill" id="benchCard_storage">
+                <span class="ping-label"><i class="fa-solid fa-database text-amber-400 mr-1.5"></i> L1 RAM Index</span>
+                <span class="ping-val" id="benchPingStorage">-- ms</span>
+              </div>
+              <div class="ping-pill" id="benchCard_embed">
+                <span class="ping-label"><i class="fa-solid fa-brain text-purple-400 mr-1.5"></i> BGE Embedding</span>
+                <span class="ping-val" id="benchPingEmbed">-- ms</span>
+              </div>
+              <div class="ping-pill" id="benchCard_tts">
+                <span class="ping-label"><i class="fa-solid fa-volume-high text-emerald-400 mr-1.5"></i> Piper TTS Frame</span>
+                <span class="ping-val" id="benchPingTTS">-- ms</span>
+              </div>
+              <div class="ping-pill" id="benchCard_qwen">
+                <span class="ping-label"><i class="fa-solid fa-robot text-cyan-400 mr-1.5"></i> Qwen First Token</span>
+                <span class="ping-val" id="benchPingQwen">-- ms</span>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      </details>
 
-      <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; justify-content: center; align-items: center; margin-bottom: 0.5rem;">
-        <button onclick="openIntegrationModal()" class="btn-action" style="padding: 0.55rem 1.15rem; font-size: 0.85rem; font-weight: 700; background: linear-gradient(135deg, rgba(56, 189, 248, 0.25), rgba(16, 185, 129, 0.25)); border-color: #38bdf8; color: #ffffff; box-shadow: 0 0 15px rgba(56, 189, 248, 0.3);">
-          <i class="fa-solid fa-rocket mr-2 text-cyan-300"></i> <span>Quick Integrate (10s Setup)</span>
+      <div style="display: flex; gap: 0.6rem; justify-content: center; align-items: center; margin-bottom: 0.25rem;">
+        <button onclick="openIntegrationModal()" class="btn-action" style="padding: 0.45rem 1rem; font-size: 0.8rem; font-weight: 700; background: linear-gradient(135deg, rgba(56, 189, 248, 0.25), rgba(16, 185, 129, 0.25)); border-color: #38bdf8; color: #ffffff;">
+          <i class="fa-solid fa-rocket mr-1.5 text-cyan-300"></i> <span>Quick Integrate (10s Setup)</span>
         </button>
-        <a href="#studio" class="btn-action" style="padding: 0.55rem 1.15rem; font-size: 0.85rem; font-weight: 600; background: rgba(56, 189, 248, 0.1); border-color: rgba(56, 189, 248, 0.3); color: #38bdf8;">
-          <i class="fa-solid fa-microphone mr-2 text-cyan-400"></i> <span>Speech Studio</span>
-        </a>
-        <a href="#cloud-storage" class="btn-action" style="padding: 0.55rem 1.15rem; font-size: 0.85rem; font-weight: 600; background: rgba(56, 189, 248, 0.06); border-color: rgba(56, 189, 248, 0.2); color: #93c5fd;">
-          <i class="fa-solid fa-cloud mr-2 text-sky-400"></i> <span>Edge Storage</span>
-        </a>
-        <a href="#zstd-studio" class="btn-action" style="padding: 0.55rem 1.15rem; font-size: 0.85rem; font-weight: 600; background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.3); color: #34d399;">
-          <i class="fa-solid fa-file-zipper mr-2 text-emerald-400"></i> <span>Zstd Studio</span>
-        </a>
-        <a href="/dashboard.html" class="btn-action" style="padding: 0.55rem 1.15rem; font-size: 0.85rem; font-weight: 600; background: rgba(168, 85, 247, 0.1); border-color: rgba(168, 85, 247, 0.3); color: #c084fc;">
-          <i class="fa-solid fa-sliders mr-2 text-purple-400"></i> <span>Console</span>
-        </a>
-        <a href="#cheatsheet" class="btn-action" style="padding: 0.55rem 1.15rem; font-size: 0.85rem; font-weight: 600;">
-          <i class="fa-solid fa-bolt mr-2 text-amber-400"></i> <span>API Cheatsheet</span>
+        <a href="/dashboard.html" class="btn-action" style="padding: 0.45rem 1rem; font-size: 0.8rem; font-weight: 600; background: rgba(168, 85, 247, 0.1); border-color: rgba(168, 85, 247, 0.3); color: #c084fc;">
+          <i class="fa-solid fa-sliders mr-1.5 text-purple-400"></i> <span>Cloud Console</span>
         </a>
       </div>
     </section>
+
+    <!-- STICKY STUDIO WORKSPACE COMMAND BAR (ZERO BLOAT, INTUITIVE DESKTOP SWITCHING) -->
+    <nav class="studio-workspace-bar" id="studioWorkspaceBar" aria-label="Studio Workspace Navigation">
+      <div class="studio-tabs-row" id="studioTabsRow">
+        <button class="workspace-tab-btn active" data-target="studio" onclick="selectStudioWorkspace('studio')">
+          <i class="fa-solid fa-microphone text-cyan-400"></i> <span>Speech STT</span>
+        </button>
+        <button class="workspace-tab-btn" data-target="slm-chat" onclick="selectStudioWorkspace('slm-chat')">
+          <i class="fa-solid fa-comments text-purple-400"></i> <span>Qwen Chat</span>
+        </button>
+        <button class="workspace-tab-btn" data-target="tts-studio" onclick="selectStudioWorkspace('tts-studio')">
+          <i class="fa-solid fa-volume-high text-emerald-400"></i> <span>Piper TTS</span>
+        </button>
+        <button class="workspace-tab-btn active-phone-tab" data-target="phone-remote-studio" onclick="selectStudioWorkspace('phone-remote-studio')">
+          <i class="fa-solid fa-mobile-screen-button text-red-400"></i> <span>Cloud Phone (NeTuArk)</span>
+        </button>
+        <button class="workspace-tab-btn" data-target="feed-ranking-studio" onclick="selectStudioWorkspace('feed-ranking-studio')">
+          <i class="fa-solid fa-ranking-star text-sky-400"></i> <span>RecSys</span>
+        </button>
+        <button class="workspace-tab-btn" data-target="media-processor-studio" onclick="selectStudioWorkspace('media-processor-studio')">
+          <i class="fa-solid fa-film text-purple-400"></i> <span>Media (yt-dlp)</span>
+        </button>
+        <button class="workspace-tab-btn" data-target="cloud-storage" onclick="selectStudioWorkspace('cloud-storage')">
+          <i class="fa-solid fa-cloud text-sky-400"></i> <span>Cloud Storage</span>
+        </button>
+        <button class="workspace-tab-btn" data-target="telemetry" onclick="selectStudioWorkspace('telemetry')">
+          <i class="fa-solid fa-chart-line text-emerald-400"></i> <span>Telemetry</span>
+        </button>
+        <button class="workspace-tab-btn" data-target="cheatsheet" onclick="selectStudioWorkspace('cheatsheet')">
+          <i class="fa-solid fa-bolt text-amber-400"></i> <span>API Cheatsheet</span>
+        </button>
+        <button class="workspace-tab-btn" data-target="cron-studio" onclick="selectStudioWorkspace('cron-studio')">
+          <i class="fa-solid fa-clock text-amber-300"></i> <span>Tasks</span>
+        </button>
+      </div>
+
+      <div class="workspace-view-controls">
+        <button class="workspace-toggle-btn" id="workspaceViewToggleBtn" onclick="toggleWorkspaceViewMode()" title="Toggle Focus Studio vs All Stacked">
+          <i class="fa-solid fa-table-columns text-cyan-400" id="workspaceViewToggleIcon"></i>
+          <span id="workspaceViewLabel">Focus Mode</span>
+        </button>
+      </div>
+    </nav>
 
     <!-- SECTION 1: ON-DEVICE SPEECH-TO-TEXT STUDIO -->
     <section id="studio" style="margin-top: 1rem;">
@@ -3691,136 +3842,124 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
         <p class="section-desc">Stream the connected ARM phone screen live at low latency and control installed Android applications with real-time web touch & hardware navigation events.</p>
       </div>
 
-      <div style="display: grid; grid-template-columns: minmax(300px, 380px) 1fr; gap: 1.5rem; align-items: start;">
-        <!-- LEFT COLUMN: PHYSICAL PHONE SCREEN VIEWPORT -->
-        <div style="background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 24px; padding: 1.25rem; text-align: center; box-shadow: 0 12px 35px rgba(0,0,0,0.5); backdrop-filter: blur(16px); position: relative;">
+      <div style="display: grid; grid-template-columns: minmax(260px, 310px) 1fr; gap: 1.25rem; align-items: start; max-width: 1080px; margin: 0 auto;">
+        <!-- LEFT COLUMN: COMPACT PHONE VIEWPORT -->
+        <div style="background: rgba(15, 23, 42, 0.9); border: 1px solid rgba(239, 68, 68, 0.35); border-radius: 20px; padding: 0.85rem; text-align: center; box-shadow: 0 12px 35px rgba(0,0,0,0.5); backdrop-filter: blur(16px); display: flex; flex-direction: column; justify-content: space-between;">
           
           <!-- PHONE HARDWARE FRAME ACCENT -->
-          <div style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: #f87171; margin-bottom: 0.75rem; font-weight: 700; display: flex; align-items: center; justify-content: space-between;">
-            <span><i class="fa-solid fa-mobile-button mr-1"></i> Redmi 9i (ARM Octa-Core)</span>
-            <span id="phoneStreamStatusBadge" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); padding: 0.15rem 0.5rem; border-radius: 6px; font-size: 0.7rem;">
+          <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: #f87171; margin-bottom: 0.5rem; font-weight: 700; display: flex; align-items: center; justify-content: space-between;">
+            <span><i class="fa-solid fa-mobile-button mr-1"></i> Redmi 9i (ARM)</span>
+            <span id="phoneStreamStatusBadge" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); padding: 0.15rem 0.45rem; border-radius: 6px; font-size: 0.68rem;">
               <i class="fa-solid fa-circle text-xs mr-1 animate-pulse"></i> LIVE STREAM
             </span>
           </div>
 
           <!-- INTERACTIVE SCREEN CONTAINER -->
-          <div id="phoneScreenContainer" style="position: relative; width: 100%; aspect-ratio: 9/20; max-height: 680px; background: #020617; border-radius: 16px; overflow: hidden; border: 2px solid rgba(255, 255, 255, 0.12); cursor: crosshair; user-select: none;">
-            
+          <div id="phoneScreenContainer" style="position: relative; width: 100%; aspect-ratio: 9/20; max-height: 480px; background: #020617; border-radius: 12px; overflow: hidden; border: 1.5px solid rgba(255, 255, 255, 0.12); cursor: crosshair; user-select: none; margin: 0 auto;">
             <img id="phoneScreenStreamImg" src="/v1/screen/frame" alt="Phone Screen Stream" style="width: 100%; height: 100%; object-fit: contain; display: block;" />
-            
-            <!-- TOUCH OVERLAY ANIMATION DOT -->
-            <div id="phoneTouchIndicator" style="position: absolute; width: 24px; height: 24px; border-radius: 50%; background: rgba(239, 68, 68, 0.7); border: 2px solid #ffffff; transform: translate(-50%, -50%); display: none; pointer-events: none; z-index: 20; box-shadow: 0 0 12px rgba(239, 68, 68, 0.9);"></div>
-
-            <!-- STREAM LOADING SPINNER OVERLAY -->
-            <div id="phoneScreenOverlay" style="position: absolute; inset: 0; background: rgba(2, 6, 23, 0.7); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.75rem; opacity: 0; transition: opacity 0.3s; pointer-events: none;">
-              <i class="fa-solid fa-spinner fa-spin text-2xl text-red-400"></i>
-              <span style="font-size: 0.8rem; color: #94a3b8;">Connecting to Phone Display...</span>
+            <div id="phoneTouchIndicator" style="position: absolute; width: 22px; height: 22px; border-radius: 50%; background: rgba(239, 68, 68, 0.7); border: 2px solid #ffffff; transform: translate(-50%, -50%); display: none; pointer-events: none; z-index: 20; box-shadow: 0 0 12px rgba(239, 68, 68, 0.9);"></div>
+            <div id="phoneScreenOverlay" style="position: absolute; inset: 0; background: rgba(2, 6, 23, 0.7); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem; opacity: 0; transition: opacity 0.3s; pointer-events: none;">
+              <i class="fa-solid fa-spinner fa-spin text-xl text-red-400"></i>
+              <span style="font-size: 0.75rem; color: #94a3b8;">Connecting to Display...</span>
             </div>
           </div>
 
-          <!-- BOTTOM HARDWARE NAVIGATION BAR -->
-          <div style="margin-top: 1rem; display: flex; align-items: center; justify-content: space-around; background: rgba(255, 255, 255, 0.05); padding: 0.6rem 0.5rem; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.08);">
-            <button onclick="sendPhoneKey('BACK')" class="btn-action" title="Android Back Button" style="background: rgba(255,255,255,0.08); color: #f1f5f9; padding: 0.45rem 1rem; border-radius: 8px; font-size: 0.9rem; border: 1px solid rgba(255,255,255,0.15); cursor: pointer;">
+          <!-- HARDWARE NAVIGATION BAR -->
+          <div style="margin-top: 0.65rem; display: flex; align-items: center; justify-content: space-around; background: rgba(255, 255, 255, 0.04); padding: 0.4rem 0.5rem; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.08);">
+            <button onclick="sendPhoneKey('BACK')" class="btn-action" title="Android Back Button" style="background: rgba(255,255,255,0.08); color: #f1f5f9; padding: 0.35rem 0.75rem; border-radius: 6px; font-size: 0.82rem; border: 1px solid rgba(255,255,255,0.15); cursor: pointer;">
               <i class="fa-solid fa-chevron-left"></i>
             </button>
-            <button onclick="sendPhoneKey('HOME')" class="btn-action" title="Android Home Button" style="background: rgba(239, 68, 68, 0.2); color: #f87171; padding: 0.45rem 1.25rem; border-radius: 8px; font-size: 0.9rem; border: 1px solid rgba(239, 68, 68, 0.4); cursor: pointer;">
+            <button onclick="sendPhoneKey('HOME')" class="btn-action" title="Android Home Button" style="background: rgba(239, 68, 68, 0.2); color: #f87171; padding: 0.35rem 0.9rem; border-radius: 6px; font-size: 0.82rem; border: 1px solid rgba(239, 68, 68, 0.4); cursor: pointer;">
               <i class="fa-solid fa-circle"></i>
             </button>
-            <button onclick="sendPhoneKey('RECENTS')" class="btn-action" title="Android App Switcher / Recents" style="background: rgba(255,255,255,0.08); color: #f1f5f9; padding: 0.45rem 1rem; border-radius: 8px; font-size: 0.9rem; border: 1px solid rgba(255,255,255,0.15); cursor: pointer;">
+            <button onclick="sendPhoneKey('RECENTS')" class="btn-action" title="Android App Switcher / Recents" style="background: rgba(255,255,255,0.08); color: #f1f5f9; padding: 0.35rem 0.75rem; border-radius: 6px; font-size: 0.82rem; border: 1px solid rgba(255,255,255,0.15); cursor: pointer;">
               <i class="fa-solid fa-square"></i>
             </button>
-            <button onclick="sendPhoneKey('UNLOCK')" class="btn-action" title="Wake Screen & Unlock Phone" style="background: rgba(52, 211, 153, 0.15); color: #34d399; padding: 0.45rem 1rem; border-radius: 8px; font-size: 0.9rem; border: 1px solid rgba(52, 211, 153, 0.3); cursor: pointer;">
+            <button onclick="sendPhoneKey('UNLOCK')" class="btn-action" title="Wake Screen & Unlock Phone" style="background: rgba(52, 211, 153, 0.15); color: #34d399; padding: 0.35rem 0.75rem; border-radius: 6px; font-size: 0.82rem; border: 1px solid rgba(52, 211, 153, 0.3); cursor: pointer;">
               <i class="fa-solid fa-lock-open"></i>
             </button>
           </div>
         </div>
 
-        <!-- RIGHT COLUMN: APP LAUNCHER & REMOTE CONTROLS -->
-        <div style="display: flex; flex-direction: column; gap: 1.25rem;">
-
-          <!-- APP DECK CARD: DYNAMIC MANAGED APP -->
-          <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; padding: 1.25rem;">
+        <!-- RIGHT COLUMN: UNIFIED STREAM & APP STUDIO (COMPACT PRO CARD) -->
+        <div style="background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px; padding: 1.25rem; display: flex; flex-direction: column; gap: 1rem; box-shadow: 0 12px 35px rgba(0,0,0,0.5);">
+          
+          <!-- TOP: APP IDENTITY & PRIMARY CONTROLS -->
+          <div>
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
-              <h3 style="color: #f1f5f9; font-size: 1.05rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
-                <i class="fa-solid fa-rocket text-red-400"></i>
-                <span>Dynamic App Launcher &amp; Controller</span>
-              </h3>
-              <span id="phoneAppInstalledBadge" style="font-size: 0.72rem; color: #94a3b8; background: rgba(148, 163, 184, 0.15); border: 1px solid rgba(148, 163, 184, 0.3); padding: 0.15rem 0.5rem; border-radius: 6px;">
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: #f87171; letter-spacing: 0.05em;"><i class="fa-solid fa-rocket mr-1"></i> Cloud App Engine</span>
+              </div>
+              <span id="phoneAppInstalledBadge" style="font-size: 0.7rem; color: #94a3b8; background: rgba(148, 163, 184, 0.15); border: 1px solid rgba(148, 163, 184, 0.3); padding: 0.2rem 0.55rem; border-radius: 6px;">
                 <i class="fa-solid fa-spinner fa-spin text-xs mr-1"></i> Checking App...
               </span>
             </div>
 
-            <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 12px; padding: 1rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
+            <div style="background: rgba(239, 68, 68, 0.06); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 12px; padding: 0.85rem 1rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
               <div style="display: flex; align-items: center; gap: 0.75rem;">
-                <div id="phoneAppIconInitial" style="width: 44px; height: 44px; border-radius: 10px; background: linear-gradient(135deg, #ef4444, #8b5cf6); display: flex; align-items: center; justify-content: center; color: #ffffff; font-weight: 800; font-size: 1.2rem; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);">
-                  <i class="fa-solid fa-cube"></i>
+                <div id="phoneAppIconInitial" style="width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, #ef4444, #8b5cf6); display: flex; align-items: center; justify-content: center; color: #ffffff; font-weight: 800; font-size: 1.15rem; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);">
+                  N
                 </div>
                 <div>
-                  <div id="phoneAppTitle" style="color: #f1f5f9; font-weight: 700; font-size: 0.95rem;">Loading App Metadata...</div>
-                  <div id="phoneAppSubtitle" style="color: #94a3b8; font-size: 0.78rem;">Connecting to gateway for package inspection...</div>
+                  <div id="phoneAppTitle" style="color: #f1f5f9; font-weight: 700; font-size: 0.95rem;">NeTuArk (v4.18 Build 37)</div>
+                  <div id="phoneAppSubtitle" style="color: #94a3b8; font-size: 0.75rem;">com.netuark.app &bull; Active in Foreground</div>
                 </div>
               </div>
 
-              <div id="phoneAppButtonContainer" style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-                <button id="btnLaunchPhoneApp" onclick="executePrimaryAppAction('launch')" class="btn-action" style="padding: 0.55rem 1.2rem; background: linear-gradient(135deg, #ef4444, #dc2626); color: #ffffff; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);">
-                  <i class="fa-solid fa-play"></i> <span id="btnLaunchPhoneAppLabel">Launch App</span>
+              <div id="phoneAppButtonContainer" style="display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap;">
+                <button id="btnLaunchPhoneApp" onclick="executePrimaryAppAction('launch')" class="btn-action" style="padding: 0.45rem 1rem; background: linear-gradient(135deg, #ef4444, #dc2626); color: #ffffff; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.82rem; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.35);">
+                  <i class="fa-solid fa-play"></i> <span id="btnLaunchPhoneAppLabel">Bring to Front</span>
                 </button>
-                <button id="btnStopPhoneApp" onclick="executePrimaryAppAction('stop')" class="btn-action" style="display: none; padding: 0.55rem 1rem; background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.85rem; align-items: center; gap: 0.35rem;">
+                <button id="btnStopPhoneApp" onclick="executePrimaryAppAction('stop')" class="btn-action" style="display: inline-flex; padding: 0.45rem 0.85rem; background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.82rem; align-items: center; gap: 0.3rem;">
                   <i class="fa-solid fa-stop"></i> Stop
                 </button>
-                <button id="btnRestartPhoneApp" onclick="executePrimaryAppAction('restart')" class="btn-action" style="display: none; padding: 0.55rem 1rem; background: rgba(245, 158, 11, 0.2); border: 1px solid rgba(245, 158, 11, 0.4); color: #fbbf24; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.85rem; align-items: center; gap: 0.35rem;">
+                <button id="btnRestartPhoneApp" onclick="executePrimaryAppAction('restart')" class="btn-action" style="display: inline-flex; padding: 0.45rem 0.85rem; background: rgba(245, 158, 11, 0.2); border: 1px solid rgba(245, 158, 11, 0.4); color: #fbbf24; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.82rem; align-items: center; gap: 0.3rem;">
                   <i class="fa-solid fa-rotate-right"></i> Restart
                 </button>
-                <button onclick="refreshPhoneAppStatus(true)" title="Refresh App Status" class="btn-action" style="padding: 0.55rem 0.75rem; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); color: #94a3b8; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center;">
+                <button onclick="refreshPhoneAppStatus(true)" title="Refresh App Status" class="btn-action" style="padding: 0.45rem 0.65rem; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); color: #94a3b8; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center;">
                   <i class="fa-solid fa-arrows-rotate"></i>
                 </button>
               </div>
             </div>
           </div>
 
-          <!-- CUSTOM PACKAGE LAUNCHER DECK -->
-          <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; padding: 1.25rem;">
-            <h3 style="color: #f1f5f9; font-size: 1.05rem; font-weight: 700; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem; margin-top: 0;">
-              <i class="fa-solid fa-terminal text-cyan-400"></i>
-              <span>Launch / Control Custom Package</span>
-            </h3>
-            
-            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-              <input type="text" id="customAppPackageInput" placeholder="e.g. com.termux or android package name" style="flex: 1; min-width: 200px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.15); color: #f1f5f9; padding: 0.5rem 0.75rem; border-radius: 8px; font-size: 0.85rem; font-family: 'JetBrains Mono', monospace;" />
-              <button onclick="launchCustomApp()" class="btn-action" style="padding: 0.5rem 1rem; background: rgba(56, 189, 248, 0.2); border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.35rem;">
-                <i class="fa-solid fa-arrow-up-right-from-square"></i> Launch App
-              </button>
+          <!-- MIDDLE: TELEMETRY & STREAMING STRIP -->
+          <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 12px; padding: 0.75rem 1rem;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.6rem;">
+              <span style="font-size: 0.72rem; text-transform: uppercase; color: #38bdf8; font-weight: 700; letter-spacing: 0.05em;"><i class="fa-solid fa-sliders mr-1"></i> Stream Telemetry</span>
+              <div style="display: flex; gap: 0.4rem;">
+                <button onclick="togglePhoneStreamRefresh()" id="btnTogglePhoneStream" class="btn-action" style="padding: 0.25rem 0.65rem; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.35); color: #f87171; border-radius: 6px; font-size: 0.72rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.3rem;">
+                  <i class="fa-solid fa-pause"></i> Pause
+                </button>
+                <button onclick="refreshPhoneScreenFrame()" class="btn-action" style="padding: 0.25rem 0.65rem; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.12); color: #f1f5f9; border-radius: 6px; font-size: 0.72rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.3rem;">
+                  <i class="fa-solid fa-rotate"></i> Snapshot
+                </button>
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.6rem;">
+              <div style="background: rgba(0,0,0,0.3); padding: 0.5rem 0.65rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
+                <div style="font-size: 0.65rem; color: #94a3b8;">Resolution</div>
+                <div style="font-size: 0.85rem; font-weight: 700; color: #38bdf8; font-family: 'JetBrains Mono', monospace;">720 x 1600</div>
+              </div>
+              <div style="background: rgba(0,0,0,0.3); padding: 0.5rem 0.65rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
+                <div style="font-size: 0.65rem; color: #94a3b8;">Frame Rate</div>
+                <div id="phoneStreamFps" style="font-size: 0.85rem; font-weight: 700; color: #34d399; font-family: 'JetBrains Mono', monospace;">~8 FPS</div>
+              </div>
+              <div style="background: rgba(0,0,0,0.3); padding: 0.5rem 0.65rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
+                <div style="font-size: 0.65rem; color: #94a3b8;">Touch Latency</div>
+                <div id="phoneTouchLatency" style="font-size: 0.85rem; font-weight: 700; color: #fbbf24; font-family: 'JetBrains Mono', monospace;">&lt;85 ms</div>
+              </div>
             </div>
           </div>
 
-          <!-- LIVE HARDWARE & DISPLAY TELEMETRY CARD -->
-          <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; padding: 1.25rem;">
-            <h3 style="color: #f1f5f9; font-size: 1.05rem; font-weight: 700; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem; margin-top: 0;">
-              <i class="fa-solid fa-sliders text-emerald-400"></i>
-              <span>Screen Stream Controls &amp; Telemetry</span>
-            </h3>
-
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.75rem;">
-              <div style="background: rgba(255,255,255,0.03); padding: 0.75rem; border-radius: 10px; border: 1px solid rgba(255,255,255,0.06);">
-                <div style="font-size: 0.72rem; color: #94a3b8;">Physical Resolution</div>
-                <div style="font-size: 0.95rem; font-weight: 700; color: #38bdf8; font-family: 'JetBrains Mono', monospace;">720 x 1600</div>
-              </div>
-              <div style="background: rgba(255,255,255,0.03); padding: 0.75rem; border-radius: 10px; border: 1px solid rgba(255,255,255,0.06);">
-                <div style="font-size: 0.72rem; color: #94a3b8;">Stream Frame Rate</div>
-                <div id="phoneStreamFps" style="font-size: 0.95rem; font-weight: 700; color: #34d399; font-family: 'JetBrains Mono', monospace;">~8 FPS</div>
-              </div>
-              <div style="background: rgba(255,255,255,0.03); padding: 0.75rem; border-radius: 10px; border: 1px solid rgba(255,255,255,0.06);">
-                <div style="font-size: 0.72rem; color: #94a3b8;">Touch Latency</div>
-                <div id="phoneTouchLatency" style="font-size: 0.95rem; font-weight: 700; color: #fbbf24; font-family: 'JetBrains Mono', monospace;">&lt;85 ms</div>
-              </div>
-            </div>
-
-            <div style="margin-top: 1rem; display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
-              <button onclick="togglePhoneStreamRefresh()" id="btnTogglePhoneStream" class="btn-action" style="padding: 0.45rem 0.9rem; background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171; border-radius: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.35rem;">
-                <i class="fa-solid fa-pause"></i> Pause Stream
-              </button>
-              <button onclick="refreshPhoneScreenFrame()" class="btn-action" style="padding: 0.45rem 0.9rem; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); color: #f1f5f9; border-radius: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.35rem;">
-                <i class="fa-solid fa-rotate"></i> Snapshot Frame
+          <!-- BOTTOM: CUSTOM PACKAGE QUICK RUNNER -->
+          <div style="background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 12px; padding: 0.65rem 0.85rem;">
+            <div style="display: flex; gap: 0.4rem; align-items: center;">
+              <span style="font-size: 0.72rem; color: #94a3b8; font-family: 'JetBrains Mono', monospace;"><i class="fa-solid fa-terminal text-cyan-400 mr-1"></i>Pkg:</span>
+              <input type="text" id="customAppPackageInput" placeholder="e.g. com.termux" style="flex: 1; min-width: 140px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); color: #f1f5f9; padding: 0.35rem 0.6rem; border-radius: 6px; font-size: 0.78rem; font-family: 'JetBrains Mono', monospace;" />
+              <button onclick="launchCustomApp()" class="btn-action" style="padding: 0.35rem 0.75rem; background: rgba(56, 189, 248, 0.2); border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8; border-radius: 6px; font-size: 0.78rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.3rem;">
+                <i class="fa-solid fa-arrow-up-right-from-square"></i> Run
               </button>
             </div>
           </div>
@@ -13368,6 +13507,161 @@ func main() {
     <i class="fa-solid fa-circle-check text-emerald-400" id="tactileToastIcon"></i>
     <span id="tactileToastMsg">Action completed!</span>
   </div>
+
+  <!-- STUDIO WORKSPACE MANAGEMENT SCRIPT (ELIMINATES TEDIOUS DESKTOP SCROLLING) -->
+  <script>
+    const STUDIO_SECTIONS = [
+      'studio',
+      'slm-chat',
+      'tts-studio',
+      'phone-remote-studio',
+      'feed-ranking-studio',
+      'media-processor-studio',
+      'cloud-storage',
+      'telemetry',
+      'cheatsheet',
+      'cron-studio',
+      'embeddings-studio',
+      'reranker-studio',
+      'zstd-studio',
+      'mediapipe-studio',
+      'gridlock-demo',
+      'how-it-works',
+      'docs'
+    ];
+
+    let currentWorkspaceMode = localStorage.getItem('pw_workspace_mode') || 'focus';
+    let currentActiveStudio = 'studio';
+
+    function initStudioWorkspace() {
+      // Check hash
+      const hash = (window.location.hash || '').replace('#', '').trim();
+      if (hash && (STUDIO_SECTIONS.includes(hash) || document.getElementById(hash))) {
+        currentActiveStudio = hash;
+      } else {
+        const saved = localStorage.getItem('pw_active_studio');
+        if (saved && STUDIO_SECTIONS.includes(saved)) {
+          currentActiveStudio = saved;
+        }
+      }
+
+      applyWorkspaceViewMode(currentWorkspaceMode, false);
+      selectStudioWorkspace(currentActiveStudio, false);
+
+      // Listen for hash changes
+      window.addEventListener('hashchange', () => {
+        const h = (window.location.hash || '').replace('#', '').trim();
+        if (h && (STUDIO_SECTIONS.includes(h) || document.getElementById(h))) {
+          selectStudioWorkspace(h, true);
+        }
+      });
+
+      // Intercept in-page links pointing to studio sections
+      document.addEventListener('click', (e) => {
+        const anchor = e.target.closest('a[href^="#"]');
+        if (!anchor) return;
+        const targetId = anchor.getAttribute('href').replace('#', '').trim();
+        if (STUDIO_SECTIONS.includes(targetId)) {
+          e.preventDefault();
+          selectStudioWorkspace(targetId, true);
+        }
+      });
+    }
+
+    function selectStudioWorkspace(tabId, shouldScroll = true) {
+      if (!tabId) return;
+      currentActiveStudio = tabId;
+      localStorage.setItem('pw_active_studio', tabId);
+
+      // Update workspace tab buttons
+      const tabBtns = document.querySelectorAll('.workspace-tab-btn');
+      tabBtns.forEach(btn => {
+        const target = btn.getAttribute('data-target');
+        const isMatch = (target === tabId);
+        btn.classList.toggle('active', isMatch);
+      });
+
+      // Show/Hide sections if in Focus mode
+      if (currentWorkspaceMode === 'focus') {
+        STUDIO_SECTIONS.forEach(id => {
+          const el = document.getElementById(id);
+          if (!el) return;
+          if (id === tabId) {
+            el.style.display = 'block';
+            el.classList.remove('workspace-section-fade');
+            void el.offsetWidth; // trigger reflow
+            el.classList.add('workspace-section-fade');
+          } else {
+            el.style.display = 'none';
+          }
+        });
+      } else {
+        // All visible in stacked mode
+        STUDIO_SECTIONS.forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.style.display = 'block';
+        });
+      }
+
+      // Smooth scroll if requested
+      if (shouldScroll) {
+        const targetEl = document.getElementById(tabId);
+        const barEl = document.getElementById('studioWorkspaceBar');
+        if (currentWorkspaceMode === 'focus' && barEl) {
+          const rect = barEl.getBoundingClientRect();
+          const targetTop = window.pageYOffset + rect.top - 65;
+          window.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
+        } else if (targetEl) {
+          const rect = targetEl.getBoundingClientRect();
+          const targetTop = window.pageYOffset + rect.top - 75;
+          window.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
+        }
+      }
+
+      // Sync URL hash
+      if (history.replaceState) {
+        history.replaceState(null, '', '#' + tabId);
+      }
+    }
+
+    function toggleWorkspaceViewMode() {
+      currentWorkspaceMode = (currentWorkspaceMode === 'focus') ? 'stacked' : 'focus';
+      localStorage.setItem('pw_workspace_mode', currentWorkspaceMode);
+      applyWorkspaceViewMode(currentWorkspaceMode, true);
+    }
+
+    function applyWorkspaceViewMode(mode, showFeedback = false) {
+      const lbl = document.getElementById('workspaceViewLabel');
+      const icon = document.getElementById('workspaceViewToggleIcon');
+      if (mode === 'focus') {
+        if (lbl) lbl.textContent = 'Focus Mode';
+        if (icon) icon.className = 'fa-solid fa-table-columns text-cyan-400';
+        selectStudioWorkspace(currentActiveStudio, false);
+        if (showFeedback && typeof showTactileToast === 'function') {
+          showTactileToast('Workspace: Focus Mode (Zero Scroll)', 'fa-solid fa-compress text-cyan-400');
+        }
+      } else {
+        if (lbl) lbl.textContent = 'View All';
+        if (icon) icon.className = 'fa-solid fa-bars-staggered text-amber-400';
+        STUDIO_SECTIONS.forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.style.display = 'block';
+        });
+        if (showFeedback && typeof showTactileToast === 'function') {
+          showTactileToast('Workspace: View All (Continuous Scroll)', 'fa-solid fa-expand text-amber-400');
+        }
+      }
+    }
+
+    window.selectStudioWorkspace = selectStudioWorkspace;
+    window.toggleWorkspaceViewMode = toggleWorkspaceViewMode;
+
+    document.addEventListener('DOMContentLoaded', initStudioWorkspace);
+    if (document.readyState === 'interactive' || document.readyState === 'complete') {
+      initStudioWorkspace();
+    }
+  </script>
+
   <!-- REMOTE CLOUD PHONE SCREEN & TOUCH CONTROLLER SCRIPT -->
   <script>
     let phoneStreamActive = true;
@@ -13506,8 +13800,13 @@ func main() {
         const data = await res.json();
         const app = data.app || (Array.isArray(data.apps) && data.apps[0]) || data;
         
+        let appName = app.app_name || app.name || "";
+        if (!appName || appName === "Android App") {
+          appName = (app.package === "com.netuark.app" || (app.package && app.package.includes("netuark"))) ? "NeTuArk" : (appName || "Android App");
+        }
+
         currentPhoneApp = {
-          name: app.name || "Android App",
+          name: appName,
           package: app.package || "",
           version_name: app.version_name || app.version || "",
           version_code: app.version_code || app.build || "",
