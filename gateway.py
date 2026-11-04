@@ -8130,9 +8130,9 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             else:
                 cmd_str = f"input tap {px} {py}"
 
-            res = self._run_adb_shell_cmd(cmd_str)
+            res = self._run_shell_cmd(cmd_str)
             if res.returncode != 0:
-                res = self._run_shell_cmd(cmd_str)
+                res = self._run_adb_shell_cmd(cmd_str)
             
             self.send_response(200)
             self._send_cors_headers()
