@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://brake-blah-referenced-federation.trycloudflare.com",
-  "inference": "https://brake-blah-referenced-federation.trycloudflare.com/inference",
-  "telemetry": "https://brake-blah-referenced-federation.trycloudflare.com/telemetry",
+  "endpoint": "https://grove-outputs-heating-stationery.trycloudflare.com",
+  "inference": "https://grove-outputs-heating-stationery.trycloudflare.com/inference",
+  "telemetry": "https://grove-outputs-heating-stationery.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-11-04T06:22:07Z"
+  "updated_at": "2026-11-04T06:33:37Z"
 }
