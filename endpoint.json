@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://exclusion-maintaining-meaning-antique.trycloudflare.com",
-  "inference": "https://exclusion-maintaining-meaning-antique.trycloudflare.com/inference",
-  "telemetry": "https://exclusion-maintaining-meaning-antique.trycloudflare.com/telemetry",
+  "endpoint": "https://ministers-indication-technician-cow.trycloudflare.com",
+  "inference": "https://ministers-indication-technician-cow.trycloudflare.com/inference",
+  "telemetry": "https://ministers-indication-technician-cow.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-11-04T04:44:39Z"
+  "updated_at": "2026-11-04T04:54:35Z"
 }
