@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://miami-fish-russell-crucial.trycloudflare.com",
-  "inference": "https://miami-fish-russell-crucial.trycloudflare.com/inference",
-  "telemetry": "https://miami-fish-russell-crucial.trycloudflare.com/telemetry",
+  "endpoint": "https://threats-burner-finding-inn.trycloudflare.com",
+  "inference": "https://threats-burner-finding-inn.trycloudflare.com/inference",
+  "telemetry": "https://threats-burner-finding-inn.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-11-04T08:32:06Z"
+  "updated_at": "2026-11-04T08:50:19Z"
 }
