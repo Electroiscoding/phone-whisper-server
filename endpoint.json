@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://grove-outputs-heating-stationery.trycloudflare.com",
-  "inference": "https://grove-outputs-heating-stationery.trycloudflare.com/inference",
-  "telemetry": "https://grove-outputs-heating-stationery.trycloudflare.com/telemetry",
+  "endpoint": "https://begins-matrix-self-inns.trycloudflare.com",
+  "inference": "https://begins-matrix-self-inns.trycloudflare.com/inference",
+  "telemetry": "https://begins-matrix-self-inns.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-11-04T06:33:37Z"
+  "updated_at": "2026-11-04T06:42:46Z"
 }
