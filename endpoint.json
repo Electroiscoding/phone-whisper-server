@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://screen-website-rep-meat.trycloudflare.com",
-  "inference": "https://screen-website-rep-meat.trycloudflare.com/inference",
-  "telemetry": "https://screen-website-rep-meat.trycloudflare.com/telemetry",
+  "endpoint": "https://biodiversity-becomes-graduated-powers.trycloudflare.com",
+  "inference": "https://biodiversity-becomes-graduated-powers.trycloudflare.com/inference",
+  "telemetry": "https://biodiversity-becomes-graduated-powers.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-11-05T04:27:30Z"
+  "updated_at": "2026-11-05T05:32:11Z"
 }
