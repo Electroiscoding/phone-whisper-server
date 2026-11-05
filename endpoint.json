@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://sensor-swap-raid-minute.trycloudflare.com",
-  "inference": "https://sensor-swap-raid-minute.trycloudflare.com/inference",
-  "telemetry": "https://sensor-swap-raid-minute.trycloudflare.com/telemetry",
+  "endpoint": "https://export-comply-seed-concentrate.trycloudflare.com",
+  "inference": "https://export-comply-seed-concentrate.trycloudflare.com/inference",
+  "telemetry": "https://export-comply-seed-concentrate.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-11-05T03:42:52Z"
+  "updated_at": "2026-11-05T03:53:42Z"
 }
