@@ -3895,6 +3895,25 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
             <button onclick="sendPhoneKey('RECENTS')" title="Recent Apps" style="background: transparent; border: none; color: rgba(255,255,255,0.35); font-size: 0.75rem; cursor: pointer; padding: 4px 8px; transition: color 0.2s;" onmouseenter="this.style.color='#fff'" onmouseleave="this.style.color='rgba(255,255,255,0.35)'">
               <i class="fa-solid fa-square"></i>
             </button>
+            <button onclick="sendPhoneKey('UNLOCK')" title="Wake Screen &amp; Go to Home (bypasses lock screen)" style="background: rgba(52, 211, 153, 0.18); color: #34d399; padding: 4px 10px; border-radius: 8px; font-size: 0.82rem; border: 1px solid rgba(52, 211, 153, 0.35); cursor: pointer; transition: all 0.2s;" onmouseenter="this.style.background='rgba(52,211,153,0.35)'" onmouseleave="this.style.background='rgba(52,211,153,0.18)'">
+              <i class="fa-solid fa-lock-open"></i>
+            </button>
+          </div>
+
+          <!-- QUICK SWIPE BAR -->
+          <div style="margin-top: 7px; display: flex; align-items: center; justify-content: center; gap: 0.35rem;">
+            <button onclick="sendQuickSwipe('up')" title="Swipe Up (Scroll / Unlock Screen)" style="padding: 0.22rem 0.6rem; font-size: 0.72rem; background: rgba(56, 189, 248, 0.12); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 0.25rem;">
+              <i class="fa-solid fa-arrow-up"></i> <span>Swipe Up</span>
+            </button>
+            <button onclick="sendQuickSwipe('down')" title="Swipe Down (Notifications)" style="padding: 0.22rem 0.6rem; font-size: 0.72rem; background: rgba(56, 189, 248, 0.12); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 0.25rem;">
+              <i class="fa-solid fa-arrow-down"></i> <span>Swipe Down</span>
+            </button>
+            <button onclick="sendQuickSwipe('left')" title="Swipe Left" style="padding: 0.22rem 0.5rem; font-size: 0.72rem; background: rgba(255,255,255,0.05); color: #94a3b8; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; cursor: pointer;">
+              <i class="fa-solid fa-arrow-left"></i>
+            </button>
+            <button onclick="sendQuickSwipe('right')" title="Swipe Right" style="padding: 0.22rem 0.5rem; font-size: 0.72rem; background: rgba(255,255,255,0.05); color: #94a3b8; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; cursor: pointer;">
+              <i class="fa-solid fa-arrow-right"></i>
+            </button>
           </div>
 
         </div>

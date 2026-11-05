@@ -8225,9 +8225,28 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 keycode = key_map.get(key, 3)
 
             if key == "UNLOCK" or key == "WAKE":
-                self._run_shell_cmd("am start -a android.intent.action.MAIN -c android.intent.category.HOME 2>/dev/null; wm dismiss-keyguard 2>/dev/null; svc power stayon true 2>/dev/null")
+                self._run_adb_shell_cmd("cmd statusbar expand-notifications; sleep 0.08; cmd statusbar collapse; svc power stayon true; wm dismiss-keyguard; am start -a android.intent.action.MAIN -c android.intent.category.HOME 2>/dev/null; input swipe 360 1400 360 300 250")
+                # Also fire TouchBridge swipe-up to guarantee lockscreen bypass
+                try:
+                    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    s.settimeout(0.1)
+                    s.connect(("127.0.0.1", 9876))
+                    s.sendall(b"SWIPE 360 1400 360 300 250\n")
+                    s.close()
+                except Exception:
+                    pass
             elif key == "HOME":
-                self._run_shell_cmd("am start -a android.intent.action.MAIN -c android.intent.category.HOME")
+                res = self._run_adb_shell_cmd("am start -a android.intent.action.MAIN -c android.intent.category.HOME")
+                if res.returncode != 0:
+                    self._run_shell_cmd("am start -a android.intent.action.MAIN -c android.intent.category.HOME")
+                try:
+                    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    s.settimeout(0.1)
+                    s.connect(("127.0.0.1", 9876))
+                    s.sendall(b"KEY HOME\n")
+                    s.close()
+                except Exception:
+                    pass
             elif key == "BACK":
                 # Try TouchBridge socket first, fallback to edge swipe
                 dispatched = False
