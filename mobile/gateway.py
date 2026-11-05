@@ -8134,14 +8134,19 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             if res.returncode != 0:
                 res = self._run_adb_shell_cmd(cmd_str)
             
+            err_msg = res.stderr.decode("utf-8", errors="ignore").strip() if hasattr(res, "stderr") and res.stderr else ""
+            is_miui_security_blocked = "INJECT_EVENTS" in err_msg or "SecurityException" in err_msg
+            
             self.send_response(200)
             self._send_cors_headers()
             self.send_header("Content-Type", "application/json")
             resp = json.dumps({
-                "status": "ok",
+                "status": "ok" if res.returncode == 0 else "blocked",
                 "action": action,
                 "target_pixel": [px, py],
-                "returncode": res.returncode
+                "returncode": res.returncode,
+                "error": err_msg,
+                "miui_security_blocked": is_miui_security_blocked
             }).encode("utf-8")
             self.send_header("Content-Length", str(len(resp)))
             self.end_headers()

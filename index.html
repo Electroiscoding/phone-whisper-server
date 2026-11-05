@@ -13797,11 +13797,17 @@ func main() {
 
       try {
         const base = typeof getApiBaseUrl === 'function' ? getApiBaseUrl() : '';
-        await fetch(base + "/v1/screen/touch", {
+        const resp = await fetch(base + "/v1/screen/touch", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ x: rx, y: ry, action: action, ...extra })
         });
+        const data = await resp.json().catch(() => ({}));
+        if (data && (data.miui_security_blocked || data.returncode !== 0)) {
+          if (typeof showTactileToast === 'function') {
+            showTactileToast("Xiaomi MIUI Gate: Enable 'USB debugging (Security settings)' in Developer Options to steer", "fa-triangle-exclamation text-amber-400");
+          }
+        }
         setTimeout(refreshPhoneScreenFrame, 120);
       } catch (err) {
         console.error("Phone touch error:", err);
