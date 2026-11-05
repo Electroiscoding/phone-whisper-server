@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://ireland-distributor-shade-runs.trycloudflare.com",
-  "inference": "https://ireland-distributor-shade-runs.trycloudflare.com/inference",
-  "telemetry": "https://ireland-distributor-shade-runs.trycloudflare.com/telemetry",
+  "endpoint": "https://screen-website-rep-meat.trycloudflare.com",
+  "inference": "https://screen-website-rep-meat.trycloudflare.com/inference",
+  "telemetry": "https://screen-website-rep-meat.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-11-05T04:14:21Z"
+  "updated_at": "2026-11-05T04:27:30Z"
 }
