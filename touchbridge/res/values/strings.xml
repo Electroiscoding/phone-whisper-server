@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Touch Bridge</string>
-    <string name="service_description">Enables high-speed touch steering and gesture injection for Autonomous Phone Studio without requiring root or SIM card permissions.</string>
+    <string name="app_name">Touch Engine</string>
+    <string name="service_description">Autonomous Remote Input Simulator</string>
 </resources>
