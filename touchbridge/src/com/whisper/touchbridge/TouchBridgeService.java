@@ -41,6 +41,12 @@ public class TouchBridgeService extends AccessibilityService {
                 float y2 = intent.getFloatExtra("y2", 0f);
                 int dur = intent.getIntExtra("duration", 250);
                 performSwipe(x1, y1, x2, y2, dur);
+            } else if ("com.whisper.touchbridge.KEY".equals(action)) {
+                String key = intent.getStringExtra("key");
+                performKeyAction(key);
+            } else if ("com.whisper.touchbridge.GLOBAL".equals(action)) {
+                int gAction = intent.getIntExtra("action", 1);
+                performGlobalAction(gAction);
             }
         }
     };
@@ -54,6 +60,8 @@ public class TouchBridgeService extends AccessibilityService {
         IntentFilter filter = new IntentFilter();
         filter.addAction("com.whisper.touchbridge.TAP");
         filter.addAction("com.whisper.touchbridge.SWIPE");
+        filter.addAction("com.whisper.touchbridge.KEY");
+        filter.addAction("com.whisper.touchbridge.GLOBAL");
         registerReceiver(receiver, filter);
 
         startTcpServer();
@@ -101,6 +109,12 @@ public class TouchBridgeService extends AccessibilityService {
                         float y2 = Float.parseFloat(parts[4]);
                         int dur = parts.length >= 6 ? Integer.parseInt(parts[5]) : 250;
                         ok = performSwipe(x1, y1, x2, y2, dur);
+                    } else if ("KEY".equals(cmd) && parts.length >= 2) {
+                        ok = performKeyAction(parts[1]);
+                    } else if ("GLOBAL".equals(cmd) && parts.length >= 2) {
+                        try {
+                            ok = performGlobalAction(Integer.parseInt(parts[1]));
+                        } catch (Exception ignored) {}
                     } else if ("PING".equals(cmd)) {
                         ok = true;
                     }
@@ -112,6 +126,33 @@ public class TouchBridgeService extends AccessibilityService {
                 try { socket.close(); } catch (Exception ignored) {}
             }
         }).start();
+    }
+
+    public boolean performKeyAction(String key) {
+        if (key == null) return false;
+        String k = key.toUpperCase().trim();
+        switch (k) {
+            case "BACK":
+                return performGlobalAction(GLOBAL_ACTION_BACK);
+            case "HOME":
+                return performGlobalAction(GLOBAL_ACTION_HOME);
+            case "RECENTS":
+            case "APP_SWITCH":
+                return performGlobalAction(GLOBAL_ACTION_RECENTS);
+            case "NOTIFICATIONS":
+                return performGlobalAction(GLOBAL_ACTION_NOTIFICATIONS);
+            case "QUICK_SETTINGS":
+                return performGlobalAction(GLOBAL_ACTION_QUICK_SETTINGS);
+            case "POWER":
+            case "POWER_DIALOG":
+                return performGlobalAction(GLOBAL_ACTION_POWER_DIALOG);
+            case "LOCK":
+                return performGlobalAction(8); // GLOBAL_ACTION_LOCK_SCREEN
+            case "SCREENSHOT":
+                return performGlobalAction(9); // GLOBAL_ACTION_TAKE_SCREENSHOT
+            default:
+                return false;
+        }
     }
 
     public boolean performTap(float x, float y) {
