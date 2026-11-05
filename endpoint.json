@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://commissioner-practice-reduces-ending.trycloudflare.com",
-  "inference": "https://commissioner-practice-reduces-ending.trycloudflare.com/inference",
-  "telemetry": "https://commissioner-practice-reduces-ending.trycloudflare.com/telemetry",
+  "endpoint": "https://applicant-romance-both-donation.trycloudflare.com",
+  "inference": "https://applicant-romance-both-donation.trycloudflare.com/inference",
+  "telemetry": "https://applicant-romance-both-donation.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-11-05T15:27:01Z"
+  "updated_at": "2026-11-05T15:55:26Z"
 }
