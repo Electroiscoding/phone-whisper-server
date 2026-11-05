@@ -8178,9 +8178,13 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 keycode = key_map.get(key, 3)
 
             if key == "UNLOCK":
+                self._run_adb_shell_cmd("cmd statusbar expand-notifications")
+                time.sleep(0.08)
+                self._run_adb_shell_cmd("cmd statusbar collapse")
+                self._run_adb_shell_cmd("svc power stayon true")
                 self._run_adb_shell_cmd("wm dismiss-keyguard")
                 self._run_adb_shell_cmd("input keyevent 224")
-                self._run_adb_shell_cmd("input swipe 360 1200 360 300")
+                self._run_adb_shell_cmd("input swipe 360 1400 360 300 250")
             else:
                 res = self._run_adb_shell_cmd(f"input keyevent {keycode}")
                 if res.returncode != 0:

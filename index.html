@@ -3855,9 +3855,10 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
           </div>
 
           <!-- INTERACTIVE SCREEN CONTAINER -->
-          <div id="phoneScreenContainer" style="position: relative; width: 100%; aspect-ratio: 9/20; max-height: 480px; background: #020617; border-radius: 12px; overflow: hidden; border: 1.5px solid rgba(255, 255, 255, 0.12); cursor: crosshair; user-select: none; margin: 0 auto;">
-            <img id="phoneScreenStreamImg" src="/v1/screen/frame" alt="Phone Screen Stream" style="width: 100%; height: 100%; object-fit: contain; display: block;" />
+          <div id="phoneScreenContainer" style="position: relative; width: 100%; aspect-ratio: 9/20; max-height: 480px; background: #020617; border-radius: 12px; overflow: hidden; border: 1.5px solid rgba(255, 255, 255, 0.12); cursor: crosshair; user-select: none; touch-action: none; margin: 0 auto;">
+            <img id="phoneScreenStreamImg" src="/v1/screen/frame" alt="Phone Screen Stream" draggable="false" style="width: 100%; height: 100%; object-fit: contain; display: block; pointer-events: none; user-select: none;" />
             <div id="phoneTouchIndicator" style="position: absolute; width: 22px; height: 22px; border-radius: 50%; background: rgba(239, 68, 68, 0.7); border: 2px solid #ffffff; transform: translate(-50%, -50%); display: none; pointer-events: none; z-index: 20; box-shadow: 0 0 12px rgba(239, 68, 68, 0.9);"></div>
+            <div id="phoneSwipeVector" style="position: absolute; height: 3px; background: linear-gradient(90deg, rgba(239, 68, 68, 0.8), #38bdf8); border-radius: 2px; transform-origin: 0 50%; display: none; pointer-events: none; z-index: 21; box-shadow: 0 0 8px #38bdf8;"></div>
             <div id="phoneScreenOverlay" style="position: absolute; inset: 0; background: rgba(2, 6, 23, 0.7); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem; opacity: 0; transition: opacity 0.3s; pointer-events: none;">
               <i class="fa-solid fa-spinner fa-spin text-xl text-red-400"></i>
               <span style="font-size: 0.75rem; color: #94a3b8;">Connecting to Display...</span>
@@ -3877,6 +3878,22 @@ The hydraulic robotic arm assembles automotive chassis using mechanical joints.<
             </button>
             <button onclick="sendPhoneKey('UNLOCK')" class="btn-action" title="Wake Screen & Unlock Phone" style="background: rgba(52, 211, 153, 0.15); color: #34d399; padding: 0.35rem 0.75rem; border-radius: 6px; font-size: 0.82rem; border: 1px solid rgba(52, 211, 153, 0.3); cursor: pointer;">
               <i class="fa-solid fa-lock-open"></i>
+            </button>
+          </div>
+
+          <!-- QUICK GESTURE BAR (1-CLICK SWIPES FOR DESKTOP & MOBILE) -->
+          <div style="margin-top: 0.4rem; display: flex; align-items: center; justify-content: center; gap: 0.35rem;">
+            <button onclick="sendQuickSwipe('up')" class="btn-action" title="Swipe Up (Scroll Down / Unlock Screen)" style="padding: 0.25rem 0.65rem; font-size: 0.72rem; background: rgba(56, 189, 248, 0.12); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 6px; display: inline-flex; align-items: center; gap: 0.25rem;">
+              <i class="fa-solid fa-arrow-up"></i> <span>Swipe Up</span>
+            </button>
+            <button onclick="sendQuickSwipe('down')" class="btn-action" title="Swipe Down (Scroll Up / Notifications)" style="padding: 0.25rem 0.65rem; font-size: 0.72rem; background: rgba(56, 189, 248, 0.12); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 6px; display: inline-flex; align-items: center; gap: 0.25rem;">
+              <i class="fa-solid fa-arrow-down"></i> <span>Swipe Down</span>
+            </button>
+            <button onclick="sendQuickSwipe('left')" class="btn-action" title="Swipe Left" style="padding: 0.25rem 0.5rem; font-size: 0.72rem; background: rgba(255, 255, 255, 0.05); color: #94a3b8; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 6px;">
+              <i class="fa-solid fa-arrow-left"></i>
+            </button>
+            <button onclick="sendQuickSwipe('right')" class="btn-action" title="Swipe Right" style="padding: 0.25rem 0.5rem; font-size: 0.72rem; background: rgba(255, 255, 255, 0.05); color: #94a3b8; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 6px;">
+              <i class="fa-solid fa-arrow-right"></i>
             </button>
           </div>
         </div>
@@ -13742,12 +13759,40 @@ func main() {
 
     async function sendPhoneTouch(rx, ry, action = "tap", extra = {}) {
       const indicator = document.getElementById("phoneTouchIndicator");
+      const vector = document.getElementById("phoneSwipeVector");
       const container = document.getElementById("phoneScreenContainer");
       if (indicator && container) {
         indicator.style.left = (rx * 100) + "%";
         indicator.style.top = (ry * 100) + "%";
         indicator.style.display = "block";
-        setTimeout(() => { indicator.style.display = "none"; }, 350);
+
+        if (action === "swipe" && vector && extra.end_x !== undefined && extra.end_y !== undefined) {
+          const rect = container.getBoundingClientRect();
+          const x0 = rx * rect.width;
+          const y0 = ry * rect.height;
+          const x1 = extra.end_x * rect.width;
+          const y1 = extra.end_y * rect.height;
+          const length = Math.hypot(x1 - x0, y1 - y0);
+          const angle = Math.atan2(y1 - y0, x1 - x0) * (180 / Math.PI);
+
+          vector.style.left = (rx * 100) + "%";
+          vector.style.top = (ry * 100) + "%";
+          vector.style.width = length + "px";
+          vector.style.transform = `rotate(${angle}deg)`;
+          vector.style.display = "block";
+
+          indicator.style.transition = "all 0.22s ease-out";
+          indicator.style.left = (extra.end_x * 100) + "%";
+          indicator.style.top = (extra.end_y * 100) + "%";
+
+          setTimeout(() => {
+            vector.style.display = "none";
+            indicator.style.display = "none";
+            indicator.style.transition = "none";
+          }, 320);
+        } else {
+          setTimeout(() => { indicator.style.display = "none"; }, 350);
+        }
       }
 
       try {
@@ -13961,15 +14006,89 @@ func main() {
       }
     }
 
+    function sendQuickSwipe(direction = "up") {
+      if (direction === "up") {
+        sendPhoneTouch(0.5, 0.82, "swipe", { end_x: 0.5, end_y: 0.22, duration_ms: 250 });
+      } else if (direction === "down") {
+        sendPhoneTouch(0.5, 0.22, "swipe", { end_x: 0.5, end_y: 0.82, duration_ms: 250 });
+      } else if (direction === "left") {
+        sendPhoneTouch(0.85, 0.5, "swipe", { end_x: 0.15, end_y: 0.5, duration_ms: 250 });
+      } else if (direction === "right") {
+        sendPhoneTouch(0.15, 0.5, "swipe", { end_x: 0.85, end_y: 0.5, duration_ms: 250 });
+      }
+    }
+    window.sendQuickSwipe = sendQuickSwipe;
+
     document.addEventListener("DOMContentLoaded", () => {
       const container = document.getElementById("phoneScreenContainer");
       if (container) {
-        container.addEventListener("click", (e) => {
-          const rect = container.getBoundingClientRect();
-          const rx = (e.clientX - rect.left) / rect.width;
-          const ry = (e.clientY - rect.top) / rect.height;
-          sendPhoneTouch(rx, ry, "tap");
+        let pointerStartX = 0;
+        let pointerStartY = 0;
+        let pointerStartTime = 0;
+        let isPointerActive = false;
+
+        container.addEventListener("pointerdown", (e) => {
+          isPointerActive = true;
+          pointerStartX = e.clientX;
+          pointerStartY = e.clientY;
+          pointerStartTime = Date.now();
+          try { container.setPointerCapture(e.pointerId); } catch (_) {}
         });
+
+        container.addEventListener("pointerup", (e) => {
+          if (!isPointerActive) return;
+          isPointerActive = false;
+          try { container.releasePointerCapture(e.pointerId); } catch (_) {}
+
+          const rect = container.getBoundingClientRect();
+          const dx = e.clientX - pointerStartX;
+          const dy = e.clientY - pointerStartY;
+          const dist = Math.hypot(dx, dy);
+          const elapsed = Math.max(80, Math.min(800, Date.now() - pointerStartTime));
+
+          if (dist < 12) {
+            // Tap
+            const rx = Math.max(0, Math.min(1, (pointerStartX - rect.left) / rect.width));
+            const ry = Math.max(0, Math.min(1, (pointerStartY - rect.top) / rect.height));
+            sendPhoneTouch(rx, ry, "tap");
+          } else {
+            // Swipe / Drag gesture
+            const startRx = Math.max(0, Math.min(1, (pointerStartX - rect.left) / rect.width));
+            const startRy = Math.max(0, Math.min(1, (pointerStartY - rect.top) / rect.height));
+            const endRx = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+            const endRy = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
+            sendPhoneTouch(startRx, startRy, "swipe", {
+              end_x: endRx,
+              end_y: endRy,
+              duration_ms: elapsed
+            });
+          }
+        });
+
+        container.addEventListener("pointercancel", (e) => {
+          isPointerActive = false;
+          try { container.releasePointerCapture(e.pointerId); } catch (_) {}
+        });
+
+        // Mouse wheel scrolling over phone screen (desktop gesture)
+        let lastWheelTime = 0;
+        container.addEventListener("wheel", (e) => {
+          e.preventDefault();
+          const now = Date.now();
+          if (now - lastWheelTime < 240) return;
+          lastWheelTime = now;
+
+          const rect = container.getBoundingClientRect();
+          const rx = Math.max(0.1, Math.min(0.9, (e.clientX - rect.left) / rect.width));
+
+          if (e.deltaY > 0) {
+            // Wheel down -> Swipe UP (scroll down in app)
+            sendPhoneTouch(rx, 0.78, "swipe", { end_x: rx, end_y: 0.28, duration_ms: 220 });
+          } else if (e.deltaY < 0) {
+            // Wheel up -> Swipe DOWN (scroll up in app)
+            sendPhoneTouch(rx, 0.28, "swipe", { end_x: rx, end_y: 0.78, duration_ms: 220 });
+          }
+        }, { passive: false });
       }
       
       startPhoneScreenStreaming();
