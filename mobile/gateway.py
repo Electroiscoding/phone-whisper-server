@@ -8131,9 +8131,10 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 cmd_str = f"input tap {px} {py}"
 
             bridge_dispatched = False
+            # 1. Try TouchBridge TCP socket
             try:
                 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                s.settimeout(0.2)
+                s.settimeout(0.1)
                 s.connect(("127.0.0.1", 9876))
                 if action == "swipe":
                     s.sendall(f"SWIPE {px} {py} {epx} {epy} {dur}\n".encode("utf-8"))
@@ -8145,6 +8146,18 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                     bridge_dispatched = True
             except Exception:
                 bridge_dispatched = False
+
+            # 2. Try TouchBridge Broadcast (works seamlessly without INTERNET permission)
+            if not bridge_dispatched:
+                if action == "swipe":
+                    bc_cmd = f"am broadcast -a com.whisper.touchbridge.SWIPE --ef x1 {px} --ef y1 {py} --ef x2 {epx} --ef y2 {epy} --ei duration {dur}"
+                else:
+                    bc_cmd = f"am broadcast -a com.whisper.touchbridge.TAP --ef x {px} --ef y {py}"
+                bc_res = self._run_shell_cmd(bc_cmd)
+                if bc_res.returncode != 0:
+                    bc_res = self._run_adb_shell_cmd(bc_cmd)
+                if bc_res.returncode == 0:
+                    bridge_dispatched = True
 
             if bridge_dispatched:
                 res_code = 0
