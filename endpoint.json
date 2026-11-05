@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://polished-mailed-recognize-detection.trycloudflare.com",
-  "inference": "https://polished-mailed-recognize-detection.trycloudflare.com/inference",
-  "telemetry": "https://polished-mailed-recognize-detection.trycloudflare.com/telemetry",
+  "endpoint": "https://liable-berkeley-various-ciao.trycloudflare.com",
+  "inference": "https://liable-berkeley-various-ciao.trycloudflare.com/inference",
+  "telemetry": "https://liable-berkeley-various-ciao.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-11-05T19:27:58Z"
+  "updated_at": "2026-11-05T19:42:46Z"
 }
