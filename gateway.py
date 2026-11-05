@@ -8130,6 +8130,12 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             else:
                 cmd_str = f"input tap {px} {py}"
 
+            # Instant wake & unlock on click if screen is asleep or locked
+            try:
+                self._run_shell_cmd("dumpsys power | grep -q 'state=OFF' && { am start -n com.whisper.touchbridge/.MainActivity; wm dismiss-keyguard; }")
+            except Exception:
+                pass
+
             bridge_dispatched = False
             # 1. Try TouchBridge TCP socket
             try:

@@ -255,64 +255,144 @@ class RecsysEngine:
         import time
         now_ts = time.time() * 1000.0
 
+        WIRE_PREFIXES = ("REPORT:", "JUST IN:", "UPDATE:", "DEVELOPING:", "DISPATCH:", "BREAKING:", "ALERT:", "EXCLUSIVE:", "NEWS:", "WATCH:")
+        text_sim = text_embs @ text_embs.T
+
         scored_items = []
-        for p, raw_s, vague in zip(posts, raw_scores, is_vague):
+        for i, (p, raw_s, vague) in enumerate(zip(posts, raw_scores, is_vague)):
             item = dict(p)
             text_str = item.get("text", "").strip()
             text_len = len(text_str)
 
-            score = float(raw_s)
+            # Store pure raw cosine similarity bounded strictly in [-1.0, 1.0]
+            raw_val = float(raw_s)
+            item["raw_score"] = round(raw_val, 4)
+            item["cosine_similarity"] = round(raw_val, 4)
+            item["_orig_idx"] = i
 
-            # Heavy penalty for vague / low-quality / emoji-only posts
+            # Detect news wire tags
+            t_upper = text_str.upper()
+            wire_tag = None
+            for wp in WIRE_PREFIXES:
+                if t_upper.startswith(wp):
+                    wire_tag = wp
+                    break
+            item["wire_tag"] = wire_tag
+            item["is_wire"] = bool(wire_tag)
+
+            # 1. Total rejection of empty / whitespace strings
+            if text_len == 0:
+                item["score"] = -1.0
+                item["category"] = "vague"
+                item["is_vague"] = True
+                scored_items.append(item)
+                continue
+
+            score = raw_val
+
+            # 2. Penalty for vague / ultra-short posts (<8 chars)
             if vague or text_len < 8:
-                score = score * 0.3 - 0.45
+                score = score * 0.2 - 0.45
                 item["category"] = "vague"
                 item["is_vague"] = True
 
-            # Recency freshness decay if timestamp is present
+            # 3. Recency freshness decay if timestamp is present
             ts = item.get("timestamp")
             if ts and isinstance(ts, (int, float)) and ts > 0:
                 age_hours = max(0.0, (now_ts - float(ts)) / 3600000.0)
-                recency_penalty = min(0.25, age_hours * 0.002)
+                recency_penalty = min(0.20, age_hours * 0.0015)
                 score -= recency_penalty
 
             if "text" in item and len(item["text"]) > 250:
                 item["text"] = item["text"][:250] + "..."
-            item["score"] = round(score, 4)
+
+            # Strictly bound score in [-1.0, 1.0]
+            item["score"] = round(max(-1.0, min(1.0, score)), 4)
             scored_items.append(item)
 
+        # 4. Pairwise Deduplication Check (eliminate identical clone news e.g. Ronaldo doublet)
+        for i in range(len(scored_items)):
+            if scored_items[i]["score"] <= -0.9:
+                continue
+            for j in range(i + 1, len(scored_items)):
+                if scored_items[j]["score"] <= -0.9:
+                    continue
+                pair_sim = float(text_sim[i, j])
+                if pair_sim > 0.50:
+                    # j is a semantic near-duplicate of i
+                    scored_items[j]["score"] = round(scored_items[j]["score"] - 0.50, 4)
+                    scored_items[j]["is_duplicate"] = True
+
+        # Sort candidate pool by base relevance
         scored_items.sort(key=lambda x: x["score"], reverse=True)
 
-        # Author diversity clamp: max 2 consecutive posts from same author
-        diversified = []
-        overflow = []
-        last_author = None
-        consecutive_count = 0
+        # 5. Greedy Pattern-Aware & MMR Feed Interleaving
+        # Prevents monotony, repetitive wire formats, and author clumping without killing valid news
+        selected = []
+        remaining = list(scored_items)
 
-        for it in scored_items:
-            auth = it.get("author", "anonymous")
-            if auth and auth != "anonymous" and auth == last_author:
-                consecutive_count += 1
-            else:
-                last_author = auth
-                consecutive_count = 1
+        while remaining:
+            best_idx = 0
+            best_eff = -1e9
 
-            if consecutive_count <= 2:
-                diversified.append(it)
-            else:
-                it["score"] = round(it["score"] - 0.15 * (consecutive_count - 2), 4)
-                overflow.append(it)
+            prev_1 = selected[-1] if len(selected) >= 1 else None
+            prev_2 = selected[-2] if len(selected) >= 2 else None
 
-        scored_items = diversified + overflow
-        scored_items.sort(key=lambda x: x["score"], reverse=True)
+            for idx, cand in enumerate(remaining):
+                base_s = cand["score"]
+                # Dead last items stay at the bottom
+                if base_s <= -0.90:
+                    eff = base_s
+                else:
+                    penalty = 0.0
+                    auth = cand.get("author") or "anonymous"
+                    cat = cand.get("category") or "vague"
+                    wire_tag = cand.get("wire_tag")
 
-        for rank, item in enumerate(scored_items, 1):
+                    # Author variety: max 2 in a row; if 2 already, defer
+                    if prev_1 and (prev_1.get("author") or "anonymous") == auth:
+                        if prev_2 and (prev_2.get("author") or "anonymous") == auth:
+                            penalty += 0.40
+                        else:
+                            # If same author AND same category or wire, encourage variety
+                            if prev_1.get("category") == cat and prev_1.get("is_wire") == cand.get("is_wire"):
+                                penalty += 0.15
+
+                    # Wire prefix monotony: do not place two "REPORT:" or two "JUST IN:" back-to-back
+                    if prev_1 and wire_tag and prev_1.get("wire_tag") == wire_tag:
+                        penalty += 0.12
+
+                    # Category monopoly: max 2 consecutive of identical category
+                    if prev_1 and prev_1.get("category") == cat and prev_2 and prev_2.get("category") == cat:
+                        penalty += 0.20
+
+                    # Semantic MMR with immediate predecessor
+                    if prev_1 and "_orig_idx" in prev_1:
+                        cand_orig = cand["_orig_idx"]
+                        prev_orig = prev_1["_orig_idx"]
+                        sim_prev = float(text_sim[cand_orig, prev_orig])
+                        if sim_prev > 0.30:
+                            penalty += 0.25 * sim_prev
+
+                    eff = base_s - penalty
+
+                if eff > best_eff:
+                    best_eff = eff
+                    best_idx = idx
+
+            chosen = remaining.pop(best_idx)
+            # Bound final displayed score strictly within [-1.0, 1.0]
+            chosen["score"] = round(max(-1.0, min(1.0, chosen["score"])), 4)
+            selected.append(chosen)
+
+        for rank, item in enumerate(selected, 1):
             item["rank"] = rank
+            item.pop("_orig_idx", None)
 
         if top_k is not None:
-            scored_items = scored_items[:top_k]
+            selected = selected[:top_k]
 
-        return scored_items
+        return selected
 
     def recommend(self, aff, hist_ids=None, demo=None, seen=None, today=59, n=10, fresh=0.01, div=0.05, eps=0.1, posts=None):
         if posts:
