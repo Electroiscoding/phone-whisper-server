@@ -8130,23 +8130,46 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             else:
                 cmd_str = f"input tap {px} {py}"
 
-            res = self._run_shell_cmd(cmd_str)
-            if res.returncode != 0:
-                res = self._run_adb_shell_cmd(cmd_str)
-            
-            err_msg = res.stderr.decode("utf-8", errors="ignore").strip() if hasattr(res, "stderr") and res.stderr else ""
-            is_miui_security_blocked = "INJECT_EVENTS" in err_msg or "SecurityException" in err_msg
+            bridge_dispatched = False
+            try:
+                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                s.settimeout(0.2)
+                s.connect(("127.0.0.1", 9876))
+                if action == "swipe":
+                    s.sendall(f"SWIPE {px} {py} {epx} {epy} {dur}\n".encode("utf-8"))
+                else:
+                    s.sendall(f"TAP {px} {py}\n".encode("utf-8"))
+                resp_line = s.recv(16).decode("utf-8", errors="ignore").strip()
+                s.close()
+                if resp_line == "OK":
+                    bridge_dispatched = True
+            except Exception:
+                bridge_dispatched = False
+
+            if bridge_dispatched:
+                res_code = 0
+                err_msg = ""
+                is_miui_security_blocked = False
+            else:
+                res = self._run_shell_cmd(cmd_str)
+                if res.returncode != 0:
+                    res = self._run_adb_shell_cmd(cmd_str)
+                
+                err_msg = res.stderr.decode("utf-8", errors="ignore").strip() if hasattr(res, "stderr") and res.stderr else ""
+                is_miui_security_blocked = "INJECT_EVENTS" in err_msg or "SecurityException" in err_msg
+                res_code = res.returncode
             
             self.send_response(200)
             self._send_cors_headers()
             self.send_header("Content-Type", "application/json")
             resp = json.dumps({
-                "status": "ok" if res.returncode == 0 else "blocked",
+                "status": "ok" if res_code == 0 else "blocked",
                 "action": action,
                 "target_pixel": [px, py],
-                "returncode": res.returncode,
+                "returncode": res_code,
                 "error": err_msg,
-                "miui_security_blocked": is_miui_security_blocked
+                "miui_security_blocked": is_miui_security_blocked,
+                "bridge": "touchbridge_socket" if bridge_dispatched else "adb_input"
             }).encode("utf-8")
             self.send_header("Content-Length", str(len(resp)))
             self.end_headers()
