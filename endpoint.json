@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://newsletters-counted-maiden-finder.trycloudflare.com",
-  "inference": "https://newsletters-counted-maiden-finder.trycloudflare.com/inference",
-  "telemetry": "https://newsletters-counted-maiden-finder.trycloudflare.com/telemetry",
+  "endpoint": "https://commissioner-practice-reduces-ending.trycloudflare.com",
+  "inference": "https://commissioner-practice-reduces-ending.trycloudflare.com/inference",
+  "telemetry": "https://commissioner-practice-reduces-ending.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-11-05T15:18:00Z"
+  "updated_at": "2026-11-05T15:27:01Z"
 }
