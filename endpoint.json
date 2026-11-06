@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://salvation-blond-abc-still.trycloudflare.com",
-  "inference": "https://salvation-blond-abc-still.trycloudflare.com/inference",
-  "telemetry": "https://salvation-blond-abc-still.trycloudflare.com/telemetry",
+  "endpoint": "https://activities-arrives-relations-commodities.trycloudflare.com",
+  "inference": "https://activities-arrives-relations-commodities.trycloudflare.com/inference",
+  "telemetry": "https://activities-arrives-relations-commodities.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-11-06T13:44:02Z"
+  "updated_at": "2026-11-06T15:43:18Z"
 }
