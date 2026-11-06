@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Squares in Squares — Swades Live Model Focus</title>
+    <style>
+        :root {
+            --bg: #07090e;
+            --surface: #0f131c;
+            --surface-card: #141926;
+            --border: #1e2638;
+            --accent: #10b981;
+            --accent-glow: rgba(16, 185, 129, 0.2);
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --blue: #3b82f6;
+            --text-main: #f9fafb;
+            --text-muted: #9ca3af;
+            --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+        header {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 0.85rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+        }
+        .brand h1 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+        }
+        .pill-live {
+            font-family: var(--font-mono);
+            font-size: 0.68rem;
+            padding: 0.25rem 0.55rem;
+            border-radius: 9999px;
+            background: rgba(16, 185, 129, 0.12);
+            color: var(--accent);
+            border: 1px solid rgba(16, 185, 129, 0.35);
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            text-transform: uppercase;
+        }
+        .pulse {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--accent);
+            box-shadow: 0 0 8px var(--accent);
+            animation: pulse-ring 1.6s infinite;
+        }
+        @keyframes pulse-ring {
+            0% { transform: scale(0.95); opacity: 1; }
+            50% { transform: scale(1.4); opacity: 0.4; }
+            100% { transform: scale(0.95); opacity: 1; }
+        }
+        .stats-strip {
+            display: flex;
+            gap: 1.75rem;
+        }
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+        .stat-label {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            letter-spacing: 0.06em;
+            font-weight: 600;
+        }
+        .stat-val {
+            font-family: var(--font-mono);
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+        main {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 440px;
+            gap: 1rem;
+            padding: 1rem 1.5rem;
+            max-width: 1700px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        .panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+        .panel-header {
+            padding: 0.85rem 1.25rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.015);
+        }
+        .focus-title {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.95rem;
+        }
+        .badge-target {
+            font-family: var(--font-mono);
+            font-size: 1rem;
+            font-weight: 800;
+            color: var(--blue);
+            background: rgba(59, 130, 246, 0.12);
+            padding: 0.2rem 0.6rem;
+            border-radius: 6px;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+        .metrics-tag {
+            font-family: var(--font-mono);
+            font-size: 0.82rem;
+            display: flex;
+            gap: 0.85rem;
+        }
+        .metrics-tag span {
+            color: var(--text-muted);
+        }
+        .metrics-tag b {
+            color: var(--accent);
+            font-weight: 700;
+        }
+        .canvas-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            background: radial-gradient(circle at center, #111728 0%, #07090e 100%);
+            min-height: 520px;
+            position: relative;
+        }
+        canvas {
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 8px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6), 0 0 30px rgba(59, 130, 246, 0.05);
+            background: #06080d;
+        }
+        .live-hud {
+            position: absolute;
+            bottom: 1.25rem;
+            left: 1.5rem;
+            right: 1.5rem;
+            background: rgba(15, 19, 28, 0.85);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.6rem 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+        }
+        .live-action {
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .live-action-icon {
+            color: var(--blue);
+        }
+        .right-sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .target-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.45rem;
+            padding: 0.85rem;
+            max-height: 250px;
+            overflow-y: auto;
+        }
+        .target-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.45rem 0.75rem;
+            border-radius: 6px;
+            background: var(--surface-card);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+        }
+        .target-row.is-active {
+            border-color: var(--blue);
+            background: rgba(59, 130, 246, 0.08);
+        }
+        .target-n { font-weight: 700; color: #fff; }
+        .target-score { color: var(--warning); font-weight: 600; }
+        .log-stream {
+            flex: 1;
+            padding: 0.85rem;
+            font-family: var(--font-mono);
+            font-size: 0.76rem;
+            color: var(--text-muted);
+            overflow-y: auto;
+            max-height: 420px;
+            display: flex;
+            flex-direction: column;
+            gap: 0.45rem;
+        }
+        .log-entry {
+            line-height: 1.45;
+            padding: 0.4rem 0.65rem;
+            background: var(--surface-card);
+            border-left: 2px solid var(--blue);
+            border-radius: 4px;
+        }
+        .log-time { color: #6b7280; font-size: 0.7rem; margin-right: 0.35rem; }
+        .log-tool { color: #60a5fa; font-weight: 700; }
+        .log-err { border-left-color: var(--danger); color: #fca5a5; }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="brand">
+            <h1>Squares in Squares</h1>
+            <div class="pill-live">
+                <div class="pulse"></div>
+                Live Model Focus
+            </div>
+        </div>
+        <div class="stats-strip">
+            <div class="stat-item">
+                <span class="stat-label">Total Score (Sum)</span>
+                <span class="stat-val" id="sumScore">--.------</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Coverage</span>
+                <span class="stat-val" id="validCount">-- / 1000</span>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="panel">
+            <div class="panel-header">
+                <div class="focus-title">
+                    <span>Model Focus:</span>
+                    <span class="badge-target" id="puzzleTitle">n = --</span>
+                </div>
+                <div class="metrics-tag" id="puzzleMetrics">
+                    <span>L: <b id="valL">--</b></span>
+                    <span>√n: <b id="valSqrt" style="color:var(--text-muted);">--</b></span>
+                    <span>Excess Score: <b id="valScore">--</b></span>
+                </div>
+            </div>
+            <div class="canvas-container">
+                <canvas id="canvas" width="500" height="500"></canvas>
+                <div class="live-hud">
+                    <div class="live-action">
+                        <span class="live-action-icon">▶</span>
+                        <span id="liveActionText">Autonomous Swades & Groq Optimization Active</span>
+                    </div>
+                    <div style="color:var(--text-muted);" id="renderCount">-- squares rendered</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="right-sidebar">
+            <div class="panel">
+                <div class="panel-header">
+                    <span>Priority Queue (Next on Horizon)</span>
+                    <span style="font-size:0.7rem; color:var(--text-muted);">Highest Excess</span>
+                </div>
+                <div class="target-list" id="worstList">
+                    <div style="color:var(--text-muted); padding:0.5rem;">Streaming priority queue...</div>
+                </div>
+            </div>
+
+            <div class="panel" style="flex:1;">
+                <div class="panel-header">
+                    <span>Swades Agent Feed</span>
+                    <span style="font-family:var(--font-mono); font-size:0.7rem; color:var(--blue);">ReAct + Critic</span>
+                </div>
+                <div class="log-stream" id="logStream">
+                    <div class="log-entry">Listening to autonomous Swades cycles...</div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let activeN = null;
+        let lastTimestamp = 0;
+
+        async function syncState() {
+            try {
+                const res = await fetch('/v1/squares/status');
+                const data = await res.json();
+                
+                document.getElementById('sumScore').textContent = data.sum_score.toFixed(6);
+                document.getElementById('validCount').textContent = `${data.valid} / ${data.total}`;
+
+                // Update active model focus
+                if (data.active) {
+                    const act = data.active;
+                    document.getElementById('puzzleTitle').textContent = `n = ${act.n}`;
+                    document.getElementById('valL').textContent = act.side.toFixed(5);
+                    document.getElementById('valSqrt').textContent = Math.sqrt(act.n).toFixed(5);
+                    document.getElementById('valScore').textContent = act.score.toFixed(5);
+                    document.getElementById('liveActionText').textContent = act.action || `Swades optimizing puzzle n=${act.n}`;
+                    document.getElementById('renderCount').textContent = `${act.squares ? act.squares.length : act.n} unit squares`;
+
+                    renderPacking(act);
+                    activeN = act.n;
+                }
+
+                // Update priority list
+                const worstContainer = document.getElementById('worstList');
+                worstContainer.innerHTML = '';
+                (data.worst || []).forEach(item => {
+                    const el = document.createElement('div');
+                    el.className = 'target-row' + (item.n === activeN ? ' is-active' : '');
+                    el.innerHTML = `
+                        <span class="target-n">n = ${item.n} ${item.n === activeN ? '◀' : ''}</span>
+                        <span style="color:var(--text-muted);">L = ${item.side.toFixed(4)}</span>
+                        <span class="target-score">+${item.score.toFixed(4)}</span>
+                    `;
+                    worstContainer.appendChild(el);
+                });
+
+                // Update logs
+                const logContainer = document.getElementById('logStream');
+                if (data.logs && data.logs.length > 0) {
+                    logContainer.innerHTML = '';
+                    data.logs.slice(-20).forEach(l => {
+                        const entry = document.createElement('div');
+                        entry.className = 'log-entry' + (l.err ? ' log-err' : '');
+                        const tool = l.tool ? `<span class="log-tool">${l.tool}</span> ` : '';
+                        const text = l.out || l.msg || JSON.stringify(l);
+                        entry.innerHTML = `<span class="log-time">[${l.cycle || 'c'}]</span> ${tool}${escapeHtml(text.slice(0, 150))}`;
+                        logContainer.appendChild(entry);
+                    });
+                    logContainer.scrollTop = logContainer.scrollHeight;
+                }
+            } catch (err) {
+                console.error("Status polling failed", err);
+            }
+        }
+
+        function renderPacking(data) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const side = data.side || 1.0;
+            const pad = 40;
+            const drawSize = canvas.width - pad * 2;
+            const scale = drawSize / (side * 1.06);
+            const originX = pad + (drawSize - side * scale) / 2;
+            const originY = canvas.height - (pad + (drawSize - side * scale) / 2);
+
+            // Container square
+            ctx.strokeStyle = '#3b82f6';
+            ctx.lineWidth = 2.5;
+            ctx.strokeRect(originX, originY - side * scale, side * scale, side * scale);
+
+            // Subtle container grid glow
+            ctx.fillStyle = 'rgba(59, 130, 246, 0.02)';
+            ctx.fillRect(originX, originY - side * scale, side * scale, side * scale);
+
+            // Squares
+            const colors = ['#10b981', '#06b6d4', '#6366f1', '#ec4899', '#f59e0b', '#8b5cf6', '#14b8a6', '#f43f5e'];
+            (data.squares || []).forEach((sq, i) => {
+                const cx = originX + sq.x * scale;
+                const cy = originY - sq.y * scale;
+                const half = 0.5 * scale;
+                const angle = -sq.angle;
+
+                ctx.save();
+                ctx.translate(cx, cy);
+                ctx.rotate(angle);
+
+                ctx.fillStyle = colors[i % colors.length] + '38';
+                ctx.fillRect(-half, -half, half * 2, half * 2);
+
+                ctx.strokeStyle = colors[i % colors.length];
+                ctx.lineWidth = 1.5;
+                ctx.strokeRect(-half, -half, half * 2, half * 2);
+
+                // Center dot
+                ctx.fillStyle = colors[i % colors.length];
+                ctx.beginPath();
+                ctx.arc(0, 0, 1.5, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.restore();
+            });
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        syncState();
+        setInterval(syncState, 1200);
+    </script>
+</body>
+</html>

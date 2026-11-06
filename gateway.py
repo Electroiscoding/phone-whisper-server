@@ -14,6 +14,7 @@ Features:
 
 import os
 import sys
+from pathlib import Path
 import platform
 import sqlite3
 import uuid
@@ -7546,6 +7547,12 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_notebook_html()
         elif path in ["/stats", "/stats.html", "/telemetry", "/telemetry.html"]:
             self.handle_stats_html()
+        elif path in ["/squares", "/squares.html"]:
+            self.handle_squares_html()
+        elif path in ["/v1/squares/status", "/squares/status"]:
+            self.handle_squares_status()
+        elif path in ["/v1/squares/packing", "/squares/packing"]:
+            self.handle_squares_packing(parsed)
         elif path in ["/noir_og.jpg", "/colab_og_cover.jpg"]:
             self.handle_og_image(path)
         elif path in ["/v1/notebook/session", "/notebook/session"]:
@@ -8117,22 +8124,22 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             ry = float(data.get("y", 0.5))
             action = data.get("action", "tap")
             
-            px = max(0, min(720, int(rx * 720)))
-            py = max(0, min(1600, int(ry * 1600)))
+            px = max(0, min(720, int(rx if rx > 1.0 else rx * 720)))
+            py = max(0, min(1600, int(ry if ry > 1.0 else ry * 1600)))
             
             if action == "swipe":
                 erx = float(data.get("end_x", rx))
                 ery = float(data.get("end_y", ry))
                 dur = int(data.get("duration_ms", 300))
-                epx = max(0, min(720, int(erx * 720)))
-                epy = max(0, min(1600, int(ery * 1600)))
+                epx = max(0, min(720, int(erx if erx > 1.0 else erx * 720)))
+                epy = max(0, min(1600, int(ery if ery > 1.0 else ery * 1600)))
                 cmd_str = f"input swipe {px} {py} {epx} {epy} {dur}"
             else:
                 cmd_str = f"input tap {px} {py}"
 
-            # Instant wake & unlock on click if screen is asleep or locked
+            # Keep screen awake and keyguard dismissed without interrupting active foreground app
             try:
-                self._run_adb_shell_cmd("dumpsys battery set ac 1; svc power stayon true; am broadcast -a com.whisper.touchbridge.WAKE; am start -n com.whisper.touchbridge/.MainActivity 2>/dev/null; wm dismiss-keyguard")
+                self._run_adb_shell_cmd("dumpsys battery set ac 1; svc power stayon true; wm dismiss-keyguard")
             except Exception:
                 pass
 
@@ -8188,7 +8195,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 "returncode": res_code,
                 "error": err_msg,
                 "miui_security_blocked": is_miui_security_blocked,
-                "bridge": "touchbridge_socket" if bridge_dispatched else "adb_input"
+                "bridge": "touchbridge" if bridge_dispatched else "adb_input"
             }).encode("utf-8")
             self.send_header("Content-Length", str(len(resp)))
             self.end_headers()
@@ -10181,6 +10188,96 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 self.wfile.write(content)
                 return
         self.send_error(404, "stats.html not found on server")
+
+    def handle_squares_html(self):
+        for p in [
+            "/data/data/com.termux/files/home/squares_research/dashboard.html",
+            "/data/data/com.termux/files/home/squares.html",
+            os.path.join(os.getcwd(), "squares_research/dashboard.html"),
+            os.path.join(os.getcwd(), "squares.html"),
+            os.path.expanduser("~/squares_research/dashboard.html"),
+            os.path.expanduser("~/squares.html")
+        ]:
+            if os.path.exists(p):
+                with open(p, "rb") as f:
+                    content = f.read()
+                self.send_response(200)
+                self._send_cors_headers()
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Content-Length", str(len(content)))
+                self.end_headers()
+                self.wfile.write(content)
+                return
+        self.send_error(404, "squares.html not found on server")
+
+    def handle_squares_status(self):
+        base = Path(os.environ.get("HOME", "/data/data/com.termux/files/home"))
+        db_p = base / ".react-agent" / "plugin_data" / "squares" / "packings.db"
+        act_p = base / "squares_research" / "active.json"
+        log_p = base / ".react-agent" / "audit.jsonl"
+        tot, val, sum_sc, worst, recent = 0, 0, 0.0, [], []
+        if db_p.exists():
+            try:
+                with sqlite3.connect(db_p) as conn:
+                    tot = conn.execute("SELECT COUNT(*) FROM packings").fetchone()[0]
+                    val = conn.execute("SELECT COUNT(*) FROM packings WHERE valid = 1").fetchone()[0]
+                    sum_sc = conn.execute("SELECT SUM(score) FROM packings WHERE valid = 1").fetchone()[0] or 0.0
+                    worst = conn.execute("SELECT n, side, score FROM packings WHERE valid = 1 ORDER BY score DESC LIMIT 15").fetchall()
+                    recent = conn.execute("SELECT n, side, score, updated_at FROM packings WHERE valid = 1 ORDER BY updated_at DESC LIMIT 10").fetchall()
+            except Exception:
+                pass
+        logs = []
+        if log_p.exists():
+            try:
+                lines = log_p.read_text(encoding="utf-8", errors="replace").strip().split("\n")
+                for line in lines[-25:]:
+                    if line:
+                        try: logs.append(json.loads(line))
+                        except Exception: pass
+            except Exception:
+                pass
+        active = {"n": 5, "side": 3.0, "score": 0.3416, "action": "Swades Autonomous Engine Active", "squares": []}
+        if act_p.exists():
+            try: active = json.loads(act_p.read_text(encoding="utf-8"))
+            except Exception: pass
+        if not active.get("squares") and active.get("n") and db_p.exists():
+            try:
+                with sqlite3.connect(db_p) as conn:
+                    row = conn.execute("SELECT coords FROM packings WHERE n = ?", (active["n"],)).fetchone()
+                    if row:
+                        active["squares"] = [{"x": float(it.split(",")[0]), "y": float(it.split(",")[1]), "angle": float(it.split(",")[2])} for it in row[0].strip().split(";") if it]
+            except Exception:
+                pass
+        data = {
+            "sum_score": round(sum_sc, 6),
+            "total": tot,
+            "valid": val,
+            "active": active,
+            "worst": [{"n": r[0], "side": round(r[1], 5), "score": round(r[2], 5)} for r in worst],
+            "recent": [{"n": r[0], "side": round(r[1], 5), "score": round(r[2], 5), "time": r[3]} for r in recent],
+            "logs": logs
+        }
+        self._send_json_response(data)
+
+    def handle_squares_packing(self, parsed):
+        params = urllib.parse.parse_qs(parsed.query)
+        n = int(params.get("n", ["5"])[0])
+        base = Path(os.environ.get("HOME", "/data/data/com.termux/files/home"))
+        db_p = base / ".react-agent" / "plugin_data" / "squares" / "packings.db"
+        if not db_p.exists():
+            self._send_json_response({"n": n, "side": 0, "score": 0, "squares": []})
+            return
+        try:
+            with sqlite3.connect(db_p) as conn:
+                row = conn.execute("SELECT side, score, coords FROM packings WHERE n = ?", (n,)).fetchone()
+                if not row:
+                    self._send_json_response({"n": n, "side": 0, "score": 0, "squares": []})
+                    return
+                side, score, text = row
+                squares = [{"x": float(it.split(",")[0]), "y": float(it.split(",")[1]), "angle": float(it.split(",")[2])} for it in text.strip().split(";") if it]
+                self._send_json_response({"n": n, "side": side, "score": score, "squares": squares})
+        except Exception as e:
+            self._send_json_response({"error": str(e)}, status=500)
 
     def handle_og_image(self, req_path):
         filename = "noir_og.jpg" if "noir" in req_path else "colab_og_cover.jpg"
