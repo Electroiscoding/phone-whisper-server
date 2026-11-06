@@ -46,6 +46,7 @@ Thumbs.db
 dist/
 *.raw
 screen_*.png
+screen_*.jpg
 test_*.png
 test_*.jpg
 cloud_*.jpg
