@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://survivors-lakes-pounds-sin.trycloudflare.com",
-  "inference": "https://survivors-lakes-pounds-sin.trycloudflare.com/inference",
-  "telemetry": "https://survivors-lakes-pounds-sin.trycloudflare.com/telemetry",
+  "endpoint": "https://amended-cite-troops-tracks.trycloudflare.com",
+  "inference": "https://amended-cite-troops-tracks.trycloudflare.com/inference",
+  "telemetry": "https://amended-cite-troops-tracks.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-11-06T16:48:19Z"
+  "updated_at": "2026-11-06T17:17:13Z"
 }
