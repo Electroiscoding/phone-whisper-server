@@ -8132,7 +8132,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
 
             # Instant wake & unlock on click if screen is asleep or locked
             try:
-                self._run_shell_cmd("dumpsys power | grep -q 'state=OFF' && { am start -n com.whisper.touchbridge/.MainActivity; wm dismiss-keyguard; }")
+                self._run_adb_shell_cmd("dumpsys battery set ac 1; svc power stayon true; am broadcast -a com.whisper.touchbridge.WAKE; am start -n com.whisper.touchbridge/.MainActivity 2>/dev/null; wm dismiss-keyguard")
             except Exception:
                 pass
 
@@ -8140,28 +8140,28 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             # 1. Try TouchBridge TCP socket
             try:
                 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                s.settimeout(0.1)
+                s.settimeout(0.12)
                 s.connect(("127.0.0.1", 9876))
                 if action == "swipe":
                     s.sendall(f"SWIPE {px} {py} {epx} {epy} {dur}\n".encode("utf-8"))
                 else:
                     s.sendall(f"TAP {px} {py}\n".encode("utf-8"))
-                resp_line = s.recv(16).decode("utf-8", errors="ignore").strip()
+                resp_line = s.recv(32).decode("utf-8", errors="ignore").strip()
                 s.close()
-                if resp_line == "OK":
+                if "OK" in resp_line:
                     bridge_dispatched = True
             except Exception:
                 bridge_dispatched = False
 
-            # 2. Try TouchBridge Broadcast (works seamlessly without INTERNET permission)
+            # 2. Try TouchBridge Broadcast (works seamlessly across processes)
             if not bridge_dispatched:
                 if action == "swipe":
                     bc_cmd = f"am broadcast -a com.whisper.touchbridge.SWIPE --ef x1 {px} --ef y1 {py} --ef x2 {epx} --ef y2 {epy} --ei duration {dur}"
                 else:
                     bc_cmd = f"am broadcast -a com.whisper.touchbridge.TAP --ef x {px} --ef y {py}"
-                bc_res = self._run_shell_cmd(bc_cmd)
+                bc_res = self._run_adb_shell_cmd(bc_cmd)
                 if bc_res.returncode != 0:
-                    bc_res = self._run_adb_shell_cmd(bc_cmd)
+                    bc_res = self._run_shell_cmd(bc_cmd)
                 if bc_res.returncode == 0:
                     bridge_dispatched = True
 
@@ -8170,9 +8170,9 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 err_msg = ""
                 is_miui_security_blocked = False
             else:
-                res = self._run_shell_cmd(cmd_str)
+                res = self._run_adb_shell_cmd(cmd_str)
                 if res.returncode != 0:
-                    res = self._run_adb_shell_cmd(cmd_str)
+                    res = self._run_shell_cmd(cmd_str)
                 
                 err_msg = res.stderr.decode("utf-8", errors="ignore").strip() if hasattr(res, "stderr") and res.stderr else ""
                 is_miui_security_blocked = "INJECT_EVENTS" in err_msg or "SecurityException" in err_msg
@@ -8225,57 +8225,64 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 keycode = key_map.get(key, 3)
 
             if key == "UNLOCK" or key == "WAKE":
-                self._run_adb_shell_cmd("cmd statusbar expand-notifications; sleep 0.08; cmd statusbar collapse; svc power stayon true; wm dismiss-keyguard; am start -a android.intent.action.MAIN -c android.intent.category.HOME 2>/dev/null; input swipe 360 1400 360 300 250")
-                # Also fire TouchBridge swipe-up to guarantee lockscreen bypass
-                try:
-                    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                    s.settimeout(0.1)
-                    s.connect(("127.0.0.1", 9876))
-                    s.sendall(b"SWIPE 360 1400 360 300 250\n")
-                    s.close()
-                except Exception:
-                    pass
-            elif key == "HOME":
-                res = self._run_adb_shell_cmd("am start -a android.intent.action.MAIN -c android.intent.category.HOME")
-                if res.returncode != 0:
-                    self._run_shell_cmd("am start -a android.intent.action.MAIN -c android.intent.category.HOME")
-                try:
-                    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                    s.settimeout(0.1)
-                    s.connect(("127.0.0.1", 9876))
-                    s.sendall(b"KEY HOME\n")
-                    s.close()
-                except Exception:
-                    pass
-            elif key == "BACK":
-                # Try TouchBridge socket first, fallback to edge swipe
+                self._run_adb_shell_cmd("dumpsys battery set ac 1; svc power stayon true; wm dismiss-keyguard; am start -a android.intent.action.MAIN -c android.intent.category.HOME 2>/dev/null")
                 dispatched = False
                 try:
                     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                    s.settimeout(0.1)
+                    s.settimeout(0.12)
                     s.connect(("127.0.0.1", 9876))
-                    s.sendall(b"KEY BACK\n")
-                    if s.recv(16).decode("utf-8", errors="ignore").strip() == "OK":
+                    s.sendall(b"UNLOCK\n")
+                    resp = s.recv(32).decode("utf-8", errors="ignore").strip()
+                    s.close()
+                    if "OK" in resp:
+                        dispatched = True
+                except Exception:
+                    pass
+                if not dispatched:
+                    self._run_adb_shell_cmd("am broadcast -a com.whisper.touchbridge.UNLOCK 2>/dev/null || am broadcast -a com.whisper.touchbridge.SWIPE --ef x1 360 --ef y1 1400 --ef x2 360 --ef y2 300 --ei duration 250 2>/dev/null")
+            elif key == "HOME":
+                self._run_adb_shell_cmd("am start -a android.intent.action.MAIN -c android.intent.category.HOME")
+                dispatched = False
+                try:
+                    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    s.settimeout(0.12)
+                    s.connect(("127.0.0.1", 9876))
+                    s.sendall(b"KEY HOME\n")
+                    if "OK" in s.recv(32).decode("utf-8", errors="ignore"):
                         dispatched = True
                     s.close()
                 except Exception:
                     pass
                 if not dispatched:
-                    self._run_shell_cmd("am broadcast -a com.whisper.touchbridge.KEY --es key BACK 2>/dev/null || am broadcast -a com.whisper.touchbridge.SWIPE --ef x1 5 --ef y1 800 --ef x2 350 --ef y2 800 --ei duration 180 2>/dev/null")
+                    self._run_adb_shell_cmd("am broadcast -a com.whisper.touchbridge.KEY --es key HOME 2>/dev/null || am broadcast -a com.whisper.touchbridge.GLOBAL --ei action 2 2>/dev/null")
+            elif key == "BACK":
+                dispatched = False
+                try:
+                    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    s.settimeout(0.12)
+                    s.connect(("127.0.0.1", 9876))
+                    s.sendall(b"KEY BACK\n")
+                    if "OK" in s.recv(32).decode("utf-8", errors="ignore"):
+                        dispatched = True
+                    s.close()
+                except Exception:
+                    pass
+                if not dispatched:
+                    self._run_adb_shell_cmd("am broadcast -a com.whisper.touchbridge.KEY --es key BACK 2>/dev/null || am broadcast -a com.whisper.touchbridge.SWIPE --ef x1 5 --ef y1 800 --ef x2 350 --ef y2 800 --ei duration 180 2>/dev/null")
             elif key == "RECENTS":
                 dispatched = False
                 try:
                     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                    s.settimeout(0.1)
+                    s.settimeout(0.12)
                     s.connect(("127.0.0.1", 9876))
                     s.sendall(b"KEY RECENTS\n")
-                    if s.recv(16).decode("utf-8", errors="ignore").strip() == "OK":
+                    if "OK" in s.recv(32).decode("utf-8", errors="ignore"):
                         dispatched = True
                     s.close()
                 except Exception:
                     pass
                 if not dispatched:
-                    self._run_shell_cmd("am broadcast -a com.whisper.touchbridge.KEY --es key RECENTS 2>/dev/null || am broadcast -a com.whisper.touchbridge.SWIPE --ef x1 360 --ef y1 1590 --ef x2 360 --ef y2 1100 --ei duration 450 2>/dev/null")
+                    self._run_adb_shell_cmd("am broadcast -a com.whisper.touchbridge.KEY --es key RECENTS 2>/dev/null || am broadcast -a com.whisper.touchbridge.SWIPE --ef x1 360 --ef y1 1590 --ef x2 360 --ef y2 1100 --ei duration 450 2>/dev/null")
             else:
                 res = self._run_adb_shell_cmd(f"input keyevent {keycode}")
                 if res.returncode != 0:

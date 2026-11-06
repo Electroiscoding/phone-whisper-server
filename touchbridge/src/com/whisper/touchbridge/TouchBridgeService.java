@@ -47,6 +47,10 @@ public class TouchBridgeService extends AccessibilityService {
             } else if ("com.whisper.touchbridge.GLOBAL".equals(action)) {
                 int gAction = intent.getIntExtra("action", 1);
                 performGlobalAction(gAction);
+            } else if ("com.whisper.touchbridge.WAKE".equals(action)) {
+                wakeDevice();
+            } else if ("com.whisper.touchbridge.UNLOCK".equals(action)) {
+                unlockDevice();
             }
         }
     };
@@ -62,6 +66,8 @@ public class TouchBridgeService extends AccessibilityService {
         filter.addAction("com.whisper.touchbridge.SWIPE");
         filter.addAction("com.whisper.touchbridge.KEY");
         filter.addAction("com.whisper.touchbridge.GLOBAL");
+        filter.addAction("com.whisper.touchbridge.WAKE");
+        filter.addAction("com.whisper.touchbridge.UNLOCK");
         registerReceiver(receiver, filter);
 
         startTcpServer();
@@ -70,19 +76,22 @@ public class TouchBridgeService extends AccessibilityService {
     private void startTcpServer() {
         isRunning = true;
         new Thread(() -> {
-            try {
-                serverSocket = new ServerSocket(PORT, 10, InetAddress.getByName("127.0.0.1"));
-                Log.i(TAG, "TouchBridge TCP socket listening on 127.0.0.1:" + PORT);
-                while (isRunning) {
-                    try {
-                        Socket client = serverSocket.accept();
-                        handleClient(client);
-                    } catch (Exception e) {
-                        if (!isRunning) break;
+            while (isRunning) {
+                try {
+                    serverSocket = new ServerSocket(PORT, 50, InetAddress.getByName("127.0.0.1"));
+                    Log.i(TAG, "TouchBridge TCP socket listening on 127.0.0.1:" + PORT);
+                    while (isRunning) {
+                        try {
+                            Socket client = serverSocket.accept();
+                            handleClient(client);
+                        } catch (Exception e) {
+                            if (!isRunning) break;
+                        }
                     }
+                } catch (Exception e) {
+                    Log.e(TAG, "Error in TCP socket: " + e.getMessage());
+                    try { Thread.sleep(2000); } catch (Exception ignored) {}
                 }
-            } catch (Exception e) {
-                Log.e(TAG, "Error starting TCP socket: " + e.getMessage());
             }
         }, "TouchBridge-TCP").start();
     }
@@ -92,9 +101,34 @@ public class TouchBridgeService extends AccessibilityService {
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                  OutputStream out = socket.getOutputStream()) {
                 String line;
+                boolean isHttp = false;
                 while ((line = reader.readLine()) != null) {
                     line = line.trim();
-                    if (line.isEmpty()) continue;
+                    if (line.isEmpty()) {
+                        if (isHttp) break;
+                        continue;
+                    }
+                    if (line.startsWith("GET ") || line.startsWith("POST ")) {
+                        isHttp = true;
+                        String[] httpParts = line.split("\\s+");
+                        String path = httpParts.length > 1 ? httpParts[1].toUpperCase() : "";
+                        boolean ok = true;
+                        if (path.contains("WAKE")) {
+                            ok = wakeDevice();
+                        } else if (path.contains("UNLOCK")) {
+                            ok = unlockDevice();
+                        } else if (path.contains("HOME")) {
+                            ok = performKeyAction("HOME");
+                        } else if (path.contains("BACK")) {
+                            ok = performKeyAction("BACK");
+                        }
+                        String httpBody = ok ? "{\"status\":\"ok\"}\n" : "{\"status\":\"error\"}\n";
+                        String httpResp = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nAccess-Control-Allow-Origin: *\r\nContent-Length: " + httpBody.length() + "\r\nConnection: close\r\n\r\n" + httpBody;
+                        out.write(httpResp.getBytes());
+                        out.flush();
+                        break;
+                    }
+
                     String[] parts = line.split("\\s+");
                     String cmd = parts[0].toUpperCase();
                     boolean ok = false;
@@ -111,6 +145,10 @@ public class TouchBridgeService extends AccessibilityService {
                         ok = performSwipe(x1, y1, x2, y2, dur);
                     } else if ("KEY".equals(cmd) && parts.length >= 2) {
                         ok = performKeyAction(parts[1]);
+                    } else if ("WAKE".equals(cmd)) {
+                        ok = wakeDevice();
+                    } else if ("UNLOCK".equals(cmd)) {
+                        ok = unlockDevice();
                     } else if ("GLOBAL".equals(cmd) && parts.length >= 2) {
                         try {
                             ok = performGlobalAction(Integer.parseInt(parts[1]));
@@ -128,10 +166,35 @@ public class TouchBridgeService extends AccessibilityService {
         }).start();
     }
 
+    public boolean wakeDevice() {
+        try {
+            MainActivity.wakeScreen(this);
+            return true;
+        } catch (Exception e) {
+            Log.e(TAG, "wakeDevice error: " + e.getMessage());
+            return false;
+        }
+    }
+
+    public boolean unlockDevice() {
+        wakeDevice();
+        new Thread(() -> {
+            try { Thread.sleep(250); } catch (Exception ignored) {}
+            performSwipe(360, 1400, 360, 300, 250);
+            try { Thread.sleep(300); } catch (Exception ignored) {}
+            performGlobalAction(GLOBAL_ACTION_HOME);
+        }).start();
+        return true;
+    }
+
     public boolean performKeyAction(String key) {
         if (key == null) return false;
         String k = key.toUpperCase().trim();
         switch (k) {
+            case "WAKE":
+                return wakeDevice();
+            case "UNLOCK":
+                return unlockDevice();
             case "BACK":
                 return performGlobalAction(GLOBAL_ACTION_BACK);
             case "HOME":
