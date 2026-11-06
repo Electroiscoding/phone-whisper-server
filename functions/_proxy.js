@@ -5,7 +5,7 @@
 
 const GITHUB_ENDPOINT_URL = "https://raw.githubusercontent.com/Electroiscoding/phone-whisper-server/main/endpoint.json";
 const GITHUB_API_ENDPOINT_URL = "https://api.github.com/repos/Electroiscoding/phone-whisper-server/contents/endpoint.json";
-const DEFAULT_FALLBACK_ORIGIN = "https://bicycle-watching-orientation-dave.trycloudflare.com";
+const DEFAULT_FALLBACK_ORIGIN = "https://salvation-blond-abc-still.trycloudflare.com";
 
 let liveRegisteredOrigin = null;
 let lastRegisteredTime = 0;

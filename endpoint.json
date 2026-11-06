@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://bicycle-watching-orientation-dave.trycloudflare.com",
-  "inference": "https://bicycle-watching-orientation-dave.trycloudflare.com/inference",
-  "telemetry": "https://bicycle-watching-orientation-dave.trycloudflare.com/telemetry",
+  "endpoint": "https://salvation-blond-abc-still.trycloudflare.com",
+  "inference": "https://salvation-blond-abc-still.trycloudflare.com/inference",
+  "telemetry": "https://salvation-blond-abc-still.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-11-06T09:56:41Z"
+  "updated_at": "2026-11-06T13:44:02Z"
 }
