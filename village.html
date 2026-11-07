@@ -1,0 +1,1147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Elysium • Autonomous AI Village Simulation</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #090d16;
+      --panel: rgba(15, 23, 42, 0.75);
+      --panel-border: rgba(148, 163, 184, 0.15);
+      --accent: #38bdf8;
+      --gold: #f59e0b;
+      --emerald: #10b981;
+      --rose: #f43f5e;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    body {
+      background: var(--bg);
+      color: var(--text-main);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Header */
+    header {
+      background: rgba(10, 15, 30, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--panel-border);
+      padding: 0.85rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 50;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .brand-icon {
+      font-size: 1.6rem;
+      filter: drop-shadow(0 0 10px rgba(56, 189, 248, 0.5));
+      animation: pulse-glow 3s infinite alternate;
+    }
+    .brand-title {
+      font-family: 'Cinzel', serif;
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      background: linear-gradient(135deg, #fff 0%, #38bdf8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.35rem 0.75rem;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: 9999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--emerald);
+    }
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--emerald);
+      box-shadow: 0 0 8px var(--emerald);
+      animation: pulse 1.5s infinite;
+    }
+
+    .world-meta {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+    .meta-item { display: flex; align-items: center; gap: 0.4rem; }
+    .meta-val { color: #fff; font-weight: 600; }
+
+    /* Layout */
+    .main-container {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 1.25rem;
+      padding: 1.25rem;
+      flex: 1;
+      max-width: 1700px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    @media (max-width: 1100px) {
+      .main-container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Canvas Card */
+    .canvas-card {
+      background: var(--panel);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--panel-border);
+      border-radius: 16px;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+    }
+    .canvas-wrapper {
+      position: relative;
+      width: 100%;
+      height: 600px;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #111827;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      cursor: crosshair;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .canvas-hud {
+      position: absolute;
+      top: 1rem;
+      left: 1rem;
+      display: flex;
+      gap: 0.5rem;
+      z-index: 10;
+    }
+    .hud-pill {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(8px);
+      padding: 0.35rem 0.75rem;
+      border-radius: 8px;
+      font-size: 0.78rem;
+      color: #e2e8f0;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    /* Sidebar Panels */
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .glass-panel {
+      background: var(--panel);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--panel-border);
+      border-radius: 16px;
+      padding: 1.25rem;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .panel-title {
+      font-family: 'Cinzel', serif;
+      font-size: 1.05rem;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* Villager Dossier */
+    .dossier-card {
+      background: rgba(30, 41, 59, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 1rem;
+      transition: all 0.2s ease;
+    }
+    .dossier-top {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      margin-bottom: 0.75rem;
+    }
+    .dossier-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #fff;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.4);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      position: relative;
+    }
+    .dossier-info h4 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #fff;
+    }
+    .dossier-info p {
+      font-size: 0.8rem;
+      color: var(--accent);
+      font-weight: 500;
+    }
+
+    .dossier-detail {
+      font-size: 0.82rem;
+      margin-bottom: 0.45rem;
+      line-height: 1.4;
+      color: #cbd5e1;
+    }
+    .dossier-detail strong {
+      color: #fff;
+      font-weight: 600;
+    }
+    .dossier-secret {
+      background: rgba(244, 63, 94, 0.1);
+      border-left: 3px solid var(--rose);
+      padding: 0.5rem 0.65rem;
+      border-radius: 0 6px 6px 0;
+      font-size: 0.78rem;
+      color: #fda4af;
+      margin-top: 0.6rem;
+      font-style: italic;
+    }
+    .dossier-thought {
+      background: rgba(56, 189, 248, 0.1);
+      border-left: 3px solid var(--accent);
+      padding: 0.5rem 0.65rem;
+      border-radius: 0 6px 6px 0;
+      font-size: 0.8rem;
+      color: #bae6fd;
+      margin-top: 0.5rem;
+    }
+
+    /* God Console */
+    .god-input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    select, input[type="text"] {
+      width: 100%;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 8px;
+      padding: 0.65rem 0.85rem;
+      color: #fff;
+      font-family: inherit;
+      font-size: 0.85rem;
+      outline: none;
+      transition: border 0.2s;
+    }
+    select:focus, input[type="text"]:focus {
+      border-color: var(--gold);
+    }
+    .btn-god {
+      background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 0.75rem;
+      font-weight: 700;
+      font-size: 0.85rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      transition: all 0.2s;
+      box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
+    }
+    .btn-god:hover {
+      filter: brightness(1.1);
+      transform: translateY(-1px);
+    }
+
+    /* Live Dialogues Feed */
+    .feed-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+      max-height: 230px;
+      overflow-y: auto;
+      padding-right: 0.25rem;
+    }
+    .feed-list::-webkit-scrollbar { width: 4px; }
+    .feed-list::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 4px; }
+
+    .feed-item {
+      background: rgba(30, 41, 59, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      padding: 0.6rem 0.75rem;
+      font-size: 0.8rem;
+    }
+    .feed-item-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.25rem;
+      font-weight: 600;
+      color: var(--accent);
+    }
+    .feed-item-time {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+    }
+    .feed-item-text {
+      color: #e2e8f0;
+      line-height: 1.35;
+    }
+
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+    @keyframes pulse-glow { 0% { transform: scale(1); } 100% { transform: scale(1.08); } }
+  
+    .tab-btn {
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 6px;
+      color: var(--text-muted);
+      padding: 0.35rem 0.7rem;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .tab-btn.active {
+      background: rgba(56, 189, 248, 0.18);
+      border-color: var(--accent);
+      color: #fff;
+    }
+    .tool-item {
+      background: rgba(15, 23, 42, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-left: 3px solid #10b981;
+      border-radius: 0 6px 6px 0;
+      padding: 0.45rem 0.6rem;
+      font-size: 0.75rem;
+      font-family: 'JetBrains Mono', monospace;
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+    .tool-badge {
+      display: inline-block;
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      font-weight: 700;
+      font-size: 0.7rem;
+      width: fit-content;
+    }
+    .dossier-mind {
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+      margin-top: 0.6rem;
+    }
+    .dossier-pill {
+      padding: 0.5rem 0.65rem;
+      border-radius: 6px;
+      font-size: 0.78rem;
+      line-height: 1.35;
+    }
+    .pill-thought { background: rgba(56, 189, 248, 0.08); border-left: 3px solid var(--accent); color: #bae6fd; }
+    .pill-intention { background: rgba(245, 158, 11, 0.08); border-left: 3px solid var(--gold); color: #fef08a; }
+    .pill-intuition { background: rgba(168, 85, 247, 0.08); border-left: 3px solid #a855f7; color: #e9d5ff; }
+
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <span class="brand-icon">🏰</span>
+      <div>
+        <h1 class="brand-title">ELYSIUM</h1>
+        <p style="font-size: 0.7rem; color: var(--text-muted); letter-spacing: 0.04em;">AUTONOMOUS AI VILLAGE SIMULATION</p>
+      </div>
+    </div>
+
+    <div class="world-meta">
+      <div class="meta-item">
+        <span>⏰</span>
+        <span class="meta-val" id="world-clock">08:00 AM</span>
+        <span id="world-phase" style="color: var(--gold); font-size: 0.75rem; margin-left: 2px;">(Daylight)</span>
+      </div>
+      <div class="meta-item">
+        <span>🌤️</span>
+        <span class="meta-val" id="world-weather">Clear Skies</span>
+      </div>
+      <div class="meta-item">
+        <span>👥</span>
+        <span class="meta-val" id="world-pop">0 Souls</span>
+      </div>
+      <div class="meta-item" id="siege-timer-container" style="background: rgba(220, 38, 38, 0.22); border: 1px solid rgba(239, 68, 68, 0.6); padding: 0.35rem 0.75rem; border-radius: 8px;">
+        <span style="animation: pulse 1s infinite;">🧟</span>
+        <span style="font-size: 0.75rem; font-weight: 700; color: #fca5a5;">SURVIVAL RULE:</span>
+        <span class="meta-val" id="siege-countdown" style="color: #ef4444; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; font-weight: 800;">BUILD HOUSE OR DIE</span>
+        <span id="siege-badge-tag" style="background: #991b1b; color: #fff; font-size: 0.65rem; padding: 2px 5px; border-radius: 4px; margin-left: 4px;">NO BARRIERS • 1 LIFE</span>
+      </div>
+      <div class="status-badge">
+        <span class="status-dot"></span>
+        <span>LIVE ENGINE</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="main-container">
+    <!-- Center World Canvas -->
+    <div class="canvas-card">
+      <div class="canvas-hud">
+        <div class="hud-pill"><span>📍</span> Click any villager to inspect soul dossier</div>
+        <div class="hud-pill" id="hud-selected-v"><span>🎯</span> Following: Free Roam</div>
+      </div>
+      <div class="canvas-wrapper" id="canvas-container">
+        <canvas id="village-canvas"></canvas>
+      </div>
+    </div>
+
+    <!-- Right Control & Dossier Sidebar -->
+    <div class="sidebar">
+      <!-- Selected Villager Dossier -->
+      <div class="glass-panel">
+        <div class="panel-header">
+          <h3 class="panel-title"><span>📜</span> Soul Dossier</h3>
+          <span style="font-size: 0.75rem; color: var(--text-muted);">Unbiased Persona</span>
+        </div>
+        <div id="dossier-body">
+          <div class="dossier-card" style="text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 1.5rem;">
+            Click on any villager in the town to inspect their self-chosen identity, innermost secret, and live thoughts.
+          </div>
+        </div>
+      </div>
+
+      <!-- God's Whisper Console -->
+      <div class="glass-panel">
+        <div class="panel-header">
+          <h3 class="panel-title"><span>⚡</span> Voice of the Divine</h3>
+          <span style="font-size: 0.75rem; color: var(--gold);">Intervention Mode</span>
+        </div>
+        <div class="god-input-group">
+          <select id="god-target">
+            <option value="all">⚡ Broadcast Omen to All Villagers</option>
+          </select>
+          <input type="text" id="god-message" placeholder="Whisper into their mind... (e.g. 'A storm approaches from the east')">
+          <button class="btn-god" id="btn-send-god">
+            <span>✨</span> Project Divine Voice
+          </button>
+        </div>
+      </div>
+
+      <!-- Live Dialogue & Tool Feed -->
+      <div class="glass-panel">
+        <div class="panel-header" style="justify-content: flex-start; gap: 0.5rem;">
+          <button id="btn-tab-convo" class="tab-btn active" onclick="switchFeedTab('convo')">💬 Global Convo</button>
+          <button id="btn-tab-tools" class="tab-btn" onclick="switchFeedTab('tools')">⚙️ Tool & Block Ledger</button>
+        </div>
+        <div class="feed-list" id="dialogues-feed">
+          <div style="color: var(--text-muted); font-size: 0.8rem; text-align: center; padding: 1rem;">
+            Listening to emergent town chatter...
+          </div>
+        </div>
+        <div class="feed-list" id="tools-feed" style="display: none;">
+          <div style="color: var(--text-muted); font-size: 0.8rem; text-align: center; padding: 1rem;">
+            Tracking physical tool invocations & block placements...
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const canvas = document.getElementById("village-canvas");
+    const ctx = canvas.getContext("2d");
+    const container = document.getElementById("canvas-container");
+
+    let worldState = null;
+    let selectedVillagerId = null;
+    let villagersLerp = new Map(); // id -> {x, y, targetX, targetY, color, name}
+
+    const MAP_COLS = 36;
+    const MAP_ROWS = 24;
+
+    function resize() {
+      const rect = container.getBoundingClientRect();
+      canvas.width = rect.width * window.devicePixelRatio;
+      canvas.height = rect.height * window.devicePixelRatio;
+      ctx.imageSmoothingEnabled = false;
+    }
+    window.addEventListener("resize", resize);
+    resize();
+
+    // Map landmark definitions
+    const LANDMARKS = [
+      { name: "Village Well", x: 18, y: 12, icon: "💧", color: "#64748b" },
+      { name: "Blacksmith", x: 8, y: 7, icon: "🔥", color: "#b45309" },
+      { name: "Enchanting Tower", x: 28, y: 6, icon: "🔮", color: "#8b5cf6" },
+      { name: "Wheat Farm", x: 29, y: 17, icon: "🌾", color: "#eab308" },
+      { name: "Deep Mine", x: 6, y: 18, icon: "⛏️", color: "#0284c7" },
+      { name: "Redstone Lab", x: 18, y: 5, icon: "⚡", color: "#ef4444" },
+      { name: "River Bridge", x: 22, y: 12, icon: "🪵", color: "#78716c" },
+      { name: "Campfire", x: 13, y: 16, icon: "⛺", color: "#f97316" }
+    ];
+
+    
+    function switchFeedTab(tab) {
+      const btnConvo = document.getElementById("btn-tab-convo");
+      const btnTools = document.getElementById("btn-tab-tools");
+      const feedConvo = document.getElementById("dialogues-feed");
+      const feedTools = document.getElementById("tools-feed");
+
+      if (tab === "convo") {
+        btnConvo.classList.add("active");
+        btnTools.classList.remove("active");
+        feedConvo.style.display = "flex";
+        feedTools.style.display = "none";
+      } else {
+        btnTools.classList.add("active");
+        btnConvo.classList.remove("active");
+        feedTools.style.display = "flex";
+        feedConvo.style.display = "none";
+      }
+    }
+
+    function updateToolsFeed(toolCalls) {
+      const feed = document.getElementById("tools-feed");
+      if (!feed || !toolCalls || toolCalls.length === 0) return;
+
+      feed.innerHTML = toolCalls.map(t => {
+        let argsStr = "";
+        try {
+          const a = typeof t.args === 'string' ? JSON.parse(t.args) : t.args;
+          argsStr = Object.entries(a).map(([k, v]) => `${k}=${v}`).join(", ");
+        } catch(e) { argsStr = t.args; }
+
+        return `
+          <div class="tool-item">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span class="tool-badge">${t.agent} ➔ ${t.tool_name}()</span>
+              <span style="font-size: 0.7rem; color: var(--text-muted);">${new Date(t.timestamp * 1000).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'})}</span>
+            </div>
+            <div style="color: #cbd5e1; font-size: 0.73rem;">args: { ${argsStr} }</div>
+            <div style="color: #94a3b8; font-size: 0.7rem; font-style: italic;">result: ${t.result}</div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    async function fetchState() {
+      try {
+        const res = await fetch("/v1/village/state");
+        if (res.ok) {
+          const data = await res.json();
+          worldState = data;
+          updateHUD(data);
+          syncVillagers(data.villagers);
+          syncZombies(data.zombies);
+          renderDossier();
+          updateDialoguesFeed(data.recent_dialogues);
+          updateToolsFeed(data.tool_calls);
+        }
+      } catch (e) {
+        console.error("State fetch error:", e);
+      }
+    }
+
+    function updateHUD(data) {
+      if (!data || !data.world) return;
+      const w = data.world;
+      const hours = Math.floor(w.hour);
+      const mins = Math.floor((w.hour - hours) * 60).toString().padStart(2, '0');
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      const dispHour = hours % 12 === 0 ? 12 : hours % 12;
+
+      document.getElementById("world-clock").textContent = `${dispHour}:${mins} ${ampm}`;
+      document.getElementById("world-phase").textContent = `(${w.time_of_day})`;
+      document.getElementById("world-weather").textContent = w.weather;
+      document.getElementById("world-pop").textContent = `${w.population} Souls`;
+
+      // Update Hardcore Survival Status
+      const cdElem = document.getElementById("siege-countdown");
+      const badgeElem = document.getElementById("siege-badge-tag");
+      const contElem = document.getElementById("siege-timer-container");
+      const zCount = w.zombies_alive || (data.zombies ? data.zombies.length : 0);
+      
+      cdElem.textContent = `${zCount} ROAMING ZOMBIES`;
+      cdElem.style.color = "#ef4444";
+      badgeElem.textContent = `BUILD 4 WALLS OR PERMADEATH`;
+      contElem.style.background = zCount > 0 ? "rgba(220, 38, 38, 0.25)" : "rgba(16, 185, 129, 0.2)";
+
+      // Update God target dropdown
+      const sel = document.getElementById("god-target");
+      const currentVal = sel.value;
+      let opts = '<option value="all">⚡ Broadcast Omen to All Villagers</option>';
+      (data.villagers || []).forEach(v => {
+        opts += `<option value="${v.name}" ${currentVal === v.name ? 'selected' : ''}>${v.name} (${v.profession}) [HP: ${v.hp || 100}]</option>`;
+      });
+      sel.innerHTML = opts;
+    }
+
+    let zombiesLerp = new Map(); // id -> {id, x, y, targetX, targetY, hp, max_hp}
+
+    function syncZombies(list) {
+      if (!list) return;
+      const activeIds = new Set();
+      list.forEach(z => {
+        activeIds.add(z.id);
+        if (!zombiesLerp.has(z.id)) {
+          zombiesLerp.set(z.id, {
+            id: z.id,
+            name: z.name,
+            x: z.x,
+            y: z.y,
+            targetX: z.x,
+            targetY: z.y,
+            hp: z.hp,
+            max_hp: z.max_hp
+          });
+        } else {
+          const item = zombiesLerp.get(z.id);
+          item.targetX = z.x;
+          item.targetY = z.y;
+          item.hp = z.hp;
+        }
+      });
+      // Remove dead
+      for (const [id, _] of zombiesLerp) {
+        if (!activeIds.has(id)) zombiesLerp.delete(id);
+      }
+    }
+
+    function syncVillagers(list) {
+      if (!list) return;
+      list.forEach(v => {
+        if (!villagersLerp.has(v.id)) {
+          villagersLerp.set(v.id, {
+            id: v.id,
+            name: v.name,
+            x: v.x,
+            y: v.y,
+            targetX: v.x,
+            targetY: v.y,
+            color: v.color || "#4ade80",
+            raw: v
+          });
+        } else {
+          const item = villagersLerp.get(v.id);
+          item.targetX = v.x;
+          item.targetY = v.y;
+          item.raw = v;
+          item.color = v.color || item.color;
+        }
+      });
+    }
+
+    // Render loop
+    function render() {
+      const w = canvas.width;
+      const h = canvas.height;
+      const cellW = w / MAP_COLS;
+      const cellH = h / MAP_ROWS;
+
+      ctx.clearRect(0, 0, w, h);
+
+      // 1. Draw Base Terrain (Minecraft Grass Meadow)
+      ctx.fillStyle = "#1e392a"; // Minecraft deep grass
+      ctx.fillRect(0, 0, w, h);
+
+
+      // Subtle grass pixel grid
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.03)";
+      ctx.lineWidth = 1;
+      for (let x = 0; x <= MAP_COLS; x++) {
+        ctx.beginPath();
+        ctx.moveTo(x * cellW, 0);
+        ctx.lineTo(x * cellW, h);
+        ctx.stroke();
+      }
+      for (let y = 0; y <= MAP_ROWS; y++) {
+        ctx.beginPath();
+        ctx.moveTo(0, y * cellH);
+        ctx.lineTo(w, y * cellH);
+        ctx.stroke();
+      }
+
+      // 2. Draw Dynamic Placed & Natural Blocks from State
+      if (worldState && worldState.blocks) {
+        const timeNow = Date.now() / 1000;
+        worldState.blocks.forEach(b => {
+          const bx = b.x * cellW;
+          const by = b.y * cellH;
+
+          if (b.type === "water") {
+            // Animated water wave
+            const wave = Math.sin(timeNow * 2 + b.x + b.y) * 0.15;
+            ctx.fillStyle = `rgba(2, 132, 199, ${0.85 + wave})`;
+            ctx.fillRect(bx, by, cellW, cellH);
+            ctx.strokeStyle = "rgba(56, 189, 248, 0.3)";
+            ctx.strokeRect(bx, by, cellW, cellH);
+          } else if (b.type === "cobblestone") {
+            ctx.fillStyle = "#64748b";
+            ctx.fillRect(bx, by, cellW, cellH);
+            ctx.fillStyle = "#475569";
+            ctx.fillRect(bx + cellW * 0.1, by + cellH * 0.1, cellW * 0.35, cellH * 0.35);
+            ctx.fillRect(bx + cellW * 0.55, by + cellH * 0.55, cellW * 0.35, cellH * 0.35);
+            ctx.strokeStyle = "#334155";
+            ctx.strokeRect(bx, by, cellW, cellH);
+          } else if (b.type === "oak_planks") {
+            ctx.fillStyle = "#b45309";
+            ctx.fillRect(bx, by, cellW, cellH);
+            ctx.fillStyle = "#92400e";
+            ctx.fillRect(bx, by + cellH * 0.45, cellW, cellH * 0.1);
+            ctx.strokeStyle = "#78350f";
+            ctx.strokeRect(bx, by, cellW, cellH);
+          } else if (b.type === "stone_bricks") {
+            ctx.fillStyle = "#475569";
+            ctx.fillRect(bx, by, cellW, cellH);
+            ctx.strokeStyle = "#1e293b";
+            ctx.strokeRect(bx, by, cellW, cellH);
+          } else if (b.type === "redstone_wire") {
+            // Pulsing bright glowing redstone line
+            const pulse = (Math.sin(timeNow * 6 + b.x) + 1) * 0.25 + 0.75;
+            ctx.fillStyle = "#1e392a"; // grass underneath
+            ctx.fillRect(bx, by, cellW, cellH);
+
+            ctx.shadowColor = "#ff0000";
+            ctx.shadowBlur = 10 * pulse;
+            ctx.fillStyle = `rgba(239, 68, 68, ${pulse})`;
+            ctx.fillRect(bx + cellW * 0.35, by + cellH * 0.35, cellW * 0.3, cellH * 0.3);
+            ctx.shadowBlur = 0;
+          } else if (b.type === "beacon_core") {
+            // Beacon diamond block with sky beam
+            ctx.fillStyle = "#38bdf8";
+            ctx.shadowColor = "#00ffff";
+            ctx.shadowBlur = 15;
+            ctx.fillRect(bx, by, cellW, cellH);
+            // Vertical light beam into the sky!
+            ctx.fillStyle = "rgba(56, 189, 248, 0.4)";
+            ctx.fillRect(bx + cellW * 0.2, 0, cellW * 0.6, by);
+            ctx.shadowBlur = 0;
+          } else if (b.type.startsWith("wheat")) {
+            // Tilled soil underneath
+            ctx.fillStyle = "#451a03";
+            ctx.fillRect(bx, by, cellW, cellH);
+            if (b.type === "wheat_stage_1") {
+              ctx.fillStyle = "#84cc16"; // small green shoots
+              ctx.fillRect(bx + cellW * 0.3, by + cellH * 0.4, cellW * 0.4, cellH * 0.4);
+            } else if (b.type === "wheat_stage_2") {
+              ctx.fillStyle = "#a3e635"; // growing stalk
+              ctx.fillRect(bx + cellW * 0.25, by + cellH * 0.25, cellW * 0.5, cellH * 0.6);
+            } else if (b.type === "wheat_stage_3") {
+              // Ripe golden wheat!
+              ctx.fillStyle = "#eab308";
+              ctx.fillRect(bx + cellW * 0.15, by + cellH * 0.15, cellW * 0.7, cellH * 0.75);
+              ctx.fillStyle = "#fef08a";
+              ctx.fillRect(bx + cellW * 0.3, by + cellH * 0.1, cellW * 0.4, cellH * 0.25);
+            }
+          } else if (b.type === "torch") {
+            // Wood stick
+            ctx.fillStyle = "#78350f";
+            ctx.fillRect(bx + cellW * 0.45, by + cellH * 0.4, cellW * 0.1, cellH * 0.45);
+            // Flickering flame
+            const flamePulse = (Math.sin(timeNow * 8 + b.x) + 1) * 0.15 + 0.85;
+            ctx.fillStyle = `rgba(245, 158, 11, ${flamePulse})`;
+            ctx.shadowColor = "#f59e0b";
+            ctx.shadowBlur = 12;
+            ctx.beginPath();
+            ctx.arc(bx + cellW * 0.5, by + cellH * 0.35, cellW * 0.2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+          } else if (b.type === "campfire") {
+            ctx.fillStyle = "#78350f";
+            ctx.fillRect(bx + cellW * 0.15, by + cellH * 0.4, cellW * 0.7, cellH * 0.45);
+            const fire = (Math.sin(timeNow * 10) + 1) * 0.2 + 0.8;
+            ctx.fillStyle = `rgba(239, 68, 68, ${fire})`;
+            ctx.shadowColor = "#f97316";
+            ctx.shadowBlur = 15;
+            ctx.beginPath();
+            ctx.arc(bx + cellW * 0.5, by + cellH * 0.4, cellW * 0.35, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+          }
+        });
+      }
+
+      // 2.5 Draw Landmark Outlines & Icons
+      LANDMARKS.forEach(lm => {
+        const lx = lm.x * cellW;
+        const ly = lm.y * cellH;
+
+        ctx.font = `${cellH * 1.3}px serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(lm.icon, lx, ly);
+
+        ctx.font = `600 ${cellH * 0.42}px 'Plus Jakarta Sans'`;
+        ctx.fillStyle = "#f8fafc";
+        ctx.shadowColor = "#000000";
+        ctx.shadowBlur = 4;
+        ctx.fillText(lm.name, lx, ly + cellH * 1.1);
+        ctx.shadowBlur = 0;
+      });
+
+      // 2.8 Draw Hostile Zombies
+      zombiesLerp.forEach(z => {
+        z.x += (z.targetX - z.x) * 0.12;
+        z.y += (z.targetY - z.y) * 0.12;
+
+        const zx = z.x * cellW;
+        const zy = z.y * cellH;
+
+        // Zombie body (decaying rotting green)
+        ctx.fillStyle = "#15803d";
+        ctx.shadowColor = "#22c55e";
+        ctx.shadowBlur = 10;
+        ctx.beginPath();
+        ctx.arc(zx, zy, cellW * 0.45, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        // Glowing red zombie eyes
+        ctx.fillStyle = "#ef4444";
+        ctx.beginPath();
+        ctx.arc(zx - cellW * 0.15, zy - cellH * 0.1, cellW * 0.08, 0, Math.PI * 2);
+        ctx.arc(zx + cellW * 0.15, zy - cellH * 0.1, cellW * 0.08, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Zombie Tag & HP Bar
+        ctx.font = `700 ${cellH * 0.35}px 'JetBrains Mono', monospace`;
+        ctx.fillStyle = "#86efac";
+        ctx.textAlign = "center";
+        ctx.fillText("🧟 Zombie", zx, zy - cellH * 0.65);
+
+        // Zombie HP Bar
+        const hpPct = Math.max(0, z.hp / (z.max_hp || 60));
+        ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+        ctx.fillRect(zx - cellW * 0.4, zy + cellH * 0.55, cellW * 0.8, cellH * 0.12);
+        ctx.fillStyle = "#22c55e";
+        ctx.fillRect(zx - cellW * 0.4, zy + cellH * 0.55, cellW * 0.8 * hpPct, cellH * 0.12);
+      });
+
+      // 3. Draw Villagers & Interpolate
+      villagersLerp.forEach(v => {
+        // Smooth lerp movement
+        v.x += (v.targetX - v.x) * 0.12;
+        v.y += (v.targetY - v.y) * 0.12;
+
+        const vx = v.x * cellW;
+        const vy = v.y * cellH;
+        const isSelected = selectedVillagerId === v.id;
+        const isDead = v.raw && v.raw.is_alive === 0;
+
+        // Selection ring
+        if (isSelected) {
+          ctx.strokeStyle = "#f59e0b";
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.arc(vx, vy, cellW * 0.9, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+
+        if (isDead) {
+          // Dead gravestone / skull marker
+          ctx.fillStyle = "#64748b";
+          ctx.beginPath();
+          ctx.arc(vx, vy, cellW * 0.4, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.font = `${cellH * 0.8}px serif`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText("☠️", vx, vy);
+
+          ctx.font = `700 ${cellH * 0.38}px 'Plus Jakarta Sans'`;
+          ctx.fillStyle = "#ef4444";
+          ctx.fillText(`${v.name} (DEAD)`, vx, vy - cellH * 0.65);
+          return;
+        }
+
+        // Body aura / shadow
+        ctx.fillStyle = v.color;
+        ctx.shadowColor = v.color;
+        ctx.shadowBlur = 12;
+
+        ctx.beginPath();
+        ctx.arc(vx, vy, cellW * 0.45, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0; // reset
+
+        // Inner core
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.arc(vx, vy, cellW * 0.18, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Name Tag & 1-Life Indicator
+        ctx.font = `600 ${cellH * 0.42}px 'Plus Jakarta Sans'`;
+        ctx.fillStyle = "#ffffff";
+        ctx.textAlign = "center";
+        ctx.fillText(v.name, vx, vy - cellH * 0.85);
+
+        // Villager Health Bar (Heart + Green Bar)
+        const curHp = (v.raw && v.raw.hp !== undefined) ? v.raw.hp : 100;
+        const hpPct = Math.max(0, curHp / 100);
+        ctx.fillStyle = "rgba(0, 0, 0, 0.75)";
+        ctx.fillRect(vx - cellW * 0.5, vy - cellH * 0.7, cellW * 1.0, cellH * 0.15);
+        ctx.fillStyle = hpPct > 0.4 ? "#10b981" : "#ef4444";
+        ctx.fillRect(vx - cellW * 0.5, vy - cellH * 0.7, cellW * 1.0 * hpPct, cellH * 0.15);
+      });
+
+      // 4. Draw Active Speech Bubbles
+      if (worldState && worldState.active_bubbles) {
+        const now = Date.now() / 1000;
+        worldState.active_bubbles.forEach(b => {
+          if (now - b.ts < 12) {
+            const bx = b.x * cellW;
+            const by = b.y * cellH - cellH * 1.2;
+
+            ctx.font = `500 ${cellH * 0.45}px 'Plus Jakarta Sans'`;
+            const textWidth = ctx.measureText(b.text).width;
+            const padX = 10;
+            const padY = 6;
+
+            // Bubble background
+            ctx.fillStyle = "rgba(15, 23, 42, 0.92)";
+            ctx.strokeStyle = b.color || "#38bdf8";
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.roundRect(bx - textWidth / 2 - padX, by - cellH * 0.5 - padY, textWidth + padX * 2, cellH + padY, 8);
+            ctx.fill();
+            ctx.stroke();
+
+            // Bubble text
+            ctx.fillStyle = "#ffffff";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(b.text, bx, by);
+          }
+        });
+      }
+
+      // 5. Day / Night Lighting Overlay
+      if (worldState && worldState.world) {
+        const h = worldState.world.hour;
+        let darkness = 0.0;
+        let tint = "rgba(10, 15, 30, 0)";
+
+        if (h >= 20.0 || h < 4.5) {
+          // Night
+          darkness = 0.62;
+          tint = `rgba(10, 15, 45, ${darkness})`;
+        } else if (h >= 17.5 && h < 20.0) {
+          // Sunset
+          const ratio = (h - 17.5) / 2.5;
+          tint = `rgba(244, 63, 94, ${ratio * 0.35})`;
+        } else if (h >= 4.5 && h < 7.0) {
+          // Dawn
+          const ratio = 1.0 - (h - 4.5) / 2.5;
+          tint = `rgba(30, 27, 75, ${ratio * 0.4})`;
+        }
+
+        if (darkness > 0 || tint !== "rgba(10, 15, 30, 0)") {
+          ctx.fillStyle = tint;
+          ctx.fillRect(0, 0, w, h);
+        }
+      }
+
+      requestAnimationFrame(render);
+    }
+
+    // Click on canvas to select villager
+    canvas.addEventListener("click", e => {
+      const rect = canvas.getBoundingClientRect();
+      const clickX = ((e.clientX - rect.left) / rect.width) * MAP_COLS;
+      const clickY = ((e.clientY - rect.top) / rect.height) * MAP_ROWS;
+
+      let found = null;
+      let minDist = 2.5;
+
+      villagersLerp.forEach(v => {
+        const d = Math.hypot(v.x - clickX, v.y - clickY);
+        if (d < minDist) {
+          minDist = d;
+          found = v;
+        }
+      });
+
+      if (found) {
+        selectedVillagerId = found.id;
+        document.getElementById("hud-selected-v").innerHTML = `<span>🎯</span> Following: <strong>${found.name}</strong>`;
+        renderDossier();
+      } else {
+        selectedVillagerId = null;
+        document.getElementById("hud-selected-v").innerHTML = `<span>🎯</span> Following: Free Roam`;
+        renderDossier();
+      }
+    });
+
+    function renderDossier() {
+      const container = document.getElementById("dossier-body");
+      if (!selectedVillagerId || !villagersLerp.has(selectedVillagerId)) {
+        if (!selectedVillagerId && villagersLerp.size > 0) {
+          // Auto-select first villager
+          selectedVillagerId = villagersLerp.keys().next().value;
+        } else {
+          container.innerHTML = `<div class="dossier-card" style="text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 1.5rem;">Click on any villager in the town to inspect their soul.</div>`;
+          return;
+        }
+      }
+
+      const vObj = villagersLerp.get(selectedVillagerId);
+      const v = vObj ? vObj.raw : null;
+      if (!v) return;
+
+      let invHtml = "";
+      try {
+        const inv = Array.isArray(v.inventory) ? v.inventory : JSON.parse(v.inventory || "[]");
+        invHtml = inv.map(i => `<span style="background: rgba(255,255,255,0.08); padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.72rem; margin-right: 4px;">🎒 ${i}</span>`).join("");
+      } catch(e) {}
+
+      container.innerHTML = `
+        <div class="dossier-card">
+          <div class="dossier-top">
+            <div class="dossier-avatar" style="background: ${v.color || '#4ade80'};">
+              ${v.name[0]}
+            </div>
+            <div class="dossier-info">
+              <h4>${v.name}</h4>
+              <p style="color: ${v.color || '#38bdf8'}; font-weight: 600;">${v.profession}</p>
+              <div style="margin-top: 3px;">${invHtml}</div>
+            </div>
+          </div>
+
+          <!-- Life / Death & Shelter Status Banner -->
+          <div style="background: ${v.is_alive === 0 ? 'rgba(239, 68, 68, 0.2)' : (v.is_sheltered ? 'rgba(16, 185, 129, 0.18)' : 'rgba(245, 158, 11, 0.18)')}; border: 1px solid ${v.is_alive === 0 ? '#ef4444' : (v.is_sheltered ? '#10b981' : '#f59e0b')}; border-radius: 6px; padding: 0.45rem 0.65rem; margin-top: 0.6rem; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <div style="font-size: 0.75rem; font-weight: 700; color: ${v.is_alive === 0 ? '#fca5a5' : (v.is_sheltered ? '#6ee7b7' : '#fef08a')};">
+                ${v.is_alive === 0 ? '☠️ PERMANENTLY DEAD' : (v.is_sheltered ? '🛡️ SHELTERED (House Complete)' : '⚠️ UNSHELTERED (Exposed to Zombies)')}
+              </div>
+              <div style="font-size: 0.68rem; color: #94a3b8;">${v.is_sheltered ? 'Safe behind 4 solid walls' : 'Must build house or die'}</div>
+            </div>
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; font-weight: 800; color: #fff;">
+              HP: ${v.hp !== undefined ? v.hp : 100}/100
+            </div>
+          </div>
+
+          <div class="dossier-detail" style="margin-top: 0.5rem;"><strong>Personality:</strong> ${v.personality}</div>
+          <div class="dossier-detail"><strong>Dream:</strong> ${v.dream}</div>
+          
+          <div class="dossier-mind">
+            <div class="dossier-pill pill-thought">🧠 <strong>Conscious Thought:</strong> "${v.thought || 'Analyzing environment'}"</div>
+            <div class="dossier-pill pill-intention">🎯 <strong>Current Intention:</strong> ${v.intention || 'Maintaining position and surveying terrain'}</div>
+            <div class="dossier-pill pill-intuition">🔮 <strong>Intuition:</strong> ${v.intuition || 'Sensing ambient world stability'}</div>
+          </div>
+
+          <div class="dossier-secret" style="margin-top: 0.6rem;">🤫 <strong>Deep Secret:</strong> ${v.secret || 'None'}</div>
+        </div>
+      `;
+    }
+
+    function updateDialoguesFeed(dialogues) {
+      const feed = document.getElementById("dialogues-feed");
+      if (!dialogues || dialogues.length === 0) return;
+
+      feed.innerHTML = dialogues.map(d => `
+        <div class="feed-item">
+          <div class="feed-item-header">
+            <span>${d.speaker_name} ➔ ${d.listener_name}</span>
+            <span class="feed-item-time">${new Date(d.timestamp * 1000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'})}</span>
+          </div>
+          <div class="feed-item-text">"${d.content}"</div>
+        </div>
+      `).join("");
+    }
+
+    // God mode whisper handler
+    document.getElementById("btn-send-god").addEventListener("click", async () => {
+      const target = document.getElementById("god-target").value;
+      const input = document.getElementById("god-message");
+      const msg = input.value.trim();
+      if (!msg) return;
+
+      const btn = document.getElementById("btn-send-god");
+      btn.disabled = true;
+      btn.textContent = "Echoing Voice...";
+
+      try {
+        const res = await fetch("/v1/village/interact", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            target_villager: target,
+            action_type: "whisper",
+            content: msg
+          })
+        });
+        if (res.ok) {
+          input.value = "";
+          fetchState();
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<span>✨</span> Project Divine Voice`;
+      }
+    });
+
+    // Start polling and loop
+    fetchState();
+    setInterval(fetchState, 1800);
+    requestAnimationFrame(render);
+  </script>
+</body>
+</html>
