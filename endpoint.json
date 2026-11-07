@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://piano-represent-kids-rainbow.trycloudflare.com",
-  "inference": "https://piano-represent-kids-rainbow.trycloudflare.com/inference",
-  "telemetry": "https://piano-represent-kids-rainbow.trycloudflare.com/telemetry",
+  "endpoint": "https://author-leon-transcripts-boc.trycloudflare.com",
+  "inference": "https://author-leon-transcripts-boc.trycloudflare.com/inference",
+  "telemetry": "https://author-leon-transcripts-boc.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-11-06T19:37:49Z"
+  "updated_at": "2026-11-07T02:01:32Z"
 }
