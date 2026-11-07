@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://reuters-swimming-collectables-arbitrary.trycloudflare.com",
-  "inference": "https://reuters-swimming-collectables-arbitrary.trycloudflare.com/inference",
-  "telemetry": "https://reuters-swimming-collectables-arbitrary.trycloudflare.com/telemetry",
+  "endpoint": "https://broker-aurora-respiratory-mistakes.trycloudflare.com",
+  "inference": "https://broker-aurora-respiratory-mistakes.trycloudflare.com/inference",
+  "telemetry": "https://broker-aurora-respiratory-mistakes.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-11-07T04:12:35Z"
+  "updated_at": "2026-11-07T06:50:33Z"
 }
