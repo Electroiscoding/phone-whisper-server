@@ -7334,7 +7334,10 @@ class NotebookKernelManager:
 _notebook_kernel_mgr = NotebookKernelManager()
 
 class MultiModalGatewayHandler(BaseHTTPRequestHandler):
+    protocol_version = "HTTP/1.1"
+
     def handle_one_request(self):
+
         self._req_start_time = time.perf_counter()
         super().handle_one_request()
 
@@ -10264,7 +10267,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
     def handle_swades_proxy_get(self, parsed):
         target_url = f"http://127.0.0.1:8088{self.path}"
         try:
-            req_headers = {k: v for k, v in self.headers.items() if k.lower() not in ["host", "content-length"]}
+            req_headers = {k: v for k, v in self.headers.items() if k.lower() not in ["host", "content-length", "connection", "accept-encoding"]}
+            req_headers["Connection"] = "close"
             req = urllib.request.Request(target_url, headers=req_headers)
             try:
                 resp = urllib.request.urlopen(req, timeout=300)
@@ -10312,7 +10316,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         content_len = int(self.headers.get("Content-Length", 0))
         body = self.rfile.read(content_len) if content_len > 0 else b""
         try:
-            req_headers = {k: v for k, v in self.headers.items() if k.lower() not in ["host", "content-length"]}
+            req_headers = {k: v for k, v in self.headers.items() if k.lower() not in ["host", "content-length", "connection", "accept-encoding"]}
+            req_headers["Connection"] = "close"
             req = urllib.request.Request(target_url, data=body, headers=req_headers, method="POST")
             try:
                 resp = urllib.request.urlopen(req, timeout=60)

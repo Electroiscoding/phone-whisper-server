@@ -15,12 +15,15 @@ from swades_engine import SwadesAgentEngine
 
 TASK_QUEUES = {}
 TASK_CONTEXTS = {}
+TASK_EVENTS = {}
 TASKS_LOCK = threading.Lock()
 
 class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
     daemon_threads = True
 
 class SwadesHTTPHandler(BaseHTTPRequestHandler):
+    protocol_version = "HTTP/1.1"
+
     def _send_cors_headers(self):
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
@@ -43,6 +46,8 @@ class SwadesHTTPHandler(BaseHTTPRequestHandler):
             self.end_headers()
         elif path == "/api/swades/stream":
             self.handle_stream(parsed)
+        elif path == "/api/swades/events":
+            self.handle_events(parsed)
         elif path == "/api/swades/status":
             self.handle_status(parsed)
         else:
@@ -50,6 +55,7 @@ class SwadesHTTPHandler(BaseHTTPRequestHandler):
             self._send_cors_headers()
             self.end_headers()
             self.wfile.write(b"Not Found")
+
 
     def do_POST(self):
         parsed = urllib.parse.urlparse(self.path)
@@ -129,15 +135,16 @@ class SwadesHTTPHandler(BaseHTTPRequestHandler):
 
         self.send_response(200)
         self._send_cors_headers()
-        self.send_header("Content-Type", "text/event-stream")
-        self.send_header("Cache-Control", "no-cache")
+        self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+        self.send_header("Cache-Control", "no-cache, no-transform")
+        self.send_header("X-Accel-Buffering", "no")
         self.send_header("Connection", "keep-alive")
         self.end_headers()
 
         try:
             while True:
                 try:
-                    event = q.get(timeout=25.0)
+                    event = q.get(timeout=15.0)
                     msg = f"data: {json.dumps(event)}\n\n"
                     self.wfile.write(msg.encode("utf-8"))
                     self.wfile.flush()
@@ -148,6 +155,18 @@ class SwadesHTTPHandler(BaseHTTPRequestHandler):
                     self.wfile.flush()
         except (BrokenPipeError, ConnectionResetError):
             pass
+
+    def handle_events(self, parsed):
+        qs = urllib.parse.parse_qs(parsed.query)
+        task_id = qs.get("task_id", [""])[0]
+        since = int(qs.get("since", [0])[0])
+        with TASKS_LOCK:
+            evs = list(TASK_EVENTS.get(task_id, []))
+            ctx = TASK_CONTEXTS.get(task_id)
+        status = "completed" if (ctx and ctx.get("diff")) else ("active" if evs else "none")
+        new_evs = evs[since:] if since < len(evs) else []
+        self._send_json({"task_id": task_id, "status": status, "events": new_evs, "next_index": len(evs)})
+
 
     def handle_action(self):
         content_len = int(self.headers.get("Content-Length", 0))
@@ -215,8 +234,16 @@ class SwadesHTTPHandler(BaseHTTPRequestHandler):
 def run_async_swades_task(task_id: str, repo_url: str, prompt: str, image_data: Optional[str], test_command: Optional[str], q: queue.Queue, github_token: Optional[str] = None):
     git_mgr = SwadesGitManager(github_token=github_token)
     workspace = None
+
+    def emit(ev):
+        with TASKS_LOCK:
+            if task_id not in TASK_EVENTS:
+                TASK_EVENTS[task_id] = []
+            TASK_EVENTS[task_id].append(ev)
+        q.put(ev)
+
     try:
-        q.put({"type": "status", "state": "CLONING", "message": f"Swades provisioning sandbox for {repo_url}..."})
+        emit({"type": "status", "state": "CLONING", "message": f"Swades provisioning sandbox for {repo_url}..."})
         if repo_url == "local_scratch" or not repo_url.startswith("http"):
             workspace = git_mgr.storage_dir / task_id
             workspace.mkdir(parents=True, exist_ok=True)
@@ -229,7 +256,7 @@ def run_async_swades_task(task_id: str, repo_url: str, prompt: str, image_data: 
             workspace = git_mgr.create_sandbox(repo_url, task_id)
 
         def event_cb(ev):
-            q.put(ev)
+            emit(ev)
 
         engine = SwadesAgentEngine(workspace, on_event=event_cb)
         result = engine.execute_task(prompt, image_data=image_data, test_command=test_command)
@@ -237,7 +264,7 @@ def run_async_swades_task(task_id: str, repo_url: str, prompt: str, image_data: 
         # Commit and extract diff
         git_mgr.commit_changes(workspace, f"feat(swades): {prompt[:50]}")
         diff_text = git_mgr.get_diff(workspace)
-        q.put({"type": "diff", "diff": diff_text})
+        emit({"type": "diff", "diff": diff_text})
 
         with TASKS_LOCK:
             TASK_CONTEXTS[task_id] = {
@@ -250,10 +277,11 @@ def run_async_swades_task(task_id: str, repo_url: str, prompt: str, image_data: 
                 "diff": diff_text
             }
 
-        q.put({"type": "completed", "result": result})
+        emit({"type": "completed", "result": result})
 
     except Exception as e:
-        q.put({"type": "error", "message": str(e)})
+        emit({"type": "error", "message": str(e)})
+
 
 def run_server(port: int = 8088):
     server = ThreadedHTTPServer(("0.0.0.0", port), SwadesHTTPHandler)
