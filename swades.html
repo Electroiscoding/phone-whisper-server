@@ -315,7 +315,7 @@
             return directTunnelUrl;
         }
 
-        async function nuclearFetch(url, options = {}, maxRetries = 4) {
+        async function nuclearFetch(url, options = {}, maxRetries = 10) {
             let attempt = 0;
             const fullUrl = url.startsWith('/') ? `${BASE_ENDPOINT}${url}` : url;
 
@@ -326,10 +326,10 @@
                         return await response.json();
                     }
 
-                    if ([502, 503, 504, 522, 530].includes(response.status)) {
+                    if ([502, 503, 504, 520, 521, 522, 523, 524, 530].includes(response.status)) {
                         attempt++;
                         if (attempt <= maxRetries) {
-                            const delay = Math.min(2500, 400 * Math.pow(1.3, attempt));
+                            const delay = Math.min(4000, 300 * Math.pow(1.35, attempt));
                             await new Promise(r => setTimeout(r, delay));
                             continue;
                         }
@@ -340,7 +340,7 @@
                     if (e.name === 'AbortError') throw e;
                     attempt++;
                     if (attempt <= maxRetries) {
-                        const delay = Math.min(3000, 500 * Math.pow(1.3, attempt));
+                        const delay = Math.min(4000, 400 * Math.pow(1.35, attempt));
                         await new Promise(r => setTimeout(r, delay));
                         continue;
                     }
