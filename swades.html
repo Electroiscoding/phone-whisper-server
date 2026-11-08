@@ -893,30 +893,42 @@
         let activePollInterval = null;
         let completedCardAdded = false;
 
+        let activeEventSource = null;
+
         async function startStreaming(id) {
             completedCardAdded = false;
+            // Always fetch existing logs immediately
+            pollLogs(id);
+
+            if (activeEventSource) {
+                try { activeEventSource.close(); } catch(e) {}
+                activeEventSource = null;
+            }
+
             try {
-                const eventSource = new EventSource(`${BASE_ENDPOINT}/v1/agent/stream/${id}`);
-                eventSource.onmessage = (event) => {
+                activeEventSource = new EventSource(`${BASE_ENDPOINT}/v1/agent/stream/${id}`);
+                activeEventSource.onmessage = (event) => {
                     try {
                         const data = JSON.parse(event.data);
                         handleEvent(data);
                     } catch (e) {}
                 };
-                eventSource.onerror = () => {
-                    eventSource.close();
-                    pollLogs(id);
+                activeEventSource.onerror = () => {
+                    if (activeEventSource) {
+                        try { activeEventSource.close(); } catch(e) {}
+                        activeEventSource = null;
+                    }
                 };
-            } catch (e) {
-                pollLogs(id);
-            }
+            } catch (e) {}
         }
 
         async function pollLogs(id) {
             if (activePollInterval) {
                 clearInterval(activePollInterval);
+                activePollInterval = null;
             }
-            activePollInterval = setInterval(async () => {
+
+            const fetchLogsOnce = async () => {
                 try {
                     const data = await nuclearFetch(`${BASE_ENDPOINT}/v1/agent/logs/${id}`);
                     if (data && data.logs && Array.isArray(data.logs)) {
@@ -924,10 +936,12 @@
                     }
                     if (data && data.job) {
                         updateStatus(data.job.status, data.job.status === 'COMPLETED' ? 'success' : (data.job.status === 'FAILED' ? 'error' : 'loading'));
-                        if (data.job.status === 'COMPLETED') {
-                            clearInterval(activePollInterval);
-                            activePollInterval = null;
-                            if (!completedCardAdded) {
+                        if (data.job.status === 'COMPLETED' || data.job.status === 'FAILED') {
+                            if (activePollInterval) {
+                                clearInterval(activePollInterval);
+                                activePollInterval = null;
+                            }
+                            if (data.job.status === 'COMPLETED' && !completedCardAdded) {
                                 renderJulesReviewCard({
                                     summary: latestThinking || 'All autonomous steps completed and verified.',
                                     branch: data.job.branch_name || currentBranch,
@@ -949,7 +963,11 @@
                         console.warn("[Swades Poll Notice]:", e.message || e);
                     }
                 }
-            }, 2000);
+            };
+
+            // Immediate execution
+            await fetchLogsOnce();
+            activePollInterval = setInterval(fetchLogsOnce, 2000);
         }
 
         const processedEventKeys = new Set();
