@@ -1,0 +1,74 @@
+{
+  "model_biodata": {
+    "name": "Qwen 2.5 0.5B Instruct",
+    "architecture": "qwen2",
+    "parameters": "490M (0.49 Billion)",
+    "quantization": "Q4_K_M (4-bit medium GGUF)",
+    "context_window": 32768,
+    "active_context_limit": 2048,
+    "engine": "llama.cpp via Termux ARM NEON",
+    "device": "Xiaomi Redmi 9i (MediaTek Helio G25, 8x Cortex-A53, 4GB RAM)",
+    "runtime_governor": "dynamic_elastic_jit"
+  },
+  "total_cycles": 2,
+  "successful_mutations": 0,
+  "optimal_config": {
+    "temperature": 0.2,
+    "top_p": 0.9,
+    "top_k": 40,
+    "repetition_penalty": 1.1,
+    "max_tokens": 64,
+    "system_prompt": "You are a concise, precise AI assistant. Output only accurate answers with zero fluff."
+  },
+  "current_config": {
+    "temperature": 0.2,
+    "top_p": 0.9,
+    "top_k": 40,
+    "repetition_penalty": 1.1,
+    "max_tokens": 64,
+    "system_prompt": "You are a concise, precise AI assistant. Output only accurate answers with zero fluff."
+  },
+  "baseline_metrics": {
+    "avg_latency_ms": 1100.0,
+    "avg_tok_per_sec": 12.5,
+    "pass_rate_pct": 100.0
+  },
+  "recent_experiments": [
+    {
+      "cycle": 2,
+      "timestamp": "2026-11-08T11:08:03Z",
+      "name": "Aggressive Top-K Reduction",
+      "hypothesis": "Reducing top_k from 40 to 20 shrinks the candidate vocabulary for each token prediction, potentially lowering the computational overhead of the softmax normalization and sampling step on the ARM CPU, thereby increasing tokens per second without sacrificing accuracy for a 0.5B model at low temperature.",
+      "mutations": {
+        "top_k": 20
+      },
+      "metrics": {
+        "pass_rate_pct": 100.0,
+        "avg_latency_ms": 11110.03,
+        "avg_tok_per_sec": 2.37,
+        "delta_latency_ms": 10010.03,
+        "delta_speed_tok_s": -10.13
+      },
+      "conclusion": "The hypothesis is rejected because reducing `top_k` from 40 to 20 resulted in a significant performance degradation, with mean generation speed dropping by 10.13 tok/s and latency increasing by over 10 seconds. Consequently, this mutation should be discarded as it fails to improve computational efficiency or maintain the target throughput.",
+      "verdict": "REJECTED_ROLLBACK"
+    },
+    {
+      "cycle": 1,
+      "timestamp": "2026-11-08T11:03:19Z",
+      "name": "Lower_TopK_Throughput",
+      "hypothesis": "Reducing top_k from 40 to 20 shrinks the candidate vocabulary set for each token generation step, potentially reducing the computational overhead of softmax normalization and sampling on the ARM CPU, thereby increasing tokens per second without impacting accuracy for a concise assistant.",
+      "mutations": {
+        "top_k": 20
+      },
+      "metrics": {
+        "pass_rate_pct": 100.0,
+        "avg_latency_ms": 9599.31,
+        "avg_tok_per_sec": 3.3,
+        "delta_latency_ms": 8499.31,
+        "delta_speed_tok_s": -9.2
+      },
+      "conclusion": "The hypothesis is rejected because reducing `top_k` to 20 resulted in a significant performance degradation, with generation speed dropping by 9.20 tok/s and mean latency increasing by over 8 seconds. Consequently, the mutation should be discarded as it fails to improve throughput and severely harms system responsiveness.",
+      "verdict": "REJECTED_ROLLBACK"
+    }
+  ]
+}

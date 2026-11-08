@@ -252,20 +252,22 @@ class QwenExperimenter:
         optimal_cfg = self.state.get("optimal_config", dict(DEFAULT_CONFIG))
         base_metrics = self.state.get("baseline_metrics", {})
 
+        past_failed = [r.get("mutations") for r in self.state.get("recent_experiments", [])[:6] if r.get("verdict") == "REJECTED_ROLLBACK"]
+
         # Step 1: Groq AI synthesizes mutation hypothesis
         prompt_scientist = f"""You are the Lead AI Optimization Scientist in the Swades Framework.
 Target model: Qwen 2.5 0.5B Instruct (running locally on ARM MediaTek Helio G25).
 Current Parameters: {json.dumps(current_cfg)}
 Optimal Parameters Discovered So Far: {json.dumps(optimal_cfg)}
 Baseline Performance: {json.dumps(base_metrics)}
+Recently Tested and REJECTED Mutations (DO NOT REPEAT THESE): {json.dumps(past_failed)}
 
-Your mission: Mutate exactly 1 or 2 parameters to optimize throughput (tok/s) or reduce latency while keeping 100% test accuracy.
+Your mission: Formulate a novel mutation targeting a parameter NOT recently rejected.
 Available parameter space:
-- temperature: 0.05 to 1.2
-- top_p: 0.5 to 1.0
-- top_k: 20 to 100
-- repetition_penalty: 1.0 to 1.3
-- max_tokens: 32 to 128
+- repetition_penalty: 1.0 to 1.35 (e.g. 1.05, 1.15)
+- top_p: 0.6 to 0.98 (e.g. 0.75, 0.85, 0.95)
+- temperature: 0.1 to 0.8 (e.g. 0.15, 0.35, 0.5)
+- max_tokens: 32 to 96 (e.g. 48, 64)
 - system_prompt: concise instructions targeting zero hallucinations.
 
 You must respond ONLY with a raw JSON object (no markdown fences, no comments) matching:
@@ -277,7 +279,7 @@ You must respond ONLY with a raw JSON object (no markdown fences, no comments) m
   }}
 }}"""
 
-        scientist_resp = self._call_groq([{"role": "user", "content": prompt_scientist}], temperature=0.3)
+        scientist_resp = self._call_groq([{"role": "user", "content": prompt_scientist}], temperature=0.7)
         try:
             clean_json = scientist_resp.strip()
             if clean_json.startswith("```"):

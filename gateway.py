@@ -52,6 +52,17 @@ from email.mime.multipart import MIMEMultipart
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from socketserver import ThreadingMixIn
 from concurrent.futures import ThreadPoolExecutor
+
+# Guarantee Termux environment PATH and SSL
+termux_bin = "/data/data/com.termux/files/usr/bin"
+if termux_bin not in os.environ.get("PATH", ""):
+    os.environ["PATH"] = f"{termux_bin}:{os.environ.get('PATH', '')}"
+if "HOME" not in os.environ:
+    os.environ["HOME"] = "/data/data/com.termux/files/home"
+if os.path.exists("/data/data/com.termux/files/usr/etc/tls/cert.pem"):
+    os.environ["GIT_SSL_CAINFO"] = "/data/data/com.termux/files/usr/etc/tls/cert.pem"
+    os.environ["SSL_CERT_FILE"] = "/data/data/com.termux/files/usr/etc/tls/cert.pem"
+
 try:
     from mobile.gridlock import GLOBAL_ROOM_MANAGER, TILES, DISTRICTS
 except ImportError:
@@ -5208,13 +5219,20 @@ class SwadesGitManager:
         return None
 
     def _run_git_secure(self, args, cwd=None, timeout=60):
-        cmd = ["git"]
+        git_bin = "/data/data/com.termux/files/usr/bin/git"
+        cmd = [git_bin if os.path.exists(git_bin) else "git"]
         if self.github_token:
             auth_str = f"x-access-token:{self.github_token}"
             auth_b64 = base64.b64encode(auth_str.encode("utf-8")).decode("utf-8")
             cmd.extend(["-c", f"http.extraheader=Authorization: Basic {auth_b64}"])
         cmd.extend(args)
-        res = sp.run(cmd, cwd=cwd, capture_output=True, text=True, timeout=timeout)
+        env = os.environ.copy()
+        env["PATH"] = f"/data/data/com.termux/files/usr/bin:{env.get('PATH', '')}"
+        env["HOME"] = "/data/data/com.termux/files/home"
+        if os.path.exists("/data/data/com.termux/files/usr/etc/tls/cert.pem"):
+            env["GIT_SSL_CAINFO"] = "/data/data/com.termux/files/usr/etc/tls/cert.pem"
+            env["SSL_CERT_FILE"] = "/data/data/com.termux/files/usr/etc/tls/cert.pem"
+        res = sp.run(cmd, cwd=cwd, capture_output=True, text=True, timeout=timeout, env=env)
         return res
 
     def check_storage_quota(self, min_free_mb=500):
