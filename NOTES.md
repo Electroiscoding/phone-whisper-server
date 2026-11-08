@@ -44,12 +44,20 @@
   - Manual Trigger: `POST https://phone-whisper-server.pages.dev/v1/qwen/experiment/trigger`
 
 ## 5. Live Tunnel Status & Verification
-- Active Cloudflare Tunnel: `https://drink-laid-entity-numerous.trycloudflare.com`
+- Active Cloudflare Tunnel: `https://nobody-paperback-featured-lending.trycloudflare.com`
 - Auto-healing Edge Registration: Registered with Cloudflare Pages Worker (`/register_tunnel`)
+- Phone Wi-Fi: Reconnected to `192.168.29.2` via `com.whisper.touchbridge` accessibility tap broadcast.
 - Endpoints verified with HTTP 200 via Cloudflare Pages:
   - `https://phone-whisper-server.pages.dev/health` -> HTTP/2 200
   - `https://phone-whisper-server.pages.dev/telemetry` -> HTTP/2 200
+  - `https://phone-whisper-server.pages.dev/v1/agent/active` -> HTTP/2 200
   - `https://phone-whisper-server.pages.dev/v1/agent/tasks?user=Electroiscoding` -> HTTP/2 200
+  - `https://phone-whisper-server.pages.dev/v1/qwen/experiments` -> HTTP/2 200
   - `https://phone-whisper-server.pages.dev/swades` -> HTTP/2 200
-- Bloated header elements (`Phone AI Node`, `Cloud Console`, `Docs`) removed from `swades.html`.
-- Single page constraint enforced; all traffic directs to `swades.html` (`/swades`).
+  - `https://phone-whisper-server.pages.dev/qwen` -> HTTP/2 200
+- Client-Side Network Protections:
+  - `swades.html`: Fail-safe snapback to `BASE_ENDPOINT` preventing dead tunnel CORS traps.
+  - `qwen.html`: `isFetching` lock to prevent request stacking, relaxed polling interval (8s), and graceful retry.
+  - `functions/_proxy.js`: Added `/qwen` routes to `isLongRunning` pool with 60s timeout budget.
+- Bloated header elements (`Phone AI Node`, `Cloud Console`, `Docs`) stripped from `swades.html`.
+
