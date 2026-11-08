@@ -36,22 +36,25 @@ def log(msg):
         pass
 
 def is_gateway_running():
-    try:
-        req = urllib.request.Request("http://127.0.0.1:8080/health")
-        with urllib.request.urlopen(req, timeout=3) as resp:
-            return resp.status == 200
-    except Exception:
-        return False
+    for _ in range(2):
+        try:
+            req = urllib.request.Request("http://127.0.0.1:8080/health")
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                if resp.status == 200:
+                    return True
+        except Exception:
+            time.sleep(0.5)
+    return False
 
 def ensure_gateway():
     if not is_gateway_running():
         log("Gateway not responding! Restarting gateway.py...")
-        subprocess.run(["pkill", "-f", "python.*gateway.py"], stderr=subprocess.DEVNULL)
+        subprocess.run(["pkill", "-9", "-f", "python.*gateway.py"], stderr=subprocess.DEVNULL)
         time.sleep(1)
-        subprocess.Popen(["python3", os.path.join(HOME, "gateway.py")],
+        subprocess.Popen(["python3", "-u", os.path.join(HOME, "gateway.py")],
                          stdout=open(os.path.join(HOME, "gateway.log"), "a"),
                          stderr=subprocess.STDOUT)
-        time.sleep(2)
+        time.sleep(5)
 
 def get_current_url():
     try:

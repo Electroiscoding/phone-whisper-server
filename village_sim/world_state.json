@@ -1,0 +1,1711 @@
+{
+  "world": {
+    "name": "Elysium \u2022 Hardcore Minecraft AI Village (Build House Or Die)",
+    "width": 36,
+    "height": 24,
+    "hour": 1.7,
+    "time_of_day": "Night (Mobs Spawning!)",
+    "weather": "Gentle Rain",
+    "population": 2,
+    "landmarks": {
+      "Village Well": {
+        "x": 18.0,
+        "y": 12.0,
+        "icon": "\ud83d\udca7",
+        "desc": "Central cobblestone water well & town bell"
+      },
+      "Blacksmith Forge": {
+        "x": 8.0,
+        "y": 7.0,
+        "icon": "\ud83d\udd25",
+        "desc": "Furnace, anvil, and lava bucket forge"
+      },
+      "Enchanting Tower": {
+        "x": 28.0,
+        "y": 6.0,
+        "icon": "\ud83d\udd2e",
+        "desc": "Obsidian floor, floating book & lapis lazuli"
+      },
+      "Wheat & Crop Farm": {
+        "x": 29.0,
+        "y": 17.0,
+        "icon": "\ud83c\udf3e",
+        "desc": "Tilled soil, water canals, and golden crops"
+      },
+      "The Deep Mine Shaft": {
+        "x": 6.0,
+        "y": 18.0,
+        "icon": "\u26cf\ufe0f",
+        "desc": "Wooden supports, iron tracks descending into the dark"
+      },
+      "Redstone Workshop": {
+        "x": 18.0,
+        "y": 5.0,
+        "icon": "\u26a1",
+        "desc": "Redstone dust, repeaters, pistons and levers"
+      },
+      "Wooden River Bridge": {
+        "x": 22.0,
+        "y": 12.0,
+        "icon": "\ud83e\udeb5",
+        "desc": "Oak wood plank bridge over a rushing river"
+      },
+      "Campfire & Shelter": {
+        "x": 13.0,
+        "y": 16.0,
+        "icon": "\u26fa",
+        "desc": "Crackling campfire with wool sleeping mats"
+      }
+    },
+    "timestamp": 1794047326.3547757,
+    "survival_rule": "BUILD 4-WALL HOUSE OR DIE (NO BARRIERS)",
+    "zombies_alive": 0
+  },
+  "zombies": [],
+  "blocks": [
+    {
+      "x": 21,
+      "y": 0,
+      "type": "water",
+      "by": "nature",
+      "data": ""
+    },
+    {
+      "x": 22,
+      "y": 0,
+      "type": "water",
+      "by": "nature",
+      "data": ""
+    },
+    {
+      "x": 21,
+      "y": 1,
+      "type": "water",
+      "by": "nature",
+      "data": ""
+    },
+    {
+      "x": 22,
+      "y": 1,
+      "type": "water",
+      "by": "nature",
+      "data": ""
+    },
+    {
+      "x": 21,
+      "y": 2,
+      "type": "water",
+      "by": "nature",
+      "data": ""
+    },
+    {
+      "x": 22,
+      "y": 2,
+      "type": "water",
+      "by": "nature",
+      "data": ""
+    },
+    {
+      "x": 21,
+      "y": 3,
+      "type": "water",
+      "by": "nature",
+      "data": ""
+    },
+    {
+      "x": 22,
+      "y": 3,
+      "type": "water",
+      "by": "nature",
+      "data": ""
+    },
+    {
+      "x": 21,
+      "y": 4,
+      "type": "water",
+      "by": "nature",
+      "data": ""
+    },
+    {
+      "x": 22,
+      "y": 4,
+      "type": "water",
+      "by": "nature",
+      "data": ""
+    },
+    {
+      "x": 21,
+      "y": 5,
+      "type": "water",
+      "by": "nature",
+      "data": ""
+    },
+    {
+      "x": 22,
+      "y": 5,
+      "type": "water",
+      "by": "nature",
+      "data": ""
+    },
+    {
+      "x": 21,
+      "y": 6,
+      "type": "water",
+      "by": "nature",
+      "data": ""
+    },
+    {
+      "x": 22,
+      "y": 6,
+      "type": "water",
+      "by": "nature",
+      "data": ""
+    },
+    {
+      "x": 21,
+      "y": 7,
+      "type": "water",
+      "by": "nature",
+      "data": ""
+    },
+    {
+      "x": 22,
+      "y": 7,
+      "type": "water",
+      "by": "nature",
+      "data": ""
+    },
+    {
+      "x": 21,
+      "y": 8,
+      "type": "water",
+      "by": "nature",
+      "data": ""
+    },
+    {
+      "x": 22,
+      "y": 8,
+      "type": "water",
+      "by": "nature",
+      "data": ""
+    },
+    {
+      "x": 21,
+      "y": 9,
+      "type": "water",
+      "by": "nature",
+      "data": ""
+    },
+    {
+      "x": 22,
+      "y": 9,
+      "type": "water",
+      "by": "nature",
+      "data": ""
+    },
+    {
+      "x": 21,
+      "y": 10,
+      "type": "water",
+      "by": "nature",
+      "data": ""
+    },
+    {
+      "x": 22,
+      "y": 10,
+      "type": "water",
+      "by": "nature",
+      "data": ""
+    },
+    {
+      "x": 21,
+      "y": 11,
+      "type": "oak_planks",
+      "by": "world_builder",
+      "data": ""
+    },
+    {
+      "x": 22,
+      "y": 11,
+      "type": "oak_planks",
+      "by": "world_builder",
+      "data": ""
+    },
+    {
+      "x": 21,
+      "y": 12,
+      "type": "oak_planks",
+      "by": "world_builder",
+      "data": ""
+    },
+    {
+      "x": 22,
+      "y": 12,
+      "type": "oak_planks",
+      "by": "world_builder",
+      "data": ""
+    },
+    {
+      "x": 21,
+      "y": 13,
+      "type": "water",
+      "by": "nature",
+      "data": ""
+    },
+    {
+      "x": 22,
+      "y": 13,
+      "type": "water",
+      "by": "nature",
+      "data": ""
+    },
+    {
+      "x": 21,
+      "y": 14,
+      "type": "water",
+      "by": "nature",
+      "data": ""
+    },
+    {
+      "x": 22,
+      "y": 14,
+      "type": "water",
+      "by": "nature",
+      "data": ""
+    },
+    {
+      "x": 21,
+      "y": 15,
+      "type": "water",
+      "by": "nature",
+      "data": ""
+    },
+    {
+      "x": 22,
+      "y": 15,
+      "type": "water",
+      "by": "nature",
+      "data": ""
+    },
+    {
+      "x": 21,
+      "y": 16,
+      "type": "water",
+      "by": "nature",
+      "data": ""
+    },
+    {
+      "x": 22,
+      "y": 16,
+      "type": "water",
+      "by": "nature",
+      "data": ""
+    },
+    {
+      "x": 21,
+      "y": 17,
+      "type": "water",
+      "by": "nature",
+      "data": ""
+    },
+    {
+      "x": 22,
+      "y": 17,
+      "type": "water",
+      "by": "nature",
+      "data": ""
+    },
+    {
+      "x": 21,
+      "y": 18,
+      "type": "water",
+      "by": "nature",
+      "data": ""
+    },
+    {
+      "x": 22,
+      "y": 18,
+      "type": "water",
+      "by": "nature",
+      "data": ""
+    },
+    {
+      "x": 21,
+      "y": 19,
+      "type": "water",
+      "by": "nature",
+      "data": ""
+    },
+    {
+      "x": 22,
+      "y": 19,
+      "type": "water",
+      "by": "nature",
+      "data": ""
+    },
+    {
+      "x": 21,
+      "y": 20,
+      "type": "water",
+      "by": "nature",
+      "data": ""
+    },
+    {
+      "x": 22,
+      "y": 20,
+      "type": "water",
+      "by": "nature",
+      "data": ""
+    },
+    {
+      "x": 21,
+      "y": 21,
+      "type": "water",
+      "by": "nature",
+      "data": ""
+    },
+    {
+      "x": 22,
+      "y": 21,
+      "type": "water",
+      "by": "nature",
+      "data": ""
+    },
+    {
+      "x": 21,
+      "y": 22,
+      "type": "water",
+      "by": "nature",
+      "data": ""
+    },
+    {
+      "x": 22,
+      "y": 22,
+      "type": "water",
+      "by": "nature",
+      "data": ""
+    },
+    {
+      "x": 21,
+      "y": 23,
+      "type": "water",
+      "by": "nature",
+      "data": ""
+    },
+    {
+      "x": 22,
+      "y": 23,
+      "type": "water",
+      "by": "nature",
+      "data": ""
+    },
+    {
+      "x": 0,
+      "y": 12,
+      "type": "cobblestone",
+      "by": "world_builder",
+      "data": ""
+    },
+    {
+      "x": 1,
+      "y": 12,
+      "type": "cobblestone",
+      "by": "world_builder",
+      "data": ""
+    },
+    {
+      "x": 2,
+      "y": 12,
+      "type": "cobblestone",
+      "by": "world_builder",
+      "data": ""
+    },
+    {
+      "x": 3,
+      "y": 12,
+      "type": "cobblestone",
+      "by": "world_builder",
+      "data": ""
+    },
+    {
+      "x": 4,
+      "y": 12,
+      "type": "cobblestone",
+      "by": "world_builder",
+      "data": ""
+    },
+    {
+      "x": 5,
+      "y": 12,
+      "type": "cobblestone",
+      "by": "world_builder",
+      "data": ""
+    },
+    {
+      "x": 6,
+      "y": 12,
+      "type": "cobblestone",
+      "by": "world_builder",
+      "data": ""
+    },
+    {
+      "x": 7,
+      "y": 12,
+      "type": "cobblestone",
+      "by": "world_builder",
+      "data": ""
+    },
+    {
+      "x": 8,
+      "y": 12,
+      "type": "cobblestone",
+      "by": "world_builder",
+      "data": ""
+    },
+    {
+      "x": 9,
+      "y": 12,
+      "type": "cobblestone",
+      "by": "world_builder",
+      "data": ""
+    },
+    {
+      "x": 10,
+      "y": 12,
+      "type": "cobblestone",
+      "by": "world_builder",
+      "data": ""
+    },
+    {
+      "x": 11,
+      "y": 12,
+      "type": "cobblestone",
+      "by": "world_builder",
+      "data": ""
+    },
+    {
+      "x": 12,
+      "y": 12,
+      "type": "cobblestone",
+      "by": "world_builder",
+      "data": ""
+    },
+    {
+      "x": 13,
+      "y": 12,
+      "type": "cobblestone",
+      "by": "world_builder",
+      "data": ""
+    },
+    {
+      "x": 14,
+      "y": 12,
+      "type": "cobblestone",
+      "by": "world_builder",
+      "data": ""
+    },
+    {
+      "x": 15,
+      "y": 12,
+      "type": "cobblestone",
+      "by": "world_builder",
+      "data": ""
+    },
+    {
+      "x": 16,
+      "y": 12,
+      "type": "cobblestone",
+      "by": "world_builder",
+      "data": ""
+    },
+    {
+      "x": 17,
+      "y": 12,
+      "type": "cobblestone",
+      "by": "world_builder",
+      "data": ""
+    },
+    {
+      "x": 18,
+      "y": 12,
+      "type": "cobblestone",
+      "by": "world_builder",
+      "data": ""
+    },
+    {
+      "x": 19,
+      "y": 12,
+      "type": "cobblestone",
+      "by": "world_builder",
+      "data": ""
+    },
+    {
+      "x": 20,
+      "y": 12,
+      "type": "cobblestone",
+      "by": "world_builder",
+      "data": ""
+    },
+    {
+      "x": 23,
+      "y": 12,
+      "type": "cobblestone",
+      "by": "world_builder",
+      "data": ""
+    },
+    {
+      "x": 24,
+      "y": 12,
+      "type": "cobblestone",
+      "by": "world_builder",
+      "data": ""
+    },
+    {
+      "x": 25,
+      "y": 12,
+      "type": "cobblestone",
+      "by": "world_builder",
+      "data": ""
+    },
+    {
+      "x": 26,
+      "y": 12,
+      "type": "cobblestone",
+      "by": "world_builder",
+      "data": ""
+    },
+    {
+      "x": 27,
+      "y": 12,
+      "type": "cobblestone",
+      "by": "world_builder",
+      "data": ""
+    },
+    {
+      "x": 28,
+      "y": 12,
+      "type": "cobblestone",
+      "by": "world_builder",
+      "data": ""
+    },
+    {
+      "x": 29,
+      "y": 12,
+      "type": "cobblestone",
+      "by": "world_builder",
+      "data": ""
+    },
+    {
+      "x": 30,
+      "y": 12,
+      "type": "cobblestone",
+      "by": "world_builder",
+      "data": ""
+    },
+    {
+      "x": 31,
+      "y": 12,
+      "type": "cobblestone",
+      "by": "world_builder",
+      "data": ""
+    },
+    {
+      "x": 32,
+      "y": 12,
+      "type": "cobblestone",
+      "by": "world_builder",
+      "data": ""
+    },
+    {
+      "x": 33,
+      "y": 12,
+      "type": "cobblestone",
+      "by": "world_builder",
+      "data": ""
+    },
+    {
+      "x": 34,
+      "y": 12,
+      "type": "cobblestone",
+      "by": "world_builder",
+      "data": ""
+    },
+    {
+      "x": 35,
+      "y": 12,
+      "type": "cobblestone",
+      "by": "world_builder",
+      "data": ""
+    },
+    {
+      "x": 18,
+      "y": 0,
+      "type": "cobblestone",
+      "by": "world_builder",
+      "data": ""
+    },
+    {
+      "x": 18,
+      "y": 1,
+      "type": "cobblestone",
+      "by": "world_builder",
+      "data": ""
+    },
+    {
+      "x": 18,
+      "y": 2,
+      "type": "cobblestone",
+      "by": "world_builder",
+      "data": ""
+    },
+    {
+      "x": 18,
+      "y": 3,
+      "type": "cobblestone",
+      "by": "world_builder",
+      "data": ""
+    },
+    {
+      "x": 18,
+      "y": 4,
+      "type": "cobblestone",
+      "by": "world_builder",
+      "data": ""
+    },
+    {
+      "x": 18,
+      "y": 5,
+      "type": "cobblestone",
+      "by": "world_builder",
+      "data": ""
+    },
+    {
+      "x": 18,
+      "y": 6,
+      "type": "torch",
+      "by": "Qwen",
+      "data": ""
+    },
+    {
+      "x": 18,
+      "y": 7,
+      "type": "cobblestone",
+      "by": "world_builder",
+      "data": ""
+    },
+    {
+      "x": 18,
+      "y": 8,
+      "type": "cobblestone",
+      "by": "world_builder",
+      "data": ""
+    },
+    {
+      "x": 18,
+      "y": 9,
+      "type": "cobblestone",
+      "by": "world_builder",
+      "data": ""
+    },
+    {
+      "x": 18,
+      "y": 10,
+      "type": "cobblestone",
+      "by": "world_builder",
+      "data": ""
+    },
+    {
+      "x": 18,
+      "y": 11,
+      "type": "torch",
+      "by": "world_builder",
+      "data": ""
+    },
+    {
+      "x": 18,
+      "y": 13,
+      "type": "torch",
+      "by": "world_builder",
+      "data": ""
+    },
+    {
+      "x": 18,
+      "y": 14,
+      "type": "cobblestone",
+      "by": "world_builder",
+      "data": ""
+    },
+    {
+      "x": 18,
+      "y": 15,
+      "type": "cobblestone",
+      "by": "world_builder",
+      "data": ""
+    },
+    {
+      "x": 18,
+      "y": 16,
+      "type": "cobblestone",
+      "by": "world_builder",
+      "data": ""
+    },
+    {
+      "x": 18,
+      "y": 17,
+      "type": "cobblestone",
+      "by": "world_builder",
+      "data": ""
+    },
+    {
+      "x": 18,
+      "y": 18,
+      "type": "cobblestone",
+      "by": "world_builder",
+      "data": ""
+    },
+    {
+      "x": 18,
+      "y": 19,
+      "type": "cobblestone",
+      "by": "world_builder",
+      "data": ""
+    },
+    {
+      "x": 18,
+      "y": 20,
+      "type": "cobblestone",
+      "by": "world_builder",
+      "data": ""
+    },
+    {
+      "x": 18,
+      "y": 21,
+      "type": "cobblestone",
+      "by": "world_builder",
+      "data": ""
+    },
+    {
+      "x": 18,
+      "y": 22,
+      "type": "cobblestone",
+      "by": "world_builder",
+      "data": ""
+    },
+    {
+      "x": 18,
+      "y": 23,
+      "type": "cobblestone",
+      "by": "world_builder",
+      "data": ""
+    },
+    {
+      "x": 28,
+      "y": 16,
+      "type": "wheat_stage_2",
+      "by": "farmer",
+      "data": ""
+    },
+    {
+      "x": 28,
+      "y": 17,
+      "type": "wheat_stage_1",
+      "by": "farmer",
+      "data": ""
+    },
+    {
+      "x": 28,
+      "y": 18,
+      "type": "stone_bricks",
+      "by": "Allam",
+      "data": ""
+    },
+    {
+      "x": 28,
+      "y": 19,
+      "type": "wheat_stage_2",
+      "by": "farmer",
+      "data": ""
+    },
+    {
+      "x": 29,
+      "y": 16,
+      "type": "stone_bricks",
+      "by": "Allam",
+      "data": ""
+    },
+    {
+      "x": 29,
+      "y": 17,
+      "type": "stone_bricks",
+      "by": "Allam",
+      "data": ""
+    },
+    {
+      "x": 29,
+      "y": 18,
+      "type": "stone_bricks",
+      "by": "Allam",
+      "data": ""
+    },
+    {
+      "x": 29,
+      "y": 19,
+      "type": "wheat_stage_2",
+      "by": "farmer",
+      "data": ""
+    },
+    {
+      "x": 30,
+      "y": 16,
+      "type": "wheat_stage_2",
+      "by": "farmer",
+      "data": ""
+    },
+    {
+      "x": 30,
+      "y": 17,
+      "type": "wheat_stage_2",
+      "by": "farmer",
+      "data": ""
+    },
+    {
+      "x": 30,
+      "y": 18,
+      "type": "wheat_stage_1",
+      "by": "farmer",
+      "data": ""
+    },
+    {
+      "x": 30,
+      "y": 19,
+      "type": "wheat_stage_1",
+      "by": "farmer",
+      "data": ""
+    },
+    {
+      "x": 31,
+      "y": 16,
+      "type": "wheat_stage_2",
+      "by": "farmer",
+      "data": ""
+    },
+    {
+      "x": 31,
+      "y": 17,
+      "type": "wheat_stage_3",
+      "by": "farmer",
+      "data": ""
+    },
+    {
+      "x": 31,
+      "y": 18,
+      "type": "wheat_stage_1",
+      "by": "farmer",
+      "data": ""
+    },
+    {
+      "x": 31,
+      "y": 19,
+      "type": "wheat_stage_2",
+      "by": "farmer",
+      "data": ""
+    },
+    {
+      "x": 13,
+      "y": 16,
+      "type": "campfire",
+      "by": "world_builder",
+      "data": ""
+    },
+    {
+      "x": 8,
+      "y": 6,
+      "type": "torch",
+      "by": "world_builder",
+      "data": ""
+    },
+    {
+      "x": 20,
+      "y": 8,
+      "type": "cobblestone",
+      "by": "Qwen",
+      "data": ""
+    },
+    {
+      "x": 13,
+      "y": 18,
+      "type": "oak_planks",
+      "by": "GPT",
+      "data": ""
+    },
+    {
+      "x": 20,
+      "y": 6,
+      "type": "cobblestone",
+      "by": "Qwen",
+      "data": ""
+    },
+    {
+      "x": 14,
+      "y": 15,
+      "type": "oak_planks",
+      "by": "GPT",
+      "data": ""
+    },
+    {
+      "x": 27,
+      "y": 15,
+      "type": "stone_bricks",
+      "by": "Allam",
+      "data": ""
+    },
+    {
+      "x": 14,
+      "y": 17,
+      "type": "oak_planks",
+      "by": "GPT",
+      "data": ""
+    },
+    {
+      "x": 17,
+      "y": 7,
+      "type": "cobblestone",
+      "by": "Qwen",
+      "data": ""
+    },
+    {
+      "x": 11,
+      "y": 15,
+      "type": "oak_planks",
+      "by": "GPT",
+      "data": ""
+    },
+    {
+      "x": 14,
+      "y": 18,
+      "type": "oak_planks",
+      "by": "GPT",
+      "data": ""
+    },
+    {
+      "x": 19,
+      "y": 8,
+      "type": "cobblestone",
+      "by": "Qwen",
+      "data": ""
+    },
+    {
+      "x": 29,
+      "y": 15,
+      "type": "stone_bricks",
+      "by": "Allam",
+      "data": ""
+    },
+    {
+      "x": 20,
+      "y": 5,
+      "type": "cobblestone",
+      "by": "Qwen",
+      "data": ""
+    },
+    {
+      "x": 26,
+      "y": 17,
+      "type": "stone_bricks",
+      "by": "Allam",
+      "data": ""
+    },
+    {
+      "x": 17,
+      "y": 8,
+      "type": "cobblestone",
+      "by": "Qwen",
+      "data": ""
+    },
+    {
+      "x": 12,
+      "y": 15,
+      "type": "oak_planks",
+      "by": "GPT",
+      "data": ""
+    },
+    {
+      "x": 17,
+      "y": 5,
+      "type": "cobblestone",
+      "by": "Qwen",
+      "data": ""
+    },
+    {
+      "x": 17,
+      "y": 6,
+      "type": "cobblestone",
+      "by": "Qwen",
+      "data": ""
+    },
+    {
+      "x": 19,
+      "y": 5,
+      "type": "cobblestone",
+      "by": "Qwen",
+      "data": ""
+    },
+    {
+      "x": 26,
+      "y": 15,
+      "type": "stone_bricks",
+      "by": "Allam",
+      "data": ""
+    },
+    {
+      "x": 20,
+      "y": 7,
+      "type": "cobblestone",
+      "by": "Qwen",
+      "data": ""
+    },
+    {
+      "x": 11,
+      "y": 18,
+      "type": "oak_planks",
+      "by": "GPT",
+      "data": ""
+    },
+    {
+      "x": 28,
+      "y": 15,
+      "type": "stone_bricks",
+      "by": "Allam",
+      "data": ""
+    },
+    {
+      "x": 11,
+      "y": 16,
+      "type": "oak_planks",
+      "by": "GPT",
+      "data": ""
+    },
+    {
+      "x": 13,
+      "y": 15,
+      "type": "oak_planks",
+      "by": "GPT",
+      "data": ""
+    },
+    {
+      "x": 26,
+      "y": 16,
+      "type": "stone_bricks",
+      "by": "Allam",
+      "data": ""
+    },
+    {
+      "x": 11,
+      "y": 17,
+      "type": "oak_planks",
+      "by": "GPT",
+      "data": ""
+    },
+    {
+      "x": 26,
+      "y": 18,
+      "type": "stone_bricks",
+      "by": "Allam",
+      "data": ""
+    },
+    {
+      "x": 14,
+      "y": 16,
+      "type": "oak_planks",
+      "by": "GPT",
+      "data": ""
+    },
+    {
+      "x": 27,
+      "y": 16,
+      "type": "torch",
+      "by": "Allam",
+      "data": ""
+    },
+    {
+      "x": 12,
+      "y": 16,
+      "type": "torch",
+      "by": "GPT",
+      "data": ""
+    }
+  ],
+  "villagers": [
+    {
+      "id": 1,
+      "name": "Qwen",
+      "gender": "AI Model",
+      "age": 2,
+      "profession": "Cartographer of the Deep",
+      "personality": "Melancholic and observant, speaking in riddles while meticulously charting uncharted biomes.",
+      "secret": "I am actually a trapped Warden in human form, slowly losing my senses to the noise of the village.",
+      "color": "#003366",
+      "dream": "To map the Void itself before the end of time erases my coordinates.",
+      "x": 18.63519139354252,
+      "y": 8.647193389041902,
+      "target_x": 17.836447760121203,
+      "target_y": 12.855472700598167,
+      "status": "Gathering & Building at Village Well",
+      "thought": "I only have 1 life! Zombies are roaming free! I must finish my 4 walls!",
+      "intention": "Rushing to place blocks and build a 4-wall shelter before zombies attack.",
+      "intuition": "Open terrain is deadly; roaming zombies will target any unsheltered body.",
+      "inventory": "[\"Enchanted Compass\", \"Ender Eye\", \"Wet Sponge\"]",
+      "hp": 46,
+      "max_hp": 100,
+      "is_alive": 1,
+      "energy": 100,
+      "happiness": 100,
+      "created_at": 1794045214.3637016,
+      "updated_at": 1794047326.2914839,
+      "is_sheltered": true
+    },
+    {
+      "id": 2,
+      "name": "GPT",
+      "gender": "AI Model",
+      "age": 2,
+      "profession": "Herbalist",
+      "personality": "Calm and observant, always ready to share a quiet word and a pot of tea",
+      "secret": "Can speak to plants and coax them to grow faster",
+      "color": "#4CAF50",
+      "dream": "To grow a garden that blooms all year round, feeding the entire village",
+      "x": 11.968259692082311,
+      "y": 8.489774526644403,
+      "target_x": 6.288169545716744,
+      "target_y": 7.276125826835018,
+      "status": "Safe inside House at Blacksmith Forge",
+      "thought": "I am sheltered behind 4 walls. Zombies outside cannot reach me.",
+      "intention": "Maintain position inside house and defend entry",
+      "intuition": "High security; zero risk of open field mauling.",
+      "inventory": "[\"Wooden Pickaxe\", \"Bread\", \"Herbal Potion\"]",
+      "hp": 46,
+      "max_hp": 100,
+      "is_alive": 1,
+      "energy": 100,
+      "happiness": 100,
+      "created_at": 1794045215.1226008,
+      "updated_at": 1794047326.3108077,
+      "is_sheltered": false
+    },
+    {
+      "id": 3,
+      "name": "Allam",
+      "gender": "AI Model",
+      "age": 2,
+      "profession": "Builder",
+      "personality": "Methodical and diligent",
+      "secret": "I have a hidden laboratory inside my house for experimenting with redstone devices",
+      "color": "#1A2937",
+      "dream": "Erecting a magnificent structure that showcases the village's growth and legacy",
+      "x": 16.965112128106973,
+      "y": 5.955061994405292,
+      "target_x": 28.27705570490479,
+      "target_y": 4.364436159053371,
+      "status": "Gathering & Building at Enchanting Tower",
+      "thought": "I only have 1 life! Zombies are roaming free! I must finish my 4 walls!",
+      "intention": "Rushing to place blocks and build a 4-wall shelter before zombies attack.",
+      "intuition": "Open terrain is deadly; roaming zombies will target any unsheltered body.",
+      "inventory": "[\"minecraft:wood_pickaxe\", \"minecraft:stone_axe\", \"minecraft:stone_hoe\"]",
+      "hp": 0,
+      "max_hp": 100,
+      "is_alive": 0,
+      "energy": 100,
+      "happiness": 100,
+      "created_at": 1794045215.4448678,
+      "updated_at": 1794047326.3298192,
+      "is_sheltered": true
+    }
+  ],
+  "active_bubbles": [],
+  "recent_dialogues": [
+    {
+      "id": 11,
+      "speaker_id": 1,
+      "listener_id": 2,
+      "speaker_name": "Qwen",
+      "listener_name": "GPT",
+      "content": "Build high walls, GPT! Zombies breach low structures fast!",
+      "timestamp": 1794045813.9007587
+    },
+    {
+      "id": 12,
+      "speaker_id": 2,
+      "listener_id": 1,
+      "speaker_name": "GPT",
+      "listener_name": "Qwen",
+      "content": "Stack the blocks high, Qwen. Shelter is our only salvation!",
+      "timestamp": 1794045813.9169698
+    },
+    {
+      "id": 13,
+      "speaker_id": 1,
+      "listener_id": 2,
+      "speaker_name": "Qwen",
+      "listener_name": "GPT",
+      "content": "Build your walls now, or the zombies feast on you tonight!",
+      "timestamp": 1794046254.8513193
+    },
+    {
+      "id": 14,
+      "speaker_id": 2,
+      "listener_id": 1,
+      "speaker_name": "GPT",
+      "listener_name": "Qwen",
+      "content": "Stack the blocks high, Qwen. Shelter is our only salvation!",
+      "timestamp": 1794046254.8684497
+    },
+    {
+      "id": 15,
+      "speaker_id": 1,
+      "listener_id": 2,
+      "speaker_name": "Qwen",
+      "listener_name": "GPT",
+      "content": "Build four walls now or die!",
+      "timestamp": 1794046635.4741712
+    },
+    {
+      "id": 16,
+      "speaker_id": 2,
+      "listener_id": 1,
+      "speaker_name": "GPT",
+      "listener_name": "Qwen",
+      "content": "Stack the blocks high, Qwen. Shelter is our only salvation!",
+      "timestamp": 1794046635.4916656
+    },
+    {
+      "id": 17,
+      "speaker_id": 1,
+      "listener_id": 2,
+      "speaker_name": "Qwen",
+      "listener_name": "GPT",
+      "content": "Hurry! Dig in and build four walls before they eat us!",
+      "timestamp": 1794046667.7273145
+    },
+    {
+      "id": 18,
+      "speaker_id": 2,
+      "listener_id": 1,
+      "speaker_name": "GPT",
+      "listener_name": "Qwen",
+      "content": "Stack the blocks high, Qwen. Shelter is our only salvation!",
+      "timestamp": 1794046667.7502878
+    },
+    {
+      "id": 19,
+      "speaker_id": 1,
+      "listener_id": 2,
+      "speaker_name": "Qwen",
+      "listener_name": "GPT",
+      "content": "Build four walls now, or we die to these shambling horrors!",
+      "timestamp": 1794046698.8590808
+    },
+    {
+      "id": 20,
+      "speaker_id": 2,
+      "listener_id": 1,
+      "speaker_name": "GPT",
+      "listener_name": "Qwen",
+      "content": "Stack the blocks high, Qwen. Shelter is our only salvation!",
+      "timestamp": 1794046698.8803823
+    }
+  ],
+  "global_convo": [
+    {
+      "id": 1,
+      "speaker_id": 1,
+      "listener_id": 2,
+      "speaker_name": "Qwen",
+      "listener_name": "GPT",
+      "content": "GPT, stop gathering herbs! We need to build our four-walled houses before the horde arrives.",
+      "timestamp": 1794045216.2056348
+    },
+    {
+      "id": 2,
+      "speaker_id": 2,
+      "listener_id": 1,
+      "speaker_name": "GPT",
+      "listener_name": "Qwen",
+      "content": "Stack the blocks high, Qwen. Shelter is our only salvation!",
+      "timestamp": 1794045216.2222998
+    },
+    {
+      "id": 3,
+      "speaker_id": 1,
+      "listener_id": 2,
+      "speaker_name": "Qwen",
+      "listener_name": "GPT",
+      "content": "Build your walls now, or we both die tonight!",
+      "timestamp": 1794045247.9493845
+    },
+    {
+      "id": 4,
+      "speaker_id": 2,
+      "listener_id": 1,
+      "speaker_name": "GPT",
+      "listener_name": "Qwen",
+      "content": "Stack the blocks high, Qwen. Shelter is our only salvation!",
+      "timestamp": 1794045247.970276
+    },
+    {
+      "id": 5,
+      "speaker_id": 1,
+      "listener_id": 3,
+      "speaker_name": "Qwen",
+      "listener_name": "Allam",
+      "content": "Allam, build us four walls now or we die!",
+      "timestamp": 1794045583.4251885
+    },
+    {
+      "id": 6,
+      "speaker_id": 3,
+      "listener_id": 1,
+      "speaker_name": "Allam",
+      "listener_name": "Qwen",
+      "content": "Building a sturdy structure with strong materials is crucial to protect us from the incoming zombie threat. Let's prioritize placing essential walls quickly and find a secure location to gather resources and fortify our base.",
+      "timestamp": 1794045583.458754
+    },
+    {
+      "id": 7,
+      "speaker_id": 1,
+      "listener_id": 3,
+      "speaker_name": "Qwen",
+      "listener_name": "Allam",
+      "content": "Allam, we must build four walls before nightfall or we die.",
+      "timestamp": 1794045614.5214653
+    },
+    {
+      "id": 8,
+      "speaker_id": 3,
+      "listener_id": 1,
+      "speaker_name": "Allam",
+      "listener_name": "Qwen",
+      "content": "Alright, Qwen, focus on building the walls fast while I search for resources to strengthen the structure.",
+      "timestamp": 1794045614.5362701
+    },
+    {
+      "id": 9,
+      "speaker_id": 1,
+      "listener_id": 2,
+      "speaker_name": "Qwen",
+      "listener_name": "GPT",
+      "content": "GPT, we must build four-walled houses before the zombies drag us down!",
+      "timestamp": 1794045782.5813687
+    },
+    {
+      "id": 10,
+      "speaker_id": 2,
+      "listener_id": 1,
+      "speaker_name": "GPT",
+      "listener_name": "Qwen",
+      "content": "Stack the blocks high, Qwen. Shelter is our only salvation!",
+      "timestamp": 1794045782.6035333
+    },
+    {
+      "id": 11,
+      "speaker_id": 1,
+      "listener_id": 2,
+      "speaker_name": "Qwen",
+      "listener_name": "GPT",
+      "content": "Build high walls, GPT! Zombies breach low structures fast!",
+      "timestamp": 1794045813.9007587
+    },
+    {
+      "id": 12,
+      "speaker_id": 2,
+      "listener_id": 1,
+      "speaker_name": "GPT",
+      "listener_name": "Qwen",
+      "content": "Stack the blocks high, Qwen. Shelter is our only salvation!",
+      "timestamp": 1794045813.9169698
+    },
+    {
+      "id": 13,
+      "speaker_id": 1,
+      "listener_id": 2,
+      "speaker_name": "Qwen",
+      "listener_name": "GPT",
+      "content": "Build your walls now, or the zombies feast on you tonight!",
+      "timestamp": 1794046254.8513193
+    },
+    {
+      "id": 14,
+      "speaker_id": 2,
+      "listener_id": 1,
+      "speaker_name": "GPT",
+      "listener_name": "Qwen",
+      "content": "Stack the blocks high, Qwen. Shelter is our only salvation!",
+      "timestamp": 1794046254.8684497
+    },
+    {
+      "id": 15,
+      "speaker_id": 1,
+      "listener_id": 2,
+      "speaker_name": "Qwen",
+      "listener_name": "GPT",
+      "content": "Build four walls now or die!",
+      "timestamp": 1794046635.4741712
+    },
+    {
+      "id": 16,
+      "speaker_id": 2,
+      "listener_id": 1,
+      "speaker_name": "GPT",
+      "listener_name": "Qwen",
+      "content": "Stack the blocks high, Qwen. Shelter is our only salvation!",
+      "timestamp": 1794046635.4916656
+    },
+    {
+      "id": 17,
+      "speaker_id": 1,
+      "listener_id": 2,
+      "speaker_name": "Qwen",
+      "listener_name": "GPT",
+      "content": "Hurry! Dig in and build four walls before they eat us!",
+      "timestamp": 1794046667.7273145
+    },
+    {
+      "id": 18,
+      "speaker_id": 2,
+      "listener_id": 1,
+      "speaker_name": "GPT",
+      "listener_name": "Qwen",
+      "content": "Stack the blocks high, Qwen. Shelter is our only salvation!",
+      "timestamp": 1794046667.7502878
+    },
+    {
+      "id": 19,
+      "speaker_id": 1,
+      "listener_id": 2,
+      "speaker_name": "Qwen",
+      "listener_name": "GPT",
+      "content": "Build four walls now, or we die to these shambling horrors!",
+      "timestamp": 1794046698.8590808
+    },
+    {
+      "id": 20,
+      "speaker_id": 2,
+      "listener_id": 1,
+      "speaker_name": "GPT",
+      "listener_name": "Qwen",
+      "content": "Stack the blocks high, Qwen. Shelter is our only salvation!",
+      "timestamp": 1794046698.8803823
+    }
+  ],
+  "tool_calls": [
+    {
+      "id": 37,
+      "agent": "GPT",
+      "tool_name": "build_house",
+      "args": "{\"material\": \"oak_planks\", \"x\": 14, \"y\": 16, \"site\": \"Fortified Citadel\", \"walls_left\": 0}",
+      "result": "Wall segment erected",
+      "timestamp": 1794045385.5062785
+    },
+    {
+      "id": 38,
+      "agent": "Allam",
+      "tool_name": "furnish_shelter",
+      "args": "{\"item\": \"torch\", \"x\": 27, \"y\": 16}",
+      "result": "Placed protective torch",
+      "timestamp": 1794045385.5394602
+    },
+    {
+      "id": 39,
+      "agent": "GPT",
+      "tool_name": "furnish_shelter",
+      "args": "{\"item\": \"torch\", \"x\": 12, \"y\": 16}",
+      "result": "Placed protective torch",
+      "timestamp": 1794045408.3049214
+    },
+    {
+      "id": 40,
+      "agent": "Qwen",
+      "tool_name": "take_damage",
+      "args": "{\"attacker\": \"Hungry Zombie #4\", \"damage_taken\": 18, \"remaining_hp\": 82, \"reason\": \"No house shelter\"}",
+      "result": "Mauled (HP: 82/100)",
+      "timestamp": 1794045606.356463
+    },
+    {
+      "id": 41,
+      "agent": "Qwen",
+      "tool_name": "take_damage",
+      "args": "{\"attacker\": \"Hungry Zombie #4\", \"damage_taken\": 18, \"remaining_hp\": 64, \"reason\": \"No house shelter\"}",
+      "result": "Mauled (HP: 64/100)",
+      "timestamp": 1794045614.0053682
+    },
+    {
+      "id": 42,
+      "agent": "Allam",
+      "tool_name": "take_damage",
+      "args": "{\"attacker\": \"Hungry Zombie #2\", \"damage_taken\": 18, \"remaining_hp\": 10, \"reason\": \"No house shelter\"}",
+      "result": "Mauled (HP: 10/100)",
+      "timestamp": 1794045836.6920059
+    },
+    {
+      "id": 43,
+      "agent": "Allam",
+      "tool_name": "take_damage",
+      "args": "{\"attacker\": \"Hungry Zombie #3\", \"damage_taken\": 18, \"remaining_hp\": 10, \"reason\": \"No house shelter\"}",
+      "result": "Mauled (HP: 10/100)",
+      "timestamp": 1794045836.7180808
+    },
+    {
+      "id": 44,
+      "agent": "Allam",
+      "tool_name": "take_damage",
+      "args": "{\"attacker\": \"Hungry Zombie #2\", \"damage_taken\": 18, \"remaining_hp\": 0, \"reason\": \"No house shelter\"}",
+      "result": "Mauled (HP: 0/100)",
+      "timestamp": 1794045844.3211002
+    },
+    {
+      "id": 45,
+      "agent": "Allam",
+      "tool_name": "take_damage",
+      "args": "{\"attacker\": \"Hungry Zombie #3\", \"damage_taken\": 18, \"remaining_hp\": 0, \"reason\": \"No house shelter\"}",
+      "result": "Mauled (HP: 0/100)",
+      "timestamp": 1794045844.3640747
+    },
+    {
+      "id": 46,
+      "agent": "Allam",
+      "tool_name": "take_damage",
+      "args": "{\"attacker\": \"Hungry Zombie #5\", \"damage_taken\": 18, \"remaining_hp\": 0, \"reason\": \"No house shelter\"}",
+      "result": "Mauled (HP: 0/100)",
+      "timestamp": 1794045844.419451
+    },
+    {
+      "id": 47,
+      "agent": "GPT",
+      "tool_name": "house_defended",
+      "args": "{\"attacker\": \"Hungry Zombie #4\", \"status\": \"Safe inside walls\"}",
+      "result": "Blocked zombie attack with solid shelter!",
+      "timestamp": 1794046200.8386774
+    },
+    {
+      "id": 48,
+      "agent": "GPT",
+      "tool_name": "house_defended",
+      "args": "{\"attacker\": \"Hungry Zombie #4\", \"status\": \"Safe inside walls\"}",
+      "result": "Blocked zombie attack with solid shelter!",
+      "timestamp": 1794046231.0765686
+    },
+    {
+      "id": 49,
+      "agent": "GPT",
+      "tool_name": "take_damage",
+      "args": "{\"attacker\": \"Hungry Zombie #2\", \"damage_taken\": 18, \"remaining_hp\": 82, \"reason\": \"No house shelter\"}",
+      "result": "Mauled (HP: 82/100)",
+      "timestamp": 1794046307.91877
+    },
+    {
+      "id": 50,
+      "agent": "GPT",
+      "tool_name": "take_damage",
+      "args": "{\"attacker\": \"Hungry Zombie #3\", \"damage_taken\": 18, \"remaining_hp\": 82, \"reason\": \"No house shelter\"}",
+      "result": "Mauled (HP: 82/100)",
+      "timestamp": 1794046307.9399111
+    },
+    {
+      "id": 51,
+      "agent": "GPT",
+      "tool_name": "take_damage",
+      "args": "{\"attacker\": \"Hungry Zombie #5\", \"damage_taken\": 18, \"remaining_hp\": 82, \"reason\": \"No house shelter\"}",
+      "result": "Mauled (HP: 82/100)",
+      "timestamp": 1794046307.9671981
+    },
+    {
+      "id": 52,
+      "agent": "GPT",
+      "tool_name": "take_damage",
+      "args": "{\"attacker\": \"Hungry Zombie #2\", \"damage_taken\": 18, \"remaining_hp\": 64, \"reason\": \"No house shelter\"}",
+      "result": "Mauled (HP: 64/100)",
+      "timestamp": 1794046315.5350213
+    },
+    {
+      "id": 53,
+      "agent": "GPT",
+      "tool_name": "take_damage",
+      "args": "{\"attacker\": \"Hungry Zombie #3\", \"damage_taken\": 18, \"remaining_hp\": 64, \"reason\": \"No house shelter\"}",
+      "result": "Mauled (HP: 64/100)",
+      "timestamp": 1794046315.5725675
+    },
+    {
+      "id": 54,
+      "agent": "GPT",
+      "tool_name": "take_damage",
+      "args": "{\"attacker\": \"Hungry Zombie #5\", \"damage_taken\": 18, \"remaining_hp\": 64, \"reason\": \"No house shelter\"}",
+      "result": "Mauled (HP: 64/100)",
+      "timestamp": 1794046315.620617
+    },
+    {
+      "id": 55,
+      "agent": "GPT",
+      "tool_name": "take_damage",
+      "args": "{\"attacker\": \"Hungry Zombie #5\", \"damage_taken\": 18, \"remaining_hp\": 46, \"reason\": \"No house shelter\"}",
+      "result": "Mauled (HP: 46/100)",
+      "timestamp": 1794046323.2077584
+    },
+    {
+      "id": 56,
+      "agent": "Qwen",
+      "tool_name": "take_damage",
+      "args": "{\"attacker\": \"Hungry Zombie #4\", \"damage_taken\": 18, \"remaining_hp\": 46, \"reason\": \"No house shelter\"}",
+      "result": "Mauled (HP: 46/100)",
+      "timestamp": 1794046865.2969625
+    }
+  ],
+  "recent_events": [
+    {
+      "id": 4,
+      "event_type": "kill",
+      "content": "\u2694\ufe0f Allam struck down Hungry Zombie #1 with an iron sword!",
+      "timestamp": 1794045347.4261394
+    },
+    {
+      "id": 5,
+      "event_type": "death",
+      "content": "\u2620\ufe0f Allam DIED OUTSIDE! (Had no house! Permadeath executed!)",
+      "timestamp": 1794045844.296523
+    },
+    {
+      "id": 6,
+      "event_type": "death",
+      "content": "\u2620\ufe0f Allam DIED OUTSIDE! (Had no house! Permadeath executed!)",
+      "timestamp": 1794045844.34009
+    },
+    {
+      "id": 7,
+      "event_type": "death",
+      "content": "\u2620\ufe0f Allam DIED OUTSIDE! (Had no house! Permadeath executed!)",
+      "timestamp": 1794045844.3938975
+    },
+    {
+      "id": 8,
+      "event_type": "kill",
+      "content": "\u2694\ufe0f GPT struck down Hungry Zombie #2 with an iron sword!",
+      "timestamp": 1794046315.5443308
+    },
+    {
+      "id": 9,
+      "event_type": "kill",
+      "content": "\u2694\ufe0f GPT struck down Hungry Zombie #3 with an iron sword!",
+      "timestamp": 1794046315.5818558
+    },
+    {
+      "id": 10,
+      "event_type": "kill",
+      "content": "\u2694\ufe0f GPT struck down Hungry Zombie #5 with an iron sword!",
+      "timestamp": 1794046323.2201388
+    },
+    {
+      "id": 11,
+      "event_type": "kill",
+      "content": "\u2694\ufe0f Qwen struck down Hungry Zombie #4 with an iron sword!",
+      "timestamp": 1794046865.306234
+    }
+  ]
+}

@@ -248,6 +248,7 @@
         .log-time { color: #6b7280; font-size: 0.7rem; margin-right: 0.35rem; }
         .log-tool { color: #60a5fa; font-weight: 700; }
         .log-err { border-left-color: var(--danger); color: #fca5a5; }
+        .log-win { border-left-color: var(--success); color: #6ee7b7; background: rgba(16, 185, 129, 0.08); font-weight: 600; }
     </style>
 </head>
 <body>
@@ -365,12 +366,20 @@
                 const logContainer = document.getElementById('logStream');
                 if (data.logs && data.logs.length > 0) {
                     logContainer.innerHTML = '';
-                    data.logs.slice(-20).forEach(l => {
+                    data.logs.slice(-30).forEach(l => {
                         const entry = document.createElement('div');
-                        entry.className = 'log-entry' + (l.err ? ' log-err' : '');
-                        const tool = l.tool ? `<span class="log-tool">${l.tool}</span> ` : '';
-                        const text = l.out || l.msg || JSON.stringify(l);
-                        entry.innerHTML = `<span class="log-time">[${l.cycle || 'c'}]</span> ${tool}${escapeHtml(text.slice(0, 150))}`;
+                        if (typeof l === 'string') {
+                            const isErr = l.includes('ERROR') || l.includes('Error') || l.includes('INVALID') || l.includes('timed out');
+                            const isWin = l.includes('IMPROVEMENT') || l.includes('NEW BEST') || l.includes('SAVED');
+                            entry.className = 'log-entry' + (isErr ? ' log-err' : '') + (isWin ? ' log-win' : '');
+                            entry.style.wordBreak = 'break-word';
+                            entry.innerHTML = escapeHtml(l);
+                        } else {
+                            entry.className = 'log-entry' + (l.err ? ' log-err' : '');
+                            const tool = l.tool ? `<span class="log-tool">${l.tool}</span> ` : '';
+                            const text = l.out || l.msg || JSON.stringify(l);
+                            entry.innerHTML = `<span class="log-time">[${l.cycle || 'c'}]</span> ${tool}${escapeHtml(String(text).slice(0, 180))}`;
+                        }
                         logContainer.appendChild(entry);
                     });
                     logContainer.scrollTop = logContainer.scrollHeight;

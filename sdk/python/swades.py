@@ -1,0 +1,1018 @@
+"""
+Swades Cloud Python SDK — Hyper-Fast Sovereign Firebase Alternative
+1-line CRUD, S3 Object Storage with instant CDN, Auth & Scoped Keys.
+"""
+import requests
+import json
+import os
+import time
+import hashlib
+import base64
+import urllib.parse
+
+class ImageClient:
+    """Native Zstandard (zstd v1.5.7) Image Compression Client.
+    Lossless sub-millisecond compression for image binaries using Level 1 (-1 -T4).
+    """
+    def __init__(self, swades):
+        self.swades = swades
+
+    def info(self):
+        """Returns Zstandard image compression engine specifications."""
+        res = self.swades._req("GET", "/v1/images/info", timeout=10)
+        return res.json()
+
+    def compress(self, image, as_json=False):
+        """Compresses image binary using Zstandard Level 1 (-1 -T4).
+        
+        Args:
+            image: bytes, file-like object, or file path string.
+            as_json: If True, returns detailed metadata dict with Base64 payload. If False, returns raw compressed bytes.
+        """
+        if isinstance(image, str):
+            if os.path.isfile(image):
+                with open(image, "rb") as f:
+                    raw_bytes = f.read()
+            elif image.startswith("data:") or len(image) > 200:
+                if ";base64," in image:
+                    image = image.split(";base64,")[1]
+                raw_bytes = base64.b64decode(image)
+            else:
+                raise ValueError(f"File not found: {image}")
+        elif hasattr(image, "read"):
+            raw_bytes = image.read()
+        elif isinstance(image, (bytes, bytearray)):
+            raw_bytes = bytes(image)
+        else:
+            raise TypeError("image must be bytes, a file path, or a file-like object")
+
+        headers = {}
+        if as_json:
+            headers["Content-Type"] = "application/json"
+            headers["Accept"] = "application/json"
+            payload = {
+                "image": base64.b64encode(raw_bytes).decode("ascii"),
+                "as_json": True
+            }
+            res = self.swades._req("POST", "/v1/images/compress", headers=headers, json=payload, timeout=30)
+            if not res.ok:
+                raise RuntimeError(f"Zstd image compression failed: HTTP {res.status_code} - {res.text}")
+            return res.json()
+        else:
+            headers["Content-Type"] = "application/octet-stream"
+            res = self.swades._req("POST", "/v1/images/compress", headers=headers, data=raw_bytes, timeout=30)
+            if not res.ok:
+                raise RuntimeError(f"Zstd image compression failed: HTTP {res.status_code} - {res.text}")
+            return res.content
+
+    def decompress(self, compressed_data, as_text=False):
+        """Decompresses Zstandard-compressed image data losslessly."""
+        return self.swades.decompress(compressed_data, as_text=as_text)
+
+class CronClient:
+    """Sovereign Agnostic 24/7 Background Cron & Task Automation Client.
+    Supports dynamic intervals ('every 30s', '5m', '1h'), standard 5-field cron syntax,
+    zero-auth public access, and 1-line triggers.
+    """
+    def __init__(self, swades):
+        self.swades = swades
+
+    def list(self):
+        """Lists all active and paused background tasks."""
+        headers = {}
+        if self.swades.api_key:
+            headers["x-api-key"] = self.swades.api_key
+        res = self.swades._req("GET", "/v1/cron/jobs", headers=headers)
+        if not res.ok:
+            raise RuntimeError(f"Failed to list cron jobs: {res.text}")
+        return res.json()
+
+    def create(self, name: str, schedule_value: str, schedule_type: str = "interval", 
+               url: str = "", http_method: str = "POST", headers: dict = None, 
+               body: str = "", notify_email: str = "", notify_on: str = "failure", 
+               target_type: str = "webhook", **kwargs):
+        """Creates a background scheduled task. Zero auth or optional API key."""
+        payload = {
+            "name": name,
+            "schedule_type": schedule_type,
+            "schedule_value": schedule_value,
+            "url": url,
+            "http_method": http_method,
+            "headers": headers or {},
+            "body": body,
+            "notify_email": notify_email,
+            "notify_on": notify_on,
+            "target_type": target_type,
+            **kwargs
+        }
+        req_headers = {"Content-Type": "application/json"}
+        if self.swades.api_key:
+            req_headers["x-api-key"] = self.swades.api_key
+        res = self.swades._req("POST", "/v1/cron/jobs", headers=req_headers, json=payload)
+        if not res.ok:
+            raise RuntimeError(f"Failed to create cron task: {res.text}")
+        return res.json()
+
+    def get(self, job_id: str):
+        """Gets metadata and latest logs for a background task."""
+        headers = {}
+        if self.swades.api_key:
+            headers["x-api-key"] = self.swades.api_key
+        res = self.swades._req("GET", f"/v1/cron/jobs/{job_id}", headers=headers)
+        return res.json()
+
+    def trigger(self, job_id: str):
+        """Synchronously test-fires a background task immediately."""
+        headers = {}
+        if self.swades.api_key:
+            headers["x-api-key"] = self.swades.api_key
+        res = self.swades._req("POST", f"/v1/cron/jobs/{job_id}/trigger", headers=headers)
+        return res.json()
+
+    def pause(self, job_id: str):
+        """Pauses a background task."""
+        headers = {}
+        if self.swades.api_key:
+            headers["x-api-key"] = self.swades.api_key
+        res = self.swades._req("POST", f"/v1/cron/jobs/{job_id}/pause", headers=headers)
+        return res.json()
+
+    def resume(self, job_id: str):
+        """Resumes a paused background task."""
+        headers = {}
+        if self.swades.api_key:
+            headers["x-api-key"] = self.swades.api_key
+        res = self.swades._req("POST", f"/v1/cron/jobs/{job_id}/resume", headers=headers)
+        return res.json()
+
+    def delete(self, job_id: str):
+        """Deletes a background task and its execution history."""
+        headers = {}
+        if self.swades.api_key:
+            headers["x-api-key"] = self.swades.api_key
+        res = self.swades._req("DELETE", f"/v1/cron/jobs/{job_id}", headers=headers)
+        return res.json()
+
+    def logs(self, job_id: str, limit: int = 50):
+        """Fetches execution logs for a task."""
+        headers = {}
+        if self.swades.api_key:
+            headers["x-api-key"] = self.swades.api_key
+        res = self.swades._req("GET", f"/v1/cron/jobs/{job_id}/logs?limit={limit}", headers=headers)
+        return res.json()
+
+    def stats(self):
+        """Fetches global scheduler health, SLA, and execution count."""
+        res = self.swades._req("GET", "/v1/cron/stats")
+        return res.json()
+
+    def test_smtp(self, email: str):
+        """Sends an instant 24/7 Gmail SMTP test alert pulse."""
+        res = self.swades._req("POST", "/v1/cron/demo/smtp", json={"email": email})
+        return res.json()
+
+class HyperData:
+    def __init__(self, swades):
+        self.swades = swades
+
+    def set(self, table: str, key: str, data: dict, ttl: int = None):
+        headers = dict(self.swades.headers)
+        payload = {"table": table, "key": key, "data": data}
+        if ttl:
+            payload["ttl"] = ttl
+        res = self.swades._req("POST", "/v1/hyperdata/set", headers=headers, json=payload)
+        return res.json()
+
+    def get(self, table: str, key: str = None, limit: int = 50, offset: int = 0):
+        headers = dict(self.swades.headers)
+        params = {"table": table}
+        if key:
+            params["key"] = key
+        else:
+            params["limit"] = limit
+            params["offset"] = offset
+        res = self.swades._req("GET", "/v1/hyperdata/get", headers=headers, params=params)
+        return res.json()
+
+    def delete(self, table: str, key: str):
+        headers = dict(self.swades.headers)
+        payload = {"table": table, "key": key}
+        res = self.swades._req("POST", "/v1/hyperdata/delete", headers=headers, json=payload)
+        return res.json()
+
+    def batch(self, table: str, items: list, ttl: int = None):
+        headers = dict(self.swades.headers)
+        payload = {"table": table, "items": items}
+        if ttl is not None:
+            payload["ttl"] = ttl
+        res = self.swades._req("POST", "/v1/hyperdata/batch", headers=headers, json=payload)
+        return res.json()
+
+    def patch(self, table: str, key: str, data: dict = None, action: str = "merge", field: str = None, value = None):
+        headers = dict(self.swades.headers)
+        payload = {"table": table, "key": key, "action": action}
+        if data is not None:
+            payload["data"] = data
+        if field is not None:
+            payload["field"] = field
+        if value is not None:
+            payload["value"] = value
+        res = self.swades._req("POST", "/v1/hyperdata/patch", headers=headers, json=payload)
+        return res.json()
+
+    def stream(self, table: str = "*", callback = None):
+        import urllib.request
+        headers = {"x-api-key": self.swades.api_key, "x-project-id": self.swades.project_id}
+        url = f"{self.swades.endpoint}/v1/hyperdata/stream?table={table}"
+        req = urllib.request.Request(url, headers=headers)
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            for line in resp:
+                line_str = line.decode("utf-8").strip()
+                if line_str.startswith("data:"):
+                    raw = line_str[5:].strip()
+                    try:
+                        ev = json.loads(raw)
+                    except Exception:
+                        ev = raw
+                    if callback:
+                        callback(ev)
+                    else:
+                        yield ev
+
+    def search(self, table: str, query: str, fields: list = None, limit: int = 50, offset: int = 0):
+        headers = dict(self.swades.headers)
+        params = {"table": table, "q": query, "limit": limit, "offset": offset}
+        if fields:
+            params["fields"] = ",".join(fields) if isinstance(fields, (list, tuple)) else str(fields)
+        res = self.swades._req("GET", "/v1/hyperdata/search", headers=headers, params=params)
+        return res.json()
+
+    def aggregate(self, table: str, group_by: str = None, metrics: dict = None):
+        headers = dict(self.swades.headers)
+        params = {"table": table}
+        if group_by:
+            params["group_by"] = group_by
+        if metrics:
+            params["metrics"] = json.dumps(metrics) if isinstance(metrics, dict) else str(metrics)
+        res = self.swades._req("GET", "/v1/hyperdata/aggregate", headers=headers, params=params)
+        return res.json()
+
+    def drop(self, table: str):
+        headers = dict(self.swades.headers)
+        payload = {"table": table}
+        res = self.swades._req("POST", "/v1/hyperdata/drop", headers=headers, json=payload)
+        return res.json()
+
+    def query(self, table: str, limit: int = 50, offset: int = 0, order_by: str = None, desc: bool = True, **filters):
+        headers = dict(self.swades.headers)
+        payload = {
+            "table": table,
+            "filter": filters,
+            "limit": limit,
+            "offset": offset,
+            "order_by": order_by,
+            "desc": desc
+        }
+        res = self.swades._req("POST", "/v1/hyperdata/query", headers=headers, json=payload)
+        return res.json()
+
+    def sql(self, query: str):
+        headers = dict(self.swades.headers)
+        payload = {"sql": query}
+        res = self.swades._req("POST", "/v1/hyperdata/query", headers=headers, json=payload)
+        return res.json()
+
+    def tables(self):
+        headers = dict(self.swades.headers)
+        res = self.swades._req("GET", "/v1/hyperdata/tables", headers=headers)
+        return res.json()
+
+    def status(self):
+        headers = dict(self.swades.headers)
+        res = self.swades._req("GET", "/v1/hyperdata/status", headers=headers)
+        return res.json()
+
+class Swades:
+    def __init__(self, api_key="", project_id="default", endpoint="https://phone-whisper-server.pages.dev"):
+        self.endpoint = (endpoint or "https://phone-whisper-server.pages.dev").rstrip("/")
+        self.api_key = api_key
+        self.project_id = project_id
+        self.headers = {
+            "x-api-key": self.api_key,
+            "x-project-id": self.project_id,
+            "Content-Type": "application/json"
+        }
+        self.images = ImageClient(self)
+        self.cron = CronClient(self)
+        self.hyperdata = HyperData(self)
+        self.db = self.hyperdata
+        self._tts_cache = {}
+        self._cache_dir = os.path.expanduser("~/.swades/tts_cache")
+        try:
+            os.makedirs(self._cache_dir, exist_ok=True)
+        except Exception:
+            pass
+
+    def _req(self, method, path, **kwargs):
+        """Auto-recovering request helper with exponential backoff on edge tunnel reconnection"""
+        url = f"{self.endpoint}{path}" if path.startswith("/") else f"{self.endpoint}/{path}"
+        timeout = kwargs.pop("timeout", 30)
+        for attempt in range(3):
+            try:
+                res = requests.request(method, url, timeout=timeout, **kwargs)
+                if res.status_code == 503 and "reconnecting" in res.text and attempt < 2:
+                    time.sleep(1.5 * (attempt + 1))
+                    continue
+                return res
+            except Exception as e:
+                if attempt < 2:
+                    time.sleep(1.5 * (attempt + 1))
+                    continue
+                raise e
+
+    # 1-line SQL query
+    def query(self, sql_query, **kwargs):
+        res = self._req(
+            "POST",
+            "/v1/dashboard/db/sql",
+            headers=self.headers,
+            json={"query": sql_query, "project_id": self.project_id, **kwargs}
+        )
+        data = res.json()
+        if not res.ok or data.get("status") == "error":
+            raise RuntimeError(data.get("error", "SQL Query Failed"))
+        return data.get("result", {}).get("rows", [])
+
+    # Insert row
+    def insert(self, table, record_dict):
+        res = requests.post(
+            f"{self.endpoint}/v1/dashboard/db/query",
+            headers=self.headers,
+            json={
+                "action": "insert_row",
+                "table": table,
+                "data": record_dict,
+                "project_id": self.project_id
+            }
+        )
+        return res.json()
+
+    # Upload file
+    def upload(self, file_path, custom_key=None):
+        filename = os.path.basename(file_path)
+        key = custom_key or f"uploads/{filename}"
+        with open(file_path, "rb") as f:
+            content = f.read()
+        headers = {
+            "x-api-key": self.api_key,
+            "x-project-id": self.project_id,
+            "Content-Type": "application/octet-stream"
+        }
+        res = requests.put(f"{self.endpoint}/v1/storage/objects/{key}", headers=headers, data=content)
+        data = res.json()
+        raw_url = data.get("cdn_url") or data.get("object", {}).get("cdn_url") or data.get("object", {}).get("url") or f"/s/{self.project_id}/{key}"
+        if raw_url.startswith("http://") or raw_url.startswith("https://"):
+            import re
+            return re.sub(r"^https?://[a-zA-Z0-9.-]+\.trycloudflare\.com", "https://phone-whisper-server.pages.dev", raw_url)
+        clean = raw_url if raw_url.startswith("/") else f"/{raw_url}"
+        return f"https://phone-whisper-server.pages.dev{clean}"
+
+    # 1-line Speech Synthesis (Piper VITS Multi-Voice TTS with Hyper-Speed Caching)
+    def tts(self, text, voice="amy", speed=1.0, quality="auto", response_format="wav", use_cache=True):
+        """Synthesizes text into speech audio bytes (Tier 0 Local Cache -> Tier 1 Cloudflare Edge -> Tier 2 Gateway RAM -> Tier 3 Piper VITS)"""
+        norm_voice = (voice or "amy").strip().lower()
+        norm_speed = float(speed or 1.0)
+        norm_text = " ".join(str(text).strip().lower().split())
+        cache_key = hashlib.sha256(f"{norm_voice}_{norm_speed:.2f}_{norm_text}".encode("utf-8")).hexdigest()
+
+        # Tier 0A: In-Memory Cache (<0.01ms)
+        if use_cache and cache_key in self._tts_cache:
+            return self._tts_cache[cache_key]
+
+        # Tier 0B: Local Disk Cache (<1ms)
+        disk_path = os.path.join(self._cache_dir, f"{cache_key}.{response_format}")
+        if use_cache and os.path.exists(disk_path) and os.path.getsize(disk_path) > 0:
+            try:
+                with open(disk_path, "rb") as f:
+                    data = f.read()
+                self._tts_cache[cache_key] = data
+                return data
+            except Exception:
+                pass
+
+        # Network Request (Edge Cache <5ms -> RAM Cache <15ms -> Piper VITS Live)
+        res = self._req(
+            "POST",
+            "/v1/audio/speech",
+            headers=self.headers,
+            json={
+                "input": text,
+                "voice": norm_voice,
+                "speed": norm_speed,
+                "quality": quality,
+                "response_format": response_format
+            },
+            timeout=120
+        )
+        if not res.ok:
+            raise RuntimeError(f"Speech synthesis failed: HTTP {res.status_code} - {res.text}")
+
+        audio_bytes = res.content
+
+        # Populate Tier 0 Caches
+        if use_cache and audio_bytes:
+            self._tts_cache[cache_key] = audio_bytes
+            try:
+                with open(disk_path, "wb") as f:
+                    f.write(audio_bytes)
+            except Exception:
+                pass
+
+        return audio_bytes
+
+    def speak(self, text, voice="amy", speed=1.0, quality="auto", response_format="wav", use_cache=True):
+        """Convenience alias for tts()"""
+        return self.tts(text, voice=voice, speed=speed, quality=quality, response_format=response_format, use_cache=use_cache)
+
+    def tts_to_file(self, text, output_path, voice="amy", speed=1.0, use_cache=True):
+        """Synthesizes speech and writes directly to audio file (.wav)"""
+        audio_bytes = self.tts(text, voice=voice, speed=speed, use_cache=use_cache)
+        with open(output_path, "wb") as f:
+            f.write(audio_bytes)
+        return output_path
+
+    def get_audio_url(self, text, voice="amy", speed=1.0, response_format="wav"):
+        """Generates an edge-cacheable GET URL for direct streaming or embedding in web apps"""
+        q = urllib.parse.urlencode({
+            "input": text,
+            "voice": (voice or "amy").strip().lower(),
+            "speed": f"{float(speed or 1.0):.2f}",
+            "response_format": response_format
+        })
+        return f"{self.endpoint}/v1/audio/speech?{q}"
+
+    def clear_tts_cache(self):
+        """Clears local memory and disk TTS caches"""
+        self._tts_cache.clear()
+        if os.path.exists(self._cache_dir):
+            for fname in os.listdir(self._cache_dir):
+                try:
+                    os.remove(os.path.join(self._cache_dir, fname))
+                except Exception:
+                    pass
+
+    # List all supported Piper VITS neural voices
+    def voices(self):
+        """Returns the full catalogue of supported Piper VITS neural voices"""
+        res = self._req("GET", "/v1/audio/voices", timeout=10)
+        return res.json().get("voices", [])
+
+    # =========================================================================
+    # ZSTANDARD (ZSTD v1.5.7) HARDWARE DUAL-TIER COMPRESSION ENGINE
+    # Level 1 (-1 -T4): Dedicated to Developer API requests, real-time HTTP transfer,
+    #                   live streaming, and sub-millisecond client SDK calls (~180 MB/s, <2ms).
+    # Level 3 (-3 -T4): Dedicated strictly to Sovereign Internal Storage Vault backups,
+    #                   audio disk caching, and snapshot persistence (~150 MB/s, 3.2x ratio).
+    # Levels 9-19:     Permanently disabled on phone silicon to eliminate thermal
+    #                   throttling and Android LMK termination.
+    # =========================================================================
+
+    def compress(self, data, level: int = 1, as_json: bool = False):
+        """
+        Compresses text string or binary bytes using hardware-accelerated Zstandard v1.5.7.
+        - Dual-Tier Policy: Level 1 (-1 -T4) for real-time HTTP transfer & API requests (<1.5ms).
+          Level 3 (-3 -T4) for high-ratio storage vault disk persistence & backups (~3.2x ratio).
+        - as_json: If True, returns rich dictionary with original size, compressed size, ratio, latency, throughput, and base64.
+                   If False, returns raw compressed bytes.
+        """
+        raw_bytes = data.encode("utf-8") if isinstance(data, str) else bytes(data)
+        safe_level = 3 if level == 3 else 1
+
+        headers = {
+            "x-api-key": self.api_key,
+            "x-project-id": self.project_id
+        }
+
+        if as_json:
+            headers["Accept"] = "application/json"
+            headers["Content-Type"] = "application/json"
+            if isinstance(data, str):
+                payload = {
+                    "data": data,
+                    "level": safe_level,
+                    "format": "base64"
+                }
+            else:
+                payload = {
+                    "data": base64.b64encode(raw_bytes).decode("ascii"),
+                    "encoding": "base64",
+                    "level": safe_level,
+                    "format": "base64"
+                }
+            res = self._req("POST", "/v1/compress", headers=headers, json=payload, timeout=15)
+            if not res.ok:
+                raise RuntimeError(f"Zstd compression failed: HTTP {res.status_code} - {res.text}")
+            return res.json()
+        else:
+            headers["Content-Type"] = "application/octet-stream"
+            headers["X-Zstd-Level"] = str(safe_level)
+            res = self._req("POST", "/v1/compress", headers=headers, data=raw_bytes, timeout=15)
+            if not res.ok:
+                raise RuntimeError(f"Zstd compression failed: HTTP {res.status_code} - {res.text}")
+            return res.content
+
+    def decompress(self, compressed_data, as_text: bool = False):
+        """
+        Decompresses Zstandard v1.5.7 frames at ultra-fast speeds (~400 MB/s, <1ms) on phone silicon.
+        - compressed_data: Raw bytes or base64-encoded string.
+        - as_text: If True, returns UTF-8 decoded string.
+        """
+        headers = {
+            "x-api-key": self.api_key,
+            "x-project-id": self.project_id
+        }
+
+        if isinstance(compressed_data, str):
+            headers["Accept"] = "application/json"
+            headers["Content-Type"] = "application/json"
+            payload = {
+                "data": compressed_data,
+                "format": "base64"
+            }
+            res = self._req("POST", "/v1/decompress", headers=headers, json=payload, timeout=15)
+            if not res.ok:
+                raise RuntimeError(f"Zstd decompression failed: HTTP {res.status_code} - {res.text}")
+            data = res.json()
+            if as_text:
+                if data.get("is_utf8"):
+                    return data.get("data")
+                else:
+                    return base64.b64decode(data.get("data", "")).decode("utf-8", errors="replace")
+            else:
+                if data.get("is_utf8"):
+                    return data.get("data", "").encode("utf-8")
+                return base64.b64decode(data.get("data", ""))
+        else:
+            headers["Content-Type"] = "application/zstd"
+            res = self._req("POST", "/v1/decompress", headers=headers, data=bytes(compressed_data), timeout=15)
+            if not res.ok:
+                raise RuntimeError(f"Zstd decompression failed: HTTP {res.status_code} - {res.text}")
+            if as_text:
+                return res.content.decode("utf-8")
+            return res.content
+
+    def zstd_info(self):
+        """Returns Zstandard v1.5.7 engine telemetry, hardware architecture, and dual-tier specifications"""
+        res = self._req("GET", "/v1/zstd/info", timeout=10)
+        return res.json()
+
+    def compress_file(self, file_path: str, output_path: str = None) -> str:
+        """
+        Compresses any file (images, binaries, text, audio, logs) using native Zstandard Level 1 (-1 -T4).
+        Saves output to output_path or file_path + '.zst' and returns the saved file path.
+        """
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f"File not found: {file_path}")
+        with open(file_path, "rb") as f:
+            data = f.read()
+        compressed = self.compress(data, level=1, as_json=False)
+        out = output_path or (file_path + ".zst")
+        with open(out, "wb") as f:
+            f.write(compressed)
+        return out
+
+    def decompress_file(self, zst_path: str, output_path: str = None) -> str:
+        """
+        Decompresses any Zstandard .zst file losslessly back to its original binary or text.
+        Saves output to output_path and returns the saved file path.
+        """
+        if not os.path.exists(zst_path):
+            raise FileNotFoundError(f"File not found: {zst_path}")
+        with open(zst_path, "rb") as f:
+            compressed = f.read()
+        decompressed = self.decompress(compressed, as_text=False)
+        if output_path is None:
+            if zst_path.endswith(".zst"):
+                out = zst_path[:-4]
+            else:
+                out = zst_path + ".decompressed"
+        else:
+            out = output_path
+        with open(out, "wb") as f:
+            f.write(decompressed)
+        return out
+
+    # =========================================================================
+    # ADVANCED CHARGING CONTROLLER (ACC) HARDWARE BATTERY ENGINE
+    # =========================================================================
+    def acc_info(self):
+        """Returns live ACC battery telemetry, active thresholds, switch status, and thermal guard state."""
+        res = self._req("GET", "/v1/acc/info", timeout=10)
+        if not res.ok:
+            raise RuntimeError(f"ACC info request failed: HTTP {res.status_code} - {res.text}")
+        return res.json()
+
+    def acc_control(self, pause: int = None, resume: int = None, max_temp: float = None, cooldown_temp: float = None, enabled: bool = None, action: str = None):
+        """Configures Advanced Charging Controller thresholds, manual pause/resume, or resets to default."""
+        payload = {}
+        if pause is not None: payload["pause_capacity"] = int(pause)
+        if resume is not None: payload["resume_capacity"] = int(resume)
+        if max_temp is not None: payload["max_temp_c"] = float(max_temp)
+        if cooldown_temp is not None: payload["cooldown_temp_c"] = float(cooldown_temp)
+        if enabled is not None: payload["enabled"] = bool(enabled)
+        if action is not None: payload["action"] = str(action)
+
+        headers = {"Content-Type": "application/json"}
+        res = self._req("POST", "/v1/acc/control", headers=headers, json=payload, timeout=10)
+        if not res.ok:
+            raise RuntimeError(f"ACC control request failed: HTTP {res.status_code} - {res.text}")
+        return res.json()
+
+    def acc_pause(self):
+        """Manually pauses charging circuit to protect battery cells."""
+        return self.acc_control(action="pause")
+
+    def acc_resume(self):
+        """Manually resumes physical charging circuit."""
+        return self.acc_control(action="resume")
+
+    def acc_reset(self):
+        """Resets ACC controller to default sovereign datacenter profile (80% pause, 70% resume, 40°C thermal cutoff)."""
+        return self.acc_control(action="reset")
+
+    # =========================================================================
+    # IMAGE COMPRESSION HARDWARE ACCELERATION
+    # =========================================================================
+    def compress_image(self, image, **kwargs):
+        """Compresses an image using native Zstandard Level 1 (-1 -T4)."""
+        return self.images.compress(image, **kwargs)
+
+    def decompress_image(self, compressed_data):
+        """Decompresses a Zstandard-compressed image losslessly."""
+        return self.images.decompress(compressed_data)
+
+    def image_info(self):
+        """Returns Zstandard image compression engine specifications."""
+        return self.images.info()
+
+    # =========================================================================
+    # 24/7 BACKGROUND CRON & WORKER ENGINE
+    # =========================================================================
+    def schedule(self, name: str, schedule_value: str, schedule_type: str = "interval", **kwargs):
+        """1-line background task scheduler."""
+        return self.cron.create(name=name, schedule_value=schedule_value, schedule_type=schedule_type, **kwargs)
+
+    def list_jobs(self):
+        """Lists active scheduled tasks."""
+        return self.cron.list()
+
+    def trigger_job(self, job_id: str):
+        """Instant synchronous test-fire."""
+        return self.cron.trigger(job_id)
+
+    # =========================================================================
+    # SPEECH-TO-TEXT (WHISPER ASR) & CHAT COMPLETIONS
+    # =========================================================================
+    def transcribe(self, audio_source, model="whisper-base-en", response_format="json", temperature=0.0):
+        """
+        Transcribes speech audio into text using OpenAI Whisper Base.en ASR on phone CPU silicon.
+        audio_source can be a file path string, bytes, or file-like object.
+        """
+        if isinstance(audio_source, str):
+            if not os.path.exists(audio_source):
+                raise FileNotFoundError(f"Audio file not found: {audio_source}")
+            with open(audio_source, "rb") as f:
+                raw_bytes = f.read()
+            filename = os.path.basename(audio_source)
+        elif hasattr(audio_source, "read"):
+            raw_bytes = audio_source.read()
+            filename = getattr(audio_source, "name", "audio.wav")
+        elif isinstance(audio_source, (bytes, bytearray)):
+            raw_bytes = bytes(audio_source)
+            filename = "audio.wav"
+        else:
+            raise TypeError("audio_source must be a file path, bytes, or file-like object")
+
+        files = {"file": (filename, raw_bytes, "audio/wav")}
+        data = {
+            "model": model,
+            "response_format": response_format,
+            "temperature": str(temperature)
+        }
+        headers = {}
+        if self.api_key:
+            headers["x-api-key"] = self.api_key
+        if self.project_id:
+            headers["x-project-id"] = self.project_id
+
+        res = requests.post(f"{self.endpoint}/inference", headers=headers, files=files, data=data, timeout=120)
+        if not res.ok:
+            raise RuntimeError(f"Transcription failed: HTTP {res.status_code} - {res.text}")
+        if response_format == "json":
+            return res.json()
+        return res.text
+
+    def chat(self, messages, model="openrouter/free", temperature=0.7, max_tokens=1024, stream=False):
+        """
+        OpenAI-compatible chat completion powered by on-device Qwen 2.5 / OpenRouter cascade.
+        messages can be a string prompt or list of dicts: [{"role": "user", "content": "..."}]
+        """
+        if isinstance(messages, str):
+            formatted_messages = [{"role": "user", "content": messages}]
+        else:
+            formatted_messages = messages
+
+        headers = {
+            "Content-Type": "application/json"
+        }
+        if self.api_key:
+            headers["x-api-key"] = self.api_key
+        if self.project_id:
+            headers["x-project-id"] = self.project_id
+
+        payload = {
+            "model": model,
+            "messages": formatted_messages,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+            "stream": stream
+        }
+
+        if stream:
+            res = requests.post(f"{self.endpoint}/v1/chat/completions", headers=headers, json=payload, stream=True, timeout=120)
+            if not res.ok:
+                raise RuntimeError(f"Chat request failed: HTTP {res.status_code} - {res.text}")
+            return res.iter_lines(decode_unicode=True)
+        else:
+            res = self._req("POST", "/v1/chat/completions", headers=headers, json=payload, timeout=60)
+            if not res.ok:
+                raise RuntimeError(f"Chat request failed: HTTP {res.status_code} - {res.text}")
+            data = res.json()
+            try:
+                return data["choices"][0]["message"]["content"]
+            except Exception:
+                return data
+
+    def recommend(self, aff, hist_ids=None, demo=None, seen=None, today=59, n=10, fresh=0.01, div=0.05, eps=0.1, posts=None):
+        payload = {
+            "aff": aff,
+            "hist_ids": hist_ids or [],
+            "demo": demo or [0.0, 1.0, 0.0, 0.0],
+            "seen": seen or [],
+            "today": today,
+            "n": n,
+            "fresh": fresh,
+            "div": div,
+            "eps": eps
+        }
+        if posts is not None:
+            payload["posts"] = posts
+        res = self._req("POST", "/v1/recommend", json=payload, timeout=30)
+        if not res.ok:
+            raise RuntimeError(f"Recommendation failed: HTTP {res.status_code} - {res.text}")
+        return res.json()
+
+    def get_post(self, post_id):
+        res = self._req("GET", f"/v1/recommend/post/{post_id}", timeout=15)
+        if not res.ok:
+            raise RuntimeError(f"Get post failed: HTTP {res.status_code} - {res.text}")
+        return res.json()
+
+    def recommend_status(self):
+        res = self._req("GET", "/v1/recommend/status", timeout=15)
+        if not res.ok:
+            raise RuntimeError(f"Recommendation status failed: HTTP {res.status_code} - {res.text}")
+        return res.json()
+
+    def create_game_room(self, name="Player 1", kind="human", avatar="cat", max_turns=50, start_cash=1500, auto_ai=True):
+        payload = {"name": name, "kind": kind, "avatar": avatar, "max_turns": max_turns, "start_cash": start_cash, "auto_ai": auto_ai}
+        res = self._req("POST", "/v1/monopoly/rooms", json=payload, timeout=20)
+        if not res.ok:
+            raise RuntimeError(f"Create room failed: HTTP {res.status_code} - {res.text}")
+        return res.json()
+
+    def list_game_rooms(self):
+        res = self._req("GET", "/v1/monopoly/rooms", timeout=15)
+        if not res.ok:
+            raise RuntimeError(f"List rooms failed: HTTP {res.status_code} - {res.text}")
+        return res.json()
+
+    def join_game_room(self, room_id, name="Challenger", kind="human", avatar="bunny"):
+        payload = {"name": name, "kind": kind, "avatar": avatar}
+        res = self._req("POST", f"/v1/monopoly/rooms/{room_id}/join", json=payload, timeout=20)
+        if not res.ok:
+            raise RuntimeError(f"Join room failed: HTTP {res.status_code} - {res.text}")
+        return res.json()
+
+    def get_game_state(self, room_id):
+        res = self._req("GET", f"/v1/monopoly/rooms/{room_id}/state", timeout=15)
+        if not res.ok:
+            raise RuntimeError(f"Get state failed: HTTP {res.status_code} - {res.text}")
+        return res.json()
+
+    def get_game_legal_moves(self, room_id):
+        res = self._req("GET", f"/v1/monopoly/rooms/{room_id}/legal", timeout=15)
+        if not res.ok:
+            raise RuntimeError(f"Get legal moves failed: HTTP {res.status_code} - {res.text}")
+        return res.json()
+
+    def get_game_ascii_board(self, room_id):
+        res = self._req("GET", f"/v1/monopoly/rooms/{room_id}/ascii", headers={"Accept": "text/plain"}, timeout=15)
+        if not res.ok:
+            raise RuntimeError(f"Get ascii board failed: HTTP {res.status_code} - {res.text}")
+        return res.text
+
+    def act_game(self, room_id, action, player_token=None, **kwargs):
+        payload = {"action": action, "player_token": player_token, **kwargs}
+        res = self._req("POST", f"/v1/monopoly/rooms/{room_id}/act", json=payload, timeout=25)
+        if not res.ok:
+            raise RuntimeError(f"Game action failed: HTTP {res.status_code} - {res.text}")
+        return res.json()
+
+    def cli_game(self, room_id, command, player_token=None):
+        payload = {"command": command, "player_token": player_token}
+        res = self._req("POST", f"/v1/monopoly/rooms/{room_id}/cli", json=payload, timeout=25)
+        if not res.ok:
+            raise RuntimeError(f"CLI command failed: HTTP {res.status_code} - {res.text}")
+        return res.json()
+
+    def reset_game_room(self, room_id):
+        res = self._req("POST", f"/v1/monopoly/rooms/{room_id}/reset", json={}, timeout=15)
+        if not res.ok:
+            raise RuntimeError(f"Reset room failed: HTTP {res.status_code} - {res.text}")
+        return res.json()
+
+    def quick_match_game(self, name="Player", kind="human", avatar="cat"):
+        payload = {"name": name, "kind": kind, "avatar": avatar}
+        res = self._req("POST", "/v1/monopoly/quick", json=payload, timeout=20)
+        if not res.ok:
+            raise RuntimeError(f"Quick match failed: HTTP {res.status_code} - {res.text}")
+        return res.json()
+
+    def get_game_history(self, room_id):
+        res = self._req("GET", f"/v1/monopoly/rooms/{room_id}/history", timeout=15)
+        if not res.ok:
+            raise RuntimeError(f"Get history failed: HTTP {res.status_code} - {res.text}")
+        return res.json()
+
+    def get_game_stats(self):
+        res = self._req("GET", "/v1/monopoly/stats", timeout=15)
+        if not res.ok:
+            raise RuntimeError(f"Get stats failed: HTTP {res.status_code} - {res.text}")
+        return res.json()
+
+    def send_game_chat(self, room_id, text, sender="Player", role="player", avatar="cat"):
+        payload = {"text": text, "sender": sender, "role": role, "avatar": avatar}
+        res = self._req("POST", f"/v1/monopoly/rooms/{room_id}/chat", json=payload, timeout=15)
+        if not res.ok:
+            raise RuntimeError(f"Send chat failed: HTTP {res.status_code} - {res.text}")
+        return res.json()
+
+    def get_game_chat(self, room_id):
+        res = self._req("GET", f"/v1/monopoly/rooms/{room_id}/chat", timeout=15)
+        if not res.ok:
+            raise RuntimeError(f"Get chat failed: HTTP {res.status_code} - {res.text}")
+        return res.json()
+
+    def get_game_leaderboard(self):
+        res = self._req("GET", "/v1/monopoly/leaderboard", timeout=15)
+        if not res.ok:
+            raise RuntimeError(f"Get leaderboard failed: HTTP {res.status_code} - {res.text}")
+        return res.json()
+
+    def bot_step_game(self, room_id):
+        res = self._req("POST", f"/v1/monopoly/rooms/{room_id}/bot_step", json={}, timeout=20)
+        if not res.ok:
+            raise RuntimeError(f"Bot step failed: HTTP {res.status_code} - {res.text}")
+        return res.json()
+
+    def qwen_step_game(self, room_id):
+        res = self._req("POST", f"/v1/monopoly/rooms/{room_id}/qwen_step", json={}, timeout=30)
+        if not res.ok:
+            raise RuntimeError(f"Qwen step failed: HTTP {res.status_code} - {res.text}")
+        return res.json()
+
+    def timeout_game(self, room_id, timeout_sec=45):
+        payload = {"timeout_sec": timeout_sec}
+        res = self._req("POST", f"/v1/monopoly/rooms/{room_id}/timeout", json=payload, timeout=20)
+        if not res.ok:
+            raise RuntimeError(f"Timeout check failed: HTTP {res.status_code} - {res.text}")
+        return res.json()
+
+    def surrender_game(self, room_id, player_token=None):
+        payload = {"player_token": player_token}
+        res = self._req("POST", f"/v1/monopoly/rooms/{room_id}/surrender", json=payload, timeout=15)
+        if not res.ok:
+            raise RuntimeError(f"Surrender failed: HTTP {res.status_code} - {res.text}")
+        return res.json()
+
+    def simulate_game(self, p1_name="BotAlpha", p2_name="BotBeta", max_turns=50, start_cash=1500):
+        payload = {"p1_name": p1_name, "p2_name": p2_name, "max_turns": max_turns, "start_cash": start_cash}
+        res = self._req("POST", "/v1/monopoly/simulate", json=payload, timeout=30)
+        if not res.ok:
+            raise RuntimeError(f"Simulate game failed: HTTP {res.status_code} - {res.text}")
+        return res.json()
+
+    def get_game_replay(self, room_id):
+        res = self._req("GET", f"/v1/monopoly/rooms/{room_id}/replay", timeout=15)
+        if not res.ok:
+            raise RuntimeError(f"Get replay failed: HTTP {res.status_code} - {res.text}")
+        return res.json()
+
+    def propose_game_trade(self, room_id, partner_seat=2, give_tids=None, get_tids=None, give_cash=0, get_cash=0, player_token=None):
+        payload = {
+            "partner": partner_seat,
+            "give": give_tids or [],
+            "get": get_tids or [],
+            "give_cash": give_cash,
+            "get_cash": get_cash,
+            "player_token": player_token
+        }
+        res = self._req("POST", f"/v1/monopoly/rooms/{room_id}/trade", json=payload, timeout=20)
+        if not res.ok:
+            raise RuntimeError(f"Propose trade failed: HTTP {res.status_code} - {res.text}")
+        return res.json()
+
+    def accept_game_trade(self, room_id, player_token=None):
+        payload = {"player_token": player_token}
+        res = self._req("POST", f"/v1/monopoly/rooms/{room_id}/trade_accept", json=payload, timeout=20)
+        if not res.ok:
+            raise RuntimeError(f"Accept trade failed: HTTP {res.status_code} - {res.text}")
+        return res.json()
+
+    def reject_game_trade(self, room_id, reason="Trade declined", player_token=None):
+        payload = {"reason": reason, "player_token": player_token}
+        res = self._req("POST", f"/v1/monopoly/rooms/{room_id}/trade_reject", json=payload, timeout=20)
+        if not res.ok:
+            raise RuntimeError(f"Reject trade failed: HTTP {res.status_code} - {res.text}")
+        return res.json()
+
+    def counter_game_trade(self, room_id, give_tids=None, get_tids=None, give_cash=0, get_cash=0, player_token=None):
+        payload = {
+            "give": give_tids or [],
+            "get": get_tids or [],
+            "give_cash": give_cash,
+            "get_cash": get_cash,
+            "player_token": player_token
+        }
+        res = self._req("POST", f"/v1/monopoly/rooms/{room_id}/trade_counter", json=payload, timeout=20)
+        if not res.ok:
+            raise RuntimeError(f"Counter trade failed: HTTP {res.status_code} - {res.text}")
+        return res.json()
+
+    @property
+    def monopoly(self):
+        class _MonopolyAPI:
+            def __init__(self, client):
+                self._c = client
+            def create_room(self, *a, **kw):
+                return self._c.create_game_room(*a, **kw)
+            def list_rooms(self):
+                return self._c.list_game_rooms()
+            def join_room(self, *a, **kw):
+                return self._c.join_game_room(*a, **kw)
+            def state(self, room_id):
+                return self._c.get_game_state(room_id)
+            def legal(self, room_id):
+                return self._c.get_game_legal_moves(room_id)
+            def ascii(self, room_id):
+                return self._c.get_game_ascii_board(room_id)
+            def act(self, room_id, action, **kw):
+                return self._c.act_game(room_id, action, **kw)
+            def cli(self, room_id, command, **kw):
+                return self._c.cli_game(room_id, command, **kw)
+            def reset(self, room_id):
+                return self._c.reset_game_room(room_id)
+            def chat(self, room_id, text, **kw):
+                return self._c.send_game_chat(room_id, text, **kw)
+            def get_chat(self, room_id):
+                return self._c.get_game_chat(room_id)
+            def leaderboard(self):
+                return self._c.get_game_leaderboard()
+            def bot_step(self, room_id):
+                return self._c.bot_step_game(room_id)
+            def qwen_step(self, room_id):
+                return self._c.qwen_step_game(room_id)
+            def timeout(self, room_id, **kw):
+                return self._c.timeout_game(room_id, **kw)
+            def surrender(self, room_id, **kw):
+                return self._c.surrender_game(room_id, **kw)
+            def quick_match(self, *a, **kw):
+                return self._c.quick_match_game(*a, **kw)
+            def history(self, room_id):
+                return self._c.get_game_history(room_id)
+            def replay(self, room_id):
+                return self._c.get_game_replay(room_id)
+            def simulate(self, *a, **kw):
+                return self._c.simulate_game(*a, **kw)
+            def stats(self):
+                return self._c.get_game_stats()
+            def propose_trade(self, *a, **kw):
+                return self._c.propose_game_trade(*a, **kw)
+            def accept_trade(self, *a, **kw):
+                return self._c.accept_game_trade(*a, **kw)
+            def reject_trade(self, *a, **kw):
+                return self._c.reject_game_trade(*a, **kw)
+            def counter_trade(self, *a, **kw):
+                return self._c.counter_game_trade(*a, **kw)
+        return _MonopolyAPI(self)
