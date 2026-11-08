@@ -44,7 +44,7 @@
   - Manual Trigger: `POST https://phone-whisper-server.pages.dev/v1/qwen/experiment/trigger`
 
 ## 5. Live Tunnel Status & Verification
-- Active Cloudflare Tunnel: `https://nobody-paperback-featured-lending.trycloudflare.com`
+- Active Cloudflare Tunnel: `https://surfaces-discussing-angeles-anyway.trycloudflare.com`
 - Auto-healing Edge Registration: Registered with Cloudflare Pages Worker (`/register_tunnel`)
 - Phone Wi-Fi: Reconnected to `192.168.29.2` via `com.whisper.touchbridge` accessibility tap broadcast.
 - Endpoints verified with HTTP 200 via Cloudflare Pages:
