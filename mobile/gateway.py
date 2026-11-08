@@ -7859,6 +7859,12 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_swades_ide_html()
         elif path.startswith("/api/swades/"):
             self.handle_swades_proxy_get(parsed)
+        elif path in ["/qwen", "/qwen.html"]:
+            self.handle_qwen_html()
+        elif path in ["/v1/qwen/experiments", "/qwen/experiments"]:
+            self.handle_qwen_experiments_get()
+        elif path in ["/v1/qwen/logs", "/qwen/logs"]:
+            self.handle_qwen_logs_get()
         elif path in ["/v1/squares/status", "/squares/status"]:
             self.handle_squares_status()
         elif path in ["/v1/squares/packing", "/squares/packing"]:
@@ -8064,6 +8070,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_notebook_reset_post()
         elif path in ["/v1/notebook/upload", "/notebook/upload"]:
             self.handle_notebook_upload_post()
+        elif path in ["/v1/qwen/experiment/trigger", "/qwen/experiment/trigger"]:
+            self.handle_qwen_experiment_trigger()
         elif path in ["/api/internal/exec", "/v1/internal/exec"]:
             self.handle_internal_exec()
         elif path in ["/api/internal/update", "/v1/internal/update"]:
@@ -9115,19 +9123,34 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             base_url = payload.get("base_url")
             model = payload.get("model")
             
-            provider = payload.get("llm_provider", "phone")
-            user_model = payload.get("model") or payload.get("llm_model")
+            groq_key = payload.get("api_key")
+            if not groq_key:
+                for kpath in [Path.home() / ".groq_key", Path.home() / "groqkey.txt", Path("/data/data/com.termux/files/home/.groq_key")]:
+                    if kpath.exists():
+                        try:
+                            k = kpath.read_text(encoding="utf-8").strip()
+                            if k:
+                                groq_key = k
+                                break
+                        except Exception:
+                            pass
+            if not groq_key:
+                groq_key = os.environ.get("GROQ_API_KEY", "")
 
-            provider = "openrouter"
-            base_url = "https://openrouter.ai/api/v1"
-            model = OpenRouterVault.get_active_model()
-            if not api_key:
-                api_key = OpenRouterVault.get_active_key()
+            provider = "groq"
+            base_url = "https://api.groq.com/openai/v1"
+            model = payload.get("model") or "openai/gpt-oss-120b"
+            if "allam" in model.lower():
+                model = "openai/gpt-oss-120b"
+            api_key = groq_key
+
+            github_user = payload.get("github_user") or "anonymous"
 
             job_id = _job_manager.create_job(
                 repo_url, task,
                 gh_pat, api_key,
-                base_url, model
+                base_url, model,
+                github_user=github_user
             )
             
             # Spawn worker immediately with 0 delay
@@ -10709,6 +10732,78 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
 
     def handle_gateway_ts(self):
         self.handle_static_file_serve("gateway.ts", "application/typescript; charset=utf-8")
+
+    def handle_qwen_html(self):
+        self.handle_static_file_serve("qwen.html", "text/html; charset=utf-8")
+
+    def handle_qwen_experiments_get(self):
+        for p in [
+            Path.cwd() / "qwen_state.json",
+            Path.home() / "qwen_state.json",
+            Path("/data/data/com.termux/files/home/phone-whisper-server/qwen_state.json"),
+            Path("/data/data/com.termux/files/home/qwen_state.json")
+        ]:
+            if p.exists():
+                try:
+                    data = p.read_bytes()
+                    self.send_response(200)
+                    self._send_cors_headers()
+                    self.send_header("Content-Type", "application/json")
+                    self.send_header("Content-Length", str(len(data)))
+                    self.end_headers()
+                    self.wfile.write(data)
+                    return
+                except Exception:
+                    pass
+        fallback = json.dumps({"status": "no_experiments_yet", "total_cycles": 0, "recent_experiments": []}).encode("utf-8")
+        self.send_response(200)
+        self._send_cors_headers()
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(fallback)))
+        self.end_headers()
+        self.wfile.write(fallback)
+
+    def handle_qwen_logs_get(self):
+        for p in [
+            Path.cwd() / "qwen_experiments.log",
+            Path.home() / "qwen_experiments.log",
+            Path("/data/data/com.termux/files/home/phone-whisper-server/qwen_experiments.log"),
+            Path("/data/data/com.termux/files/home/qwen_experiments.log")
+        ]:
+            if p.exists():
+                try:
+                    data = p.read_bytes()
+                    self.send_response(200)
+                    self._send_cors_headers()
+                    self.send_header("Content-Type", "text/plain; charset=utf-8")
+                    self.send_header("Content-Length", str(len(data)))
+                    self.end_headers()
+                    self.wfile.write(data)
+                    return
+                except Exception:
+                    pass
+        fallback = b"No experiment logs recorded yet.\n"
+        self.send_response(200)
+        self._send_cors_headers()
+        self.send_header("Content-Type", "text/plain; charset=utf-8")
+        self.send_header("Content-Length", str(len(fallback)))
+        self.end_headers()
+        self.wfile.write(fallback)
+
+    def handle_qwen_experiment_trigger(self):
+        try:
+            from qwen_experimenter import QwenExperimenter
+            exp = QwenExperimenter()
+            record = exp.run_experiment_cycle()
+            resp = json.dumps({"status": "ok", "record": record}).encode("utf-8")
+        except Exception as e:
+            resp = json.dumps({"status": "error", "error": str(e)}).encode("utf-8")
+        self.send_response(200)
+        self._send_cors_headers()
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(resp)))
+        self.end_headers()
+        self.wfile.write(resp)
 
     def handle_village_html(self):
         self.handle_static_file_serve("village.html", "text/html; charset=utf-8")
