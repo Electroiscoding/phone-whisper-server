@@ -9101,11 +9101,13 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
     def handle_agent_active(self):
         job = _job_manager.get_active_or_latest_job()
         if not job:
+            body = b'{"active": false, "job": null}'
             self.send_response(200)
             self._send_cors_headers()
             self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
             self.end_headers()
-            self.wfile.write(b'{"active": false, "job": null}')
+            self.wfile.write(body)
             return
             
         logs = _job_manager.get_logs(job["id"])
@@ -9113,16 +9115,18 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         if "github_pat" in safe_job: del safe_job["github_pat"]
         if "api_key" in safe_job: del safe_job["api_key"]
         
-        self.send_response(200)
-        self._send_cors_headers()
-        self.send_header("Content-Type", "application/json")
-        self.end_headers()
-        self.wfile.write(json.dumps({
+        body = json.dumps({
             "active": True,
             "job": safe_job,
             "logs": logs,
             "status": safe_job.get("status", "RUNNING")
-        }).encode())
+        }).encode()
+        self.send_response(200)
+        self._send_cors_headers()
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
 
     def handle_agent_submit(self):
         try:
