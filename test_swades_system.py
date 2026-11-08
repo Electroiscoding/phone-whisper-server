@@ -140,6 +140,14 @@ def test_http_server():
             assert "active_tasks" in sdata
             print(f"✓ GET /api/swades/status verified active daemon state.")
 
+        # GET /api/swades/events (Dual-channel fallback polling)
+        with urllib.request.urlopen(f"http://127.0.0.1:{port}/api/swades/events?task_id={task_id}&since=0") as resp:
+            assert resp.status == 200
+            edata = json.loads(resp.read().decode("utf-8"))
+            assert "events" in edata
+            assert "next_index" in edata
+            print(f"✓ GET /api/swades/events verified dual-channel fallback polling (events count: {len(edata['events'])}).")
+
     finally:
         server.shutdown()
         server.server_close()

@@ -10268,7 +10268,10 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         target_url = f"http://127.0.0.1:8088{self.path}"
         try:
             req_headers = {k: v for k, v in self.headers.items() if k.lower() not in ["host", "content-length", "connection", "accept-encoding"]}
-            req_headers["Connection"] = "close"
+            if "/stream" in self.path:
+                req_headers["Connection"] = "keep-alive"
+            else:
+                req_headers["Connection"] = "close"
             req = urllib.request.Request(target_url, headers=req_headers)
             try:
                 resp = urllib.request.urlopen(req, timeout=300)
@@ -10279,14 +10282,15 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                     self.send_response(status)
                     self._send_cors_headers()
                     self.send_header("Content-Type", ct)
-                    self.send_header("Cache-Control", "no-cache")
+                    self.send_header("Cache-Control", "no-cache, no-transform")
+                    self.send_header("X-Accel-Buffering", "no")
                     self.send_header("Connection", "keep-alive")
                     self.end_headers()
                     while True:
-                        chunk = resp.read(256)
-                        if not chunk:
+                        line = resp.readline()
+                        if not line:
                             break
-                        self.wfile.write(chunk)
+                        self.wfile.write(line)
                         self.wfile.flush()
                     return
                 body = resp.read()
@@ -10342,6 +10346,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", str(len(err_msg)))
             self.end_headers()
+            self.wfile.write(err_msg)
     def handle_static_file_serve(self, filename, content_type):
         for p in [
             os.path.join(os.getcwd(), filename),

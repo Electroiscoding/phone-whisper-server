@@ -16,7 +16,7 @@ from swades_engine import SwadesAgentEngine
 TASK_QUEUES = {}
 TASK_CONTEXTS = {}
 TASK_EVENTS = {}
-TASKS_LOCK = threading.Lock()
+TASKS_LOCK = threading.Condition()
 
 class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
     daemon_threads = True
@@ -110,6 +110,7 @@ class SwadesHTTPHandler(BaseHTTPRequestHandler):
         q = queue.Queue()
         with TASKS_LOCK:
             TASK_QUEUES[task_id] = q
+            TASK_EVENTS[task_id] = []
 
         worker = threading.Thread(
             target=run_async_swades_task,
@@ -123,15 +124,17 @@ class SwadesHTTPHandler(BaseHTTPRequestHandler):
     def handle_stream(self, parsed):
         qs = urllib.parse.parse_qs(parsed.query)
         task_id = qs.get("task_id", [""])[0]
-        with TASKS_LOCK:
-            q = TASK_QUEUES.get(task_id)
+        cursor = int(qs.get("since", [0])[0])
 
-        if not q:
-            self.send_response(404)
-            self._send_cors_headers()
-            self.end_headers()
-            self.wfile.write(b"Task stream not found.")
-            return
+        with TASKS_LOCK:
+            if task_id not in TASK_EVENTS and task_id not in TASK_CONTEXTS:
+                TASKS_LOCK.wait(timeout=2.0)
+                if task_id not in TASK_EVENTS and task_id not in TASK_CONTEXTS:
+                    self.send_response(404)
+                    self._send_cors_headers()
+                    self.end_headers()
+                    self.wfile.write(b"Task stream not found.")
+                    return
 
         self.send_response(200)
         self._send_cors_headers()
@@ -143,14 +146,29 @@ class SwadesHTTPHandler(BaseHTTPRequestHandler):
 
         try:
             while True:
-                try:
-                    event = q.get(timeout=15.0)
-                    msg = f"data: {json.dumps(event)}\n\n"
-                    self.wfile.write(msg.encode("utf-8"))
-                    self.wfile.flush()
-                    if event.get("type") in ["completed", "error"]:
-                        break
-                except queue.Empty:
+                events_to_send = []
+                with TASKS_LOCK:
+                    evs = TASK_EVENTS.get(task_id, [])
+                    if cursor < len(evs):
+                        events_to_send = evs[cursor:]
+                        cursor = len(evs)
+                    else:
+                        if evs and evs[-1].get("type") in ["completed", "error"]:
+                            break
+                        TASKS_LOCK.wait(timeout=10.0)
+                        evs = TASK_EVENTS.get(task_id, [])
+                        if cursor < len(evs):
+                            events_to_send = evs[cursor:]
+                            cursor = len(evs)
+
+                if events_to_send:
+                    for ev in events_to_send:
+                        msg = f"data: {json.dumps(ev)}\n\n"
+                        self.wfile.write(msg.encode("utf-8"))
+                        self.wfile.flush()
+                        if ev.get("type") in ["completed", "error"]:
+                            return
+                else:
                     self.wfile.write(b": keepalive\n\n")
                     self.wfile.flush()
         except (BrokenPipeError, ConnectionResetError):
@@ -239,8 +257,11 @@ def run_async_swades_task(task_id: str, repo_url: str, prompt: str, image_data: 
         with TASKS_LOCK:
             if task_id not in TASK_EVENTS:
                 TASK_EVENTS[task_id] = []
-            TASK_EVENTS[task_id].append(ev)
-        q.put(ev)
+            ev_copy = dict(ev)
+            ev_copy["_seq"] = len(TASK_EVENTS[task_id])
+            TASK_EVENTS[task_id].append(ev_copy)
+            TASKS_LOCK.notify_all()
+        q.put(ev_copy)
 
     try:
         emit({"type": "status", "state": "CLONING", "message": f"Swades provisioning sandbox for {repo_url}..."})

@@ -923,21 +923,81 @@
             clearAttachedImage();
         }
 
+        let seenEventSeqs = new Set();
+        let fallbackPollTimer = null;
+        let lastReceivedSeq = 0;
+
         function listenToStream(taskId) {
-            if (eventSource) eventSource.close();
-            eventSource = new EventSource('/api/swades/stream?task_id=' + taskId);
-
-            eventSource.onmessage = function(e) {
-                const msg = JSON.parse(e.data);
-                handleAgentEvent(msg);
-            };
-
-            eventSource.onerror = function() {
+            if (eventSource) {
                 eventSource.close();
-            };
+                eventSource = null;
+            }
+            if (fallbackPollTimer) {
+                clearInterval(fallbackPollTimer);
+                fallbackPollTimer = null;
+            }
+            seenEventSeqs.clear();
+            lastReceivedSeq = 0;
+
+            function cleanupStream() {
+                if (fallbackPollTimer) {
+                    clearInterval(fallbackPollTimer);
+                    fallbackPollTimer = null;
+                }
+                if (eventSource) {
+                    eventSource.close();
+                    eventSource = null;
+                }
+            }
+
+            try {
+                eventSource = new EventSource('/api/swades/stream?task_id=' + taskId);
+                eventSource.onmessage = function(e) {
+                    try {
+                        const msg = JSON.parse(e.data);
+                        handleAgentEvent(msg);
+                        if (msg._seq !== undefined && msg._seq >= lastReceivedSeq) {
+                            lastReceivedSeq = msg._seq + 1;
+                        }
+                        if (msg.type === 'completed' || msg.type === 'error') {
+                            cleanupStream();
+                        }
+                    } catch (err) {}
+                };
+                eventSource.onerror = function() {
+                    // Fallback polling keeps event delivery uninterrupted
+                };
+            } catch (err) {}
+
+            fallbackPollTimer = setInterval(async () => {
+                try {
+                    const res = await fetch('/api/swades/events?task_id=' + taskId + '&since=' + lastReceivedSeq);
+                    if (!res.ok) return;
+                    const data = await res.json();
+                    if (data.events && data.events.length > 0) {
+                        for (const ev of data.events) {
+                            handleAgentEvent(ev);
+                            if (ev._seq !== undefined && ev._seq >= lastReceivedSeq) {
+                                lastReceivedSeq = ev._seq + 1;
+                            }
+                            if (ev.type === 'completed' || ev.type === 'error') {
+                                cleanupStream();
+                                return;
+                            }
+                        }
+                    }
+                    if (data.status === 'completed' && lastReceivedSeq >= (data.next_index || 0)) {
+                        cleanupStream();
+                    }
+                } catch (err) {}
+            }, 1200);
         }
 
         function handleAgentEvent(ev) {
+            if (ev._seq !== undefined) {
+                if (seenEventSeqs.has(ev._seq)) return;
+                seenEventSeqs.add(ev._seq);
+            }
             if (ev.type === 'status') {
                 setStatus(ev.state, ev.message);
                 let stEl = document.getElementById('liveStatusCard');
