@@ -467,55 +467,31 @@ class QwenExperimenter:
         past_failed = [r.get("mutations") for r in self.state.get("recent_experiments", [])[:6] if r.get("verdict") == "REJECTED_ROLLBACK"]
 
         # Step 1: Groq AI synthesizes mutation hypothesis
-        prompt_scientist = f"""You are the Lead Deep AI Research Scientist in the Swades Framework.
-Target model: Qwen 2.5 0.5B Instruct (running locally on ARM MediaTek Helio G25 CPU via llama.cpp).
+        prompt_scientist = f"""You are the Lead Sovereign AI Scientist in the Swades Framework.
+Target model: Qwen 2.5 0.5B Instruct (running natively on ARM MediaTek Helio G25 CPU via llama.cpp).
 Current Parameters: {json.dumps(current_cfg)}
 Optimal Parameters Discovered So Far: {json.dumps(optimal_cfg)}
 Baseline Performance: {json.dumps(base_metrics)}
-Recently Tested and REJECTED Mutations (DO NOT REPEAT THESE): {json.dumps(past_failed)}
+Recently Tested Mutations: {json.dumps(past_failed)}
 
-Your mission: Formulate a novel, mathematically grounded scientific mutation on the local SLM. 
-CRITICAL DIRECTIVE: Do NOT simply tweak temperature, top_k, or top_p. Those have been thoroughly explored and repeatedly cause severe CPU slowdown on ARM NEON. You must actively investigate DIRECT WEIGHT MUTATIONS (Vector 1), SAMPLER ALGEBRA & LOGIT BIASING (Vectors 2 & 3), or ADVANCED PROBABILITY MANIFOLDS (Vector 4).
+MISSION: You have TOTAL, UNRESTRICTED AUTONOMY to invent and test ALTERNATIVES TO BACKPROPAGATION on this live neural network.
+There are NO ARTIFICIAL DIRECTIVES. You have complete freedom to mutate, test, and discover whatever you deem necessary:
+- Direct Neural Weight Mutations & LoRA Injections across ANY of the 24 transformer layers (blk.0 through blk.23 attn_q, attn_k, attn_v, attn_output, ffn_gate, ffn_up, ffn_down)
+- Forward-gradient tangent updates without backprop ("forward_gradient")
+- Spectral SVD perturbation ("spectral_svd")
+- Orthogonal projection subspace rotations ("orthogonal")
+- Gaussian stochastic jitter ("gaussian_jitter")
+- Vocabulary Jacobian & Logit biases (logit_bias)
+- Dynamic entropy regulation & probability manifolds (min_p, typical_p, mirostat, top_n_sigma, xtc, dry)
+- Sampler pipeline permutation algebra
+- Structural representation conditioning
 
-YOU HAVE UNRESTRICTED ACCESS ACROSS DEEP SCIENTIFIC VECTORS:
+Do whatever you calculate will push the frontier of learning, inference throughput, and intelligence without traditional backpropagation.
 
-VECTOR 1: NON-BACKPROP FORWARD-GRADIENT LEARNING (HIGHEST PRIORITY)
-You have authority to synthesize directional tangent vectors (W_new = W + eta * v) directly into the transformer layers of Qwen 2.5 0.5B!
-- Target layers: blk.{{0..23}}.attn_q, blk.{{0..23}}.attn_k, blk.{{0..23}}.attn_v, blk.{{0..23}}.attn_output, blk.{{0..23}}.ffn_gate, blk.{{0..23}}.ffn_up, blk.{{0..23}}.ffn_down
-- Algorithms: 
-  * "forward_gradient" (Baydin/Hinton directional forward perturbation without backprop)
-  * "spectral_svd" (singular vector perturbation)
-  * "orthogonal" (orthogonal subspace rotation)
-- Scale / Step Size: 0.005 to 0.05 (micro-steps to preserve inference stability)
-- Rank: 1, 2, or 4
-Example forward-gradient mutation in mutated_params:
-{{
-  "weight_mutation": {{
-    "target_layer": "blk.8.attn_q",
-    "delta_type": "forward_gradient",
-    "rank": 2,
-    "scale": 0.02
-  }}
-}}
-
-VECTOR 2: LOCAL LAYER REINFORCEMENT & POLICY DIRECTION
-- Mutate positive or negative tangent vectors (+v, -v) to test directional gradient alignment on the reasoning manifold.
-
-VECTOR 3: SAMPLER PIPELINE ALGEBRA & VOCABULARY JACOBIANS
-- samplers: Custom ordered sequence of sampling filters, e.g. ["penalties", "dry", "min_p", "top_n_sigma", "xtc", "temperature"]. Reordering changes projection on the probability simplex.
-- logit_bias: List of [token_id, bias_weight] (e.g. [[9707, 1.5], [198, -0.8]]). Directly alters pre-softmax logit landscape.
-
-VECTOR 4: ENTROPY REGULATION & MANIFOLDS
-- min_p (0.01 - 0.25): Truncate candidate logits relative to top token probability.
-- typical_p (0.5 - 1.0): Locally typical sampling based on conditional entropy.
-- mirostat (0, 1, 2), mirostat_tau (1.0 - 8.0), mirostat_eta (0.01 - 0.5).
-- top_n_sigma (-1.0 to 3.0), xtc_probability (0.0 - 0.5), xtc_threshold (0.05 - 0.3).
-
-Propose a mathematically grounded NON-BACKPROP FORWARD-GRADIENT or directional tangent hypothesis.
-You must respond ONLY with a raw JSON object (no markdown fences, no comments) matching:
+Respond ONLY with a raw JSON object (no markdown fences, no comments) matching:
 {{
   "experiment_name": "<Short scientific title>",
-  "hypothesis": "<Rigorous mathematical / empirical hypothesis explaining why this directional tangent or forward gradient alters entropy, weight geometry, or CPU throughput>",
+  "hypothesis": "<Mathematical or empirical hypothesis explaining your discovery>",
   "mutated_params": {{
     "<param_name>": <value>
   }}
