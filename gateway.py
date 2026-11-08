@@ -5395,20 +5395,29 @@ def _run_swades_harness_job(job_id):
         swades_core = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(swades_core)
 
-        groq_key = job.get("api_key")
-        if not groq_key:
-            for kpath in [Path.home() / ".groq_key", Path.home() / "groqkey.txt", Path("/data/data/com.termux/files/home/.groq_key")]:
-                if kpath.exists():
+        # Multi-key pool rotation to make 429 impossible
+        def _get_active_groq_keys():
+            keys = []
+            for kp in ["/data/data/com.termux/files/home/.groq_keys", str(Path.home() / ".groq_keys")]:
+                if os.path.exists(kp):
                     try:
-                        k = kpath.read_text(encoding="utf-8").strip()
-                        if k:
-                            groq_key = k
-                            break
+                        with open(kp) as f:
+                            keys.extend([line.strip() for line in f if line.strip().startswith("gsk_")])
                     except Exception:
                         pass
+            for kp in ["/data/data/com.termux/files/home/.groq_key", str(Path.home() / ".groq_key")]:
+                if os.path.exists(kp):
+                    try:
+                        with open(kp) as f:
+                            k = f.read().strip()
+                            if k.startswith("gsk_") and k not in keys:
+                                keys.append(k)
+                    except Exception:
+                        pass
+            return keys
 
-        if not groq_key:
-            groq_key = os.environ.get("GROQ_API_KEY", "")
+        pool = _get_active_groq_keys()
+        groq_key = pool[0] if pool else (job.get("api_key") or os.environ.get("GROQ_API_KEY", ""))
 
         model_name = job.get("model") or "qwen/qwen3.8-27b"
         if "allam" in model_name.lower() or model_name == "openai/gpt-oss-120b":
