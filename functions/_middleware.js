@@ -10,6 +10,10 @@ export async function onRequest(context) {
     return handleOptions(context);
   }
 
+  if (["/war_room", "/war_room.html"].includes(url.pathname)) {
+    return Response.redirect(`${url.origin}/qwen`, 302);
+  }
+
   if (["/ide", "/ide.html", "/swades_ide", "/swades_ide.html", "/swades-ide"].includes(url.pathname)) {
     return Response.redirect(`${url.origin}/swades`, 302);
   }
