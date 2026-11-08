@@ -235,10 +235,10 @@ footer {
   <div class="top-actions">
     <div class="status-pill" id="statusPill">
       <div class="pulse-dot" id="pulseDot"></div>
-      <span id="statusText">SYSTEM READY</span>
+      <span id="statusText">PHONE DAEMON ACTIVE</span>
     </div>
-    <button id="autoToggleBtn" onclick="toggleAuto()">AUTO-ITERATE: OFF</button>
-    <button class="primary-trigger" id="triggerBtn" onclick="triggerExperiment()">[ RUN EXPERIMENT (SPACE) ]</button>
+    <button id="autoToggleBtn" onclick="toggleAuto()" style="background:#FFFFFF; color:#000000;">AUTO-ITERATE: ACTIVE (DAEMON)</button>
+    <button class="primary-trigger" id="triggerBtn" onclick="triggerExperiment()">[ TRIGGER CYCLE (SPACE) ]</button>
   </div>
 </header>
 
@@ -409,6 +409,29 @@ function renderUI(data) {
   // Recent Experiments Feed
   const recs = data.recent_experiments || [];
   document.getElementById("journalCounter").innerText = `${recs.length} Recorded Cycles`;
+
+  // Daemon Status indication
+  const autoBtn = document.getElementById("autoToggleBtn");
+  const stText = document.getElementById("statusText");
+  const isDaemonActive = (data.daemon_status && data.daemon_status.active) || (data.total_cycles > 0);
+  if (!isRunning) {
+    if (autoInterval) {
+      stText.innerText = "TURBO LOOP ACTIVE (10s)";
+      autoBtn.innerText = "TURBO AUTO: ON (10s)";
+      autoBtn.style.background = "#FFFFFF";
+      autoBtn.style.color = "#000000";
+    } else if (isDaemonActive) {
+      stText.innerText = `PHONE DAEMON ACTIVE (#${data.total_cycles || 0})`;
+      autoBtn.innerText = "AUTO-ITERATE: ACTIVE (DAEMON)";
+      autoBtn.style.background = "#FFFFFF";
+      autoBtn.style.color = "#000000";
+    } else {
+      stText.innerText = "SYSTEM READY";
+      autoBtn.innerText = "AUTO-ITERATE: OFF";
+      autoBtn.style.background = "#000000";
+      autoBtn.style.color = "#FFFFFF";
+    }
+  }
   const feed = document.getElementById("logFeed");
   if (recs.length > 0) {
     feed.innerHTML = "";
@@ -495,7 +518,7 @@ async function triggerExperiment() {
     isRunning = false;
     btn.disabled = false;
     pBanner.classList.remove("active");
-    stText.innerText = autoInterval ? "AUTO-CYCLING ACTIVE" : "SYSTEM READY";
+    stText.innerText = autoInterval ? "TURBO LOOP ACTIVE" : "PHONE DAEMON ACTIVE";
   }
 }
 
@@ -505,15 +528,19 @@ function toggleAuto() {
   if (autoInterval) {
     clearInterval(autoInterval);
     autoInterval = null;
-    btn.innerText = "AUTO-ITERATE: OFF";
-    stText.innerText = "SYSTEM READY";
+    btn.innerText = "AUTO-ITERATE: ACTIVE (DAEMON)";
+    btn.style.background = "#FFFFFF";
+    btn.style.color = "#000000";
+    stText.innerText = "PHONE DAEMON ACTIVE";
   } else {
-    btn.innerText = "AUTO-ITERATE: ON (15s)";
-    stText.innerText = "AUTO-CYCLING ACTIVE";
+    btn.innerText = "TURBO AUTO: ON (10s)";
+    btn.style.background = "#FFFFFF";
+    btn.style.color = "#000000";
+    stText.innerText = "TURBO LOOP ACTIVE (10s)";
     triggerExperiment();
     autoInterval = setInterval(() => {
       if (!isRunning) triggerExperiment();
-    }, 15000);
+    }, 10000);
   }
 }
 

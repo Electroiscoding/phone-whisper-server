@@ -120,6 +120,12 @@ class QwenExperimenter:
         return initial_state
 
     def _save_state(self, state: Dict[str, Any]):
+        state["daemon_status"] = {
+            "active": getattr(self, "is_daemon", True),
+            "interval_sec": getattr(self, "daemon_interval", 60),
+            "pid": os.getpid(),
+            "last_cycle_timestamp": time.time()
+        }
         STATE_FILE.write_text(json.dumps(state, indent=2), encoding="utf-8")
 
     def _emit(self, event_type: str, data: Dict[str, Any]):
@@ -405,6 +411,8 @@ def main():
     print(f"[*] Log file: {LOG_FILE}")
 
     if args.daemon:
+        experimenter.is_daemon = True
+        experimenter.daemon_interval = args.interval
         print(f"[*] Entering daemon mode (Interval: {args.interval}s)...")
         while True:
             try:
