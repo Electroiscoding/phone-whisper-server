@@ -5264,7 +5264,7 @@ class SwadesGitManager:
         base_commit = rev_res.stdout.strip() if rev_res.returncode == 0 else ""
         if base_commit:
             try:
-                (workspace_path / ".base_commit").write_text(base_commit, encoding="utf-8")
+                (workspace_path / ".git" / "swades_base_commit").write_text(base_commit, encoding="utf-8")
             except Exception:
                 pass
 
@@ -5276,12 +5276,16 @@ class SwadesGitManager:
 
     def get_diff(self, workspace_path):
         base_commit = None
-        base_commit_file = workspace_path / ".base_commit"
+        base_commit_file = workspace_path / ".git" / "swades_base_commit"
+        if not base_commit_file.exists():
+            base_commit_file = workspace_path / ".base_commit"
         if base_commit_file.exists():
             try:
                 base_commit = base_commit_file.read_text(encoding="utf-8").strip()
             except Exception:
                 pass
+
+        self._run_git_secure(["add", "-N", "."], cwd=workspace_path)
 
         if base_commit:
             res = self._run_git_secure(["diff", "-U3", base_commit], cwd=workspace_path)
@@ -5458,9 +5462,9 @@ def _run_swades_harness_job(job_id):
         pool = _get_active_groq_keys()
         groq_key = pool[0] if pool else (job.get("api_key") or os.environ.get("GROQ_API_KEY", ""))
 
-        model_name = job.get("model") or "qwen/qwen3.8-27b"
-        if "allam" in model_name.lower() or model_name == "openai/gpt-oss-120b":
-            model_name = "qwen/qwen3.8-27b"
+        model_name = job.get("model") or "openai/gpt-oss-120b"
+        if "allam" in model_name.lower():
+            model_name = "openai/gpt-oss-120b"
 
         os.environ["AGENT_PROVIDER"] = "groq"
         os.environ["GROQ_API_KEY"] = groq_key
@@ -5479,7 +5483,7 @@ def _run_swades_harness_job(job_id):
                 super().__init__(cfg, meter)
                 self.keys = [k for k in keys if k]
                 self.key_idx = 0
-                self.models = models or ["qwen/qwen3.8-27b", "llama-3.3-70b-versatile"]
+                self.models = models or ["openai/gpt-oss-120b", "qwen/qwen3.8-27b", "openai/gpt-oss-20b"]
                 self.model_idx = 0
                 self._apply_current_key()
 
@@ -5491,7 +5495,7 @@ def _run_swades_harness_job(job_id):
             def send(self, system, tools, messages, tier="main"):
                 total_keys = max(1, len(self.keys))
                 total_models = len(self.models)
-                max_rotation_attempts = total_keys * total_models
+                max_rotation_attempts = total_keys * total_models * 3
                 
                 last_exc = None
                 for rot in range(max_rotation_attempts):
@@ -5500,24 +5504,24 @@ def _run_swades_harness_job(job_id):
                     except Exception as exc:
                         last_exc = exc
                         err_str = str(exc).lower()
-                        if "429" in err_str or "rate limit" in err_str:
-                            if len(self.keys) > 1:
+                        if "429" in err_str or "rate limit" in err_str or "413" in err_str or "too large" in err_str:
+                            if len(self.keys) > 1 and (rot % len(self.keys) < len(self.keys) - 1):
                                 self.key_idx = (self.key_idx + 1) % len(self.keys)
                                 self._apply_current_key()
                                 print(f"[ROTATING_LLM] Rate limit hit. Switched to key #{self.key_idx + 1}/{len(self.keys)}", flush=True)
                                 time.sleep(1.0)
                                 continue
-                            elif total_models > 1 and rot + 1 < max_rotation_attempts:
+                            elif total_models > 1:
                                 self.model_idx = (self.model_idx + 1) % len(self.models)
                                 self.cfg.model = self.models[self.model_idx]
-                                print(f"[ROTATING_LLM] Key pool exhausted. Falling back to model: {self.cfg.model}", flush=True)
-                                time.sleep(2.0)
+                                print(f"[ROTATING_LLM] Switching model to: {self.cfg.model}", flush=True)
+                                time.sleep(3.0)
                                 continue
                         raise exc
                 if last_exc:
                     raise last_exc
 
-        llm = RotatingLLM(cfg, meter, pool or [groq_key], models=[model_name, "llama-3.3-70b-versatile"])
+        llm = RotatingLLM(cfg, meter, pool or [groq_key], models=[model_name, "qwen/qwen3.8-27b", "openai/gpt-oss-20b"])
 
         class StreamingSwadesReAct(swades_core.ReAct):
             def __init__(self, cfg, llm, kit, host, job_id, job_manager, git_mgr, meter=None):
@@ -9305,9 +9309,9 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
 
             provider = "groq"
             base_url = "https://api.groq.com/openai/v1"
-            model = payload.get("model") or "qwen/qwen3.8-27b"
-            if "allam" in model.lower() or model == "openai/gpt-oss-120b":
-                model = "qwen/qwen3.8-27b"
+            model = payload.get("model") or "openai/gpt-oss-120b"
+            if "allam" in model.lower():
+                model = "openai/gpt-oss-120b"
             api_key = groq_key
 
             github_user = payload.get("github_user") or "anonymous"
