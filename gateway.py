@@ -7571,6 +7571,24 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_docs_html()
         elif path in ["/maker", "/maker.md"]:
             self.handle_maker_md()
+        elif path in ["/swades", "/swades.html"]:
+            self.handle_swades_html()
+        elif path in ["/swades.js", "/sdk/swades.js", "/sdk/js"]:
+            self.handle_swades_js()
+        elif path in ["/swades.py", "/sdk/swades.py", "/sdk/python"]:
+            self.handle_swades_py()
+        elif path in ["/transcribe.js", "/sdk/transcribe.js"]:
+            self.handle_transcribe_js()
+        elif path in ["/transcribe.py", "/sdk/transcribe.py"]:
+            self.handle_transcribe_py()
+        elif path in ["/gateway.ts", "/sdk/gateway.ts"]:
+            self.handle_gateway_ts()
+        elif path in ["/village", "/village.html"]:
+            self.handle_village_html()
+        elif path in ["/v1/village/state", "/village/state"]:
+            self.handle_village_state()
+        elif path in ["/v1/village/logs", "/village/logs", "/v1/village/log", "/village/log"]:
+            self.handle_village_logs(parsed)
         elif path in ["/v1/dashboard/overview", "/v1/admin/overview"]:
             self.handle_dashboard_overview(parsed)
         elif path in ["/v1/dashboard/flags", "/v1/admin/flags"]:
@@ -7706,6 +7724,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_cron_create_job()
         elif path.startswith("/api/swades/"):
             self.handle_swades_proxy_post()
+        elif path in ["/v1/village/interact", "/village/interact"]:
+            self.handle_village_interact()
         elif path in ["/v1/cron/demo/smtp", "/v1/cron/smtp/demo", "/cron/demo/smtp"]:
             self.handle_cron_demo_smtp()
         elif path.startswith("/v1/cron/jobs/") and (path.endswith("/trigger") or path.endswith("/run")):
@@ -10246,31 +10266,46 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         try:
             req_headers = {k: v for k, v in self.headers.items() if k.lower() not in ["host", "content-length"]}
             req = urllib.request.Request(target_url, headers=req_headers)
-            resp = urllib.request.urlopen(req, timeout=300)
-            self.send_response(resp.status)
+            try:
+                resp = urllib.request.urlopen(req, timeout=300)
+                status = resp.status
+                resp_headers = resp.headers
+                ct = resp_headers.get("Content-Type", "application/json")
+                if "event-stream" in ct:
+                    self.send_response(status)
+                    self._send_cors_headers()
+                    self.send_header("Content-Type", ct)
+                    self.send_header("Cache-Control", "no-cache")
+                    self.send_header("Connection", "keep-alive")
+                    self.end_headers()
+                    while True:
+                        chunk = resp.read(256)
+                        if not chunk:
+                            break
+                        self.wfile.write(chunk)
+                        self.wfile.flush()
+                    return
+                body = resp.read()
+            except urllib.error.HTTPError as he:
+                status = he.code
+                resp_headers = he.headers
+                ct = resp_headers.get("Content-Type", "application/json")
+                body = he.read()
+
+            self.send_response(status)
             self._send_cors_headers()
-            ct = resp.headers.get("Content-Type", "application/json")
             self.send_header("Content-Type", ct)
-            if "event-stream" in ct:
-                self.send_header("Cache-Control", "no-cache")
-                self.send_header("Connection", "keep-alive")
-                self.end_headers()
-                while True:
-                    chunk = resp.read(256)
-                    if not chunk:
-                        break
-                    self.wfile.write(chunk)
-                    self.wfile.flush()
-                return
-            body = resp.read()
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
             self.wfile.write(body)
         except Exception as e:
-            self.send_response(502)
+            err_msg = json.dumps({"error": f"Swades IDE Proxy Error: {e}"}).encode("utf-8")
+            self.send_response(500)
             self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(err_msg)))
             self.end_headers()
-            self.wfile.write(f'{{"error": "Swades IDE Proxy Error: {e}"}}'.encode("utf-8"))
+            self.wfile.write(err_msg)
 
     def handle_swades_proxy_post(self):
         target_url = f"http://127.0.0.1:8088{self.path}"
@@ -10279,20 +10314,132 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         try:
             req_headers = {k: v for k, v in self.headers.items() if k.lower() not in ["host", "content-length"]}
             req = urllib.request.Request(target_url, data=body, headers=req_headers, method="POST")
-            with urllib.request.urlopen(req, timeout=60) as resp:
+            try:
+                resp = urllib.request.urlopen(req, timeout=60)
+                status = resp.status
+                resp_headers = resp.headers
                 resp_data = resp.read()
-                self.send_response(resp.status)
-                self._send_cors_headers()
-                self.send_header("Content-Type", resp.headers.get("Content-Type", "application/json"))
-                self.send_header("Content-Length", str(len(resp_data)))
-                self.end_headers()
-                self.wfile.write(resp_data)
-        except Exception as e:
-            self.send_response(502)
-            self._send_cors_headers()
-            self.end_headers()
-            self.wfile.write(f'{{"error": "Swades IDE Proxy Error: {e}"}}'.encode("utf-8"))
+            except urllib.error.HTTPError as he:
+                status = he.code
+                resp_headers = he.headers
+                resp_data = he.read()
 
+            self.send_response(status)
+            self._send_cors_headers()
+            self.send_header("Content-Type", resp_headers.get("Content-Type", "application/json"))
+            self.send_header("Content-Length", str(len(resp_data)))
+            self.end_headers()
+            self.wfile.write(resp_data)
+        except Exception as e:
+            err_msg = json.dumps({"error": f"Swades IDE Proxy Error: {e}"}).encode("utf-8")
+            self.send_response(500)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(err_msg)))
+            self.end_headers()
+    def handle_static_file_serve(self, filename, content_type):
+        for p in [
+            os.path.join(os.getcwd(), filename),
+            f"/data/data/com.termux/files/home/{filename}",
+            f"/data/data/com.termux/files/home/phone-whisper-server/{filename}",
+            os.path.expanduser(f"~/{filename}")
+        ]:
+            if os.path.exists(p):
+                with open(p, "rb") as f:
+                    content = f.read()
+                self.send_response(200)
+                self._send_cors_headers()
+                self.send_header("Content-Type", content_type)
+                self.send_header("Content-Length", str(len(content)))
+                self.end_headers()
+                self.wfile.write(content)
+                return
+        self.send_error(404, f"{filename} not found on server")
+
+    def handle_swades_html(self):
+        self.handle_static_file_serve("swades.html", "text/html; charset=utf-8")
+
+    def handle_swades_js(self):
+        self.handle_static_file_serve("swades.js", "application/javascript; charset=utf-8")
+
+    def handle_swades_py(self):
+        self.handle_static_file_serve("swades.py", "text/x-python; charset=utf-8")
+
+    def handle_transcribe_js(self):
+        self.handle_static_file_serve("transcribe.js", "application/javascript; charset=utf-8")
+
+    def handle_transcribe_py(self):
+        self.handle_static_file_serve("transcribe.py", "text/x-python; charset=utf-8")
+
+    def handle_gateway_ts(self):
+        self.handle_static_file_serve("gateway.ts", "application/typescript; charset=utf-8")
+
+    def handle_village_html(self):
+        self.handle_static_file_serve("village.html", "text/html; charset=utf-8")
+
+    def handle_village_state(self):
+        base = Path("/data/data/com.termux/files/home") if Path("/data/data/com.termux/files/home").exists() else Path.home()
+        for p in [
+            base / "village_sim" / "world_state.json",
+            Path.cwd() / "village_sim" / "world_state.json",
+            Path(__file__).parent / "village_sim" / "world_state.json"
+        ]:
+            if p.exists():
+                try:
+                    with open(p, "r", encoding="utf-8") as f:
+                        data = json.load(f)
+                    self._send_json_response(data)
+                    return
+                except Exception:
+                    pass
+        self._send_json_response({
+            "world": {"name": "Elysium", "population": 0, "hour": 8.0, "time_of_day": "Morning", "weather": "Sunny", "landmarks": {}},
+            "villagers": [], "active_bubbles": [], "recent_dialogues": [], "recent_events": []
+        })
+
+    def handle_village_interact(self):
+        try:
+            content_length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(content_length).decode("utf-8")
+            data = json.loads(body)
+            target = data.get("target_villager", "all")
+            a_type = data.get("action_type", "whisper")
+            content = data.get("content", "")
+            base = Path("/data/data/com.termux/files/home") if Path("/data/data/com.termux/files/home").exists() else Path.home()
+            db_p = base / "village_sim" / "village.db"
+            if db_p.exists():
+                import sqlite3, time
+                with sqlite3.connect(db_p) as conn:
+                    conn.execute("""
+                        INSERT INTO god_queue (target_villager, action_type, content, processed, created_at)
+                        VALUES (?, ?, ?, 0, ?)
+                    """, (target, a_type, content, time.time()))
+            self._send_json_response({"status": "queued", "target": target, "action": a_type, "content": content})
+        except Exception as e:
+            self._send_json_response({"error": str(e)}, status=500)
+
+    def handle_village_logs(self, parsed):
+        base = Path("/data/data/com.termux/files/home") if Path("/data/data/com.termux/files/home").exists() else Path.home()
+        for log_file in [
+            base / "village_sim" / "village.log",
+            Path.cwd() / "village_sim" / "village.log",
+            Path(__file__).parent / "village_sim" / "village.log"
+        ]:
+            if log_file.exists():
+                try:
+                    with open(log_file, "r", encoding="utf-8", errors="ignore") as f:
+                        lines = [l.strip() for l in f.readlines() if l.strip()]
+                    limit = 50
+                    try:
+                        qs = urllib.parse.parse_qs(parsed.query)
+                        if "n" in qs: limit = max(1, min(200, int(qs["n"][0])))
+                    except Exception:
+                        pass
+                    self._send_json_response({"lines": lines[-limit:], "total_lines": len(lines)})
+                    return
+                except Exception:
+                    pass
+        self._send_json_response({"lines": [], "total_lines": 0})
 
     def handle_squares_status(self):
         base = Path(os.environ.get("HOME", "/data/data/com.termux/files/home"))
