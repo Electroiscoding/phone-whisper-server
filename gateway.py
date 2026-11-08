@@ -5410,9 +5410,9 @@ def _run_swades_harness_job(job_id):
         if not groq_key:
             groq_key = os.environ.get("GROQ_API_KEY", "")
 
-        model_name = job.get("model") or "openai/gpt-oss-120b"
-        if "allam" in model_name.lower():
-            model_name = "openai/gpt-oss-120b"
+        model_name = job.get("model") or "qwen/qwen3.8-27b"
+        if "allam" in model_name.lower() or model_name == "openai/gpt-oss-120b":
+            model_name = "qwen/qwen3.8-27b"
 
         os.environ["AGENT_PROVIDER"] = "groq"
         os.environ["GROQ_API_KEY"] = groq_key
@@ -5420,6 +5420,7 @@ def _run_swades_harness_job(job_id):
         os.environ["AGENT_ROOT"] = str(workspace_path)
         os.environ["AGENT_MAX_CYCLES"] = "8"
         os.environ["AGENT_MAX_STEPS"] = "60"
+        os.environ["AGENT_RETRIES"] = "8"
 
         cfg = swades_core.Config.load(llm=True, root=workspace_path)
         meter = swades_core.Meter()
@@ -9164,9 +9165,9 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
 
             provider = "groq"
             base_url = "https://api.groq.com/openai/v1"
-            model = payload.get("model") or "openai/gpt-oss-120b"
-            if "allam" in model.lower():
-                model = "openai/gpt-oss-120b"
+            model = payload.get("model") or "qwen/qwen3.8-27b"
+            if "allam" in model.lower() or model == "openai/gpt-oss-120b":
+                model = "qwen/qwen3.8-27b"
             api_key = groq_key
 
             github_user = payload.get("github_user") or "anonymous"
