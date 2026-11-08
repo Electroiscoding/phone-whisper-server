@@ -23,12 +23,16 @@
 ## 4. Qwen Autonomous Closed-Loop Experimentation Engine
 - **Engine Architecture**:
   - `qwen_experimenter.py`: Sovereign closed-loop scientist engine running as a native background daemon on physical phone server (`192.168.29.2:8080`, PID `24942`).
-  - Scientist Model: Groq LPU (`qwen/qwen3.8-27b`) formulates hypotheses, proposes mutations, evaluates benchmark deltas, and writes authoritative scientific conclusions.
+  - Scientist Model Pool: Groq LPU (`qwen/qwen3.8-27b`, `openai/gpt-oss-20b`, `allam-2-7b`, `openai/gpt-oss-120b`) with automated round-robin rotation on rate limits.
+  - Deep Research Vectors: Unlocked 6 deep mathematical axes:
+    1. Entropy Regulation & Manifolds (`min_p`, `typical_p`, `mirostat`, `dynatemp`, `top_n_sigma`, `xtc`)
+    2. Structural N-Gram Decay & Repetition (`dry_multiplier`, `dry_base`, `repeat_penalty`, `presence_penalty`, `frequency_penalty`)
+    3. Sampler Pipeline Algebra (custom permutation of sampling transforms)
+    4. Logit Biasing & Vocabulary Steering (`logit_bias` vector injection)
+    5. Classical Bounds (`temperature`, `top_k`, `top_p`, `max_tokens`)
+    6. Representation Conditioning (structural meta-prompts)
   - Experimental Subject: Local Qwen 2.5 0.5B Instruct GGUF (`qwen2.5-0.5b-instruct-q4_k_m.gguf`) served on `127.0.0.1:8001` via `llama-server` on ARM NEON CPU.
-  - Benchmark Battery: 3 quantitative evaluations per experiment cycle:
-    1. Strict JSON Extraction (Structure & syntax fidelity)
-    2. 1-Sentence Science Reasoning (Factual density & concise deduction)
-    3. Python Lambda Synthesis (Executable code generation)
+  - Completed Cycles: 31 continuous autonomous cycles executed.
   - Rollback / Commit Gate: Strict regression threshold. Any mutation degrading speed by >15% or latency by >20% is rolled back immediately (`REJECTED_ROLLBACK`).
   - Persistence: Every move, hypothesis, raw token output, benchmark score, and conclusion is appended synchronously to `/data/data/com.termux/files/home/qwen_experiments.log` and serialized in `qwen_state.json`.
 - **Pure Monochrome OLED UX (Nir Eyal Hook Model)**:
