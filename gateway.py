@@ -5230,6 +5230,7 @@ class SwadesGitManager:
         env = os.environ.copy()
         env["PATH"] = f"/data/data/com.termux/files/usr/bin:{env.get('PATH', '')}"
         env["HOME"] = "/data/data/com.termux/files/home"
+        env["GIT_TERMINAL_PROMPT"] = "0"
         if os.path.exists("/data/data/com.termux/files/usr/etc/tls/cert.pem"):
             env["GIT_SSL_CAINFO"] = "/data/data/com.termux/files/usr/etc/tls/cert.pem"
             env["SSL_CERT_FILE"] = "/data/data/com.termux/files/usr/etc/tls/cert.pem"
@@ -5259,6 +5260,14 @@ class SwadesGitManager:
             if res.returncode != 0:
                 raise RuntimeError(f"Git clone failed: {res.stderr.strip() or res.stdout.strip()}")
 
+        rev_res = self._run_git_secure(["rev-parse", "HEAD"], cwd=workspace_path)
+        base_commit = rev_res.stdout.strip() if rev_res.returncode == 0 else ""
+        if base_commit:
+            try:
+                (workspace_path / ".base_commit").write_text(base_commit, encoding="utf-8")
+            except Exception:
+                pass
+
         branch_name = f"swades/{task_id}"
         self._run_git_secure(["checkout", "-b", branch_name], cwd=workspace_path)
         self._run_git_secure(["config", "user.name", "Swades AI Agent"], cwd=workspace_path)
@@ -5266,17 +5275,32 @@ class SwadesGitManager:
         return workspace_path
 
     def get_diff(self, workspace_path):
-        res = self._run_git_secure(["diff", "HEAD"], cwd=workspace_path)
-        if res.stdout.strip():
+        base_commit = None
+        base_commit_file = workspace_path / ".base_commit"
+        if base_commit_file.exists():
+            try:
+                base_commit = base_commit_file.read_text(encoding="utf-8").strip()
+            except Exception:
+                pass
+
+        if base_commit:
+            res = self._run_git_secure(["diff", "-U3", base_commit], cwd=workspace_path)
+            if res.returncode == 0 and res.stdout.strip():
+                return res.stdout
+
+        res = self._run_git_secure(["diff", "-U3", "HEAD"], cwd=workspace_path)
+        if res.returncode == 0 and res.stdout.strip():
             return res.stdout
-        res_cached = self._run_git_secure(["diff", "--cached"], cwd=workspace_path)
-        if res_cached.stdout.strip():
+
+        res_cached = self._run_git_secure(["diff", "-U3", "--cached"], cwd=workspace_path)
+        if res_cached.returncode == 0 and res_cached.stdout.strip():
             return res_cached.stdout
-        res_prev = self._run_git_secure(["diff", "HEAD~1"], cwd=workspace_path)
+
+        res_prev = self._run_git_secure(["diff", "-U3", "HEAD~1"], cwd=workspace_path)
         if res_prev.returncode == 0 and res_prev.stdout.strip():
             return res_prev.stdout
-        res_show = self._run_git_secure(["show", "--stat", "--oneline"], cwd=workspace_path)
-        return res_show.stdout
+
+        return ""
 
     def commit_changes(self, workspace_path, commit_message):
         self._run_git_secure(["add", "-A"], cwd=workspace_path)
@@ -5286,7 +5310,22 @@ class SwadesGitManager:
         res = self._run_git_secure(["commit", "-m", commit_message], cwd=workspace_path)
         return res.returncode == 0
 
-    def push_branch(self, workspace_path, branch_name):
+    def push_branch(self, workspace_path, branch_name, repo_url=None):
+        slug = None
+        if repo_url:
+            slug = self.extract_repo_slug(repo_url)
+        if not slug:
+            rem = self._run_git_secure(["remote", "get-url", "origin"], cwd=workspace_path)
+            if rem.returncode == 0:
+                slug = self.extract_repo_slug(rem.stdout.strip())
+
+        token = self.github_token or self._load_github_token()
+        if token and slug:
+            push_url = f"https://x-access-token:{token}@github.com/{slug}.git"
+            res = self._run_git_secure(["push", "-u", push_url, f"{branch_name}:{branch_name}", "--force"], cwd=workspace_path, timeout=60)
+            if res.returncode == 0:
+                return True, res.stdout
+
         res = self._run_git_secure(["push", "-u", "origin", branch_name, "--force"], cwd=workspace_path, timeout=60)
         return res.returncode == 0, res.stderr if res.returncode != 0 else res.stdout
 
@@ -5434,7 +5473,51 @@ def _run_swades_harness_job(job_id):
         cfg = swades_core.Config.load(llm=True, root=workspace_path)
         meter = swades_core.Meter()
         host = swades_core.Host(cfg).load()
-        llm = swades_core.LLM(cfg, meter)
+
+        class RotatingLLM(swades_core.LLM):
+            def __init__(self, cfg, meter, keys, models=None):
+                super().__init__(cfg, meter)
+                self.keys = [k for k in keys if k]
+                self.key_idx = 0
+                self.models = models or ["qwen/qwen3.8-27b", "llama-3.3-70b-versatile"]
+                self.model_idx = 0
+                self._apply_current_key()
+
+            def _apply_current_key(self):
+                if self.keys:
+                    k = self.keys[self.key_idx % len(self.keys)]
+                    self.headers["authorization"] = f"Bearer {k}"
+
+            def send(self, system, tools, messages, tier="main"):
+                total_keys = max(1, len(self.keys))
+                total_models = len(self.models)
+                max_rotation_attempts = total_keys * total_models
+                
+                last_exc = None
+                for rot in range(max_rotation_attempts):
+                    try:
+                        return super().send(system, tools, messages, tier=tier)
+                    except Exception as exc:
+                        last_exc = exc
+                        err_str = str(exc).lower()
+                        if "429" in err_str or "rate limit" in err_str:
+                            if len(self.keys) > 1:
+                                self.key_idx = (self.key_idx + 1) % len(self.keys)
+                                self._apply_current_key()
+                                print(f"[ROTATING_LLM] Rate limit hit. Switched to key #{self.key_idx + 1}/{len(self.keys)}", flush=True)
+                                time.sleep(1.0)
+                                continue
+                            elif total_models > 1 and rot + 1 < max_rotation_attempts:
+                                self.model_idx = (self.model_idx + 1) % len(self.models)
+                                self.cfg.model = self.models[self.model_idx]
+                                print(f"[ROTATING_LLM] Key pool exhausted. Falling back to model: {self.cfg.model}", flush=True)
+                                time.sleep(2.0)
+                                continue
+                        raise exc
+                if last_exc:
+                    raise last_exc
+
+        llm = RotatingLLM(cfg, meter, pool or [groq_key], models=[model_name, "llama-3.3-70b-versatile"])
 
         class StreamingSwadesReAct(swades_core.ReAct):
             def __init__(self, cfg, llm, kit, host, job_id, job_manager, git_mgr, meter=None):
@@ -5495,19 +5578,45 @@ def _run_swades_harness_job(job_id):
         result = agent.run(job["task"])
         duration = round(time.time() - start_time, 1)
 
-        final_diff = git_mgr.get_diff(workspace_path)
+        diff_text = git_mgr.get_diff(workspace_path)
+        has_changes = bool(diff_text and diff_text.strip())
+
+        if not has_changes:
+            report_file = workspace_path / "SWADES_REPORT.md"
+            report_content = f"# Swades Autonomous Analysis Report\n\n" \
+                             f"**Task:** {job['task']}\n\n" \
+                             f"**Execution Summary:**\n{result}\n\n" \
+                             f"---\n*Generated autonomously by Swades Agentic IDE on sovereign phone node.*"
+            try:
+                report_file.write_text(report_content, encoding="utf-8")
+                git_mgr.commit_changes(workspace_path, f"Swades Analysis Report: {job['task'][:60]}")
+                final_diff = git_mgr.get_diff(workspace_path)
+            except Exception as e:
+                print(f"[SWADES] Failed to write analysis report: {e}")
+                final_diff = ""
+        else:
+            git_mgr.commit_changes(workspace_path, f"Swades Autonomous Agent: {job['task'][:60]}")
+            final_diff = diff_text
+
+        adds = 0
+        dels = 0
+        if final_diff:
+            for l in final_diff.splitlines():
+                if l.startswith("+") and not l.startswith("+++"):
+                    adds += 1
+                elif l.startswith("-") and not l.startswith("---"):
+                    dels += 1
+
         if final_diff and final_diff.strip():
             _job_manager.append_log(job_id, "diff_update", {"diff": final_diff, "file": "All Modified Files"}, agent.step_num + 1)
 
-        git_mgr.commit_changes(workspace_path, f"Swades Autonomous Agent: {job['task'][:60]}")
-
         pr_url = None
         pr_number = None
-        if job.get("github_pat"):
+        if git_mgr.github_token:
             _job_manager.append_log(job_id, "status", f"Pushing branch {branch_name} to remote repository...")
-            pushed, push_msg = git_mgr.push_branch(workspace_path, branch_name)
+            pushed, push_msg = git_mgr.push_branch(workspace_path, branch_name, job.get("repo_url"))
             if pushed:
-                _job_manager.append_log(job_id, "status", f"Branch {branch_name} pushed. Opening Pull Request...")
+                _job_manager.append_log(job_id, "status", f"Branch {branch_name} pushed to GitHub successfully.")
                 pr_res = git_mgr.create_pull_request(
                     job["repo_url"],
                     branch_name,
@@ -5519,12 +5628,17 @@ def _run_swades_harness_job(job_id):
                     pr_url = pr_res.get("pr_url")
                     pr_number = pr_res.get("pr_number")
                     _job_manager.append_log(job_id, "pr_opened", {"pr_url": pr_url, "pr_number": pr_number})
+                else:
+                    _job_manager.append_log(job_id, "status", f"PR notice: {pr_res.get('error', 'Unable to create PR')}")
+            else:
+                _job_manager.append_log(job_id, "warning", f"Git push notice: {push_msg}")
 
         _job_manager.update_job(
             job_id,
             status="COMPLETED",
             completed_at=datetime.now(timezone.utc).isoformat(),
             files_changed=final_diff or "",
+            branch_name=branch_name,
             pr_url=pr_url,
             pr_number=pr_number
         )
@@ -5532,8 +5646,11 @@ def _run_swades_harness_job(job_id):
         review_payload = {
             "summary": result,
             "branch": branch_name,
+            "repo_url": job.get("repo_url"),
             "pr_url": pr_url,
             "pr_number": pr_number,
+            "adds": adds,
+            "dels": dels,
             "duration_seconds": duration,
             "cycles": meter.cycles,
             "tools_used": meter.tools
@@ -7890,11 +8007,11 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_swades_ide_html()
         elif path.startswith("/api/swades/"):
             self.handle_swades_proxy_get(parsed)
-        elif path in ["/qwen", "/qwen.html"]:
+        elif path in ["/qwen", "/qwen.html", "/war_room", "/war_room.html"]:
             self.handle_qwen_html()
-        elif path in ["/v1/qwen/experiments", "/qwen/experiments"]:
+        elif path in ["/v1/qwen/experiments", "/qwen/experiments", "/v1/war_room/state", "/war_room/state"]:
             self.handle_qwen_experiments_get()
-        elif path in ["/v1/qwen/logs", "/qwen/logs"]:
+        elif path in ["/v1/qwen/logs", "/qwen/logs", "/v1/war_room/logs", "/war_room/logs"]:
             self.handle_qwen_logs_get()
         elif path in ["/v1/squares/status", "/squares/status"]:
             self.handle_squares_status()
@@ -8101,7 +8218,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_notebook_reset_post()
         elif path in ["/v1/notebook/upload", "/notebook/upload"]:
             self.handle_notebook_upload_post()
-        elif path in ["/v1/qwen/experiment/trigger", "/qwen/experiment/trigger"]:
+        elif path in ["/v1/qwen/experiment/trigger", "/qwen/experiment/trigger", "/v1/war_room/step", "/war_room/step"]:
             self.handle_qwen_experiment_trigger()
         elif path in ["/api/internal/exec", "/v1/internal/exec"]:
             self.handle_internal_exec()
@@ -9154,6 +9271,20 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 return
                 
             gh_pat = payload.get("github_pat") or payload.get("github_token") or None
+            if not gh_pat:
+                for candidate in [
+                    Path.home() / "githubpattoken.txt",
+                    Path.home() / ".github_token",
+                    Path("/data/data/com.termux/files/home/githubpattoken.txt")
+                ]:
+                    if candidate.exists():
+                        try:
+                            tok = candidate.read_text(encoding="utf-8").strip()
+                            if tok:
+                                gh_pat = tok
+                                break
+                        except Exception:
+                            pass
             api_key = payload.get("api_key") or payload.get("llm_api_key") or None
             base_url = payload.get("base_url")
             model = payload.get("model")
@@ -10773,6 +10904,10 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
 
     def handle_qwen_experiments_get(self):
         for p in [
+            Path.cwd() / "war_room_state.json",
+            Path.home() / "war_room_state.json",
+            Path("/data/data/com.termux/files/home/phone-whisper-server/war_room_state.json"),
+            Path("/data/data/com.termux/files/home/war_room_state.json"),
             Path.cwd() / "qwen_state.json",
             Path.home() / "qwen_state.json",
             Path("/data/data/com.termux/files/home/phone-whisper-server/qwen_state.json"),
@@ -10800,6 +10935,10 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
 
     def handle_qwen_logs_get(self):
         for p in [
+            Path.cwd() / "war_room_experiments.log",
+            Path.home() / "war_room_experiments.log",
+            Path("/data/data/com.termux/files/home/phone-whisper-server/war_room_experiments.log"),
+            Path("/data/data/com.termux/files/home/war_room_experiments.log"),
             Path.cwd() / "qwen_experiments.log",
             Path.home() / "qwen_experiments.log",
             Path("/data/data/com.termux/files/home/phone-whisper-server/qwen_experiments.log"),
@@ -10827,12 +10966,18 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
 
     def handle_qwen_experiment_trigger(self):
         try:
-            from qwen_experimenter import QwenExperimenter
-            exp = QwenExperimenter()
-            record = exp.run_experiment_cycle()
+            from war_room_engine import WarRoomEngine
+            engine = WarRoomEngine()
+            record = engine.run_scientist_cycle()
             resp = json.dumps({"status": "ok", "record": record}).encode("utf-8")
         except Exception as e:
-            resp = json.dumps({"status": "error", "error": str(e)}).encode("utf-8")
+            try:
+                from qwen_experimenter import QwenExperimenter
+                exp = QwenExperimenter()
+                record = exp.run_experiment_cycle()
+                resp = json.dumps({"status": "ok", "record": record}).encode("utf-8")
+            except Exception as e2:
+                resp = json.dumps({"status": "error", "error": f"WarRoom error: {e}; Fallback error: {e2}"}).encode("utf-8")
         self.send_response(200)
         self._send_cors_headers()
         self.send_header("Content-Type", "application/json")

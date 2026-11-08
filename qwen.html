@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>QWEN SOVEREIGN EXPERIMENTER — PURE OLED</title>
+<title>WAR ROOM: NON-BACKPROP DISCOVERY ENGINE — PURE OLED</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body {
@@ -13,7 +13,7 @@ body {
   font-size: 13px;
   line-height: 1.5;
   padding: 20px;
-  max-width: 1200px;
+  max-width: 1280px;
   margin: 0 auto;
 }
 a { color: #FFFFFF; text-decoration: underline; }
@@ -140,6 +140,30 @@ button.primary-trigger:hover:not(:disabled) { background: #FFFFFF; color: #00000
   .two-col { grid-template-columns: 1fr; }
 }
 
+/* WAR ROOM VISUALIZER (SVG MATPLOTLIB STYLE) */
+.chart-container {
+  background: #050505;
+  border: 1px solid #222222;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.chart-svg-wrap {
+  width: 100%;
+  height: 200px;
+  position: relative;
+}
+svg.war-chart {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
@@ -229,127 +253,158 @@ footer {
 
 <header>
   <div class="brand">
-    <h1>QWEN 2.5 SOVEREIGN EXPERIMENTER</h1>
-    <p>Nir Eyal Autonomous Loop &bull; Groq LPU Scientist &bull; Pure OLED Transparency</p>
+    <h1>WAR ROOM: NON-BACKPROP DISCOVERY</h1>
+    <p>Pure Mathematical Alternatives to Backprop &bull; Groq Mad Scientist &bull; Pure OLED</p>
   </div>
   <div class="top-actions">
     <div class="status-pill" id="statusPill">
       <div class="pulse-dot" id="pulseDot"></div>
-      <span id="statusText">PHONE DAEMON ACTIVE</span>
+      <span id="statusText">WAR ROOM READY</span>
     </div>
     <button id="autoToggleBtn" onclick="toggleAuto()" style="background:#FFFFFF; color:#000000;">AUTO-ITERATE: ACTIVE (DAEMON)</button>
-    <button class="primary-trigger" id="triggerBtn" onclick="triggerExperiment()">[ TRIGGER CYCLE (SPACE) ]</button>
+    <button class="primary-trigger" id="triggerBtn" onclick="triggerExperiment()">[ DISCOVER ALTERNATIVE (SPACE) ]</button>
   </div>
 </header>
 
 <div class="progress-banner" id="progressBanner">
-  &gt; <span id="progressText">Synthesizing hypothesis via Groq AI...</span>
+  &gt; <span id="progressText">Groq Mad Scientist formulating mathematical update rule...</span>
 </div>
 
-<!-- NIR EYAL VARIABLE REWARD METRICS -->
+<!-- REAL OBJECTIVE WAR ROOM METRICS -->
 <div class="grid">
   <div class="card">
     <div class="card-header">
-      <span>Mean Generation Latency</span>
-      <span class="delta" id="deltaLatency">-- ms</span>
+      <span>Micro-Transformer Cross-Entropy Loss</span>
+      <span class="delta" id="deltaLoss">--</span>
     </div>
-    <div class="metric-value" id="valLatency">--</div>
-    <div class="metric-sub">Target: &lt; 1500 ms on ARM CPU</div>
+    <div class="metric-value" id="valLoss">--</div>
+    <div class="metric-sub">Pure NumPy Target: &lt; 3.0000 (No Autograd)</div>
   </div>
 
   <div class="card">
     <div class="card-header">
-      <span>Token Generation Speed</span>
-      <span class="delta" id="deltaSpeed">-- tok/s</span>
+      <span>Subject Perplexity (e^Loss)</span>
+      <span class="delta" id="deltaPpl">--</span>
     </div>
-    <div class="metric-value" id="valSpeed">--</div>
-    <div class="metric-sub">Baseline: 12.5 tok/s (Helio G25)</div>
+    <div class="metric-value" id="valPpl">--</div>
+    <div class="metric-sub">Baseline Vocabulary: 64 tokens</div>
   </div>
 
   <div class="card">
     <div class="card-header">
-      <span>Benchmark Pass Rate</span>
-      <span class="delta" id="deltaPass">100%</span>
+      <span>Leading Backprop Alternative</span>
+      <span class="delta" id="deltaBestType">--</span>
     </div>
-    <div class="metric-value" id="valPass">100%</div>
-    <div class="metric-sub">JSON, Reasoning, Lambda Tests</div>
+    <div class="metric-value" style="font-size:18px; word-break:break-all;" id="valBestName">Initial Baseline</div>
+    <div class="metric-sub" id="valBestLoss">Loss: -- &bull; PPL: --</div>
   </div>
 
   <div class="card">
     <div class="card-header">
-      <span>Cycles & Improvements</span>
+      <span>Cycles & Inventions</span>
       <span class="delta" id="deltaCycles">#0</span>
     </div>
     <div class="metric-value" id="valCycles">0</div>
-    <div class="metric-sub"><span id="valSuccessful">0</span> committed improvements</div>
+    <div class="metric-sub"><span id="valSuccessful">0</span> committed mathematical updates</div>
+  </div>
+</div>
+
+<!-- WAR ROOM VISUALIZER (SVG MATPLOTLIB STYLE LOSS & PPL CURVES) -->
+<div class="chart-container">
+  <div class="chart-header">
+    <div class="section-title" style="border:none; margin:0; padding:0;">
+      <span>Real-Time Loss &amp; Perplexity Descent (War Room Telemetry)</span>
+    </div>
+    <div style="font-size:10px; color:#888;">
+      <span style="color:#FFF;">&mdash; Cross-Entropy Loss</span> &nbsp;&bull;&nbsp; 
+      <span style="color:#888;">&mdash;&mdash; Perplexity Curve</span>
+    </div>
+  </div>
+  <div class="chart-svg-wrap">
+    <svg class="war-chart" id="lossChart" viewBox="0 0 1000 200" preserveAspectRatio="none">
+      <!-- Grid Lines -->
+      <line x1="0" y1="20" x2="1000" y2="20" stroke="#151515" stroke-dasharray="2,2"/>
+      <line x1="0" y1="70" x2="1000" y2="70" stroke="#151515" stroke-dasharray="2,2"/>
+      <line x1="0" y1="120" x2="1000" y2="120" stroke="#151515" stroke-dasharray="2,2"/>
+      <line x1="0" y1="170" x2="1000" y2="170" stroke="#151515" stroke-dasharray="2,2"/>
+      
+      <!-- Plot paths -->
+      <path id="lossPath" d="M 0 100 L 1000 100" fill="none" stroke="#FFFFFF" stroke-width="2.5"/>
+      <path id="pplPath" d="M 0 100 L 1000 100" fill="none" stroke="#666666" stroke-width="1.5" stroke-dasharray="4,3"/>
+    </svg>
+  </div>
+  <div style="display:flex; justify-content:space-between; font-size:10px; color:#666; margin-top:8px;">
+    <span>Cycle #0 (Baseline)</span>
+    <span id="chartMinMax">Tracking Cross-Entropy Loss (pure NumPy forward pass)</span>
+    <span id="chartLatest">Latest Cycle</span>
   </div>
 </div>
 
 <div class="two-col">
-  <!-- MODEL BIODATA & OPTIMAL CONFIGURATION -->
+  <!-- EXPERIMENTAL SUBJECT & HARDWARE BIODATA -->
   <div class="card">
     <div class="section-title">
-      <span>1. Model Weights &amp; Hardware Biodata</span>
-      <span style="font-size:9px; color:#666;">IMMUTABLE ROOT</span>
+      <span>1. Model Subject &amp; Base LLM Safeguard</span>
+      <span style="font-size:9px; color:#666;">BASE MODEL IS READ-ONLY</span>
     </div>
     <table id="biodataTable">
       <tbody>
-        <tr><td>Model Architecture</td><td id="bioArch">--</td></tr>
-        <tr><td>Parameters</td><td id="bioParams">--</td></tr>
-        <tr><td>Quantization Format</td><td id="bioQuant">--</td></tr>
-        <tr><td>Context Window Limit</td><td id="bioCtx">--</td></tr>
-        <tr><td>Target Device</td><td id="bioDevice">--</td></tr>
-        <tr><td>Inference Engine</td><td id="bioEngine">--</td></tr>
-        <tr><td>Governor Policy</td><td id="bioGov">--</td></tr>
-        <tr><td>Active LoRA Adapter</td><td id="bioWeightAdapter">Unperturbed (Baseline)</td></tr>
-        <tr><td>Active Weight Delta ||&Delta;W||</td><td id="bioWeightDelta">0.000000</td></tr>
+        <tr><td>Micro-Transformer Sandbox</td><td>2 Layers &bull; d_model=32 &bull; 2 Heads &bull; Vocab=64</td></tr>
+        <tr><td>Autograd Engine</td><td>NONE (Zero PyTorch Autograd &bull; Pure NumPy)</td></tr>
+        <tr><td>Objective Metric</td><td>Cross-Entropy Loss &amp; Perplexity (exp(Loss))</td></tr>
+        <tr><td>Device Hardware</td><td>Redmi 9i ARM Cortex-A53 CPU (Termux Python 3.12)</td></tr>
+        <tr><td>Base LLM Status</td><td>Qwen 2.5 0.5B (IMMUTABLE &bull; READ-ONLY &bull; LoRA Scale 0.0)</td></tr>
+        <tr><td>Scientist Model</td><td>Groq AI Sovereign (via Swades Harness)</td></tr>
       </tbody>
     </table>
 
     <div class="section-title" style="margin-top: 20px;">
-      <span>2. Discovered Optimal Parameter Profile</span>
+      <span>2. Formulated Update Algorithms</span>
       <button style="padding: 2px 6px; font-size: 9px;" onclick="copyOptimalConfig()">COPY JSON</button>
     </div>
     <table id="configTable">
       <thead>
-        <tr><th>Parameter</th><th>Optimal Value</th><th>Active Search</th></tr>
+        <tr><th>Class / Family</th><th>Mathematical Mechanism</th><th>Status</th></tr>
       </thead>
       <tbody id="configTableBody">
-        <tr><td colspan="3">Loading parameters...</td></tr>
+        <tr><td><code>forward_gradient</code></td><td>Directional finite differences / tangent perturbation</td><td>Active Exploration</td></tr>
+        <tr><td><code>feedback_alignment</code></td><td>Random matrix projection B (Lillicrap et al.)</td><td>Active Exploration</td></tr>
+        <tr><td><code>forward_forward</code></td><td>Hinton goodness metric / contrastive positive-negative</td><td>Active Exploration</td></tr>
+        <tr><td><code>hebbian_contrastive</code></td><td>Local pre-post activation correlation updates</td><td>Active Exploration</td></tr>
       </tbody>
     </table>
   </div>
 
-  <!-- LATEST SCIENTIFIC CONCLUSION & DECISION -->
+  <!-- LATEST GROQ SCIENTIFIC INVENTIONS -->
   <div class="card">
     <div class="section-title">
-      <span>Latest Groq Hypothesis &amp; Empirical Verdict</span>
+      <span>Latest Non-Backprop Mathematical Rule</span>
       <span class="verdict-tag" id="latestVerdictTag">AWAITING TRIGGER</span>
     </div>
-    <div style="font-size:14px; font-weight:700; margin-bottom:8px;" id="latestExpName">No experiments run yet.</div>
+    <div style="font-size:14px; font-weight:700; margin-bottom:8px;" id="latestExpName">Awaiting first non-backprop cycle.</div>
     
     <div style="color:#888888; font-size:11px; margin-bottom:12px;">
-      <strong>Hypothesis:</strong> <span id="latestHypothesis">Click [RUN EXPERIMENT] to initiate autonomous optimization.</span>
+      <strong>Principle &amp; Formulation:</strong> <span id="latestHypothesis">Formulates weight update matrices ΔW without chain-rule backpropagation.</span>
     </div>
 
     <div style="color:#888888; font-size:11px; margin-bottom:12px;">
-      <strong>Mutations Tested:</strong> <code id="latestMutations" style="color:#FFF;">{}</code>
+      <strong>Algorithm Type:</strong> <code id="latestMutations" style="color:#FFF;">--</code>
     </div>
 
     <div class="log-concl" style="margin-top:14px;" id="latestConclusion">
-      Scientific conclusion from Groq will be recorded here after testing against local Qwen.
+      Empirical findings and Frobenius norms of ΔW will appear here.
     </div>
 
     <div style="margin-top:24px; border-top:1px solid #222222; padding-top:12px; display:flex; justify-content:space-between; align-items:center;">
-      <span style="font-size:11px; color:#888888;">Live Persistent Journal: <code>qwen_experiments.log</code></span>
-      <a href="/v1/qwen/logs" download="qwen_experiments.log"><button style="padding:4px 8px; font-size:10px;">DOWNLOAD .LOG</button></a>
+      <span style="font-size:11px; color:#888888;">Live Persistent Journal: <code>war_room_experiments.log</code></span>
+      <a href="/v1/war_room/logs" download="war_room_experiments.log"><button style="padding:4px 8px; font-size:10px;">DOWNLOAD .LOG</button></a>
     </div>
   </div>
 </div>
 
-<!-- RAW EXPERIMENT FEED -->
+<!-- WAR ROOM DISCOVERY JOURNAL -->
 <div class="section-title">
-  <span>Autonomous Experiment History Journal</span>
+  <span>Autonomous Non-Backprop Discovery Journal</span>
   <span style="font-size:10px; color:#888;" id="journalCounter">0 Records</span>
 </div>
 <div class="log-feed" id="logFeed">
@@ -357,7 +412,7 @@ footer {
 </div>
 
 <footer>
-  <div>HOST: <span id="footHost">192.168.29.2:8080</span> &bull; SWADES AGENTIC SANDBOX &bull; NIR EYAL HOOK ENGINE</div>
+  <div>HOST: <span id="footHost">192.168.29.2:8080</span> &bull; WAR ROOM SOVEREIGN DISCOVERY ENGINE</div>
   <div>ZERO EXTERNAL DEPENDENCIES &bull; PURE OLED #000000</div>
 </footer>
 
@@ -371,7 +426,7 @@ async function fetchState(retries = 2) {
   isFetching = true;
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-      const res = await fetch("/v1/qwen/experiments", { cache: "no-store" });
+      const res = await fetch("/v1/war_room/state", { cache: "no-store" });
       if (res.ok) {
         const data = await res.json();
         renderUI(data);
@@ -384,129 +439,131 @@ async function fetchState(retries = 2) {
       if (attempt < retries) {
         await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
       } else {
-        console.warn("[Qwen State] Network sync deferred:", err.message || err);
+        console.warn("[War Room] Network sync deferred:", err.message || err);
       }
     }
   }
   isFetching = false;
 }
 
-function renderUI(data) {
-  // Metrics
-  const base = data.baseline_metrics || {};
-  document.getElementById("valLatency").innerText = base.avg_latency_ms ? `${Math.round(base.avg_latency_ms)} ms` : "--";
-  document.getElementById("valSpeed").innerText = base.avg_tok_per_sec ? `${base.avg_tok_per_sec} tok/s` : "--";
-  document.getElementById("valPass").innerText = base.pass_rate_pct ? `${base.pass_rate_pct}%` : "100%";
-  document.getElementById("valCycles").innerText = data.total_cycles || 0;
-  document.getElementById("valSuccessful").innerText = data.successful_mutations || 0;
-  document.getElementById("deltaCycles").innerText = `#${data.total_cycles || 0}`;
-
-  // Biodata
-  const bio = data.model_biodata || {};
-  document.getElementById("bioArch").innerText = `${bio.name} (${bio.architecture || 'qwen2'})`;
-  document.getElementById("bioParams").innerText = bio.parameters || "490M";
-  document.getElementById("bioQuant").innerText = bio.quantization || "Q4_K_M";
-  document.getElementById("bioCtx").innerText = `${bio.active_context_limit} / ${bio.context_window} tokens`;
-  document.getElementById("bioDevice").innerText = bio.device || "Redmi 9i";
-  document.getElementById("bioEngine").innerText = bio.engine || "llama.cpp ARM NEON";
-  document.getElementById("bioGov").innerText = bio.runtime_governor || "dynamic_elastic_jit";
-
-  const optWm = data.optimal_weight_mutation;
-  const currWm = (data.recent_experiments && data.recent_experiments[0] && data.recent_experiments[0].weight_mutation) || optWm;
-  if (currWm && !currWm.error) {
-    document.getElementById("bioWeightAdapter").innerText = `${currWm.target_layer} (${currWm.delta_type}, r=${currWm.rank})`;
-    document.getElementById("bioWeightDelta").innerText = `||ΔW|| = ${currWm.frobenius_norm || 0.0}`;
-  } else {
-    document.getElementById("bioWeightAdapter").innerText = "Unperturbed (Baseline)";
-    document.getElementById("bioWeightDelta").innerText = "0.000000";
-  }
-
-  // Parameter table
-  const opt = data.optimal_config || {};
-  const curr = data.current_config || {};
-  const tbody = document.getElementById("configTableBody");
-  tbody.innerHTML = "";
-  const allKeys = new Set([...Object.keys(opt), ...Object.keys(curr)]);
-  for (const k of allKeys) {
-    if (k === "system_prompt") continue;
-    const optVal = typeof opt[k] === "object" ? JSON.stringify(opt[k]) : (opt[k] !== undefined ? opt[k] : "--");
-    const currVal = typeof curr[k] === "object" ? JSON.stringify(curr[k]) : (curr[k] !== undefined ? curr[k] : optVal);
-    const tr = document.createElement("tr");
-    tr.innerHTML = `<td><code>${k}</code></td><td><strong>${optVal}</strong></td><td>${currVal}</td>`;
-    tbody.appendChild(tr);
-  }
-
-  // Recent Experiments Feed
-  const recs = data.recent_experiments || [];
-  document.getElementById("journalCounter").innerText = `${recs.length} Recorded Cycles`;
-
-  // Daemon Status indication
-  const autoBtn = document.getElementById("autoToggleBtn");
-  const stText = document.getElementById("statusText");
-  const isDaemonActive = (data.daemon_status && data.daemon_status.active) || (data.total_cycles > 0);
-  if (!isRunning) {
-    if (autoInterval) {
-      stText.innerText = "TURBO LOOP ACTIVE (10s)";
-      autoBtn.innerText = "TURBO AUTO: ON (10s)";
-      autoBtn.style.background = "#FFFFFF";
-      autoBtn.style.color = "#000000";
-    } else if (isDaemonActive) {
-      stText.innerText = `PHONE DAEMON ACTIVE (#${data.total_cycles || 0})`;
-      autoBtn.innerText = "AUTO-ITERATE: ACTIVE (DAEMON)";
-      autoBtn.style.background = "#FFFFFF";
-      autoBtn.style.color = "#000000";
-    } else {
-      stText.innerText = "SYSTEM READY";
-      autoBtn.innerText = "AUTO-ITERATE: OFF";
-      autoBtn.style.background = "#000000";
-      autoBtn.style.color = "#FFFFFF";
-    }
-  }
-  const feed = document.getElementById("logFeed");
-  if (recs.length > 0) {
-    feed.innerHTML = "";
-    recs.forEach(r => {
-      const el = document.createElement("div");
-      el.className = "log-item";
-      const isOptimal = r.verdict === "COMMITTED_OPTIMAL";
-      const verdictCls = isOptimal ? "verdict-tag" : "verdict-tag rollback";
-      el.innerHTML = `
-        <div class="log-head">
-          <span class="log-name">#${String(r.cycle).padStart(3, '0')} ${r.name}</span>
-          <span class="log-time">${r.timestamp} &bull; <span class="${verdictCls}">${r.verdict}</span></span>
-        </div>
-        <div class="log-hypo">${r.hypothesis}</div>
-        <div class="log-metrics">
-          &Delta; Latency: <strong>${r.metrics.delta_latency_ms > 0 ? '+' : ''}${r.metrics.delta_latency_ms} ms</strong> |
-          &Delta; Speed: <strong>${r.metrics.delta_speed_tok_s > 0 ? '+' : ''}${r.metrics.delta_speed_tok_s} tok/s</strong> |
-          Pass: <strong>${r.metrics.pass_rate_pct}%</strong> |
-          Mutations: <code>${JSON.stringify(r.mutations)}</code>
-        </div>
-        <div class="log-concl">&ldquo;${r.conclusion}&rdquo;</div>
-      `;
-      feed.appendChild(el);
+function updateChart(lossHistory, pplHistory) {
+  if (!lossHistory || lossHistory.length === 0) return;
+  
+  const w = 1000;
+  const h = 200;
+  const pad = 20;
+  
+  // Render Loss Line
+  const minLoss = Math.min(...lossHistory) * 0.95;
+  const maxLoss = Math.max(...lossHistory) * 1.05 || (minLoss + 1.0);
+  
+  const pointsLoss = lossHistory.map((val, idx) => {
+    const x = lossHistory.length === 1 ? pad : pad + (idx / (lossHistory.length - 1)) * (w - 2 * pad);
+    const y = h - pad - ((val - minLoss) / (maxLoss - minLoss || 1)) * (h - 2 * pad);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  });
+  
+  document.getElementById("lossPath").setAttribute("d", "M " + pointsLoss.join(" L "));
+  
+  // Render PPL Line
+  if (pplHistory && pplHistory.length > 0) {
+    const minPpl = Math.min(...pplHistory) * 0.95;
+    const maxPpl = Math.max(...pplHistory) * 1.05 || (minPpl + 1.0);
+    const pointsPpl = pplHistory.map((val, idx) => {
+      const x = pplHistory.length === 1 ? pad : pad + (idx / (pplHistory.length - 1)) * (w - 2 * pad);
+      const y = h - pad - ((val - minPpl) / (maxPpl - minPpl || 1)) * (h - 2 * pad);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
     });
-
-    // Latest experiment card
-    const latest = recs[0];
-    document.getElementById("latestExpName").innerText = `#${String(latest.cycle).padStart(3, '0')} ${latest.name}`;
-    document.getElementById("latestHypothesis").innerText = latest.hypothesis;
-    document.getElementById("latestMutations").innerText = JSON.stringify(latest.mutations);
-    document.getElementById("latestConclusion").innerText = `"${latest.conclusion}"`;
-    const vTag = document.getElementById("latestVerdictTag");
-    vTag.innerText = latest.verdict;
-    vTag.className = latest.verdict === "COMMITTED_OPTIMAL" ? "verdict-tag" : "verdict-tag rollback";
-
-    // Update deltas
-    const dLat = latest.metrics.delta_latency_ms;
-    const dSpd = latest.metrics.delta_speed_tok_s;
-    const dlEl = document.getElementById("deltaLatency");
-    dlEl.innerText = `${dLat > 0 ? '+' : ''}${dLat} ms`;
-    dlEl.className = dLat < 0 ? "delta up" : "delta";
-    const dsEl = document.getElementById("deltaSpeed");
-    dsEl.innerText = `${dSpd > 0 ? '+' : ''}${dSpd} tok/s`;
-    dsEl.className = dSpd > 0 ? "delta up" : "delta";
+    document.getElementById("pplPath").setAttribute("d", "M " + pointsPpl.join(" L "));
   }
+
+  document.getElementById("chartMinMax").innerText = `Loss Range: ${minLoss.toFixed(3)} - ${maxLoss.toFixed(3)} | Points: ${lossHistory.length}`;
+}
+
+function renderUI(data) {
+  // If data is in war_room format
+  if (data.war_room_status || data.mission) {
+    const recs = data.recent_experiments || [];
+    const latest = recs[0] || {};
+    const best = data.best_alternative || {};
+
+    const curLoss = latest.metrics ? latest.metrics.cross_entropy_loss : (data.baseline ? data.baseline.cross_entropy_loss : "--");
+    const curPpl = latest.metrics ? latest.metrics.perplexity : (data.baseline ? data.baseline.perplexity : "--");
+
+    document.getElementById("valLoss").innerText = curLoss !== "--" ? Number(curLoss).toFixed(4) : "--";
+    document.getElementById("valPpl").innerText = curPpl !== "--" ? Number(curPpl).toFixed(2) : "--";
+
+    if (latest.metrics) {
+      const dL = latest.metrics.loss_delta;
+      const dP = latest.metrics.ppl_delta;
+      const elL = document.getElementById("deltaLoss");
+      elL.innerText = `${dL > 0 ? '+' : ''}${dL.toFixed(4)}`;
+      elL.className = dL < 0 ? "delta up" : "delta";
+
+      const elP = document.getElementById("deltaPpl");
+      elP.innerText = `${dP > 0 ? '+' : ''}${dP.toFixed(2)}`;
+      elP.className = dP < 0 ? "delta up" : "delta";
+    }
+
+    document.getElementById("valBestName").innerText = best.name || "Initial Baseline";
+    document.getElementById("valBestLoss").innerText = `Loss: ${best.loss || '--'} • PPL: ${best.perplexity || '--'}`;
+    document.getElementById("deltaBestType").innerText = best.type || "Baseline";
+
+    document.getElementById("valCycles").innerText = data.total_cycles || 0;
+    document.getElementById("deltaCycles").innerText = `#${data.total_cycles || 0}`;
+
+    // Count successful updates
+    const succCount = recs.filter(r => r.verdict === "BREAKTHROUGH_ACCEPTED").length;
+    document.getElementById("valSuccessful").innerText = succCount;
+
+    // SVG Chart
+    if (data.loss_history && data.loss_history.length > 0) {
+      updateChart(data.loss_history, data.ppl_history);
+    }
+
+    // Recent Experiments Feed
+    document.getElementById("journalCounter").innerText = `${recs.length} Discovery Cycles`;
+    const feed = document.getElementById("logFeed");
+    if (recs.length > 0) {
+      feed.innerHTML = "";
+      recs.forEach(r => {
+        const el = document.createElement("div");
+        el.className = "log-item";
+        const isOptimal = r.verdict === "BREAKTHROUGH_ACCEPTED";
+        const verdictCls = isOptimal ? "verdict-tag" : "verdict-tag rollback";
+        el.innerHTML = `
+          <div class="log-head">
+            <span class="log-name">#${String(r.cycle).padStart(3, '0')} ${r.name}</span>
+            <span class="log-time">${r.timestamp} &bull; <span class="${verdictCls}">${r.verdict}</span></span>
+          </div>
+          <div class="log-hypo"><strong>[${r.algorithm_type}]</strong> ${r.principle}</div>
+          <div class="log-metrics">
+            Loss: <strong>${r.metrics.cross_entropy_loss} (${r.metrics.loss_delta > 0 ? '+' : ''}${r.metrics.loss_delta})</strong> |
+            PPL: <strong>${r.metrics.perplexity} (${r.metrics.ppl_delta > 0 ? '+' : ''}${r.metrics.ppl_delta})</strong> |
+            ||ΔW||: <strong>${r.metrics.mean_frobenius_norm}</strong> |
+            Speed: <strong>${r.metrics.compute_time_ms} ms</strong>
+          </div>
+        `;
+        feed.appendChild(el);
+      });
+
+      // Latest card
+      document.getElementById("latestExpName").innerText = `#${String(latest.cycle).padStart(3, '0')} ${latest.name}`;
+      document.getElementById("latestHypothesis").innerText = latest.principle;
+      document.getElementById("latestMutations").innerText = latest.algorithm_type;
+      document.getElementById("latestConclusion").innerText = `Empirical Result: Loss ${latest.metrics.cross_entropy_loss} (Δ: ${latest.metrics.loss_delta}), Perplexity ${latest.metrics.perplexity}. Frobenius Norm ||ΔW||: ${latest.metrics.mean_frobenius_norm}.`;
+      const vTag = document.getElementById("latestVerdictTag");
+      vTag.innerText = latest.verdict;
+      vTag.className = latest.verdict === "BREAKTHROUGH_ACCEPTED" ? "verdict-tag" : "verdict-tag rollback";
+    }
+    return;
+  }
+
+  // Fallback for previous qwen_state format
+  const base = data.baseline_metrics || {};
+  document.getElementById("valLoss").innerText = base.avg_latency_ms ? `${Math.round(base.avg_latency_ms)} ms` : "--";
+  document.getElementById("valPpl").innerText = base.avg_tok_per_sec ? `${base.avg_tok_per_sec} tok/s` : "--";
+  document.getElementById("valCycles").innerText = data.total_cycles || 0;
 }
 
 async function triggerExperiment() {
@@ -519,27 +576,26 @@ async function triggerExperiment() {
 
   btn.disabled = true;
   pBanner.classList.add("active");
-  stText.innerText = "EXPERIMENT RUNNING";
+  stText.innerText = "DISCOVERY CYCLE RUNNING";
 
-  pText.innerText = "1/3 Groq AI synthesizing targeted mutation hypothesis...";
+  pText.innerText = "1/3 Groq Mad Scientist formulating non-backprop update rule...";
   
   try {
-    const postPromise = fetch("/v1/qwen/experiment/trigger", {
+    const postPromise = fetch("/v1/war_room/step", {
       method: "POST",
       headers: { "Content-Type": "application/json" }
     });
 
     setTimeout(() => {
-      if (isRunning) pText.innerText = "2/3 Executing Qwen 2.5 benchmark on local phone...";
+      if (isRunning) pText.innerText = "2/3 Executing Micro-Transformer forward passes in pure NumPy...";
     }, 2000);
 
     setTimeout(() => {
-      if (isRunning) pText.innerText = "3/3 Groq evaluating delta metrics & formulating conclusion...";
-    }, 7000);
+      if (isRunning) pText.innerText = "3/3 Evaluating Cross-Entropy loss delta & logging mathematical verdict...";
+    }, 5000);
 
     const res = await postPromise;
     if (res.ok) {
-      const data = await res.json();
       await fetchState();
     }
   } catch (err) {
@@ -548,7 +604,7 @@ async function triggerExperiment() {
     isRunning = false;
     btn.disabled = false;
     pBanner.classList.remove("active");
-    stText.innerText = autoInterval ? "TURBO LOOP ACTIVE" : "PHONE DAEMON ACTIVE";
+    stText.innerText = autoInterval ? "TURBO LOOP ACTIVE" : "WAR ROOM ACTIVE";
   }
 }
 
@@ -575,11 +631,11 @@ function toggleAuto() {
 }
 
 function copyOptimalConfig() {
-  fetch("/v1/qwen/experiments")
+  fetch("/v1/war_room/state")
     .then(r => r.json())
     .then(d => {
-      navigator.clipboard.writeText(JSON.stringify(d.optimal_config, null, 2));
-      alert("Optimal parameter profile copied to clipboard.");
+      navigator.clipboard.writeText(JSON.stringify(d, null, 2));
+      alert("War Room State JSON copied to clipboard.");
     });
 }
 
