@@ -36,25 +36,44 @@ def log(msg):
         pass
 
 def is_gateway_running():
-    for _ in range(2):
-        try:
-            req = urllib.request.Request("http://127.0.0.1:8080/health")
-            with urllib.request.urlopen(req, timeout=5) as resp:
-                if resp.status == 200:
-                    return True
-        except Exception:
-            time.sleep(0.5)
-    return False
+    # Check if python gateway process is alive
+    try:
+        out = subprocess.check_output(["pgrep", "-f", "gateway.py"], stderr=subprocess.DEVNULL)
+        if out.strip():
+            # Process is running; probe health with realistic timeout
+            try:
+                req = urllib.request.Request("http://127.0.0.1:8080/health")
+                with urllib.request.urlopen(req, timeout=3) as resp:
+                    if resp.status == 200:
+                        return True
+            except Exception:
+                pass
+            # Still warming up or serving, process exists so don't kill prematurely
+            return True
+    except Exception:
+        pass
+
+    try:
+        req = urllib.request.Request("http://127.0.0.1:8080/health")
+        with urllib.request.urlopen(req, timeout=3) as resp:
+            return resp.status == 200
+    except Exception:
+        return False
 
 def ensure_gateway():
     if not is_gateway_running():
         log("Gateway not responding! Restarting gateway.py...")
-        subprocess.run(["pkill", "-9", "-f", "python.*gateway.py"], stderr=subprocess.DEVNULL)
+        subprocess.run(["pkill", "-9", "-f", "gateway.py"], stderr=subprocess.DEVNULL)
         time.sleep(1)
-        subprocess.Popen(["python3", "-u", os.path.join(HOME, "gateway.py")],
+        env = os.environ.copy()
+        env["PATH"] = f"{BIN_DIR}:" + env.get("PATH", "")
+        env["HOME"] = HOME
+        subprocess.Popen([sys.executable or "python3", "-u", os.path.join(HOME, "gateway.py")],
+                         cwd=HOME,
+                         env=env,
                          stdout=open(os.path.join(HOME, "gateway.log"), "a"),
                          stderr=subprocess.STDOUT)
-        time.sleep(5)
+        time.sleep(12)
 
 def get_current_url():
     try:

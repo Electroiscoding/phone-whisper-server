@@ -14,6 +14,7 @@ Features:
 
 import os
 import sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from pathlib import Path
 import platform
 import sqlite3
@@ -5607,7 +5608,9 @@ class ModelGovernor:
                     "-b", "256",
                     "-ub", "128",
                     "-c", "768",
-                    "-ngl", "0"
+                    "-ngl", "0",
+                    "--lora", f"{self.home}/adapters/qwen_lora_active.gguf",
+                    "--lora-init-without-apply"
                 ],
                 "log": f"{self.home}/llama_chat.log",
                 "env": {"LD_LIBRARY_PATH": f"{self.home}/llama.cpp/build/bin:{self.prefix}/lib"}

@@ -79,12 +79,104 @@ MODEL_BIODATA = {
     "runtime_governor": "dynamic_elastic_jit"
 }
 
+class WeightMutator:
+    """Autonomous Neural Network Weight & Tensor Perturbation Engine."""
+    def __init__(self, adapter_path: Path):
+        self.adapter_path = adapter_path
+        self.adapter_path.parent.mkdir(parents=True, exist_ok=True)
+        self.active_mutation: Optional[Dict[str, Any]] = None
+
+    def apply_weight_mutation(self, target_layer: str, rank: int = 2, scale: float = 0.05, delta_type: str = "orthogonal") -> Dict[str, Any]:
+        """Synthesizes a low-rank weight perturbation tensor directly into the active LoRA adapter."""
+        try:
+            import numpy as np
+            import gguf
+
+            writer = gguf.GGUFWriter(str(self.adapter_path), "qwen2")
+            writer.add_string("general.type", "adapter")
+            writer.add_string("adapter.type", "lora")
+            writer.add_float32("adapter.lora.alpha", float(max(1.0, rank * 4.0)))
+
+            # Qwen 2.5 0.5B exact layer dimensions:
+            # hidden_size = 896, ffn_intermediate = 4864, kv_dim = 128
+            in_dim = 896
+            out_dim = 896
+            if "attn_k" in target_layer or "attn_v" in target_layer:
+                out_dim = 128
+            elif "ffn_gate" in target_layer or "ffn_up" in target_layer:
+                out_dim = 4864
+            elif "ffn_down" in target_layer:
+                in_dim = 4864
+                out_dim = 896
+
+            # GGML memory layout: A has shape (rank, in_dim); B has shape (out_dim, rank)
+            if delta_type == "spectral_svd":
+                A = (np.linalg.qr(np.random.randn(in_dim, rank))[0].T).astype(np.float32) * float(scale)
+                B = (np.linalg.qr(np.random.randn(out_dim, rank))[0]).astype(np.float32) * float(scale)
+            elif delta_type == "gaussian_jitter":
+                A = (np.random.randn(rank, in_dim) * float(scale)).astype(np.float32)
+                B = (np.random.randn(out_dim, rank) * float(scale)).astype(np.float32)
+            else:
+                A = (np.random.randn(rank, in_dim) * 0.01).astype(np.float32)
+                B = (np.random.randn(out_dim, rank) * float(scale)).astype(np.float32)
+
+            tensor_base = target_layer if target_layer.endswith(".weight") else f"{target_layer}.weight"
+            writer.add_tensor(f"{tensor_base}.lora_a", A)
+            writer.add_tensor(f"{tensor_base}.lora_b", B)
+
+            writer.write_header_to_file()
+            writer.write_kv_data_to_file()
+            writer.write_tensors_to_file()
+            writer.close()
+
+            frobenius = float(np.linalg.norm(B @ A))
+            scale_applied = self._post_lora_scale(scale)
+
+            self.active_mutation = {
+                "target_layer": target_layer,
+                "rank": rank,
+                "scale": scale,
+                "delta_type": delta_type,
+                "frobenius_norm": round(frobenius, 6),
+                "adapter_size_bytes": self.adapter_path.stat().st_size if self.adapter_path.exists() else 0,
+                "hot_scaled": scale_applied
+            }
+            return self.active_mutation
+        except Exception as e:
+            return {"error": str(e), "target_layer": target_layer, "hot_scaled": False}
+
+    def _post_lora_scale(self, scale: float) -> bool:
+        for p in [8001, 8080]:
+            try:
+                req = urllib.request.Request(
+                    f"http://127.0.0.1:{p}/lora-adapters",
+                    data=json.dumps([{"id": 0, "scale": float(scale)}]).encode("utf-8"),
+                    headers={"Content-Type": "application/json"}
+                )
+                with urllib.request.urlopen(req, timeout=2) as resp:
+                    if resp.status == 200:
+                        return True
+            except Exception:
+                pass
+        return False
+
+    def rollback(self):
+        """Immediately zeroes out the LoRA scale in llama-server."""
+        self._post_lora_scale(0.0)
+        self.active_mutation = None
+
 class QwenExperimenter:
     def __init__(self, on_event: Optional[Callable[[Dict[str, Any]], None]] = None):
         self.on_event = on_event or (lambda e: None)
         self.groq_key = self._load_groq_key()
         self.active_qwen_url = self._detect_qwen_endpoint()
         self.state = self._load_state()
+        adapter_candidates = [
+            Path("/data/data/com.termux/files/home/adapters/qwen_lora_active.gguf"),
+            Path.cwd() / "adapters" / "qwen_lora_active.gguf"
+        ]
+        chosen_adapter = adapter_candidates[0] if adapter_candidates[0].parent.exists() else adapter_candidates[1]
+        self.weight_mutator = WeightMutator(chosen_adapter)
 
     def _load_groq_key(self) -> str:
         key = os.environ.get("GROQ_API_KEY")
@@ -300,38 +392,46 @@ Optimal Parameters Discovered So Far: {json.dumps(optimal_cfg)}
 Baseline Performance: {json.dumps(base_metrics)}
 Recently Tested and REJECTED Mutations (DO NOT REPEAT THESE): {json.dumps(past_failed)}
 
-Your mission: Formulate a novel, mathematically grounded scientific mutation on the local SLM to discover breakthroughs in reasoning throughput, perplexity stability, or token latency on ARM NEON architecture.
+Your mission: Formulate a novel, mathematically grounded scientific mutation on the local SLM. 
+CRITICAL DIRECTIVE: Do NOT simply tweak temperature, top_k, or top_p. Those have been thoroughly explored and repeatedly cause severe CPU slowdown on ARM NEON. You must actively investigate DIRECT WEIGHT MUTATIONS (Vector 1), SAMPLER ALGEBRA & LOGIT BIASING (Vectors 2 & 3), or ADVANCED PROBABILITY MANIFOLDS (Vector 4).
 
-YOU HAVE UNRESTRICTED ACCESS ACROSS 6 DEEP RESEARCH VECTORS:
-1. ENTROPY REGULATION & PROBABILITY MANIFOLDS:
-   - min_p (0.01 - 0.25): Truncate candidate logits relative to top token probability (cuts softmax candidate pool dynamically without fixed-k artifacts).
-   - typical_p (0.5 - 1.0): Locally typical sampling based on conditional entropy.
-   - mirostat (0, 1, 2), mirostat_tau (1.0 - 8.0), mirostat_eta (0.01 - 0.5): Dynamic cross-entropy stabilization algorithm.
-   - dynatemp_range (0.0 - 0.8), dynatemp_exponent (0.5 - 2.5): Entropy-dependent dynamic temperature curvature.
-   - top_n_sigma (-1.0 to 3.0): Logit standard deviation thresholding (Jacobian manifold truncation).
-   - xtc_probability (0.0 - 0.5), xtc_threshold (0.05 - 0.3): Exclude Top Choices (entropy injection to escape degenerate probability attractors).
+YOU HAVE UNRESTRICTED ACCESS ACROSS DEEP SCIENTIFIC VECTORS:
 
-2. STRUCTURAL N-GRAM DECAY & REPETITION DAMPING:
-   - dry_multiplier (0.0 - 2.0), dry_base (1.0 - 2.5), dry_allowed_length (1 - 5): Structural n-gram logit decay.
-   - repeat_penalty (1.0 - 1.4), presence_penalty (-1.0 to 1.5), frequency_penalty (-1.0 to 1.5).
+VECTOR 1: DIRECT MODEL WEIGHT MUTATIONS & LORA TENSOR PERTURBATION (HIGH PRIORITY)
+You have authority to synthesize low-rank weight perturbation matrices (Delta W = B * A) directly modifying the transformer layers of Qwen 2.5 0.5B!
+- Target layers: blk.{{0..23}}.attn_q, blk.{{0..23}}.attn_k, blk.{{0..23}}.attn_v, blk.{{0..23}}.attn_output, blk.{{0..23}}.ffn_gate, blk.{{0..23}}.ffn_up, blk.{{0..23}}.ffn_down
+- Delta types: "spectral_svd" (singular vector perturbation), "orthogonal" (orthogonal subspace rotation), "gaussian_jitter" (micro-stochastic jitter)
+- Scale: -0.15 to +0.15
+- Rank: 1, 2, or 4
+Example weight mutation in mutated_params:
+{{
+  "weight_mutation": {{
+    "target_layer": "blk.11.attn_q",
+    "delta_type": "spectral_svd",
+    "rank": 2,
+    "scale": 0.04
+  }}
+}}
 
-3. SAMPLER PIPELINE ALGEBRA:
-   - samplers: Custom ordered sequence of sampling filters, e.g. ["penalties", "dry", "top_n_sigma", "min_p", "top_k", "typ_p", "top_p", "xtc", "temperature"]. Reordering changes projection on the probability simplex.
+VECTOR 2: LOGIT BIASING & VOCABULARY JACOBIAN STEERING
+- logit_bias: List of [token_id, bias_weight] (e.g. [[9707, 1.5], [198, -0.8]]). Directly alters pre-softmax logit landscape to steer token emission dynamics.
 
-4. LOGIT BIASING & VOCABULARY STEERING:
-   - logit_bias: List of [token_id, bias_weight] (e.g. [[9707, 2.0], [198, -1.5]]). Directly perturbs logit vector z before softmax normalization.
+VECTOR 3: SAMPLER PIPELINE ALGEBRA
+- samplers: Custom ordered sequence of sampling filters, e.g. ["penalties", "dry", "min_p", "top_n_sigma", "xtc", "temperature"]. Reordering changes projection on the probability simplex.
 
-5. CLASSICAL TEMPERATURE & BOUNDS:
-   - temperature (0.05 - 1.2), top_k (5 - 100), top_p (0.4 - 0.99), max_tokens (16 - 128).
+VECTOR 4: ENTROPY REGULATION & MANIFOLDS
+- min_p (0.01 - 0.25): Truncate candidate logits relative to top token probability.
+- typical_p (0.5 - 1.0): Locally typical sampling based on conditional entropy.
+- mirostat (0, 1, 2), mirostat_tau (1.0 - 8.0), mirostat_eta (0.01 - 0.5): Dynamic cross-entropy stabilization algorithm.
+- top_n_sigma (-1.0 to 3.0): Logit standard deviation thresholding.
+- xtc_probability (0.0 - 0.5), xtc_threshold (0.05 - 0.3): Exclude Top Choices.
+- dry_multiplier (0.0 - 2.0), dry_base (1.0 - 2.5), dry_allowed_length (1 - 5).
 
-6. REPRESENTATION CONDITIONING:
-   - system_prompt: Structural meta-prompts targeting syntax density and reasoning compactness.
-
-Propose an ambitious, non-trivial hypothesis. Mutate 1 or 2 specific parameters to explore novel behavior.
+Propose an ambitious, non-trivial hypothesis. Prioritize direct weight tensor perturbations and structural manifold alterations.
 You must respond ONLY with a raw JSON object (no markdown fences, no comments) matching:
 {{
   "experiment_name": "<Short scientific title>",
-  "hypothesis": "<Rigorous mathematical / empirical hypothesis explaining why this mutation alters entropy, logit distribution, or CPU throughput>",
+  "hypothesis": "<Rigorous mathematical / empirical hypothesis explaining why this mutation alters entropy, logit distribution, weight geometry, or CPU throughput>",
   "mutated_params": {{
     "<param_name>": <value>
   }}
@@ -345,9 +445,16 @@ You must respond ONLY with a raw JSON object (no markdown fences, no comments) m
             parsed_proposal = json.loads(clean_json)
         except Exception:
             parsed_proposal = {
-                "experiment_name": f"Adaptive Temperature Shift #{cycle_num}",
-                "hypothesis": "Shifting temperature closer to greedy limit reduces sampling overhead on ARM CPU.",
-                "mutated_params": {"temperature": max(0.05, round(current_cfg["temperature"] * 0.85, 2))}
+                "experiment_name": f"Adaptive SVD Weight Perturbation #{cycle_num}",
+                "hypothesis": "Rank-2 SVD perturbation on blk.0.attn_q aligns attention projections for faster token convergence.",
+                "mutated_params": {
+                    "weight_mutation": {
+                        "target_layer": f"blk.{cycle_num % 24}.attn_q",
+                        "delta_type": "spectral_svd",
+                        "rank": 2,
+                        "scale": 0.03
+                    }
+                }
             }
 
         exp_name = parsed_proposal.get("experiment_name", f"Experiment #{cycle_num}")
@@ -355,7 +462,19 @@ You must respond ONLY with a raw JSON object (no markdown fences, no comments) m
         mutations = parsed_proposal.get("mutated_params", {})
 
         candidate_cfg = dict(current_cfg)
-        candidate_cfg.update(mutations)
+        candidate_cfg.update({k: v for k, v in mutations.items() if k != "weight_mutation"})
+
+        # Apply real-time weight mutation if proposed
+        active_wm = None
+        if "weight_mutation" in mutations and isinstance(mutations["weight_mutation"], dict):
+            wm_spec = mutations["weight_mutation"]
+            active_wm = self.weight_mutator.apply_weight_mutation(
+                target_layer=wm_spec.get("target_layer", f"blk.{cycle_num % 24}.attn_q"),
+                rank=int(wm_spec.get("rank", 2)),
+                scale=float(wm_spec.get("scale", 0.05)),
+                delta_type=str(wm_spec.get("delta_type", "spectral_svd"))
+            )
+            candidate_cfg["active_weight_mutation"] = active_wm
 
         self._emit("hypothesis", {"cycle": cycle_num, "name": exp_name, "hypothesis": hypothesis, "mutations": mutations})
 
@@ -389,12 +508,17 @@ Deliver an authoritative 2-sentence conclusion stating whether the hypothesis wa
 
         if is_improvement:
             self.state["optimal_config"] = dict(candidate_cfg)
+            if active_wm:
+                self.state["optimal_weight_mutation"] = active_wm
             self.state["baseline_metrics"] = {
                 "avg_latency_ms": results["avg_latency_ms"],
                 "avg_tok_per_sec": results["avg_tok_per_sec"],
                 "pass_rate_pct": results["pass_rate_pct"]
             }
             self.state["successful_mutations"] += 1
+        else:
+            if active_wm:
+                self.weight_mutator.rollback()
 
         self.state["current_config"] = dict(candidate_cfg if is_improvement else optimal_cfg)
         self.state["total_cycles"] = cycle_num
@@ -405,6 +529,7 @@ Deliver an authoritative 2-sentence conclusion stating whether the hypothesis wa
             "name": exp_name,
             "hypothesis": hypothesis,
             "mutations": mutations,
+            "weight_mutation": active_wm,
             "metrics": {
                 "pass_rate_pct": results["pass_rate_pct"],
                 "avg_latency_ms": results["avg_latency_ms"],
@@ -427,12 +552,22 @@ Deliver an authoritative 2-sentence conclusion stating whether the hypothesis wa
         return exp_record
 
     def _append_to_log(self, record: Dict[str, Any], test_details: List[Dict[str, Any]]):
+        wm_block = ""
+        if record.get("weight_mutation"):
+            wm = record["weight_mutation"]
+            wm_block = f"""
+[WEIGHT TENSOR DELTA]
+  - Target Layer : {wm.get('target_layer', 'unknown')}
+  - Delta Method : {wm.get('delta_type', 'orthogonal')} (Rank {wm.get('rank', 2)}, scale {wm.get('scale', 0.05)})
+  - Frobenius ||W||: {wm.get('frobenius_norm', 0.0)}
+  - Hot-Scaled   : {wm.get('hot_scaled', False)} (Size: {wm.get('adapter_size_bytes', 0)} bytes)"""
+
         log_entry = f"""
 ================================================================================
 [EXPERIMENT #{record['cycle']:03d}] {record['timestamp']} | {record['name']}
 ================================================================================
 [HYPOTHESIS] {record['hypothesis']}
-[MUTATION]   {json.dumps(record['mutations'])}
+[MUTATION]   {json.dumps(record['mutations'])}{wm_block}
 [BENCHMARK]
   - Pass Rate : {record['metrics']['pass_rate_pct']}%
   - Latency   : {record['metrics']['avg_latency_ms']} ms ({record['metrics']['delta_latency_ms']:+.2f} ms)

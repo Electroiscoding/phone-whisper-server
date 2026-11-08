@@ -301,6 +301,8 @@ footer {
         <tr><td>Target Device</td><td id="bioDevice">--</td></tr>
         <tr><td>Inference Engine</td><td id="bioEngine">--</td></tr>
         <tr><td>Governor Policy</td><td id="bioGov">--</td></tr>
+        <tr><td>Active LoRA Adapter</td><td id="bioWeightAdapter">Unperturbed (Baseline)</td></tr>
+        <tr><td>Active Weight Delta ||&Delta;W||</td><td id="bioWeightDelta">0.000000</td></tr>
       </tbody>
     </table>
 
@@ -408,6 +410,16 @@ function renderUI(data) {
   document.getElementById("bioDevice").innerText = bio.device || "Redmi 9i";
   document.getElementById("bioEngine").innerText = bio.engine || "llama.cpp ARM NEON";
   document.getElementById("bioGov").innerText = bio.runtime_governor || "dynamic_elastic_jit";
+
+  const optWm = data.optimal_weight_mutation;
+  const currWm = (data.recent_experiments && data.recent_experiments[0] && data.recent_experiments[0].weight_mutation) || optWm;
+  if (currWm && !currWm.error) {
+    document.getElementById("bioWeightAdapter").innerText = `${currWm.target_layer} (${currWm.delta_type}, r=${currWm.rank})`;
+    document.getElementById("bioWeightDelta").innerText = `||ΔW|| = ${currWm.frobenius_norm || 0.0}`;
+  } else {
+    document.getElementById("bioWeightAdapter").innerText = "Unperturbed (Baseline)";
+    document.getElementById("bioWeightDelta").innerText = "0.000000";
+  }
 
   // Parameter table
   const opt = data.optimal_config || {};
