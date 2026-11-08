@@ -42,8 +42,10 @@ export async function onRequest(context) {
 
   const apiPrefixes = [
     "/v1/", "/auth/", "/s/", "/screen/",
-    "/authentication/", "/database/", "/functions/", "/doc/", "/rules/", "/call/"
+    "/authentication/", "/database/", "/functions/", "/doc/", "/rules/", "/call/",
+    "/api/swades/", "/api/"
   ];
+
   const apiExactPaths = [
     "/inference", "/telemetry", "/tts", "/speech", "/health", 
     "/models", "/backends", "/benchmark", 

@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://surfing-vat-movies-specialists.trycloudflare.com",
-  "inference": "https://surfing-vat-movies-specialists.trycloudflare.com/inference",
-  "telemetry": "https://surfing-vat-movies-specialists.trycloudflare.com/telemetry",
+  "endpoint": "https://singing-ftp-license-measured.trycloudflare.com",
+  "inference": "https://singing-ftp-license-measured.trycloudflare.com/inference",
+  "telemetry": "https://singing-ftp-license-measured.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-11-07T07:14:15Z"
+  "updated_at": "2026-11-08T09:37:30Z"
 }

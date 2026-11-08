@@ -7549,10 +7549,16 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_stats_html()
         elif path in ["/squares", "/squares.html"]:
             self.handle_squares_html()
+        elif path in ["/ide", "/ide.html", "/swades_ide", "/swades_ide.html", "/swades-ide"]:
+            self.handle_swades_ide_html()
+        elif path.startswith("/api/swades/"):
+            self.handle_swades_proxy_get(parsed)
         elif path in ["/v1/squares/status", "/squares/status"]:
             self.handle_squares_status()
         elif path in ["/v1/squares/packing", "/squares/packing"]:
             self.handle_squares_packing(parsed)
+        elif path in ["/v1/squares/logs", "/squares/logs", "/squares/log", "/v1/squares/log"]:
+            self.handle_squares_logs(parsed)
         elif path in ["/noir_og.jpg", "/colab_og_cover.jpg"]:
             self.handle_og_image(path)
         elif path in ["/v1/notebook/session", "/notebook/session"]:
@@ -7698,6 +7704,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
 
         if path in ["/v1/cron/jobs", "/v1/cron/create", "/v1/cron", "/cron/jobs", "/cron/create"]:
             self.handle_cron_create_job()
+        elif path.startswith("/api/swades/"):
+            self.handle_swades_proxy_post()
         elif path in ["/v1/cron/demo/smtp", "/v1/cron/smtp/demo", "/cron/demo/smtp"]:
             self.handle_cron_demo_smtp()
         elif path.startswith("/v1/cron/jobs/") and (path.endswith("/trigger") or path.endswith("/run")):
@@ -10210,11 +10218,88 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 return
         self.send_error(404, "squares.html not found on server")
 
+    def handle_swades_ide_html(self):
+        for p in [
+            "/data/data/com.termux/files/home/Swades/swades_ide.html",
+            "/data/data/com.termux/files/home/swades_ide.html",
+            "/data/data/com.termux/files/home/ide.html",
+            os.path.join(os.getcwd(), "swades_ide.html"),
+            os.path.join(os.getcwd(), "ide.html"),
+            os.path.expanduser("~/Swades/swades_ide.html"),
+            os.path.expanduser("~/swades_ide.html"),
+            os.path.expanduser("~/ide.html")
+        ]:
+            if os.path.exists(p):
+                with open(p, "rb") as f:
+                    content = f.read()
+                self.send_response(200)
+                self._send_cors_headers()
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Content-Length", str(len(content)))
+                self.end_headers()
+                self.wfile.write(content)
+                return
+        self.send_error(404, "swades_ide.html not found on server")
+
+    def handle_swades_proxy_get(self, parsed):
+        target_url = f"http://127.0.0.1:8088{self.path}"
+        try:
+            req_headers = {k: v for k, v in self.headers.items() if k.lower() not in ["host", "content-length"]}
+            req = urllib.request.Request(target_url, headers=req_headers)
+            resp = urllib.request.urlopen(req, timeout=300)
+            self.send_response(resp.status)
+            self._send_cors_headers()
+            ct = resp.headers.get("Content-Type", "application/json")
+            self.send_header("Content-Type", ct)
+            if "event-stream" in ct:
+                self.send_header("Cache-Control", "no-cache")
+                self.send_header("Connection", "keep-alive")
+                self.end_headers()
+                while True:
+                    chunk = resp.read(256)
+                    if not chunk:
+                        break
+                    self.wfile.write(chunk)
+                    self.wfile.flush()
+                return
+            body = resp.read()
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+        except Exception as e:
+            self.send_response(502)
+            self._send_cors_headers()
+            self.end_headers()
+            self.wfile.write(f'{{"error": "Swades IDE Proxy Error: {e}"}}'.encode("utf-8"))
+
+    def handle_swades_proxy_post(self):
+        target_url = f"http://127.0.0.1:8088{self.path}"
+        content_len = int(self.headers.get("Content-Length", 0))
+        body = self.rfile.read(content_len) if content_len > 0 else b""
+        try:
+            req_headers = {k: v for k, v in self.headers.items() if k.lower() not in ["host", "content-length"]}
+            req = urllib.request.Request(target_url, data=body, headers=req_headers, method="POST")
+            with urllib.request.urlopen(req, timeout=60) as resp:
+                resp_data = resp.read()
+                self.send_response(resp.status)
+                self._send_cors_headers()
+                self.send_header("Content-Type", resp.headers.get("Content-Type", "application/json"))
+                self.send_header("Content-Length", str(len(resp_data)))
+                self.end_headers()
+                self.wfile.write(resp_data)
+        except Exception as e:
+            self.send_response(502)
+            self._send_cors_headers()
+            self.end_headers()
+            self.wfile.write(f'{{"error": "Swades IDE Proxy Error: {e}"}}'.encode("utf-8"))
+
+
     def handle_squares_status(self):
         base = Path(os.environ.get("HOME", "/data/data/com.termux/files/home"))
         db_p = base / ".react-agent" / "plugin_data" / "squares" / "packings.db"
         act_p = base / "squares_research" / "active.json"
-        log_p = base / ".react-agent" / "audit.jsonl"
+        log_p = base / "squares_research" / "squares_research.log"
+        audit_p = base / ".react-agent" / "audit.jsonl"
         tot, val, sum_sc, worst, recent = 0, 0, 0.0, [], []
         if db_p.exists():
             try:
@@ -10230,6 +10315,12 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         if log_p.exists():
             try:
                 lines = log_p.read_text(encoding="utf-8", errors="replace").strip().split("\n")
+                logs = [line for line in lines[-40:] if line.strip()]
+            except Exception:
+                pass
+        elif audit_p.exists():
+            try:
+                lines = audit_p.read_text(encoding="utf-8", errors="replace").strip().split("\n")
                 for line in lines[-25:]:
                     if line:
                         try: logs.append(json.loads(line))
@@ -10258,6 +10349,29 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             "logs": logs
         }
         self._send_json_response(data)
+
+    def handle_squares_logs(self, parsed):
+        base = Path(os.environ.get("HOME", "/data/data/com.termux/files/home"))
+        log_file = base / "squares_research" / "squares_research.log"
+        if not log_file.exists():
+            log_file = base / "squares_research" / "supervisor.log"
+        if not log_file.exists():
+            content = "No logs recorded yet.\n"
+        else:
+            params = urllib.parse.parse_qs(parsed.query)
+            count = int(params.get("n", ["500"])[0])
+            try:
+                with open(log_file, "r", encoding="utf-8", errors="replace") as f:
+                    content = "".join(f.readlines()[-count:])
+            except Exception as e:
+                content = f"Error reading logs: {e}\n"
+        resp = content.encode("utf-8")
+        self.send_response(200)
+        self._send_cors_headers()
+        self.send_header("Content-Type", "text/plain; charset=utf-8")
+        self.send_header("Content-Length", str(len(resp)))
+        self.end_headers()
+        self.wfile.write(resp)
 
     def handle_squares_packing(self, parsed):
         params = urllib.parse.parse_qs(parsed.query)
