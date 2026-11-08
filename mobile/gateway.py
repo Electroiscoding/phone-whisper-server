@@ -7912,8 +7912,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
     # =========================================================================
     # REMOTE CLOUD PHONE SCREEN & APP CONTROL HANDLERS
     # =========================================================================
-    @staticmethod
-    def _get_adb_base_cmd():
+    @classmethod
+    def _get_adb_base_cmd(cls):
         os.environ["TMPDIR"] = "/data/data/com.termux/files/usr/tmp"
         if not os.path.exists("/data/data/com.termux/files/usr/tmp"):
             try:
@@ -7921,10 +7921,40 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             except Exception:
                 pass
         termux_adb = "/data/data/com.termux/files/usr/bin/adb"
+        adb_bin = None
         for p in [termux_adb, "/usr/bin/adb", shutil.which("adb")]:
             if p and os.path.isfile(p) and os.access(p, os.X_OK):
-                return [p, "-s", "127.0.0.1:5555"]
-        return ["adb", "-s", "127.0.0.1:5555"]
+                adb_bin = p
+                break
+        if not adb_bin:
+            adb_bin = "adb"
+
+        now = time.time()
+        cached = getattr(cls, "_cached_adb_cmd", None)
+        last_t = getattr(cls, "_last_adb_target_time", 0)
+        if cached and (now - last_t < 15):
+            return list(cached)
+
+        cmd = [adb_bin]
+        try:
+            res = subprocess.run([adb_bin, "devices"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=2)
+            lines = [l.strip().split() for l in res.stdout.strip().splitlines() if l.strip() and not l.startswith("List")]
+            devs = [parts[0] for parts in lines if len(parts) >= 2 and parts[1] == "device"]
+            if len(devs) == 1:
+                cmd = [adb_bin, "-s", devs[0]]
+            elif len(devs) > 1:
+                for preferred in ["emulator-5554", "127.0.0.1:5555", "localhost:5555"]:
+                    if preferred in devs:
+                        cmd = [adb_bin, "-s", preferred]
+                        break
+                else:
+                    cmd = [adb_bin, "-s", devs[0]]
+        except Exception:
+            pass
+
+        cls._cached_adb_cmd = cmd
+        cls._last_adb_target_time = now
+        return list(cmd)
 
     @classmethod
     def _run_adb_shell_cmd(cls, cmd_args, timeout=6):
