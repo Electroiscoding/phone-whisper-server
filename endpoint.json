@@ -1,9 +1,9 @@
 {
-  "endpoint": "https://lung-pcs-popularity-kent.trycloudflare.com",
-  "inference": "https://lung-pcs-popularity-kent.trycloudflare.com/inference",
-  "telemetry": "https://lung-pcs-popularity-kent.trycloudflare.com/telemetry",
+  "endpoint": "https://measurement-losses-oem-bedrooms.trycloudflare.com",
+  "inference": "https://measurement-losses-oem-bedrooms.trycloudflare.com/inference",
+  "telemetry": "https://measurement-losses-oem-bedrooms.trycloudflare.com/telemetry",
   "phone_lan_ip": "http://192.168.29.2:8080",
   "mode": "dual_worldwide_and_local",
   "port": 8080,
-  "updated_at": "2026-11-08T12:22:00Z"
+  "updated_at": "2026-11-08T12:29:00Z"
 }
