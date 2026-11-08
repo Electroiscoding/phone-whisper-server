@@ -13,8 +13,14 @@ STATE_FILE = BASE_DIR / "qwen_state.json"
 GROQ_KEY_FILE = Path.home() / ".groq_key"
 
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
-GROQ_MODEL = "qwen/qwen3.8-27b"
-GROQ_MODEL_FALLBACK = "openai/gpt-oss-120b"
+GROQ_MODELS_POOL = [
+    "qwen/qwen3.8-27b",
+    "openai/gpt-oss-20b",
+    "allam-2-7b",
+    "openai/gpt-oss-120b"
+]
+GROQ_MODEL = GROQ_MODELS_POOL[0]
+GROQ_MODEL_FALLBACK = GROQ_MODELS_POOL[1]
 
 LOCAL_QWEN_URLS = [
     "http://192.168.29.2:8080/v1/chat/completions",
@@ -46,7 +52,17 @@ DEFAULT_CONFIG = {
     "temperature": 0.2,
     "top_p": 0.9,
     "top_k": 40,
-    "repetition_penalty": 1.1,
+    "min_p": 0.05,
+    "typical_p": 1.0,
+    "repeat_penalty": 1.1,
+    "presence_penalty": 0.0,
+    "frequency_penalty": 0.0,
+    "dry_multiplier": 0.0,
+    "mirostat": 0,
+    "mirostat_tau": 5.0,
+    "mirostat_eta": 0.1,
+    "top_n_sigma": -1.0,
+    "xtc_probability": 0.0,
     "max_tokens": 64,
     "system_prompt": "You are a concise, precise AI assistant. Output only accurate answers with zero fluff."
 }
@@ -132,39 +148,38 @@ class QwenExperimenter:
         payload = {"type": event_type, "timestamp": time.time(), **data}
         self.on_event(payload)
 
-    def _call_groq(self, messages: List[Dict[str, str]], model: str = GROQ_MODEL, temperature: float = 0.2) -> str:
+    def _call_groq(self, messages: List[Dict[str, str]], model: Optional[str] = None, temperature: float = 0.2) -> str:
         headers = {
             "Authorization": f"Bearer {self.groq_key}",
             "Content-Type": "application/json",
             "User-Agent": "Swades-Qwen-Experimenter/1.0"
         }
-        body = {
-            "model": model,
-            "messages": messages,
-            "temperature": temperature,
-            "max_tokens": 1024
-        }
-        for attempt in range(3):
+        models_to_try = list(GROQ_MODELS_POOL)
+        if model and model in models_to_try:
+            models_to_try.remove(model)
+            models_to_try.insert(0, model)
+
+        for current_model in models_to_try:
+            body = {
+                "model": current_model,
+                "messages": messages,
+                "temperature": temperature,
+                "max_tokens": 1024
+            }
             req = urllib.request.Request(GROQ_API_URL, data=json.dumps(body).encode("utf-8"), headers=headers, method="POST")
             try:
                 with urllib.request.urlopen(req, timeout=30) as resp:
                     data = json.loads(resp.read().decode("utf-8"))
                     return data["choices"][0]["message"]["content"]
             except urllib.error.HTTPError as e:
-                if e.code == 403 and model != GROQ_MODEL_FALLBACK:
-                    model = GROQ_MODEL_FALLBACK
-                    body["model"] = GROQ_MODEL_FALLBACK
-                    continue
-                if attempt < 2:
-                    time.sleep(1.5 * (attempt + 1))
+                if e.code in (403, 404, 429):
+                    time.sleep(0.5)
                     continue
                 raise RuntimeError(f"Groq API Error {e.code}: {e.read().decode('utf-8', errors='ignore')}")
             except Exception as e:
-                if attempt < 2:
-                    time.sleep(1.5 * (attempt + 1))
-                    continue
-                raise RuntimeError(f"Groq connection error: {e}")
-        return ""
+                time.sleep(1.0)
+                continue
+        raise RuntimeError("All models in Groq scientist pool exhausted or rate limited.")
 
     def _execute_qwen_inference(self, prompt: str, config: Dict[str, Any]) -> Dict[str, Any]:
         messages = []
@@ -174,10 +189,27 @@ class QwenExperimenter:
 
         payload = {
             "messages": messages,
+            "stream": True,
+            "max_tokens": config.get("max_tokens", 64),
             "temperature": config.get("temperature", 0.2),
             "top_p": config.get("top_p", 0.9),
-            "max_tokens": config.get("max_tokens", 64)
+            "top_k": config.get("top_k", 40),
+            "min_p": config.get("min_p", 0.05),
+            "typical_p": config.get("typical_p", 1.0),
+            "repeat_penalty": config.get("repeat_penalty", config.get("repetition_penalty", 1.1)),
+            "presence_penalty": config.get("presence_penalty", 0.0),
+            "frequency_penalty": config.get("frequency_penalty", 0.0),
         }
+
+        for adv_k in [
+            "mirostat", "mirostat_tau", "mirostat_eta",
+            "dynatemp_range", "dynatemp_exponent",
+            "top_n_sigma", "xtc_probability", "xtc_threshold",
+            "dry_multiplier", "dry_base", "dry_allowed_length",
+            "logit_bias", "samplers"
+        ]:
+            if adv_k in config:
+                payload[adv_k] = config[adv_k]
 
         req = urllib.request.Request(
             self.active_qwen_url,
@@ -261,25 +293,45 @@ class QwenExperimenter:
         past_failed = [r.get("mutations") for r in self.state.get("recent_experiments", [])[:6] if r.get("verdict") == "REJECTED_ROLLBACK"]
 
         # Step 1: Groq AI synthesizes mutation hypothesis
-        prompt_scientist = f"""You are the Lead AI Optimization Scientist in the Swades Framework.
-Target model: Qwen 2.5 0.5B Instruct (running locally on ARM MediaTek Helio G25).
+        prompt_scientist = f"""You are the Lead Deep AI Research Scientist in the Swades Framework.
+Target model: Qwen 2.5 0.5B Instruct (running locally on ARM MediaTek Helio G25 CPU via llama.cpp).
 Current Parameters: {json.dumps(current_cfg)}
 Optimal Parameters Discovered So Far: {json.dumps(optimal_cfg)}
 Baseline Performance: {json.dumps(base_metrics)}
 Recently Tested and REJECTED Mutations (DO NOT REPEAT THESE): {json.dumps(past_failed)}
 
-Your mission: Formulate a novel mutation targeting a parameter NOT recently rejected.
-Available parameter space:
-- repetition_penalty: 1.0 to 1.35 (e.g. 1.05, 1.15)
-- top_p: 0.6 to 0.98 (e.g. 0.75, 0.85, 0.95)
-- temperature: 0.1 to 0.8 (e.g. 0.15, 0.35, 0.5)
-- max_tokens: 32 to 96 (e.g. 48, 64)
-- system_prompt: concise instructions targeting zero hallucinations.
+Your mission: Formulate a novel, mathematically grounded scientific mutation on the local SLM to discover breakthroughs in reasoning throughput, perplexity stability, or token latency on ARM NEON architecture.
 
+YOU HAVE UNRESTRICTED ACCESS ACROSS 6 DEEP RESEARCH VECTORS:
+1. ENTROPY REGULATION & PROBABILITY MANIFOLDS:
+   - min_p (0.01 - 0.25): Truncate candidate logits relative to top token probability (cuts softmax candidate pool dynamically without fixed-k artifacts).
+   - typical_p (0.5 - 1.0): Locally typical sampling based on conditional entropy.
+   - mirostat (0, 1, 2), mirostat_tau (1.0 - 8.0), mirostat_eta (0.01 - 0.5): Dynamic cross-entropy stabilization algorithm.
+   - dynatemp_range (0.0 - 0.8), dynatemp_exponent (0.5 - 2.5): Entropy-dependent dynamic temperature curvature.
+   - top_n_sigma (-1.0 to 3.0): Logit standard deviation thresholding (Jacobian manifold truncation).
+   - xtc_probability (0.0 - 0.5), xtc_threshold (0.05 - 0.3): Exclude Top Choices (entropy injection to escape degenerate probability attractors).
+
+2. STRUCTURAL N-GRAM DECAY & REPETITION DAMPING:
+   - dry_multiplier (0.0 - 2.0), dry_base (1.0 - 2.5), dry_allowed_length (1 - 5): Structural n-gram logit decay.
+   - repeat_penalty (1.0 - 1.4), presence_penalty (-1.0 to 1.5), frequency_penalty (-1.0 to 1.5).
+
+3. SAMPLER PIPELINE ALGEBRA:
+   - samplers: Custom ordered sequence of sampling filters, e.g. ["penalties", "dry", "top_n_sigma", "min_p", "top_k", "typ_p", "top_p", "xtc", "temperature"]. Reordering changes projection on the probability simplex.
+
+4. LOGIT BIASING & VOCABULARY STEERING:
+   - logit_bias: List of [token_id, bias_weight] (e.g. [[9707, 2.0], [198, -1.5]]). Directly perturbs logit vector z before softmax normalization.
+
+5. CLASSICAL TEMPERATURE & BOUNDS:
+   - temperature (0.05 - 1.2), top_k (5 - 100), top_p (0.4 - 0.99), max_tokens (16 - 128).
+
+6. REPRESENTATION CONDITIONING:
+   - system_prompt: Structural meta-prompts targeting syntax density and reasoning compactness.
+
+Propose an ambitious, non-trivial hypothesis. Mutate 1 or 2 specific parameters to explore novel behavior.
 You must respond ONLY with a raw JSON object (no markdown fences, no comments) matching:
 {{
-  "experiment_name": "<Short title>",
-  "hypothesis": "<1-2 sentence theoretical justification>",
+  "experiment_name": "<Short scientific title>",
+  "hypothesis": "<Rigorous mathematical / empirical hypothesis explaining why this mutation alters entropy, logit distribution, or CPU throughput>",
   "mutated_params": {{
     "<param_name>": <value>
   }}

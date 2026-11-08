@@ -414,10 +414,13 @@ function renderUI(data) {
   const curr = data.current_config || {};
   const tbody = document.getElementById("configTableBody");
   tbody.innerHTML = "";
-  for (const [k, v] of Object.entries(opt)) {
+  const allKeys = new Set([...Object.keys(opt), ...Object.keys(curr)]);
+  for (const k of allKeys) {
     if (k === "system_prompt") continue;
+    const optVal = typeof opt[k] === "object" ? JSON.stringify(opt[k]) : (opt[k] !== undefined ? opt[k] : "--");
+    const currVal = typeof curr[k] === "object" ? JSON.stringify(curr[k]) : (curr[k] !== undefined ? curr[k] : optVal);
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td><code>${k}</code></td><td><strong>${v}</strong></td><td>${curr[k] !== undefined ? curr[k] : v}</td>`;
+    tr.innerHTML = `<td><code>${k}</code></td><td><strong>${optVal}</strong></td><td>${currVal}</td>`;
     tbody.appendChild(tr);
   }
 
