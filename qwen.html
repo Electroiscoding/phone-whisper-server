@@ -362,16 +362,31 @@ footer {
 <script>
 let autoInterval = null;
 let isRunning = false;
+let isFetching = false;
 
-async function fetchState() {
-  try {
-    const res = await fetch("/v1/qwen/experiments", { cache: "no-store" });
-    if (!res.ok) return;
-    const data = await res.json();
-    renderUI(data);
-  } catch (err) {
-    console.error("Failed to fetch Qwen state:", err);
+async function fetchState(retries = 2) {
+  if (isFetching) return;
+  isFetching = true;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch("/v1/qwen/experiments", { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        renderUI(data);
+        break;
+      }
+      if (attempt < retries) {
+        await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+      }
+    } catch (err) {
+      if (attempt < retries) {
+        await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+      } else {
+        console.warn("[Qwen State] Network sync deferred:", err.message || err);
+      }
+    }
   }
+  isFetching = false;
 }
 
 function renderUI(data) {
@@ -561,9 +576,9 @@ window.addEventListener("keydown", (e) => {
   }
 });
 
-// Initial load & 4s polling
+// Initial load & 8s polling
 fetchState();
-setInterval(fetchState, 4000);
+setInterval(fetchState, 8000);
 </script>
 </body>
 </html>
