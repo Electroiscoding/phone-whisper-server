@@ -124,8 +124,9 @@ def spawn_fresh_tunnel():
                 with open(CF_LOG_FILE) as f:
                     content = f.read()
                 matches = re.findall(r"https://[a-zA-Z0-9.-]+\.trycloudflare\.com", content)
-                if matches:
-                    new_url = matches[-1]
+                candidates = [m for m in matches if not m.startswith("https://api.") and not m.startswith("https://pkg.")]
+                if candidates:
+                    new_url = candidates[-1]
                     break
             except Exception:
                 pass

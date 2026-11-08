@@ -998,7 +998,7 @@
                 });
             }
 
-            if (type === 'ready_for_review') {
+            if (type === 'ready_for_review' || type === 'completed') {
                 renderJulesReviewCard(data);
                 return;
             }
@@ -1008,12 +1008,12 @@
                 const branchMatch = text.match(/branch:\s*(swades\/[^\s]+)/i);
                 if (branchMatch) currentBranch = branchMatch[1];
                 addTimelineCard('Status', text, 'default', data);
-            } else if (type === 'thinking') {
+            } else if (type === 'thinking' || type === 'thought') {
                 const text = typeof data === 'string' ? data : (data?.message || data?.data || JSON.stringify(data));
                 latestThinking = text;
                 const summary = text.length > 100 ? text.substring(0, 100) + '...' : text;
                 addTimelineCard('AI Reasoning', summary, 'default', text);
-            } else if (type === 'tool_start') {
+            } else if (type === 'tool_start' || type === 'tool_use') {
                 const tool = data?.tool || 'Tool';
                 const p = data?.args?.path || (typeof data?.args === 'string' ? (() => { try { return JSON.parse(data.args).path; } catch(e){ return ''; } })() : '');
                 let title = `Tool: ${tool}`;
@@ -1021,18 +1021,19 @@
                     title = `Updated <span class="bg-zinc-800 border border-zinc-700 text-zinc-300 font-mono text-[11px] px-1.5 py-0.5 rounded ml-1">${p}</span>`;
                 } else if (tool === 'read_file' && p) {
                     title = `Inspecting <span class="font-mono text-zinc-400 ml-1 text-xs">${p}</span>`;
-                } else if (tool === 'index_codebase') {
+                } else if (tool === 'index_codebase' || tool === 'map_repo') {
                     title = `Indexed Codebase Structure`;
                 }
                 const args = data?.args ? (data.args.path || data.args.command || (typeof data.args === 'string' ? data.args : JSON.stringify(data.args))) : '';
                 addTimelineCard(title, args, 'loading', data?.args || data);
-            } else if (type === 'tool_end') {
-                const resStr = typeof data?.result === 'string' ? data.result : JSON.stringify(data?.result || data);
+            } else if (type === 'tool_end' || type === 'tool_result') {
+                const resStr = typeof data?.result === 'string' ? data.result : (typeof data?.output === 'string' ? data.output : JSON.stringify(data?.result || data?.output || data));
                 const summary = resStr.length > 80 ? resStr.substring(0, 80) + '...' : resStr;
-                addTimelineCard('Tool Output', summary, 'success', resStr);
-            } else if (type === 'diff_update') {
-                renderDiff(data?.diff || data, data?.file || 'Modified Code');
-                addTimelineCard('Diff Generated', `Modified ${data?.file || 'code files'}`, 'success', data?.diff || data);
+                addTimelineCard('Tool Output', summary, data?.error ? 'error' : 'success', resStr);
+            } else if (type === 'diff_update' || type === 'diff') {
+                const diffContent = data?.diff || (typeof data === 'string' ? data : JSON.stringify(data));
+                renderDiff(diffContent, data?.file || 'Modified Code');
+                addTimelineCard('Diff Generated', `Modified ${data?.file || 'code files'}`, 'success', diffContent);
             } else if (type === 'verification') {
                 const passed = data?.passed !== false;
                 addTimelineCard('Self-Verification', passed ? 'Code verification and syntax tests passed.' : `Validation notice: ${data?.message || data?.error || 'Retrying repair...'}`, passed ? 'success' : 'loading', data);

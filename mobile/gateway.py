@@ -5178,52 +5178,355 @@ class CurrentsDaemonManager:
 _currents_manager = CurrentsDaemonManager(7200)
 
 
-def _spawn_swades_worker(job_id):
-    """Spawns the Node.js autonomous worker immediately upon submission"""
-    try:
-        job = _job_manager.get_job(job_id)
-        if not job:
-            return
-            
-        home_dir = os.environ.get("HOME", "/data/data/com.termux/files/home")
-        container_root = "/data/data/com.termux/files/usr/var/lib/proot-distro/containers/alpine/rootfs/root"
-        payload_flag = []
-        if os.path.exists(container_root):
-            try:
-                payload_file = os.path.join(container_root, f".job_{job_id}.json")
-                with open(payload_file, "w") as pf:
-                    json.dump(job, pf)
-                os.chmod(payload_file, 0o600)
-                payload_flag = ["--payload", f"/root/.job_{job_id}.json"]
-            except Exception as pe:
-                print(f"[SWADES] Warning: Could not write payload file: {pe}")
-        
-        env = os.environ.copy()
-        env["PATH"] = f"/data/data/com.termux/files/usr/bin:{env.get('PATH', '')}"
-        env["JOB_ID"] = job_id
-        env["JOB_PAYLOAD"] = json.dumps(job)
-        env["OPENROUTER_API_KEY"] = job.get("api_key") or ""
-        env["OPENROUTER_MODEL"] = job.get("model") or ""
-        
-        worker_cmd = [
-            "/data/data/com.termux/files/usr/bin/proot-distro",
-            "login", "alpine", "--",
-            "node", "/root/Swades-Agent/worker.js", "--job", job_id
-        ] + payload_flag
-        worker_log_path = os.path.join(home_dir, "worker.log")
+class SwadesGitManager:
+    """Ephemeral git sandbox and credential manager for Swades Autonomous Agent"""
+    def __init__(self, base_storage_dir=None, github_token=None):
+        if base_storage_dir:
+            self.storage_dir = Path(base_storage_dir)
+        else:
+            self.storage_dir = Path.home() / ".swades_storage" / "swades_workspaces"
+        self.storage_dir.mkdir(parents=True, exist_ok=True)
+        self.github_token = (github_token.strip() if github_token else None) or self._load_github_token()
+
+    def _load_github_token(self):
+        token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+        if token:
+            return token.strip()
+        candidates = [
+            Path.home() / "githubpattoken.txt",
+            Path.home() / ".github_token",
+            Path("/data/data/com.termux/files/home/githubpattoken.txt")
+        ]
+        for p in candidates:
+            if p.exists():
+                try:
+                    tok = p.read_text(encoding="utf-8").strip()
+                    if tok:
+                        return tok
+                except Exception:
+                    pass
+        return None
+
+    def _run_git_secure(self, args, cwd=None, timeout=60):
+        cmd = ["git"]
+        if self.github_token:
+            auth_str = f"x-access-token:{self.github_token}"
+            auth_b64 = base64.b64encode(auth_str.encode("utf-8")).decode("utf-8")
+            cmd.extend(["-c", f"http.extraheader=Authorization: Basic {auth_b64}"])
+        cmd.extend(args)
+        res = sp.run(cmd, cwd=cwd, capture_output=True, text=True, timeout=timeout)
+        return res
+
+    def check_storage_quota(self, min_free_mb=500):
+        total, used, free = shutil.disk_usage(self.storage_dir)
+        free_mb = free / (1024 * 1024)
+        if free_mb < min_free_mb:
+            return False, f"Insufficient disk space ({free_mb:.1f}MB free, required {min_free_mb}MB)."
+        return True, f"Storage quota OK ({free_mb:.1f}MB free)."
+
+    def create_sandbox(self, repo_url, task_id, base_branch="main"):
+        ok, msg = self.check_storage_quota()
+        if not ok:
+            raise RuntimeError(msg)
+
+        workspace_path = self.storage_dir / task_id
+        if workspace_path.exists():
+            shutil.rmtree(workspace_path, ignore_errors=True)
+
+        clean_url = repo_url
+        res = self._run_git_secure(["clone", "--depth", "1", clean_url, str(workspace_path)], timeout=120)
+        if res.returncode != 0:
+            res = self._run_git_secure(["clone", clean_url, str(workspace_path)], timeout=120)
+            if res.returncode != 0:
+                raise RuntimeError(f"Git clone failed: {res.stderr.strip() or res.stdout.strip()}")
+
+        branch_name = f"swades/{task_id}"
+        self._run_git_secure(["checkout", "-b", branch_name], cwd=workspace_path)
+        self._run_git_secure(["config", "user.name", "Swades AI Agent"], cwd=workspace_path)
+        self._run_git_secure(["config", "user.email", "swades-agent@phone-server.local"], cwd=workspace_path)
+        return workspace_path
+
+    def get_diff(self, workspace_path):
+        res = self._run_git_secure(["diff", "HEAD"], cwd=workspace_path)
+        if res.stdout.strip():
+            return res.stdout
+        res_cached = self._run_git_secure(["diff", "--cached"], cwd=workspace_path)
+        if res_cached.stdout.strip():
+            return res_cached.stdout
+        res_prev = self._run_git_secure(["diff", "HEAD~1"], cwd=workspace_path)
+        if res_prev.returncode == 0 and res_prev.stdout.strip():
+            return res_prev.stdout
+        res_show = self._run_git_secure(["show", "--stat", "--oneline"], cwd=workspace_path)
+        return res_show.stdout
+
+    def commit_changes(self, workspace_path, commit_message):
+        self._run_git_secure(["add", "-A"], cwd=workspace_path)
+        status = self._run_git_secure(["status", "--porcelain"], cwd=workspace_path)
+        if not status.stdout.strip():
+            return False
+        res = self._run_git_secure(["commit", "-m", commit_message], cwd=workspace_path)
+        return res.returncode == 0
+
+    def push_branch(self, workspace_path, branch_name):
+        res = self._run_git_secure(["push", "-u", "origin", branch_name, "--force"], cwd=workspace_path, timeout=60)
+        return res.returncode == 0, res.stderr if res.returncode != 0 else res.stdout
+
+    def extract_repo_slug(self, repo_url):
+        clean = repo_url.rstrip("/").removesuffix(".git")
+        if "github.com/" in clean:
+            return clean.split("github.com/")[-1]
+        if "github.com:" in clean:
+            return clean.split("github.com:")[-1]
+        return None
+
+    def create_pull_request(self, repo_url, branch_name, base_branch, title, body):
+        if not self.github_token:
+            return {"success": False, "error": "No GitHub PAT configured"}
+        repo_slug = self.extract_repo_slug(repo_url)
+        if not repo_slug:
+            return {"success": False, "error": f"Invalid GitHub repo URL: {repo_url}"}
+
+        api_url = f"https://api.github.com/repos/{repo_slug}/pulls"
+        headers = {
+            "Authorization": f"Bearer {self.github_token}",
+            "Accept": "application/vnd.github+json",
+            "Content-Type": "application/json",
+            "User-Agent": "Swades-Agentic-IDE"
+        }
+        payload = json.dumps({
+            "title": title,
+            "head": branch_name,
+            "base": base_branch,
+            "body": body,
+            "maintainer_can_modify": True
+        }).encode("utf-8")
+
+        req = urllib.request.Request(api_url, data=payload, headers=headers, method="POST")
         try:
-            worker_log = open(worker_log_path, "a")
-        except Exception:
-            worker_log = sp.DEVNULL
-        proc = sp.Popen(worker_cmd, stdout=worker_log, stderr=worker_log, env=env, start_new_session=True)
-        _job_manager.active_worker_pid = proc.pid
-        _job_manager.update_job(job_id, worker_pid=proc.pid, status="RUNNING", started_at=datetime.now(timezone.utc).isoformat())
-        _job_manager.append_log(job_id, "status", "Worker process spawned")
-        print(f"[SWADES] Launched worker PID {proc.pid} for job {job_id}")
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+                return {"success": True, "pr_url": data.get("html_url"), "pr_number": data.get("number")}
+        except urllib.error.HTTPError as e:
+            err_body = e.read().decode("utf-8", errors="ignore")
+            try:
+                msg = json.loads(err_body).get("message", err_body)
+            except Exception:
+                msg = err_body
+            return {"success": False, "error": f"GitHub API error ({e.code}): {msg}"}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    def teardown_sandbox(self, task_id):
+        workspace_path = self.storage_dir / task_id
+        if workspace_path.exists():
+            shutil.rmtree(workspace_path, ignore_errors=True)
+            return True
+        return False
+
+
+def _run_swades_harness_job(job_id):
+    """
+    Executes the task using the authentic native Swades ReAct harness (~/Swades/main.py).
+    Zero container bloat, pure sovereign Python execution on the phone node.
+    """
+    job = _job_manager.get_job(job_id)
+    if not job:
+        print(f"[SWADES] Job {job_id} not found in manager.")
+        return
+
+    _job_manager.update_job(job_id, status="CLONING", started_at=datetime.now(timezone.utc).isoformat())
+    _job_manager.append_log(job_id, "status", f"Cloning repository {job['repo_url']} into isolated sandbox...")
+
+    git_mgr = SwadesGitManager(github_token=job.get("github_pat"))
+    workspace_path = None
+    try:
+        workspace_path = git_mgr.create_sandbox(job["repo_url"], job_id)
+        branch_name = f"swades/{job_id}"
+        _job_manager.update_job(job_id, status="RUNNING", branch_name=branch_name)
+        _job_manager.append_log(job_id, "status", f"Sandbox ready on branch: {branch_name}. Initializing Swades ReAct harness...")
+    except Exception as exc:
+        print(f"[SWADES] Sandbox creation failed for {job_id}: {exc}")
+        _job_manager.update_job(job_id, status="FAILED", error_message=str(exc))
+        _job_manager.append_log(job_id, "error", f"Sandbox creation failed: {exc}")
+        return
+
+    swades_dir = None
+    for candidate in [
+        Path.home() / "Swades",
+        Path("/data/data/com.termux/files/home/Swades"),
+        Path.cwd() / "Swades",
+        Path.cwd(),
+    ]:
+        if (candidate / "main.py").exists():
+            swades_dir = candidate
+            break
+
+    if not swades_dir:
+        err = "Could not locate ~/Swades/main.py on the system."
+        _job_manager.update_job(job_id, status="FAILED", error_message=err)
+        _job_manager.append_log(job_id, "error", err)
+        return
+
+    try:
+        if str(swades_dir) not in sys.path:
+            sys.path.insert(0, str(swades_dir))
+
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("swades_main_core", str(swades_dir / "main.py"))
+        swades_core = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(swades_core)
+
+        groq_key = job.get("api_key")
+        if not groq_key:
+            for kpath in [Path.home() / ".groq_key", Path.home() / "groqkey.txt", Path("/data/data/com.termux/files/home/.groq_key")]:
+                if kpath.exists():
+                    try:
+                        k = kpath.read_text(encoding="utf-8").strip()
+                        if k:
+                            groq_key = k
+                            break
+                    except Exception:
+                        pass
+
+        if not groq_key:
+            groq_key = os.environ.get("GROQ_API_KEY", "")
+
+        model_name = job.get("model") or "openai/gpt-oss-120b"
+        if "allam" in model_name.lower():
+            model_name = "openai/gpt-oss-120b"
+
+        os.environ["AGENT_PROVIDER"] = "groq"
+        os.environ["GROQ_API_KEY"] = groq_key
+        os.environ["AGENT_MODEL"] = model_name
+        os.environ["AGENT_ROOT"] = str(workspace_path)
+        os.environ["AGENT_MAX_CYCLES"] = "8"
+        os.environ["AGENT_MAX_STEPS"] = "60"
+
+        cfg = swades_core.Config.load(llm=True, root=workspace_path)
+        meter = swades_core.Meter()
+        host = swades_core.Host(cfg).load()
+        llm = swades_core.LLM(cfg, meter)
+
+        class StreamingSwadesReAct(swades_core.ReAct):
+            def __init__(self, cfg, llm, kit, host, job_id, job_manager, git_mgr, meter=None):
+                super().__init__(cfg, llm, kit, host, meter=meter)
+                self.job_id = job_id
+                self.job_manager = job_manager
+                self.git_mgr = git_mgr
+                self.step_num = 0
+
+            def _say(self, text):
+                super()._say(text)
+                clean_text = text.strip()
+                if clean_text:
+                    self.step_num += 1
+                    self.job_manager.append_log(self.job_id, "thinking", clean_text, self.step_num)
+
+            def _plan(self, a):
+                res = super()._plan(a)
+                self.step_num += 1
+                plan_body = f"Delta: {self.plan['delta']}\n" + "\n".join(f"{i+1}. {s}" for i, s in enumerate(self.plan['steps']))
+                self.job_manager.append_log(self.job_id, "thinking", f"📋 Execution Plan:\n{plan_body}", self.step_num)
+                return res
+
+            def _log(self, cycle, call, out, err):
+                super()._log(cycle, call, out, err)
+                self.step_num += 1
+                tool_name = call.get("name", "unknown")
+                tool_input = call.get("input", {})
+                tool_output = swades_core.text_of(out)
+                
+                self.job_manager.append_log(self.job_id, "tool_start", {
+                    "tool": tool_name,
+                    "args": tool_input,
+                    "cycle": cycle
+                }, self.step_num)
+                
+                self.job_manager.append_log(self.job_id, "tool_end", {
+                    "tool": tool_name,
+                    "result": tool_output,
+                    "error": bool(err),
+                    "cycle": cycle
+                }, self.step_num)
+
+                try:
+                    d = self.git_mgr.get_diff(self.cfg.root)
+                    if d and d.strip():
+                        self.job_manager.append_log(self.job_id, "diff_update", {
+                            "diff": d,
+                            "file": tool_input.get("path") or "modified code"
+                        }, self.step_num)
+                except Exception:
+                    pass
+
+        agent = StreamingSwadesReAct(cfg, llm, host.build(), host, job_id, _job_manager, git_mgr, meter=meter)
+        
+        _job_manager.append_log(job_id, "status", f"Swades Agent booted on {model_name}. Beginning autonomous ReAct loop...")
+        start_time = time.time()
+        result = agent.run(job["task"])
+        duration = round(time.time() - start_time, 1)
+
+        final_diff = git_mgr.get_diff(workspace_path)
+        if final_diff and final_diff.strip():
+            _job_manager.append_log(job_id, "diff_update", {"diff": final_diff, "file": "All Modified Files"}, agent.step_num + 1)
+
+        git_mgr.commit_changes(workspace_path, f"Swades Autonomous Agent: {job['task'][:60]}")
+
+        pr_url = None
+        pr_number = None
+        if job.get("github_pat"):
+            _job_manager.append_log(job_id, "status", f"Pushing branch {branch_name} to remote repository...")
+            pushed, push_msg = git_mgr.push_branch(workspace_path, branch_name)
+            if pushed:
+                _job_manager.append_log(job_id, "status", f"Branch {branch_name} pushed. Opening Pull Request...")
+                pr_res = git_mgr.create_pull_request(
+                    job["repo_url"],
+                    branch_name,
+                    "main",
+                    f"Swades: {job['task'][:60]}",
+                    f"### Autonomous Changes by Swades\n\n**Goal:**\n{job['task']}\n\n**Harness Result:**\n{result}"
+                )
+                if pr_res.get("success"):
+                    pr_url = pr_res.get("pr_url")
+                    pr_number = pr_res.get("pr_number")
+                    _job_manager.append_log(job_id, "pr_opened", {"pr_url": pr_url, "pr_number": pr_number})
+
+        _job_manager.update_job(
+            job_id,
+            status="COMPLETED",
+            completed_at=datetime.now(timezone.utc).isoformat(),
+            files_changed=final_diff or "",
+            pr_url=pr_url,
+            pr_number=pr_number
+        )
+
+        review_payload = {
+            "summary": result,
+            "branch": branch_name,
+            "pr_url": pr_url,
+            "pr_number": pr_number,
+            "duration_seconds": duration,
+            "cycles": meter.cycles,
+            "tools_used": meter.tools
+        }
+        _job_manager.append_log(job_id, "ready_for_review", review_payload)
+        _job_manager.append_log(job_id, "status", f"Autonomous execution completed in {duration}s ({meter.cycles} cycles, {meter.tools} tool calls).")
+        print(f"[SWADES] Job {job_id} completed successfully in {duration}s.")
+
     except Exception as e:
-        print(f"[SWADES] Failed to spawn worker for {job_id}: {e}")
+        print(f"[SWADES] Execution error for job {job_id}: {e}")
+        import traceback
+        traceback.print_exc()
         _job_manager.update_job(job_id, status="FAILED", error_message=str(e))
-        _job_manager.append_log(job_id, "error", str(e))
+        _job_manager.append_log(job_id, "error", f"Execution error: {str(e)}")
+
+
+def _spawn_swades_worker(job_id):
+    """Spawns the Swades autonomous worker using native Swades ReAct harness"""
+    t = threading.Thread(target=_run_swades_harness_job, args=(job_id,), daemon=True)
+    t.start()
+    print(f"[SWADES] Launched native Swades harness thread for job {job_id}")
+
 
 class ModelGovernor:
     """
@@ -8088,27 +8391,51 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             "main_activity": main_activity
         }
 
+    _screencap_lock = threading.Lock()
+    _cached_screen_jpeg = None
+    _cached_screen_time = 0.0
+
+    @classmethod
+    def _capture_screen_jpeg(cls):
+        now = time.time()
+        if cls._cached_screen_jpeg and (now - cls._cached_screen_time < 0.15):
+            return cls._cached_screen_jpeg
+
+        acquired = cls._screencap_lock.acquire(blocking=False)
+        if not acquired:
+            return cls._cached_screen_jpeg
+
+        try:
+            now = time.time()
+            if cls._cached_screen_jpeg and (now - cls._cached_screen_time < 0.15):
+                return cls._cached_screen_jpeg
+
+            cmd = cls._get_adb_base_cmd() + ["exec-out", "screencap"]
+            p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=3)
+            if p.returncode == 0 and len(p.stdout) >= 4608000:
+                data = p.stdout
+                width = int.from_bytes(data[0:4], byteorder='little')
+                height = int.from_bytes(data[4:8], byteorder='little')
+                raw_bytes = data[16:] if len(data) == 4608016 else data[12:]
+                if HAVE_PIL:
+                    img = Image.frombytes('RGBA', (width, height), raw_bytes, 'raw', 'RGBA')
+                    img_small = img.resize((360, 800), Image.Resampling.NEAREST).convert('RGB')
+                    buf = io.BytesIO()
+                    img_small.save(buf, format='JPEG', quality=55)
+                    cls._cached_screen_jpeg = buf.getvalue()
+                    cls._cached_screen_time = time.time()
+                    return cls._cached_screen_jpeg
+        except Exception:
+            pass
+        finally:
+            cls._screencap_lock.release()
+
+        return cls._cached_screen_jpeg
+
     def handle_screen_frame(self):
         """Returns a single JPEG image snapshot of the physical Android phone screen."""
         try:
-            cmd = self._get_adb_base_cmd() + ["exec-out", "screencap"]
-            jpeg_data = None
-            try:
-                p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=4)
-                if p.returncode == 0 and len(p.stdout) >= 4608000:
-                    data = p.stdout
-                    width = int.from_bytes(data[0:4], byteorder='little')
-                    height = int.from_bytes(data[4:8], byteorder='little')
-                    raw_bytes = data[16:] if len(data) == 4608016 else data[12:]
-                    
-                    if HAVE_PIL:
-                        img = Image.frombytes('RGBA', (width, height), raw_bytes, 'raw', 'RGBA')
-                        img_small = img.resize((360, 800), Image.Resampling.NEAREST).convert('RGB')
-                        buf = io.BytesIO()
-                        img_small.save(buf, format='JPEG', quality=60)
-                        jpeg_data = buf.getvalue()
-            except Exception:
-                pass
+            jpeg_data = self._capture_screen_jpeg()
 
             if not jpeg_data:
                 buf = io.BytesIO()
@@ -8148,26 +8475,12 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
 
             while True:
                 try:
-                    cmd = self._get_adb_base_cmd() + ["exec-out", "screencap"]
-                    p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=3)
-                    jpeg_data = None
-                    if p.returncode == 0 and len(p.stdout) >= 4608000:
-                        data = p.stdout
-                        width = int.from_bytes(data[0:4], byteorder='little')
-                        height = int.from_bytes(data[4:8], byteorder='little')
-                        raw_bytes = data[16:] if len(data) == 4608016 else data[12:]
-                        if HAVE_PIL:
-                            img = Image.frombytes('RGBA', (width, height), raw_bytes, 'raw', 'RGBA')
-                            img_small = img.resize((360, 800), Image.Resampling.NEAREST).convert('RGB')
-                            buf = io.BytesIO()
-                            img_small.save(buf, format='JPEG', quality=55)
-                            jpeg_data = buf.getvalue()
-
+                    jpeg_data = self._capture_screen_jpeg()
                     if jpeg_data:
                         part = b"--frame\r\nContent-Type: image/jpeg\r\nContent-Length: " + str(len(jpeg_data)).encode("utf-8") + b"\r\n\r\n" + jpeg_data + b"\r\n"
                         self.wfile.write(part)
                         self.wfile.flush()
-                    time.sleep(0.12)
+                    time.sleep(0.15)
                 except (BrokenPipeError, ConnectionResetError):
                     break
                 except Exception:
@@ -10272,27 +10585,10 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
         self.send_error(404, "squares.html not found on server")
 
     def handle_swades_ide_html(self):
-        for p in [
-            "/data/data/com.termux/files/home/Swades/swades_ide.html",
-            "/data/data/com.termux/files/home/swades_ide.html",
-            "/data/data/com.termux/files/home/ide.html",
-            os.path.join(os.getcwd(), "swades_ide.html"),
-            os.path.join(os.getcwd(), "ide.html"),
-            os.path.expanduser("~/Swades/swades_ide.html"),
-            os.path.expanduser("~/swades_ide.html"),
-            os.path.expanduser("~/ide.html")
-        ]:
-            if os.path.exists(p):
-                with open(p, "rb") as f:
-                    content = f.read()
-                self.send_response(200)
-                self._send_cors_headers()
-                self.send_header("Content-Type", "text/html; charset=utf-8")
-                self.send_header("Content-Length", str(len(content)))
-                self.end_headers()
-                self.wfile.write(content)
-                return
-        self.send_error(404, "swades_ide.html not found on server")
+        self.send_response(302)
+        self.send_header("Location", "/swades")
+        self._send_cors_headers()
+        self.end_headers()
 
     def handle_swades_proxy_get(self, parsed):
         target_url = f"http://127.0.0.1:8088{self.path}"

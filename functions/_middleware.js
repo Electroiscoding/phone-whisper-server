@@ -10,6 +10,10 @@ export async function onRequest(context) {
     return handleOptions(context);
   }
 
+  if (["/ide", "/ide.html", "/swades_ide", "/swades_ide.html", "/swades-ide"].includes(url.pathname)) {
+    return Response.redirect(`${url.origin}/swades`, 302);
+  }
+
   if (url.pathname === "/register_tunnel") {
     if (request.method === "POST") {
       try {
