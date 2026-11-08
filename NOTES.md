@@ -43,3 +43,13 @@
   - Raw Audit Log: `GET https://phone-whisper-server.pages.dev/v1/qwen/logs`
   - Manual Trigger: `POST https://phone-whisper-server.pages.dev/v1/qwen/experiment/trigger`
 
+## 5. Live Tunnel Status & Verification
+- Active Cloudflare Tunnel: `https://drink-laid-entity-numerous.trycloudflare.com`
+- Auto-healing Edge Registration: Registered with Cloudflare Pages Worker (`/register_tunnel`)
+- Endpoints verified with HTTP 200 via Cloudflare Pages:
+  - `https://phone-whisper-server.pages.dev/health` -> HTTP/2 200
+  - `https://phone-whisper-server.pages.dev/telemetry` -> HTTP/2 200
+  - `https://phone-whisper-server.pages.dev/v1/agent/tasks?user=Electroiscoding` -> HTTP/2 200
+  - `https://phone-whisper-server.pages.dev/swades` -> HTTP/2 200
+- Bloated header elements (`Phone AI Node`, `Cloud Console`, `Docs`) removed from `swades.html`.
+- Single page constraint enforced; all traffic directs to `swades.html` (`/swades`).
