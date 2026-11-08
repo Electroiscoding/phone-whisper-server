@@ -84,29 +84,22 @@ class SwadesAgentEngine:
             body["tools"] = tools
             body["tool_choice"] = "auto"
 
-        for attempt in range(4):
+        for attempt in range(5):
             req = urllib.request.Request(GROQ_API_URL, data=json.dumps(body).encode("utf-8"), headers=headers, method="POST")
             try:
                 with urllib.request.urlopen(req, timeout=90) as resp:
                     return json.loads(resp.read().decode("utf-8"))
             except urllib.error.HTTPError as e:
                 err_msg = e.read().decode("utf-8", errors="ignore")
-                if e.code in [429, 500, 503] and attempt < 3:
-                    time.sleep(2.0 * (attempt + 1))
+                if e.code in [429, 500, 502, 503, 504] and attempt < 4:
+                    if body["model"] == MODEL_CODE and attempt >= 1:
+                        body["model"] = MODEL_CODE_FAST
+                    time.sleep(1.5 * (attempt + 1))
                     continue
-                if model == MODEL_CODE and e.code in [429, 500, 503]:
-                    body["model"] = MODEL_CODE_FAST
-                    time.sleep(2.0)
-                    try:
-                        req_fallback = urllib.request.Request(GROQ_API_URL, data=json.dumps(body).encode("utf-8"), headers=headers, method="POST")
-                        with urllib.request.urlopen(req_fallback, timeout=90) as resp_fallback:
-                            return json.loads(resp_fallback.read().decode("utf-8"))
-                    except Exception as fb_err:
-                        raise RuntimeError(f"Groq API Fallback Error: {fb_err}")
                 raise RuntimeError(f"Groq API Error {e.code}: {err_msg}")
             except Exception as e:
-                if attempt < 2:
-                    time.sleep(2.0)
+                if attempt < 4:
+                    time.sleep(1.5 * (attempt + 1))
                     continue
                 raise RuntimeError(f"Groq connection error: {e}")
 
