@@ -8673,7 +8673,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
 
             # Keep screen awake and keyguard dismissed without interrupting active foreground app
             try:
-                self._run_adb_shell_cmd("dumpsys battery set ac 1; svc power stayon true; wm dismiss-keyguard")
+                self._run_adb_shell_cmd("svc power stayon true; wm dismiss-keyguard")
             except Exception:
                 pass
 
@@ -8766,7 +8766,7 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                 keycode = key_map.get(key, 3)
 
             if key == "UNLOCK" or key == "WAKE":
-                self._run_adb_shell_cmd("dumpsys battery set ac 1; svc power stayon true; wm dismiss-keyguard; am start -a android.intent.action.MAIN -c android.intent.category.HOME 2>/dev/null")
+                self._run_adb_shell_cmd("svc power stayon true; wm dismiss-keyguard; am start -a android.intent.action.MAIN -c android.intent.category.HOME 2>/dev/null")
                 dispatched = False
                 try:
                     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
