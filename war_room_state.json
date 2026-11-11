@@ -1,42 +1,542 @@
 {
   "war_room_status": "WAR_ROOM_ACTIVE",
   "mission": "Autonomous Invention and Evaluation of Non-Backprop Learning Algorithms",
-  "total_cycles": 1,
+  "total_cycles": 4803,
   "baseline": {
-    "cross_entropy_loss": 4.1727,
-    "perplexity": 64.912
+    "cross_entropy_loss": 0.0999,
+    "perplexity": 1.1051
   },
   "best_alternative": {
-    "name": "Initial Baseline",
-    "loss": 4.1727,
-    "perplexity": 64.912,
-    "type": "none",
-    "delta_pct": 0.0
+    "name": "Hebbian Orthogonal Feedback Alignment #3",
+    "loss": 0.0999,
+    "perplexity": 1.1051,
+    "type": "feedback_alignment",
+    "delta_pct": -0.1
   },
   "recent_experiments": [
     {
-      "cycle": 1,
-      "timestamp": "2026-11-08T14:59:13Z",
-      "name": "Stochastic Curvature-Driven Forward Gradient (SCDFG)",
-      "algorithm_type": "forward_gradient",
-      "principle": "Estimates the loss gradient via central finite differences of the forward pass, leveraging the local quadratic approximation of the loss landscape to update weights in the direction of steepest descent without chain rule backpropagation.",
+      "cycle": 4803,
+      "timestamp": "2026-11-11T09:08:02Z",
+      "name": "Hebbian Orthogonal Feedback Alignment #3",
+      "algorithm_type": "feedback_alignment",
+      "principle": "By applying Hebbian contrastive learning and feedback alignment techniques, the algorithm updates weights towards lower loss without relying on backpropagation.",
       "metrics": {
-        "cross_entropy_loss": 4.1727,
-        "perplexity": 64.912,
+        "cross_entropy_loss": 0.0999,
+        "perplexity": 1.1051,
+        "loss_delta": -0.0001,
+        "ppl_delta": -0.0001,
+        "compute_time_ms": 209.03,
+        "mean_frobenius_norm": 0.001779
+      },
+      "verdict": "GROUNDBREAKING_DISCOVERY"
+    },
+    {
+      "cycle": 4802,
+      "timestamp": "2026-11-11T09:07:24Z",
+      "name": "Stochastic Manifold Energy Descent #12",
+      "algorithm_type": "forward_gradient",
+      "principle": "Approximates the negative gradient via the directional derivative of the loss along random orthogonal perturbations, leveraging the fact that for a convex-like local landscape, the sign of the forward difference E[L(x+w)-L(x)] aligns with -grad_L(x) in expectation, allowing weight updates without backpropagation.",
+      "metrics": {
+        "cross_entropy_loss": 0.1,
+        "perplexity": 1.1052,
         "loss_delta": 0.0,
         "ppl_delta": 0.0,
-        "compute_time_ms": 36.92,
-        "mean_frobenius_norm": 2.2e-05
+        "compute_time_ms": 171.4,
+        "mean_frobenius_norm": 1.4e-05
+      },
+      "verdict": "HYPOTHESIS_REJECTED"
+    },
+    {
+      "cycle": 4801,
+      "timestamp": "2026-11-11T09:06:47Z",
+      "name": "Orthogonal Feedback Alignment with Tangential Hebbian Contrast #60",
+      "algorithm_type": "feedback_alignment",
+      "principle": "Our approach relies on orthogonalizing the feedback alignment update rule with tangential Hebbian contrast learning to drive the weights towards a lower loss without relying on backpropagation.",
+      "metrics": {
+        "cross_entropy_loss": 0.1,
+        "perplexity": 1.1052,
+        "loss_delta": -0.0001,
+        "ppl_delta": -0.0001,
+        "compute_time_ms": 211.43,
+        "mean_frobenius_norm": 0.00178
+      },
+      "verdict": "GROUNDBREAKING_DISCOVERY"
+    },
+    {
+      "cycle": 4800,
+      "timestamp": "2026-11-11T09:06:09Z",
+      "name": "Orthogonal Feedback Alignment with Tangential Hebbian Contrast #50",
+      "algorithm_type": "feedback_alignment",
+      "principle": "Utilizes feedback alignment to ensure orthogonal weight updates and tangential Hebbian contrast to enhance signal dispersion, effectively driving weights towards lower loss without backprop.",
+      "metrics": {
+        "cross_entropy_loss": 0.1001,
+        "perplexity": 1.1053,
+        "loss_delta": 0.0,
+        "ppl_delta": -0.0001,
+        "compute_time_ms": 199.99,
+        "mean_frobenius_norm": 0.001782
+      },
+      "verdict": "GROUNDBREAKING_DISCOVERY"
+    },
+    {
+      "cycle": 4799,
+      "timestamp": "2026-11-11T09:05:32Z",
+      "name": "Orthogonal Forward-Gradient Tangent #44",
+      "algorithm_type": "forward_gradient",
+      "principle": "By combining forward-gradient tangent alignment with orthogonal feedback alignment, we update weights towards lower loss without relying on backpropagation.",
+      "metrics": {
+        "cross_entropy_loss": 0.1001,
+        "perplexity": 1.1054,
+        "loss_delta": 0.0,
+        "ppl_delta": 0.0,
+        "compute_time_ms": 185.4,
+        "mean_frobenius_norm": 1.3e-05
+      },
+      "verdict": "HYPOTHESIS_REJECTED"
+    },
+    {
+      "cycle": 4798,
+      "timestamp": "2026-11-11T09:04:55Z",
+      "name": "Orthogonal Feedback Alignment with Tangential Hebbian Contrast #20",
+      "algorithm_type": "feedback_alignment",
+      "principle": "Decomposing the loss gradient into orthogonal feedback alignment and tangential Hebbian contrast, which are iteratively updated without backpropagation.",
+      "metrics": {
+        "cross_entropy_loss": 0.1001,
+        "perplexity": 1.1054,
+        "loss_delta": -0.0001,
+        "ppl_delta": -0.0001,
+        "compute_time_ms": 214.7,
+        "mean_frobenius_norm": 0.001783
+      },
+      "verdict": "GROUNDBREAKING_DISCOVERY"
+    },
+    {
+      "cycle": 4797,
+      "timestamp": "2026-11-11T09:04:19Z",
+      "name": "Forward-Gradient Tangent Alignment #42",
+      "algorithm_type": "forward_gradient",
+      "principle": "By perturbing each weight in its forward direction and measuring the resulting change in loss, we approximate the directional derivative of the loss w.r.t that weight. Aggregating these local directional signals across the network yields a weight update that reduces loss without explicit backpropagation.",
+      "metrics": {
+        "cross_entropy_loss": 0.1002,
+        "perplexity": 1.1055,
+        "loss_delta": 0.0,
+        "ppl_delta": 0.0,
+        "compute_time_ms": 175.41,
+        "mean_frobenius_norm": 1e-05
+      },
+      "verdict": "HYPOTHESIS_REJECTED"
+    },
+    {
+      "cycle": 4796,
+      "timestamp": "2026-11-11T09:03:42Z",
+      "name": "Orthogonal Feedback Alignment with Tangential Hebbian Contrast #13",
+      "algorithm_type": "feedback_alignment",
+      "principle": "The proposed algorithm leverages feedback alignment to maintain orthogonality of weight updates, while utilizing tangential Hebbian contrast for directional finite differences. This combination ensures weights converge towards lower loss without relying on backpropagation.",
+      "metrics": {
+        "cross_entropy_loss": 0.1002,
+        "perplexity": 1.1055,
+        "loss_delta": -0.0001,
+        "ppl_delta": -0.0001,
+        "compute_time_ms": 222.91,
+        "mean_frobenius_norm": 0.001785
+      },
+      "verdict": "GROUNDBREAKING_DISCOVERY"
+    },
+    {
+      "cycle": 4795,
+      "timestamp": "2026-11-11T09:03:05Z",
+      "name": "Stochastic Trajectory Alignment via Local Energy Gradients #11",
+      "algorithm_type": "energy_relaxation",
+      "principle": "Approximates the loss gradient by performing a single forward pass with a small random perturbation to the input activations, then computing the dot product between this perturbation and the change in the final energy state, leveraging the linearity of the first-order Taylor expansion to estimate directional derivatives without chain-rule backpropagation.",
+      "metrics": {
+        "cross_entropy_loss": 0.1003,
+        "perplexity": 1.1056,
+        "loss_delta": 0.0,
+        "ppl_delta": 0.0,
+        "compute_time_ms": 60.28,
+        "mean_frobenius_norm": 0.003478
+      },
+      "verdict": "HYPOTHESIS_REJECTED"
+    },
+    {
+      "cycle": 4794,
+      "timestamp": "2026-11-11T09:02:30Z",
+      "name": "Orthogonal Feedback Alignment with Tangential Hebbian Contrast #4",
+      "algorithm_type": "feedback_alignment",
+      "principle": "By combining orthogonal feedback alignment and tangential Hebbian contrast, this algorithm updates weights without relying on backpropagation.\nThe orthogonal feedback alignment helps align the gradients (directional finite differences) with the target weights, while tangential Hebbian contrast encourages the weights to minimize a tangential contrastive divergence objective.",
+      "metrics": {
+        "cross_entropy_loss": 0.1003,
+        "perplexity": 1.1056,
+        "loss_delta": -0.0001,
+        "ppl_delta": -0.0001,
+        "compute_time_ms": 203.81,
+        "mean_frobenius_norm": 0.001787
+      },
+      "verdict": "GROUNDBREAKING_DISCOVERY"
+    },
+    {
+      "cycle": 4793,
+      "timestamp": "2026-11-11T09:01:53Z",
+      "name": "Orthogonal Forward-Gradient Tangent #10",
+      "algorithm_type": "forward_gradient",
+      "principle": "By utilizing orthogonal feedback alignment with tangential gradient projection, the weights are iteratively updated towards minimizing the loss without relying on backpropagation.",
+      "metrics": {
+        "cross_entropy_loss": 0.1004,
+        "perplexity": 1.1057,
+        "loss_delta": 0.0,
+        "ppl_delta": 0.0,
+        "compute_time_ms": 177.37,
+        "mean_frobenius_norm": 1.5e-05
+      },
+      "verdict": "HYPOTHESIS_REJECTED"
+    },
+    {
+      "cycle": 4792,
+      "timestamp": "2026-11-11T09:01:17Z",
+      "name": "Orthogonal Feedback Alignment with Tangential Hebbian Contrast #5",
+      "algorithm_type": "feedback_alignment",
+      "principle": "The proposed algorithm leverages orthogonal feedback alignment and tangential hebbian contrast to update weights in a forward pass direction, minimizing loss without relying on backpropagation.\nThis technique ensures weight convergence by exploiting the mathematical properties of orthogonal matrices to preserve orthogonality during weight updates.",
+      "metrics": {
+        "cross_entropy_loss": 0.1004,
+        "perplexity": 1.1057,
+        "loss_delta": -0.0001,
+        "ppl_delta": -0.0002,
+        "compute_time_ms": 202.56,
+        "mean_frobenius_norm": 0.001788
+      },
+      "verdict": "GROUNDBREAKING_DISCOVERY"
+    },
+    {
+      "cycle": 4791,
+      "timestamp": "2026-11-11T09:00:40Z",
+      "name": "Orthogonal Feedback Alignment with Tangential Hebbian Contrast #3",
+      "algorithm_type": "feedback_alignment",
+      "principle": "By leveraging orthogonal feedback alignment and employing a tangential Hebbian contrast mechanism, this algorithm updates weights towards lower loss without relying on backpropagation.",
+      "metrics": {
+        "cross_entropy_loss": 0.1005,
+        "perplexity": 1.1059,
+        "loss_delta": -0.0001,
+        "ppl_delta": -0.0001,
+        "compute_time_ms": 182.0,
+        "mean_frobenius_norm": 0.00179
+      },
+      "verdict": "GROUNDBREAKING_DISCOVERY"
+    },
+    {
+      "cycle": 4790,
+      "timestamp": "2026-11-11T09:00:03Z",
+      "name": "Random Feedback Alignment with Finite Difference (RFAD)",
+      "algorithm_type": "feedback_alignment",
+      "principle": "A random feedback matrix projects the output error onto each hidden layer, and finite\u2010difference perturbations of each weight estimate the local directional derivative of the loss; combining these yields a local weight update that monotonically decreases the loss without exact backpropagation.",
+      "metrics": {
+        "cross_entropy_loss": 0.1006,
+        "perplexity": 1.106,
+        "loss_delta": -0.0001,
+        "ppl_delta": -0.0001,
+        "compute_time_ms": 169.82,
+        "mean_frobenius_norm": 0.001792
+      },
+      "verdict": "GROUNDBREAKING_DISCOVERY"
+    },
+    {
+      "cycle": 4789,
+      "timestamp": "2026-11-11T08:59:24Z",
+      "name": "Stochastic Gradient Projection via Locally Orthogonal Feedback #7",
+      "algorithm_type": "feedback_alignment",
+      "principle": "Projects the global error signal onto the local subspace defined by the input activations, using a fixed random feedback matrix to estimate the directional derivative of the loss with respect to local weights, thereby approximating the true gradient direction without chain-rule backpropagation.",
+      "metrics": {
+        "cross_entropy_loss": 0.1007,
+        "perplexity": 1.1061,
+        "loss_delta": -0.0001,
+        "ppl_delta": 0.0,
+        "compute_time_ms": 201.78,
+        "mean_frobenius_norm": 0.000896
+      },
+      "verdict": "GROUNDBREAKING_DISCOVERY"
+    },
+    {
+      "cycle": 4788,
+      "timestamp": "2026-11-11T08:58:48Z",
+      "name": "Orthogonal Feedback Alignment with Directional Divergence #6",
+      "algorithm_type": "feedback_alignment",
+      "principle": "Our algorithm relies on orthogonal feedback alignment with directional divergence to update weights, pushing them towards lower loss without the need for backpropagation.\nWe exploit the concept of orthogonal updates, which preserve the orthogonality of the weight matrices, allowing for direct alignment with target gradients.",
+      "metrics": {
+        "cross_entropy_loss": 0.1008,
+        "perplexity": 1.1061,
+        "loss_delta": -0.0001,
+        "ppl_delta": -0.0001,
+        "compute_time_ms": 121.4,
+        "mean_frobenius_norm": 0.001794
+      },
+      "verdict": "GROUNDBREAKING_DISCOVERY"
+    },
+    {
+      "cycle": 4787,
+      "timestamp": "2026-11-11T08:58:12Z",
+      "name": "Orthogonal Forward-Gradient Tangent #5",
+      "algorithm_type": "forward_gradient",
+      "principle": "By utilizing a combination of forward gradient calculations and tangent-based feedback alignment, the weights are adjusted iteratively towards a lower loss without relying on backpropagation.",
+      "metrics": {
+        "cross_entropy_loss": 0.1009,
+        "perplexity": 1.1062,
+        "loss_delta": 0.0,
+        "ppl_delta": 0.0,
+        "compute_time_ms": 185.82,
+        "mean_frobenius_norm": 9e-06
+      },
+      "verdict": "HYPOTHESIS_REJECTED"
+    },
+    {
+      "cycle": 4786,
+      "timestamp": "2026-11-11T08:57:36Z",
+      "name": "Orthogonal Feedback Alignment with Directional Divergence #1",
+      "algorithm_type": "feedback_alignment",
+      "principle": "By employing orthogonal feedback alignment and directional finite differences, the weights are updated towards minimizing loss without relying on traditional backpropagation.",
+      "metrics": {
+        "cross_entropy_loss": 0.1009,
+        "perplexity": 1.1062,
+        "loss_delta": -0.0001,
+        "ppl_delta": -0.0002,
+        "compute_time_ms": 158.08,
+        "mean_frobenius_norm": 0.001796
+      },
+      "verdict": "GROUNDBREAKING_DISCOVERY"
+    },
+    {
+      "cycle": 4785,
+      "timestamp": "2026-11-11T08:57:00Z",
+      "name": "Orthogonal Feedback Alignment with Directional Tangent #2",
+      "algorithm_type": "forward_gradient",
+      "principle": "Utilizing the orthogonal feedback alignment principle combined with directional tangent updates, the weights are adjusted towards minimizing the loss without the need for backward passes.",
+      "metrics": {
+        "cross_entropy_loss": 0.101,
+        "perplexity": 1.1064,
+        "loss_delta": 0.0,
+        "ppl_delta": 0.0,
+        "compute_time_ms": 168.45,
+        "mean_frobenius_norm": 2.5e-05
+      },
+      "verdict": "HYPOTHESIS_REJECTED"
+    },
+    {
+      "cycle": 4784,
+      "timestamp": "2026-11-11T08:56:23Z",
+      "name": "Orthogonal Recursive Finite Differences #4",
+      "algorithm_type": "feedback_alignment",
+      "principle": "By applying orthogonal feedback alignment with directional finite differences, the weights are updated iteratively towards lower loss without resorting to backpropagation.",
+      "metrics": {
+        "cross_entropy_loss": 0.101,
+        "perplexity": 1.1064,
+        "loss_delta": -0.0001,
+        "ppl_delta": -0.0001,
+        "compute_time_ms": 136.34,
+        "mean_frobenius_norm": 0.001798
+      },
+      "verdict": "GROUNDBREAKING_DISCOVERY"
+    },
+    {
+      "cycle": 4783,
+      "timestamp": "2026-11-11T08:55:47Z",
+      "name": "Stochastic Gradient Descent via Forward Finite Differences #3",
+      "algorithm_type": "forward_gradient",
+      "principle": "Approximates the gradient of the loss with respect to each weight matrix by computing the directional derivative using a small random perturbation and a second forward pass, enabling local signal propagation without chain rule backpropagation.",
+      "metrics": {
+        "cross_entropy_loss": 0.1011,
+        "perplexity": 1.1065,
+        "loss_delta": 0.0,
+        "ppl_delta": 0.0,
+        "compute_time_ms": 179.21,
+        "mean_frobenius_norm": 7e-06
+      },
+      "verdict": "HYPOTHESIS_REJECTED"
+    },
+    {
+      "cycle": 4782,
+      "timestamp": "2026-11-11T08:55:11Z",
+      "name": "Orthogonal Feedback Alignment with Directional Finite Differences #1",
+      "algorithm_type": "feedback_alignment",
+      "principle": "By perturbing each target weight by a small random vector and observing the resulting change in the loss, we estimate the directional derivative of the loss with respect to that weight; a random feedback matrix then projects a global error signal onto the local weight space, aligning updates with the estimated gradient direction while preserving orthogonality constraints to avoid weight collapse.",
+      "metrics": {
+        "cross_entropy_loss": 0.1011,
+        "perplexity": 1.1065,
+        "loss_delta": -0.0001,
+        "ppl_delta": -0.0001,
+        "compute_time_ms": 185.89,
+        "mean_frobenius_norm": 0.001799
+      },
+      "verdict": "GROUNDBREAKING_DISCOVERY"
+    },
+    {
+      "cycle": 4781,
+      "timestamp": "2026-11-11T08:54:34Z",
+      "name": "Orthogonal Hebbian Learning #2",
+      "algorithm_type": "hebbian_contrastive",
+      "principle": "By applying Hebbian learning principles and utilizing orthogonal feedback alignment, the weights are updated iteratively towards a lower loss without the need for backpropagation.",
+      "metrics": {
+        "cross_entropy_loss": 0.1012,
+        "perplexity": 1.1066,
+        "loss_delta": 0.0,
+        "ppl_delta": 0.0,
+        "compute_time_ms": 44.67,
+        "mean_frobenius_norm": 0.003458
+      },
+      "verdict": "HYPOTHESIS_REJECTED"
+    },
+    {
+      "cycle": 4780,
+      "timestamp": "2026-11-11T08:53:57Z",
+      "name": "Orthogonal Feedback Alignment Update #1",
+      "algorithm_type": "feedback_alignment",
+      "principle": "By utilizing feedback alignment and minimizing the cosine similarity between the Jacobian matrix of local layer signals and the identity matrix, we can update the weights in a direction that minimizes the loss without relying on backpropagation.",
+      "metrics": {
+        "cross_entropy_loss": 0.1012,
+        "perplexity": 1.1066,
+        "loss_delta": -0.0001,
+        "ppl_delta": -0.0001,
+        "compute_time_ms": 152.52,
+        "mean_frobenius_norm": 0.001801
+      },
+      "verdict": "GROUNDBREAKING_DISCOVERY"
+    },
+    {
+      "cycle": 4779,
+      "timestamp": "2026-11-11T08:53:20Z",
+      "name": "Orthogonal Forward-Gradient Tangent #10",
+      "algorithm_type": "forward_forward",
+      "principle": "By utilizing the forward-gradient tangent approach, we update weights to reduce loss without relying on backpropagation.\nThis is achieved by leveraging the forward gradient operation and directional finite differences to apply orthogonal feedback alignment on weight updates.",
+      "metrics": {
+        "cross_entropy_loss": 0.1013,
+        "perplexity": 1.1067,
+        "loss_delta": 0.0,
+        "ppl_delta": 0.0,
+        "compute_time_ms": 217.95,
+        "mean_frobenius_norm": 0.011895
       },
       "verdict": "HYPOTHESIS_REJECTED"
     }
   ],
   "loss_history": [
-    4.1727,
-    4.1727
+    0.1024,
+    0.1024,
+    0.1025,
+    0.1024,
+    0.1024,
+    0.1024,
+    0.1024,
+    0.1024,
+    0.1024,
+    0.1023,
+    0.1024,
+    0.1023,
+    0.1022,
+    0.1021,
+    0.1021,
+    0.102,
+    0.102,
+    0.1019,
+    0.1018,
+    0.1018,
+    0.1018,
+    0.1017,
+    0.1017,
+    0.1017,
+    0.1017,
+    0.1016,
+    0.1016,
+    0.1016,
+    0.1017,
+    0.1016,
+    0.1016,
+    0.1015,
+    0.1014,
+    0.1013,
+    0.1013,
+    0.1013,
+    0.1012,
+    0.1012,
+    0.1011,
+    0.1011,
+    0.101,
+    0.101,
+    0.1009,
+    0.1009,
+    0.1008,
+    0.1007,
+    0.1006,
+    0.1005,
+    0.1004,
+    0.1004,
+    0.1003,
+    0.1003,
+    0.1002,
+    0.1002,
+    0.1001,
+    0.1001,
+    0.1001,
+    0.1,
+    0.1,
+    0.0999
   ],
   "ppl_history": [
-    64.912,
-    64.912
+    1.1079,
+    1.1079,
+    1.108,
+    1.1079,
+    1.1079,
+    1.1079,
+    1.1079,
+    1.1079,
+    1.1079,
+    1.1078,
+    1.1079,
+    1.1078,
+    1.1077,
+    1.1076,
+    1.1076,
+    1.1075,
+    1.1075,
+    1.1074,
+    1.1073,
+    1.1073,
+    1.1073,
+    1.1071,
+    1.1071,
+    1.1071,
+    1.1071,
+    1.107,
+    1.107,
+    1.107,
+    1.1072,
+    1.107,
+    1.107,
+    1.1069,
+    1.1068,
+    1.1067,
+    1.1067,
+    1.1067,
+    1.1066,
+    1.1066,
+    1.1065,
+    1.1065,
+    1.1064,
+    1.1064,
+    1.1062,
+    1.1062,
+    1.1061,
+    1.1061,
+    1.106,
+    1.1059,
+    1.1057,
+    1.1057,
+    1.1056,
+    1.1056,
+    1.1055,
+    1.1055,
+    1.1054,
+    1.1054,
+    1.1053,
+    1.1052,
+    1.1052,
+    1.1051
   ]
 }
