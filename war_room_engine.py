@@ -317,6 +317,49 @@ class WarRoomEngine:
                 file_path.write_text(new_content, encoding="utf-8")
                 patched = True
                 tool_log.append(f"fs.write(\"{surface}\") → OK in {round(time.time()-t0,2)}s")
+            full_text = new_content
+
+        # --- Deep Markup & Performance Optimization: Images & Scripts ---
+        import re
+        body_patches = 0
+        img_fixed = 0
+        scripts_fixed = 0
+
+        # 1. Optimize <img> tags: add loading="lazy" and default alt text
+        def _optimize_img(match):
+            nonlocal img_fixed
+            tag = match.group(0)
+            orig = tag
+            if 'loading=' not in tag.lower():
+                tag = tag[:-1].rstrip() + ' loading="lazy">'
+            if 'alt=' not in tag.lower():
+                tag = tag[:-1].rstrip() + f' alt="NeTuArk {page_name.capitalize()} visual">'
+            if tag != orig:
+                img_fixed += 1
+            return tag
+
+        updated_markup = re.sub(r'<img[^>]*>', _optimize_img, full_text, flags=re.IGNORECASE)
+
+        # 2. Optimize non-critical <script src="...">: add defer
+        def _optimize_script(match):
+            nonlocal scripts_fixed
+            tag = match.group(0)
+            orig = tag
+            # Do not defer inline scripts, critical SEO engines, or modules
+            if 'seo-engine.js' not in tag and 'defer' not in tag.lower() and 'async' not in tag.lower() and 'type="module"' not in tag.lower():
+                tag = tag[:-1].rstrip() + ' defer>'
+                scripts_fixed += 1
+            return tag
+
+        updated_markup = re.sub(r'<script[^>]*src=[^>]*>', _optimize_script, updated_markup, flags=re.IGNORECASE)
+
+        if updated_markup != full_text:
+            file_path.write_text(updated_markup, encoding="utf-8")
+            patched = True
+            body_patches = img_fixed + scripts_fixed
+            tool_log.append(f"markup.optimize(\"{surface}\") → {img_fixed} images optimized, {scripts_fixed} scripts deferred")
+            tags_added += [f"img_lazy({img_fixed})", f"script_defer({scripts_fixed})"]
+            thought = f"Deep Performance Overhaul: Added loading='lazy' & alt to {img_fixed} images, deferred {scripts_fixed} scripts."
 
         if patched:
             self._pending_surfaces.append(surface)

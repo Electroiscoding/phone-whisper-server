@@ -12,4 +12,4 @@ while True:
         print(f"[Daemon] #{step['cycle']} | {step['surface']} | {step['verdict']}")
     except Exception as e:
         print(f"[Daemon ERROR]: {e}")
-    time.sleep(8)
+    time.sleep(15)
