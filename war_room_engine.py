@@ -62,28 +62,44 @@ def _groq_reason(surface: str, file_head: str, search_result: str) -> tuple:
     if not GROQ_KEY:
         return "", "", []
 
-    prompt = f"""You are an SEO expert optimizing NeTuArk (https://netuark.pages.dev), a decentralized sovereign social platform.
+    prompt = f"""You are the Lead SEO Architecture Agent for NeTuArk (https://netuark.pages.dev), a sovereign decentralized social platform.
 
 Surface File: {surface}
-Current HTML <head> snippet:
-{file_head[:1500]}
+Current HTML <head> content:
+{file_head[:2200]}
 
-Relevant search / context signals:
+NTA search / context signals:
 {search_result[:500]}
 
 Tasks:
-1. Identify any missing OpenGraph tags (og:title, og:description, og:image), Twitter Card tags, canonical URL, or JSON-LD schema.
-2. Formulate clean, minimal HTML tags to inject right before </head>. Only inject what is genuinely missing.
-3. Respond ONLY with a valid JSON object in this exact schema, without any markdown formatting or code blocks:
-{{"thought": "<your diagnostic reasoning in 1-2 concise sentences>", "inject_html": "<tags to inject or empty string>", "tags_added": ["tag1", "tag2"]}}
+Perform a deep, aggressive SEO overhaul for this surface:
+1. OpenGraph Tags: Ensure og:title, og:description, og:image, og:url, og:type ('website' or 'article') are all present.
+2. Twitter Card Tags: Ensure twitter:card ('summary_large_image'), twitter:title, twitter:description, twitter:image are present.
+3. Canonical URL: Set canonical to https://netuark.pages.dev/{surface} if missing.
+4. Structured Data (JSON-LD): Generate complete WebPage, WebSite, or SoftwareApplication Schema.org JSON-LD script if missing.
+5. Resource Hints: Add preconnect and dns-prefetch hints for CDNs (fonts.googleapis.com, fonts.gstatic.com, cdn.tailwindcss.com) if used.
 
-If all required tags are already present, respond:
-{{"thought": "All SEO metadata and OpenGraph tags are already verified.", "inject_html": "", "tags_added": []}}"""
+Identify ONLY what is currently missing or deficient in the HTML head above.
+Generate the exact HTML to inject before </head>.
+
+Respond strictly in JSON format (no markdown, no code fences):
+{{
+  "thought": "<concise explanation of missing elements and improvements>",
+  "inject_html": "<clean formatted html tags to inject>",
+  "tags_added": ["og:title", "JSON-LD", ...]
+}}
+
+If ALL tags, JSON-LD, Twitter cards, and canonical are already completely and correctly implemented, return:
+{{
+  "thought": "Surface has 100% full SEO coverage verified.",
+  "inject_html": "",
+  "tags_added": []
+}}"""
 
     payload = json.dumps({
         "model": GROQ_MODEL,
         "messages": [{"role": "user", "content": prompt}],
-        "max_tokens": 1024,
+        "max_tokens": 1500,
         "temperature": 0.1,
         "response_format": {"type": "json_object"}
     }).encode("utf-8")
@@ -100,14 +116,15 @@ If all required tags are already present, respond:
     )
 
     try:
-        with urllib.request.urlopen(req, timeout=25) as resp:
+        with urllib.request.urlopen(req, timeout=30) as resp:
             data = json.load(resp)
         text = data["choices"][0]["message"]["content"].strip()
         start = text.find("{")
         end = text.rfind("}") + 1
         if start >= 0 and end > start:
             obj = json.loads(text[start:end])
-            return obj.get("thought", ""), obj.get("inject_html", ""), obj.get("tags_added", [])
+            inject = obj.get("inject_html") or obj.get("inject_head") or ""
+            return obj.get("thought", ""), inject, obj.get("tags_added", [])
     except Exception as e:
         return f"Groq query failed: {e}", "", []
     return "", "", []
