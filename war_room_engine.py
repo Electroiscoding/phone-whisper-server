@@ -240,22 +240,61 @@ class WarRoomEngine:
             t0 = time.time()
             thought, inject_html, tags_added = _groq_reason(surface, file_content, search_preview)
             tool_log.append(f"groq.reason(\"{surface}\") [{GROQ_MODEL}] → thought={len(thought)}chars, inject={len(inject_html)}bytes in {round(time.time()-t0,2)}s")
-        else:
-            # Fallback: rule-based
-            needs_og = file_content and 'property="og:title"' not in file_content
-            needs_canonical = file_content and 'rel="canonical"' not in file_content
+
+        # Full-spectrum deterministic pass if Groq failed, rate-limited, or returned empty
+        if not inject_html and file_content:
+            additions = []
+            needs_og = 'property="og:title"' not in file_content and 'name="og:title"' not in file_content
+            needs_twitter = 'name="twitter:card"' not in file_content
+            needs_canonical = 'rel="canonical"' not in file_content
+            needs_jsonld = 'application/ld+json' not in file_content
+            needs_preconnect = 'rel="preconnect"' not in file_content
+
             if needs_og:
-                tags_added += ["og:title", "og:description", "og:image", "twitter:card"]
-                inject_html += (
-                    f'    <meta property="og:title" content="NeTuArk | {page_name.capitalize()}">\n'
-                    f'    <meta property="og:description" content="Decentralized sovereign social platform — NeTuArk.">\n'
-                    f'    <meta property="og:image" content="https://netuark.pages.dev/assets/images/netuark_og_banner.jpg">\n'
-                    f'    <meta name="twitter:card" content="summary_large_image">\n'
+                tags_added += ["og:title", "og:description", "og:image", "og:url", "og:type"]
+                additions.append(
+                    f'  <meta property="og:title" content="NeTuArk | {page_name.capitalize()}">\n'
+                    f'  <meta property="og:description" content="Decentralized sovereign social platform — NeTuArk.">\n'
+                    f'  <meta property="og:image" content="https://netuark.pages.dev/assets/images/netuark_og_banner.jpg">\n'
+                    f'  <meta property="og:url" content="https://netuark.pages.dev/{surface}">\n'
+                    f'  <meta property="og:type" content="website">'
+                )
+            if needs_twitter:
+                tags_added += ["twitter:card", "twitter:title", "twitter:description"]
+                additions.append(
+                    f'  <meta name="twitter:card" content="summary_large_image">\n'
+                    f'  <meta name="twitter:title" content="NeTuArk | {page_name.capitalize()}">\n'
+                    f'  <meta name="twitter:description" content="Decentralized sovereign social platform — NeTuArk.">'
                 )
             if needs_canonical:
                 tags_added.append("canonical")
-                inject_html += f'    <link rel="canonical" href="https://netuark.pages.dev/{surface}">\n'
-            thought = f"Rule-based: {'missing ' + ', '.join(tags_added) if tags_added else 'all tags present'}"
+                additions.append(f'  <link rel="canonical" href="https://netuark.pages.dev/{surface}">')
+            if needs_preconnect:
+                tags_added.append("preconnect")
+                additions.append(
+                    '  <link rel="preconnect" href="https://fonts.googleapis.com">\n'
+                    '  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
+                )
+            if needs_jsonld:
+                tags_added.append("JSON-LD")
+                schema_json = json.dumps({
+                    "@context": "https://schema.org",
+                    "@type": "WebPage",
+                    "name": f"NeTuArk {page_name.capitalize()}",
+                    "description": f"NeTuArk decentralized social platform surface: {page_name}.",
+                    "url": f"https://netuark.pages.dev/{surface}",
+                    "publisher": {
+                        "@type": "Organization",
+                        "name": "NeTuArk corporation",
+                        "url": "https://netuark.pages.dev"
+                    }
+                }, indent=2)
+                additions.append(f'  <script type="application/ld+json">\n{schema_json}\n  </script>')
+
+            if additions:
+                inject_html = "\n".join(additions) + "\n"
+                if not thought:
+                    thought = f"Autonomous SEO Overhaul: Injected missing {', '.join(tags_added)}."
 
         # --- ws.patch_file ---
         if inject_html and file_content and "</head>" in file_content:
