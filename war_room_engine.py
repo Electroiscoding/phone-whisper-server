@@ -330,13 +330,17 @@ class WarRoomEngine:
             nonlocal img_fixed
             tag = match.group(0)
             orig = tag
+            is_self_closing = tag.endswith("/>")
+            # Strip closing delimiter
+            base = tag[:-2].rstrip() if is_self_closing else tag[:-1].rstrip()
             if 'loading=' not in tag.lower():
-                tag = tag[:-1].rstrip() + ' loading="lazy">'
+                base += ' loading="lazy"'
             if 'alt=' not in tag.lower():
-                tag = tag[:-1].rstrip() + f' alt="NeTuArk {page_name.capitalize()} visual">'
-            if tag != orig:
+                base += f' alt="NeTuArk {page_name.capitalize()} visual"'
+            new_tag = (base + " />") if is_self_closing else (base + ">")
+            if new_tag != orig:
                 img_fixed += 1
-            return tag
+            return new_tag
 
         updated_markup = re.sub(r'<img[^>]*>', _optimize_img, full_text, flags=re.IGNORECASE)
 
@@ -347,8 +351,11 @@ class WarRoomEngine:
             orig = tag
             # Do not defer inline scripts, critical SEO engines, or modules
             if 'seo-engine.js' not in tag and 'defer' not in tag.lower() and 'async' not in tag.lower() and 'type="module"' not in tag.lower():
-                tag = tag[:-1].rstrip() + ' defer>'
+                is_self_closing = tag.endswith("/>")
+                base = tag[:-2].rstrip() if is_self_closing else tag[:-1].rstrip()
+                new_tag = (base + ' defer />') if is_self_closing else (base + ' defer>')
                 scripts_fixed += 1
+                return new_tag
             return tag
 
         updated_markup = re.sub(r'<script[^>]*src=[^>]*>', _optimize_script, updated_markup, flags=re.IGNORECASE)
