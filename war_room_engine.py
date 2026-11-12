@@ -241,14 +241,17 @@ class WarRoomEngine:
             thought, inject_html, tags_added = _groq_reason(surface, file_content, search_preview)
             tool_log.append(f"groq.reason(\"{surface}\") [{GROQ_MODEL}] → thought={len(thought)}chars, inject={len(inject_html)}bytes in {round(time.time()-t0,2)}s")
 
+        # Read full file from disk for complete parsing and patching
+        full_text = file_path.read_text(encoding="utf-8", errors="replace") if file_path.exists() else file_content
+
         # Full-spectrum deterministic pass if Groq failed, rate-limited, or returned empty
-        if not inject_html and file_content:
+        if not inject_html and full_text:
             additions = []
-            needs_og = 'property="og:title"' not in file_content and 'name="og:title"' not in file_content
-            needs_twitter = 'name="twitter:card"' not in file_content
-            needs_canonical = 'rel="canonical"' not in file_content
-            needs_jsonld = 'application/ld+json' not in file_content
-            needs_preconnect = 'rel="preconnect"' not in file_content
+            needs_og = 'property="og:title"' not in full_text and 'name="og:title"' not in full_text
+            needs_twitter = 'name="twitter:card"' not in full_text
+            needs_canonical = 'rel="canonical"' not in full_text
+            needs_jsonld = 'application/ld+json' not in full_text
+            needs_preconnect = 'rel="preconnect"' not in full_text
 
             if needs_og:
                 tags_added += ["og:title", "og:description", "og:image", "og:url", "og:type"]
@@ -293,22 +296,23 @@ class WarRoomEngine:
 
             if additions:
                 inject_html = "\n".join(additions) + "\n"
-                if not thought:
+                if not thought or "failed" in thought.lower():
                     thought = f"Autonomous SEO Overhaul: Injected missing {', '.join(tags_added)}."
 
         # --- ws.patch_file ---
-        if inject_html and file_content and "</head>" in file_content:
-            new_content = file_content.replace("</head>", inject_html + "\n</head>", 1)
+        if inject_html and full_text and ("</head>" in full_text or "</HEAD>" in full_text):
+            target_close = "</head>" if "</head>" in full_text else "</HEAD>"
+            new_content = full_text.replace(target_close, inject_html + "\n" + target_close, 1)
             t0 = time.time()
             if self.ws:
                 try:
-                    self.ws.patch_file({"path": surface, "old": "</head>", "new": inject_html + "\n</head>"})
+                    self.ws.patch_file({"path": surface, "old": target_close, "new": inject_html + "\n" + target_close})
                     patched = True
                     tool_log.append(f"ws.patch_file(\"{surface}\") → {len(inject_html)} bytes in {round(time.time()-t0,2)}s")
                 except Exception as e:
-                    tool_log.append(f"ws.patch_file(\"{surface}\") → fallback fs.write ({e})")
                     file_path.write_text(new_content, encoding="utf-8")
                     patched = True
+                    tool_log.append(f"ws.patch_file(\"{surface}\") [direct write fallback] → {len(inject_html)} bytes in {round(time.time()-t0,2)}s")
             else:
                 file_path.write_text(new_content, encoding="utf-8")
                 patched = True
