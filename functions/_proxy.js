@@ -5,8 +5,8 @@
 
 const GITHUB_ENDPOINT_URL = "https://raw.githubusercontent.com/Electroiscoding/phone-whisper-server/main/endpoint.json";
 const GITHUB_API_ENDPOINT_URL = "https://api.github.com/repos/Electroiscoding/phone-whisper-server/contents/endpoint.json";
+const JSDELIVR_ENDPOINT_URL = "https://cdn.jsdelivr.net/gh/Electroiscoding/phone-whisper-server@main/endpoint.json";
 const DEFAULT_FALLBACK_ORIGIN = "https://kijiji-median-practitioners-episode.trycloudflare.com";
-
 
 let liveRegisteredOrigin = null;
 let lastRegisteredTime = 0;
@@ -340,9 +340,14 @@ export async function handleRequest(context) {
 
   let reqBody = undefined;
   if (!["GET", "HEAD"].includes(request.method)) {
-    try {
-      reqBody = await request.arrayBuffer();
-    } catch (e) {
+    const cl = parseInt(request.headers.get("content-length") || "0", 10);
+    if (cl > 0 && cl < 5 * 1024 * 1024) {
+      try {
+        reqBody = await request.arrayBuffer();
+      } catch (e) {
+        reqBody = request.body;
+      }
+    } else {
       reqBody = request.body;
     }
   }
@@ -362,7 +367,7 @@ export async function handleRequest(context) {
     url.pathname.includes("/rank") ||
     url.pathname.includes("/qwen")
   );
-  const timeoutMs = isStorageReq ? 15000 : (url.pathname.includes("/stream") || url.pathname.includes("/notebook") || url.pathname.includes("/execute") ? 300000 : (isLongRunning ? 60000 : 15000));
+  const timeoutMs = isStorageMutation ? 300000 : (isStorageReq ? 15000 : (url.pathname.includes("/stream") || url.pathname.includes("/notebook") || url.pathname.includes("/execute") ? 300000 : (isLongRunning ? 60000 : 15000)));
 
   while (attempt < maxAttempts) {
     attempt++;
@@ -371,24 +376,31 @@ export async function handleRequest(context) {
       const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
       const proxyHeaders = new Headers(request.headers);
+      proxyHeaders.delete("host");
+      proxyHeaders.delete("content-length");
       proxyHeaders.delete("cf-connecting-ip");
       proxyHeaders.delete("cf-ray");
       proxyHeaders.delete("cf-ipcountry");
       proxyHeaders.delete("cf-visitor");
-      try {
-        const targetHost = new URL(targetUrl).host;
-        proxyHeaders.set("Host", targetHost);
-      } catch (e) {}
+      proxyHeaders.delete("cf-worker");
+      proxyHeaders.delete("cdn-loop");
+      proxyHeaders.delete("x-forwarded-proto");
+      proxyHeaders.delete("x-real-ip");
 
-      const proxyReq = new Request(targetUrl, {
+      const fetchOpts = {
         method: request.method,
         headers: proxyHeaders,
-        body: reqBody instanceof ArrayBuffer ? reqBody.slice(0) : reqBody,
         redirect: "follow",
         signal: controller.signal
-      });
+      };
+      if (reqBody !== undefined) {
+        fetchOpts.body = reqBody instanceof ArrayBuffer ? reqBody.slice(0) : reqBody;
+        if (!(reqBody instanceof ArrayBuffer)) {
+          fetchOpts.duplex = "half";
+        }
+      }
 
-      response = await fetch(proxyReq);
+      response = await fetch(targetUrl, fetchOpts);
       clearTimeout(timeoutId);
 
       // Invalidate cache and retry on bad gateway / tunnel restart codes
