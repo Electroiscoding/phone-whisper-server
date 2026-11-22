@@ -476,10 +476,20 @@ export async function handleRequest(context) {
         });
       }
 
+      const effectiveCt = (respHeaders.get("content-type") || "").toLowerCase();
+      const isMediaStream = effectiveCt.startsWith("video/") || effectiveCt.startsWith("audio/") || response.status === 206 || request.headers.has("range");
+
+      if (isMediaStream) {
+        return new Response(response.body, {
+          status: response.status,
+          statusText: response.statusText,
+          headers: respHeaders
+        });
+      }
+
       const pBuf = await response.arrayBuffer();
       const pb = new Uint8Array(pBuf);
       const isZstd = pb.length >= 4 && pb[0] === 0x28 && pb[1] === 0xb5 && pb[2] === 0x2f && pb[3] === 0xfd;
-      const effectiveCt = (respHeaders.get("content-type") || "").toLowerCase();
 
       // Check if upstream returned unflagged raw zstd for an image
       if (effectiveCt.startsWith("image/") && isZstd && respHeaders.get("content-encoding") !== "zstd") {
@@ -510,24 +520,35 @@ export async function handleRequest(context) {
           headers: peerReqHeaders
         }, 3500);
       if (peerRes && [200, 206].includes(peerRes.status)) {
+        const pct = (peerRes.headers.get("content-type") || "").toLowerCase();
+        const respHeaders = new Headers(peerRes.headers);
+        Object.entries(CORS_HEADERS).forEach(([k, v]) => respHeaders.set(k, v));
+        respHeaders.set("Cache-Control", "public, max-age=2592000, s-maxage=2592000, immutable");
+        respHeaders.set("Accept-Ranges", "bytes");
+
+        if (request.method === "HEAD") {
+          return new Response(null, {
+            status: peerRes.status,
+            statusText: peerRes.statusText,
+            headers: respHeaders
+          });
+        }
+
+        const isPeerMediaStream = pct.startsWith("video/") || pct.startsWith("audio/") || peerRes.status === 206 || request.headers.has("range");
+        if (isPeerMediaStream) {
+          return new Response(peerRes.body, {
+            status: peerRes.status,
+            statusText: peerRes.statusText,
+            headers: respHeaders
+          });
+        }
+
         const pBuf = await peerRes.arrayBuffer();
         const pb = new Uint8Array(pBuf);
         const pIsZstd = pb.length >= 4 && pb[0] === 0x28 && pb[1] === 0xb5 && pb[2] === 0x2f && pb[3] === 0xfd;
-        const pct = (peerRes.headers.get("content-type") || "").toLowerCase();
 
         // Reject if peer sent corrupt zstd media
         if (!(pct.startsWith("image/") && pIsZstd && peerRes.headers.get("content-encoding") !== "zstd")) {
-          const respHeaders = new Headers(peerRes.headers);
-          Object.entries(CORS_HEADERS).forEach(([k, v]) => respHeaders.set(k, v));
-          respHeaders.set("Cache-Control", "public, max-age=2592000, s-maxage=2592000, immutable");
-          respHeaders.set("Accept-Ranges", "bytes");
-          if (request.method === "HEAD") {
-            return new Response(null, {
-              status: peerRes.status,
-              statusText: peerRes.statusText,
-              headers: respHeaders
-            });
-          }
           respHeaders.set("Content-Length", String(pBuf.byteLength));
           const edgeResp = new Response(pBuf, {
             status: peerRes.status,
