@@ -13,45 +13,34 @@
     :root {
       --bg: #000000;
       --fg: #ffffff;
-      --dim: #666666;
-      --muted: #333333;
-      --border: #1a1a1a;
+      --dim: #b8b8b8;
+      --muted: #707070;
+      --border: #333333;
       --border-bright: #ffffff;
-      --surface: #050505;
-      --surface-elevated: #0a0a0a;
+      --surface: #0c0c0c;
+      --surface-elevated: #161616;
       --font-mono: "SF Mono", "JetBrains Mono", "Roboto Mono", "Courier New", monospace;
     }
     body {
       background-color: var(--bg);
       color: var(--fg);
       font-family: var(--font-mono);
-      font-size: 11px;
-      line-height: 1.5;
-      letter-spacing: 0.06em;
+      font-size: 13px;
+      line-height: 1.6;
+      letter-spacing: 0.03em;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
       user-select: none;
       -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
       overflow-x: hidden;
-    }
-
-    /* SUBTLE SCANLINE OVERLAY */
-    body::before {
-      content: " ";
-      position: fixed;
-      top: 0; left: 0; bottom: 0; right: 0;
-      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
-      background-size: 100% 4px;
-      z-index: 999;
-      pointer-events: none;
-      opacity: 0.6;
     }
 
     /* HEADER */
     header {
       border-bottom: 1px solid var(--border);
-      padding: 14px 24px;
+      padding: 16px 28px;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -65,28 +54,29 @@
       align-items: center;
       gap: 14px;
       font-weight: 700;
-      font-size: 11px;
+      font-size: 13px;
+      letter-spacing: 0.06em;
     }
     .heartbeat-dot {
-      width: 7px;
-      height: 7px;
+      width: 9px;
+      height: 9px;
       background: var(--fg);
       border-radius: 50%;
       animation: pulse 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
     }
     @keyframes pulse {
       0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.2; transform: scale(0.85); }
+      50% { opacity: 0.25; transform: scale(0.85); }
     }
     .header-stats {
       display: flex;
-      gap: 24px;
-      font-size: 10px;
+      gap: 28px;
+      font-size: 12px;
       color: var(--dim);
     }
     .header-stats span strong {
       color: var(--fg);
-      font-weight: 500;
+      font-weight: 700;
     }
 
     /* STAGE NAV / NIR EYAL ONE-THING-AT-A-TIME CONTROLLER */
@@ -98,19 +88,19 @@
     }
     .stage-btn {
       flex: 1;
-      min-width: 150px;
-      padding: 12px 16px;
+      min-width: 170px;
+      padding: 14px 20px;
       background: transparent;
       border: none;
       border-right: 1px solid var(--border);
       color: var(--dim);
       font-family: var(--font-mono);
-      font-size: 10px;
+      font-size: 12px;
       text-align: left;
       cursor: pointer;
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 6px;
       transition: color 0.15s ease, background-color 0.15s ease;
       position: relative;
     }
@@ -126,41 +116,43 @@
       content: "";
       position: absolute;
       bottom: 0; left: 0; right: 0;
-      height: 2px;
+      height: 3px;
       background: var(--fg);
     }
     .stage-index {
-      font-size: 8px;
+      font-size: 10px;
       color: var(--dim);
-      letter-spacing: 0.1em;
+      font-weight: 600;
+      letter-spacing: 0.08em;
     }
     .stage-title {
-      font-weight: 600;
-      font-size: 11px;
+      font-weight: 700;
+      font-size: 13px;
+      color: var(--fg);
     }
 
     /* MAIN DISPLAY */
     main {
       flex: 1;
-      padding: 32px 24px;
-      max-width: 1200px;
+      padding: 36px 28px;
+      max-width: 1280px;
       width: 100%;
       margin: 0 auto;
       display: flex;
       flex-direction: column;
-      gap: 28px;
+      gap: 32px;
     }
 
     /* HERO CARD: FOCUSED STAGE VIEW */
     .hero-container {
       border: 1px solid var(--border);
       background: var(--surface);
-      padding: 24px;
+      padding: 28px;
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 24px;
       position: relative;
-      animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     }
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(4px); }
@@ -171,62 +163,66 @@
       justify-content: space-between;
       align-items: baseline;
       border-bottom: 1px solid var(--border);
-      padding-bottom: 12px;
+      padding-bottom: 16px;
     }
     .hero-title-group {
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 6px;
     }
     .hero-domain {
-      font-size: 9px;
+      font-size: 11px;
       color: var(--dim);
+      font-weight: 600;
+      letter-spacing: 0.08em;
     }
     .hero-headline {
-      font-size: 18px;
+      font-size: 22px;
       font-weight: 700;
-      letter-spacing: 0.04em;
+      letter-spacing: 0.02em;
     }
     .hero-metric-hero {
-      font-size: 26px;
+      font-size: 30px;
       font-weight: 700;
       font-feature-settings: "tnum";
     }
 
-    /* GRANULAR PER-CORE GRID (FOR SILICON VIEW) */
+    /* GRANULAR PER-CORE GRID */
     .core-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 12px;
+      gap: 14px;
       margin-top: 8px;
     }
-    @media (max-width: 800px) {
+    @media (max-width: 900px) {
       .core-grid { grid-template-columns: repeat(2, 1fr); }
     }
     .core-cell {
       border: 1px solid var(--border);
       background: var(--bg);
-      padding: 12px;
+      padding: 14px;
       display: flex;
       flex-direction: column;
-      gap: 6px;
-      transition: border-color 0.15s ease;
+      gap: 8px;
+      transition: border-color 0.15s ease, background 0.15s ease;
     }
     .core-cell:hover {
       border-color: var(--fg);
+      background: var(--surface-elevated);
     }
     .core-head {
       display: flex;
       justify-content: space-between;
       color: var(--dim);
-      font-size: 9px;
+      font-size: 11px;
+      font-weight: 600;
     }
     .core-val {
-      font-size: 13px;
+      font-size: 18px;
       font-weight: 700;
     }
     .core-bar {
-      font-size: 9px;
+      font-size: 12px;
       white-space: pre;
       color: var(--fg);
       letter-spacing: -1px;
@@ -236,7 +232,7 @@
     .telemetry-matrix {
       width: 100%;
       border-collapse: collapse;
-      font-size: 10px;
+      font-size: 12px;
     }
     .telemetry-matrix tr {
       border-bottom: 1px solid var(--border);
@@ -246,26 +242,28 @@
       background-color: var(--surface-elevated);
     }
     .telemetry-matrix td {
-      padding: 9px 6px;
+      padding: 12px 10px;
     }
     .telemetry-matrix td.label {
       color: var(--dim);
       width: 45%;
+      font-weight: 500;
     }
     .telemetry-matrix td.val {
       text-align: right;
-      font-weight: 600;
+      font-weight: 700;
+      color: var(--fg);
     }
 
-    /* SPARKLINE & GRAPHIC BUS */
+    /* FLOW TOPOLOGY */
     .diagram-bus {
       border: 1px solid var(--border);
       background: var(--bg);
-      padding: 18px;
+      padding: 22px 28px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 9px;
+      font-size: 12px;
       color: var(--dim);
       overflow-x: auto;
     }
@@ -281,33 +279,35 @@
       font-weight: 700;
     }
     .bus-arrow {
-      color: var(--muted);
-      font-size: 14px;
+      color: var(--dim);
+      font-size: 16px;
+      font-weight: 700;
     }
 
     /* FOOTER CONTROLS */
     footer {
       border-top: 1px solid var(--border);
-      padding: 16px 24px;
+      padding: 18px 28px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       background: var(--bg);
-      font-size: 10px;
+      font-size: 11px;
       color: var(--dim);
       margin-top: auto;
     }
     .footer-actions {
       display: flex;
-      gap: 12px;
+      gap: 14px;
     }
     button.minimal-btn {
       background: transparent;
       border: 1px solid var(--border);
       color: var(--fg);
       font-family: var(--font-mono);
-      font-size: 10px;
-      padding: 6px 12px;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 8px 16px;
       cursor: pointer;
       text-transform: uppercase;
       letter-spacing: 0.05em;
@@ -319,9 +319,12 @@
       color: var(--bg);
     }
     .hint-key {
-      border: 1px solid var(--muted);
-      padding: 1px 4px;
-      font-size: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface-elevated);
+      color: var(--fg);
+      padding: 2px 6px;
+      font-size: 10px;
+      font-weight: 700;
       border-radius: 2px;
       margin-left: 4px;
     }
@@ -376,27 +379,27 @@
     <div class="diagram-bus">
       <div class="bus-step highlight" id="bus-step-1">
         <span>INTERNET / CLIENT</span>
-        <div style="font-size: 8px; color: var(--dim)">TLS 1.3 / HTTP</div>
+        <div style="font-size: 11px; color: var(--dim)">TLS 1.3 / HTTP</div>
       </div>
       <div class="bus-arrow">→</div>
       <div class="bus-step" id="bus-step-2">
         <span>EDGE CLOUDFLARE</span>
-        <div style="font-size: 8px; color: var(--dim)">phone-whisper-server</div>
+        <div style="font-size: 11px; color: var(--dim)">phone-whisper-server</div>
       </div>
       <div class="bus-arrow">→</div>
       <div class="bus-step" id="bus-step-3">
         <span>GATEWAY ROUTER</span>
-        <div style="font-size: 8px; color: var(--dim)">PID: 14243 (:8080)</div>
+        <div style="font-size: 11px; color: var(--dim)">PID: 14243 (:8080)</div>
       </div>
       <div class="bus-arrow">→</div>
       <div class="bus-step" id="bus-step-4">
         <span>JIT MODEL SLM</span>
-        <div style="font-size: 8px; color: var(--dim)">QWEN 2.5 (:8001)</div>
+        <div style="font-size: 11px; color: var(--dim)">QWEN 2.5 (:8001)</div>
       </div>
       <div class="bus-arrow">→</div>
       <div class="bus-step" id="bus-step-5">
         <span>SILICON KERNEL</span>
-        <div style="font-size: 8px; color: var(--dim)">8x CORTEX-A53 ACC</div>
+        <div style="font-size: 11px; color: var(--dim)">8x CORTEX-A53 ACC</div>
       </div>
     </div>
   </main>
@@ -404,7 +407,7 @@
   <!-- CONTROLS & SHORTCUT FOOTER -->
   <footer>
     <div>
-      <span>NAVIGATE: <span class="hint-key">1</span><span class="hint-key">2</span><span class="hint-key">3</span><span class="hint-key">4</span><span class="hint-key">5</span> OR <span class="hint-key">←</span> <span class="hint-key">→</span> KEYS</span>
+      <span>NAVIGATE: <span class="hint-key">1</span><span class="hint-key">2</span><span class="hint-key">3</span><span class="hint-key">4</span><span class="hint-key">5</span> OR <span class="hint-key">←</span> <span class="hint-key">→</span> ARROW KEYS</span>
     </div>
     <div class="footer-actions">
       <button class="minimal-btn" onclick="toggleAudio()" id="btn-sound">TACTILE SOUND: OFF</button>
@@ -420,7 +423,6 @@
 
     const STAGES = ['silicon', 'memory', 'power', 'models', 'edge'];
 
-    // Web Audio Subtle Tactile Feedback
     function playBeep(freq = 600, duration = 0.03) {
       if (!audioEnabled) return;
       try {
@@ -459,22 +461,19 @@
       return `${String(d).padStart(2,'0')}D ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
     }
 
-    // Per-core mathematical model derived from real kernel CPU usage & active daemons
     function getPerCoreTelemetry(overallPercent, activeLlama, activeWhisper) {
       const cores = [];
-      const baseFreqLittle = 1500; // Little cluster max 1.5 GHz
-      const baseFreqBig = 2000;    // Big cluster max 2.0 GHz
+      const baseFreqLittle = 1500;
+      const baseFreqBig = 2000;
 
       for (let i = 0; i < 8; i++) {
         const isBig = i >= 4;
         let coreLoad = 0;
 
         if (isBig) {
-          // Big cores take LLM & heavy execution
           coreLoad = overallPercent * 1.35 + ((i % 2 === 0) ? 1.5 : -1.2);
           if (activeLlama) coreLoad += 4.5;
         } else {
-          // Little cores handle OS, network gateway & background daemon
           coreLoad = overallPercent * 0.65 + ((i % 2 === 0) ? -0.8 : 1.1);
           if (activeWhisper) coreLoad += 6.0;
         }
@@ -552,7 +551,7 @@
             <div class="hero-metric-hero">${cpuTotal}% TOTAL LOAD</div>
           </div>
 
-          <div style="font-size: 10px; color: var(--dim)">
+          <div style="font-size: 12px; color: var(--dim); font-weight: 500;">
             PER-CORE DYNAMIC VOLTAGE & FREQUENCY SCALING (DVFS) // 8x HARDWARE THREADS
           </div>
 
@@ -564,8 +563,8 @@
                   <span>${c.freqMhz} MHz</span>
                 </div>
                 <div class="core-val">${c.load}%</div>
-                <div class="core-bar">${asciiBar(c.load / 100, 12)}</div>
-                <div style="font-size: 8px; color: var(--dim); margin-top: 2px;">AFFINITY: ${c.affinity}</div>
+                <div class="core-bar">${asciiBar(c.load / 100, 14)}</div>
+                <div style="font-size: 11px; color: var(--dim); margin-top: 4px;">AFFINITY: ${c.affinity}</div>
               </div>
             `).join('')}
           </div>
@@ -605,12 +604,12 @@
             <div class="hero-metric-hero">${pct}% OCCUPIED</div>
           </div>
 
-          <div style="margin: 8px 0;">
-            <div style="display:flex; justify-content:space-between; font-size:10px; margin-bottom: 4px;">
+          <div style="margin: 12px 0;">
+            <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:600; margin-bottom: 6px;">
               <span>SATURATION SPECTRUM</span>
               <span>${usedGb} GB / ${totalGb} GB</span>
             </div>
-            <div style="font-size: 13px; letter-spacing: -1px;">${asciiBar(mem.used_mb / mem.total_mb, 40)}</div>
+            <div style="font-size: 14px; letter-spacing: -1px;">${asciiBar(mem.used_mb / mem.total_mb, 40)}</div>
           </div>
 
           <table class="telemetry-matrix">
@@ -753,7 +752,6 @@
       poll();
     }
 
-    // Keyboard Shortcuts for Addictive Switching (1-5 and Arrow Keys)
     window.addEventListener('keydown', (e) => {
       const idx = STAGES.indexOf(currentStage);
       if (e.key === 'ArrowRight') {
