@@ -6663,6 +6663,98 @@ def process_mediapipe_task(task, image_bytes, params=None):
         }
 
 
+# =========================================================================
+# ON-DEVICE NEURAL IMAGE GENERATION ENGINE (STABLE DIFFUSION CPP / GGUF)
+# =========================================================================
+_image_jobs = {}
+_image_jobs_lock = threading.Lock()
+_image_work_queue = queue.Queue()
+
+def _image_generation_worker():
+    """Autonomous image generation worker on sovereign phone hardware."""
+    sd_bin = "/data/data/com.termux/files/home/stable-diffusion.cpp/build/bin/sd-cli"
+    model_gguf = "/data/data/com.termux/files/home/models/sd_turbo_q4_0.gguf"
+    images_dir = "/data/data/com.termux/files/home/.swades_storage/images"
+    os.makedirs(images_dir, exist_ok=True)
+
+    while True:
+        job = _image_work_queue.get()
+        if not job:
+            continue
+        job_id = job["job_id"]
+        prompt = job["prompt"]
+        width = job.get("width", 256)
+        height = job.get("height", 256)
+        steps = job.get("steps", 1)
+        cfg_scale = job.get("cfg_scale", 1.0)
+        out_png = os.path.join(images_dir, f"{job_id}.png")
+
+        with _image_jobs_lock:
+            _image_jobs[job_id]["status"] = "processing"
+            _image_jobs[job_id]["started_at"] = int(time.time())
+
+        t_start = time.time()
+        cmd = [
+            sd_bin,
+            "-m", model_gguf,
+            "-p", prompt,
+            "-o", out_png,
+            "-W", str(width),
+            "-H", str(height),
+            "--steps", str(steps),
+            "--cfg-scale", str(cfg_scale),
+            "--sampling-method", "euler",
+            "-t", "6"
+        ]
+
+        env = os.environ.copy()
+        env["PREFIX"] = "/data/data/com.termux/files/usr"
+        env["PATH"] = f"/data/data/com.termux/files/usr/bin:{env.get('PATH', '')}"
+
+        try:
+            # Model governor evicts idle LLM / whisper models before heavy diffusion
+            if "_governor" in globals():
+                for k, cfg in _governor.registry.items():
+                    port = cfg["port"]
+                    if is_port_alive(port) and _governor.busy_counts.get(k, 0) == 0:
+                        pid = get_pid_for_port(port)
+                        if pid:
+                            try:
+                                os.kill(pid, 15)
+                            except Exception:
+                                pass
+
+            res = subprocess.run(cmd, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=600)
+            elapsed = round(time.time() - t_start, 2)
+            if res.returncode == 0 and os.path.exists(out_png) and os.path.getsize(out_png) > 0:
+                # Register in sovereign object store if available
+                if "_object_store" in globals():
+                    try:
+                        with open(out_png, "rb") as f:
+                            img_data = f.read()
+                        _object_store.put_object("public", f"images/{job_id}.png", img_data, content_type="image/png")
+                    except Exception:
+                        pass
+
+                with _image_jobs_lock:
+                    _image_jobs[job_id]["status"] = "completed"
+                    _image_jobs[job_id]["completed_at"] = int(time.time())
+                    _image_jobs[job_id]["duration_sec"] = elapsed
+                    _image_jobs[job_id]["url"] = f"/s/images/{job_id}.png"
+                    _image_jobs[job_id]["file_size"] = os.path.getsize(out_png)
+            else:
+                err_msg = res.stderr.decode("utf-8", errors="replace")[-500:] if res.stderr else "Unknown error"
+                with _image_jobs_lock:
+                    _image_jobs[job_id]["status"] = "failed"
+                    _image_jobs[job_id]["error"] = err_msg
+        except Exception as e:
+            with _image_jobs_lock:
+                _image_jobs[job_id]["status"] = "failed"
+                _image_jobs[job_id]["error"] = str(e)
+        finally:
+            _image_work_queue.task_done()
+
+threading.Thread(target=_image_generation_worker, daemon=True, name="ImageGenWorker").start()
 
 
 # Background Non-Blocking Telemetry Aggregator (0ms Fast Path)
@@ -7997,6 +8089,11 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_project_get(project_id)
         elif path in ["/dashboard", "/dashboard.html"]:
             self.handle_dashboard_html()
+        elif path in ["/datacenter", "/datacenter.html"]:
+            self.handle_datacenter_html()
+        elif path.startswith("/v1/images/generations/"):
+            job_id = path[len("/v1/images/generations/"):].rstrip("/")
+            self.handle_image_job_status_get(job_id)
         elif path in ["/chat", "/chat.html", "/studio"]:
             self.handle_chat_html()
         elif path in ["/monopoly", "/monopoly.html", "/gridlock", "/gridlock.html"]:
@@ -8330,8 +8427,8 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
             self.handle_feed_recommend()
         elif path in ["/v1/audio/speech", "/speech", "/tts", "/v1/tts"]:
             self.handle_tts()
-        elif path == "/load":
-            self.proxy_whisper_load()
+        elif path in ["/v1/images/generations", "/v1/image/generate", "/images/generations", "/v1/images"]:
+            self.handle_image_generation_post()
         elif path.startswith("/v1/vision") or path.startswith("/vision"):
             task = path.split("/")[-1]
             self.handle_mediapipe_vision(task)
@@ -14758,10 +14855,110 @@ class MultiModalGatewayHandler(BaseHTTPRequestHandler):
                     _active_daemon = "idle"
                 _total_requests += 1
 
+    # =========================================================================
+    # ON-DEVICE NEURAL IMAGE GENERATION HANDLERS
+    # =========================================================================
+    def handle_image_generation_post(self):
+        """OpenAI-compatible POST /v1/images/generations for sovereign on-device SD-Turbo"""
+        content_length = int(self.headers.get("Content-Length", 0))
+        body = self.rfile.read(content_length) if content_length > 0 else b"{}"
+        try:
+            payload = json.loads(body.decode("utf-8"))
+        except Exception:
+            payload = {}
 
-    # =========================================================================
-    # ZSTANDARD (ZSTD v1.5.7) HANDLERS (DUAL-TIER)
-    # =========================================================================
+        prompt = payload.get("prompt", "").strip()
+        if not prompt:
+            self.send_response(400)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({"error": "prompt is required"}).encode("utf-8"))
+            return
+
+        size = str(payload.get("size", "256x256")).lower()
+        if "512" in size:
+            width, height = 512, 512
+        elif "384" in size:
+            width, height = 384, 384
+        else:
+            width, height = 256, 256
+
+        steps = min(4, max(1, int(payload.get("steps", 1))))
+        cfg = float(payload.get("cfg_scale", 1.0))
+
+        job_id = f"img_{uuid.uuid4().hex[:12]}"
+        job = {
+            "job_id": job_id,
+            "prompt": prompt,
+            "width": width,
+            "height": height,
+            "steps": steps,
+            "cfg_scale": cfg,
+            "status": "queued",
+            "created_at": int(time.time()),
+            "url": None
+        }
+
+        with _image_jobs_lock:
+            _image_jobs[job_id] = job
+        _image_work_queue.put(job)
+
+        resp = {
+            "created": int(time.time()),
+            "data": [
+                {
+                    "job_id": job_id,
+                    "status": "queued",
+                    "status_url": f"/v1/images/generations/{job_id}",
+                    "prompt": prompt,
+                    "size": f"{width}x{height}",
+                    "model": "stable-diffusion-v2-1-turbo-Q4_0"
+                }
+            ]
+        }
+        self.send_response(202)
+        self._send_cors_headers()
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(json.dumps(resp, indent=2).encode("utf-8"))
+
+    def handle_image_job_status_get(self, job_id):
+        """GET /v1/images/generations/<job_id> status checker"""
+        with _image_jobs_lock:
+            job = _image_jobs.get(job_id)
+
+        if not job:
+            self.send_response(404)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({"error": f"Job {job_id} not found"}).encode("utf-8"))
+            return
+
+        self.send_response(200)
+        self._send_cors_headers()
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(json.dumps(job, indent=2).encode("utf-8"))
+
+    def handle_datacenter_html(self):
+        """Pure B&W hyper-minimalist datacenter telemetry dashboard"""
+        dc_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "datacenter.html")
+        if not os.path.exists(dc_path):
+            dc_path = "/data/data/com.termux/files/home/datacenter.html"
+        if os.path.exists(dc_path):
+            with open(dc_path, "rb") as f:
+                content = f.read()
+            self.send_response(200)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(content)))
+            self.end_headers()
+            self.wfile.write(content)
+        else:
+            self.send_response(404)
+            self.end_headers()
     # =========================================================================
     # ADVANCED CHARGING CONTROLLER (ACC) HANDLERS
     # =========================================================================
