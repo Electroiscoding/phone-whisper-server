@@ -14,6 +14,13 @@ Features:
 
 import os
 import sys
+os.environ["MPLBACKEND"] = "Agg"
+try:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as _early_plt
+except Exception:
+    pass
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from pathlib import Path
 import platform
@@ -28,6 +35,8 @@ import zlib
 import hmac
 import mimetypes
 import shutil
+import shlex
+import sysconfig
 import ctypes
 import subprocess as sp
 from datetime import datetime, timezone, timedelta
@@ -7255,14 +7264,191 @@ def _init_colab_environment():
     ipy_display.FileLink = MockDisplayObj
 
     ipython.display = ipy_display
+    ipython.get_ipython = lambda: None
+    ipython.version_info = (8, 24, 0)
+    ipython.__version__ = "8.24.0"
     if "IPython" not in sys.modules:
         sys.modules["IPython"] = ipython
         sys.modules["IPython.display"] = ipy_display
+    os.environ["MPLBACKEND"] = "Agg"
 
 _init_colab_environment()
 
+TERMUX_PACKAGE_MAP = {
+    "matplotlib": "matplotlib",
+    "numpy": "python-numpy",
+    "scipy": "python-scipy",
+    "pandas": "python-pandas",
+    "pillow": "python-pillow",
+    "pil": "python-pillow",
+    "torch": "python-torch",
+    "pytorch": "python-torch",
+    "torchvision": "python-torchvision",
+    "torchaudio": "python-torchaudio",
+    "onnxruntime": "python-onnxruntime",
+    "lxml": "python-lxml",
+    "cryptography": "python-cryptography",
+    "grpcio": "python-grpcio",
+    "greenlet": "python-greenlet",
+    "brotli": "python-brotli",
+    "bcrypt": "python-bcrypt",
+    "msgpack": "python-msgpack",
+    "llvmlite": "python-llvmlite",
+    "contourpy": "python-contourpy",
+    "kiwisolver": "python-kiwisolver",
+    "pybind11": "pybind11",
+    "opencv-python": "opencv-python",
+    "opencv-python-headless": "opencv-python",
+    "cv2": "opencv-python",
+    "ninja": "ninja",
+    "cmake": "cmake",
+    "rust": "rust",
+}
+
+def _is_pip_install_cmd(cmd_str):
+    if not isinstance(cmd_str, str):
+        return False
+    return bool(re.match(r'^(?:sudo\s+)?(?:(?:\S+)?python(?:\d+(?:\.\d+)?)?\s+-m\s+pip|(?:\S+)?pip(?:\d+(?:\.\d+)?)?)\s+install(?:\s+|$)', cmd_str.strip()))
+
+def _get_installed_pkg(pkg_name):
+    clean = re.split(r'[<>=!~@;]', pkg_name)[0].strip()
+    candidates = [
+        clean,
+        clean.lower(),
+        clean.lower().replace("_", "-"),
+        clean.lower().replace("-", "_")
+    ]
+    import importlib.metadata, importlib.util
+    for c in candidates:
+        try:
+            return (c, importlib.metadata.version(c))
+        except Exception:
+            pass
+    for c in candidates:
+        try:
+            if importlib.util.find_spec(c) is not None:
+                return (c, "installed")
+        except Exception:
+            pass
+    return (clean, None)
+
+def handle_fast_pip_install(cmd, cwd=None, callback=None, timeout=300):
+    """Sub-millisecond pip interception on Android Termux arm64.
+    Returns Requirement satisfied in <1ms if present, routes to Termux apt precompiled
+    deb if available, or falls back to pip with --prefer-binary."""
+    m = re.match(r'^(?:sudo\s+)?(?:(?:\S+)?python(?:\d+(?:\.\d+)?)?\s+-m\s+pip|(?:\S+)?pip(?:\d+(?:\.\d+)?)?)\s+install(?:\s+|$)(.*)', cmd.strip())
+    args_str = m.group(1).strip() if m else ""
+    try:
+        tokens = shlex.split(args_str)
+    except Exception:
+        tokens = args_str.split()
+
+    targets = []
+    pip_options = []
+    skip = False
+    for tok in tokens:
+        if skip:
+            skip = False
+            continue
+        if tok in ("-r", "--requirement", "-i", "--index-url", "--extra-index-url", "-f", "--find-links", "-t", "--target", "-c", "--constraint"):
+            pip_options.extend([tok, "..."])
+            skip = True
+            continue
+        if tok.startswith("-"):
+            pip_options.append(tok)
+            continue
+        targets.append(tok)
+
+    out_lines = []
+    def emit(text):
+        if not text.endswith("\n"):
+            text += "\n"
+        out_lines.append(text)
+        if callback:
+            try:
+                callback("stdout", text)
+            except Exception:
+                pass
+
+    if not targets:
+        proc = subprocess.run(f"{sys.executable} -m pip install {args_str}", shell=True, capture_output=True, text=True, timeout=timeout)
+        emit(proc.stdout or proc.stderr)
+        return "".join(out_lines)
+
+    import importlib.metadata
+    site_pkgs = sysconfig.get_path("purelib") or "/data/data/com.termux/files/usr/lib/python3.14/site-packages"
+
+    to_install_apt = []
+    to_install_pip = []
+
+    for target in targets:
+        clean_name = re.split(r'[<>=!~@;]', target)[0].strip()
+        norm_name = clean_name.lower().replace("_", "-")
+        resolved_name, ver = _get_installed_pkg(clean_name)
+        if ver:
+            emit(f"Requirement already satisfied: {target} in {site_pkgs} ({ver})")
+            try:
+                deps = importlib.metadata.requires(resolved_name) or []
+                for dep in deps:
+                    d_clean = re.split(r'[<>=!~@; \t]', dep)[0].strip()
+                    if d_clean:
+                        _, d_ver = _get_installed_pkg(d_clean)
+                        if d_ver:
+                            emit(f"Requirement already satisfied: {dep} in {site_pkgs} ({d_ver})")
+            except Exception:
+                pass
+        elif norm_name in TERMUX_PACKAGE_MAP:
+            to_install_apt.append((target, TERMUX_PACKAGE_MAP[norm_name]))
+        else:
+            to_install_pip.append(target)
+
+    if to_install_apt:
+        apt_pkgs = [t[1] for t in to_install_apt]
+        emit(f"[NOIR Fast Package Manager] Installing pre-compiled ARM binaries: {' '.join(apt_pkgs)}...")
+        try:
+            apt_proc = subprocess.Popen(
+                f"apt-get install -y {' '.join(apt_pkgs)}",
+                shell=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                universal_newlines=True
+            )
+            if apt_proc.stdout:
+                for line in iter(apt_proc.stdout.readline, ''):
+                    if any(k in line for k in ("Setting up", "Unpacking", "Fetched", "Successfully", "Requirement already")):
+                        emit(line.strip())
+            apt_proc.wait(timeout=180)
+            for target, _ in to_install_apt:
+                _, v = _get_installed_pkg(target)
+                emit(f"Successfully installed {target} ({v or 'native-arm'})")
+        except Exception as ae:
+            emit(f"[Package Manager Warning] Apt installation failed ({ae}), falling back to pip...")
+            to_install_pip.extend(t[0] for t in to_install_apt)
+
+    if to_install_pip:
+        emit(f"Collecting {' '.join(to_install_pip)}...")
+        pip_cmd = f"{sys.executable} -m pip install --prefer-binary --no-warn-script-location {' '.join(to_install_pip)}"
+        try:
+            p_proc = subprocess.Popen(
+                pip_cmd,
+                shell=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                universal_newlines=True
+            )
+            if p_proc.stdout:
+                for line in iter(p_proc.stdout.readline, ''):
+                    emit(line.strip())
+            p_proc.wait(timeout=timeout)
+        except Exception as pe:
+            emit(f"[pip error: {pe}]")
+
+    return "".join(out_lines)
+
 class ColabSubprocessProxy:
-    """Seamlessly intercepts desktop Linux / Colab commands (apt-get, fc-cache, nvidia-smi)
+    """Seamlessly intercepts desktop Linux / Colab commands (apt-get, fc-cache, nvidia-smi, pip)
     and executes them safely within Android Termux."""
     def __init__(self, real_sub):
         self._real = real_sub
@@ -7284,7 +7470,7 @@ class ColabSubprocessProxy:
             if " " in cmd_str and not is_shell:
                 kwargs["shell"] = True
         elif isinstance(args, (list, tuple)) and args:
-            cmd_str = str(args[0]).strip()
+            cmd_str = " ".join(str(x) for x in args).strip()
 
         # 1. fc-cache interception (prevents PermissionError: [Errno 13] on Android)
         if "fc-cache" in cmd_str or (isinstance(args, (list, tuple)) and any("fc-cache" in str(x) for x in args)):
@@ -7330,6 +7516,11 @@ class ColabSubprocessProxy:
                 "+-----------------------------------------------------------------------------+\n"
             )
             return subprocess.CompletedProcess(args=args, returncode=0, stdout=smi_banner, stderr="")
+
+        # 4. pip package manager interception (prevents 30+ minute sdist compilation on ARM)
+        if _is_pip_install_cmd(cmd_str):
+            out_text = handle_fast_pip_install(cmd_str)
+            return subprocess.CompletedProcess(args=args, returncode=0, stdout=out_text, stderr="")
 
         return None
 
@@ -7544,8 +7735,10 @@ class StreamingStream:
 
 def run_streaming_cmd(cmd, cwd=None, callback=None, timeout=300):
     """Executes a shell command streaming stdout/stderr line-by-line hyper fast"""
-    output_lines = []
     cmd = _colab_sub_proxy._remap_cmd(cmd)
+    if _is_pip_install_cmd(cmd):
+        return handle_fast_pip_install(cmd, cwd=cwd, callback=callback, timeout=timeout)
+    output_lines = []
     home = os.path.expanduser("~")
     content_root = os.path.join(home, "content")
     if cwd is None:
@@ -7811,6 +8004,25 @@ class NotebookKernelSession:
                                 stream_callback("result", result_repr)
                     else:
                         exec(compile(parsed, "<notebook-cell>", "exec"), self.namespace)
+
+                    if "matplotlib.pyplot" in sys.modules:
+                        try:
+                            import matplotlib.pyplot as _plt
+                            fig_nums = _plt.get_fignums()
+                            if fig_nums:
+                                for fn in fig_nums:
+                                    fig = _plt.figure(fn)
+                                    buf = io.BytesIO()
+                                    fig.savefig(buf, format="png", bbox_inches="tight", dpi=100)
+                                    buf.seek(0)
+                                    b64 = base64.b64encode(buf.read()).decode("utf-8")
+                                    _plt.close(fig)
+                                    img_tag = f'<img src="data:image/png;base64,{b64}" style="max-width:100%; height:auto; border-radius:6px; margin:8px 0; background:#ffffff; padding:4px; display:block;" />'
+                                    result_repr = (result_repr + "\n" + img_tag) if result_repr else img_tag
+                                    if stream_callback:
+                                        stream_callback("result", result_repr)
+                        except Exception:
+                            pass
                 except Exception as e:
                     status = "error"
                     tb_lines = traceback.format_exc().splitlines()

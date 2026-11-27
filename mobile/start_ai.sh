@@ -129,6 +129,7 @@ while true; do
         cp -f "$REPO/mobile/gateway.py" "$HOME/gateway.py" 2>/dev/null || true
         cp -f "$REPO/mobile/gridlock.py" "$HOME/gridlock.py" 2>/dev/null || true
         cp -f "$REPO/monopoly.html" "$HOME/monopoly.html" 2>/dev/null || true
+        cp -f "$REPO/notebook.html" "$HOME/notebook.html" 2>/dev/null || true
         cp -f "$REPO/docs.html" "$HOME/docs.html" 2>/dev/null || true
         cp -f "$REPO/swades.py" "$HOME/swades.py" 2>/dev/null || true
         cp -f "$REPO/swades.js" "$HOME/swades.js" 2>/dev/null || true

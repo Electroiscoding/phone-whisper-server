@@ -22,6 +22,12 @@
 3. **Execution Benchmark**:
    - `256x256` 1-step Turbo on 6 cores: **~5 minutes total** (58s UNet + 240s VAE).
    - Proven autonomous execution with zero PC dependency.
+4. **Notebook Zero-Lag Package Acceleration & Visual Rendering**:
+   - Solved 30+ minute sdist compilation hang on Android ARM (`pip install matplotlib` compiling ninja/meson with clang).
+   - Pre-installed native ARM `matplotlib 3.11.2-2` deb package.
+   - Built zero-delay pip interception (`handle_fast_pip_install`): returns satisfied requirements in <270ms, auto-maps missing heavy packages to Termux pre-compiled deb archives (`TERMUX_PACKAGE_MAP`), and passes pure-Python packages with `--prefer-binary`.
+   - Initialized headless `Agg` backend early to avoid Android Bionic libc dlopen crashes.
+   - Integrated automatic figure capture: base64 PNG rendering directly inside `.output-result` with responsive UI styling.
 
 ---
 

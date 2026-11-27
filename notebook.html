@@ -863,6 +863,17 @@
       padding-top: 6px;
     }
 
+    .output-result img {
+      max-width: 100%;
+      height: auto;
+      display: block;
+      border-radius: 6px;
+      margin: 8px 0;
+      background: #ffffff;
+      padding: 4px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    }
+
     .output-error {
       color: #fca5a5;
       background: rgba(239, 68, 68, 0.1);
@@ -1938,7 +1949,7 @@
             <div class="cell-output-area">
               ${cell.output.stdout ? `<div class="output-stdout">${escapeHtml(cell.output.stdout)}</div>` : ''}
               ${cell.output.stderr ? `<div class="output-stderr"><div class="output-stderr-header"><span class="material-symbols-outlined" style="font-size:14px;">warning</span>Warning / Stderr</div><div>${escapeHtml(cell.output.stderr)}</div></div>` : ''}
-              ${cell.output.result ? `<div class="output-result">${escapeHtml(cell.output.result)}</div>` : ''}
+              ${cell.output.result ? `<div class="output-result">${(typeof cell.output.result === "string" && (cell.output.result.startsWith("<img") || cell.output.result.includes("<img src=\"data:image/") || cell.output.result.startsWith("<div") || cell.output.result.startsWith("<svg") || cell.output.result.startsWith("<table"))) ? cell.output.result : escapeHtml(cell.output.result)}</div>` : ''}
               ${cell.output.error ? `<div class="output-error"><div class="output-error-header"><span class="material-symbols-outlined" style="font-size:14px;">error</span>Error Traceback</div><div>${escapeHtml(formatTraceback(cell.output.error))}</div></div>` : ''}
               <div class="output-time">
                 <span class="material-symbols-outlined" style="font-size: 13px;">schedule</span>
@@ -2263,7 +2274,11 @@
                 cell.output.result = event.result;
                 if (resultEl) {
                   resultEl.style.display = "block";
-                  resultEl.textContent = event.result;
+                  if (typeof event.result === "string" && (event.result.startsWith("<img") || event.result.includes("<img src=\"data:image/") || event.result.startsWith("<div") || event.result.startsWith("<svg") || event.result.startsWith("<table"))) {
+                    resultEl.innerHTML = event.result;
+                  } else {
+                    resultEl.textContent = event.result;
+                  }
                   outputArea.scrollTop = outputArea.scrollHeight;
                 }
               } else if (event.type === "error") {
@@ -2340,7 +2355,11 @@
           }
           if (resultEl && cell.output.result) {
             resultEl.style.display = "block";
-            resultEl.textContent = cell.output.result;
+            if (typeof cell.output.result === "string" && (cell.output.result.startsWith("<img") || cell.output.result.includes("<img src=\"data:image/") || cell.output.result.startsWith("<div") || cell.output.result.startsWith("<svg") || cell.output.result.startsWith("<table"))) {
+              resultEl.innerHTML = cell.output.result;
+            } else {
+              resultEl.textContent = cell.output.result;
+            }
           }
           if (errorEl && cell.output.error) {
             errorEl.style.display = "block";
